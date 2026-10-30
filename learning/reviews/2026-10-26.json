@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "week": "2026-10-26",
+  "checkpoints": [
+    {
+      "at": "2026-10-29T03:35:37+00:00",
+      "phase": "planning",
+      "audience": {
+        "latestPull": "2026-10-28T00:15:00+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-10-28T00:15:00Z",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 1.0303472222222223,
+            "reach": 181.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4733727810650888,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0055248618784530384
+          }
+        ],
+        "sevenDayWindow": [],
+        "under48Hours": 1,
+        "preliminary": 0,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": []
+      },
+      "feedback": [],
+      "experiments": [],
+      "batch": [],
+      "notes": {},
+      "schedulingComplete": false
+    },
+    {
+      "at": "2026-10-29T03:36:42.375152+00:00",
+      "phase": "planning",
+      "audience": {
+        "latestPull": "2026-10-28T00:15:00+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-10-28T00:15:00Z",
+            "snapshot": "analytics/2026-10-28T001500.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 1.0303472222222223,
+            "reach": 181.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4733727810650888,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0055248618784530384
+          }
+        ],
+        "sevenDayWindow": [],
+        "under48Hours": 1,
+        "preliminary": 0,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": []
+      },
+      "feedback": [],
+      "experiments": [],
+      "batch": [],
+      "notes": {
+        "strengths": [
+          "production: the existing Metricool snapshot matched 2026-10-26-golden-bridge, so analytics can already be linked to a local reel; see analytics/2026-10-28T001500.json and this week's review audience evidence"
+        ],
+        "weaknesses": [
+          "audience: the only matched reel was 1.03 days old at collection, with no seven-day-window samples; no winning format, hook or music can be inferred",
+          "production: 2026-10-26-golden-bridge has no format label in the captured plan, limiting format comparisons",
+          "preferences/production: historical edits, rejection reasons and render effort have not been recorded in the new feedback log; do not treat this absence as zero problems"
+        ],
+        "decisions": [
+          "refresh analytics at the next weekly planning checkpoint and compare collection-age windows before interpreting audience results",
+          "set the existing required format field on every new plan; do not invent a format for the old reel without inspecting it",
+          "read learning records before planning, record actual feedback and production issues as they occur, and close the next intended scheduling batch with its explicit slugs",
+          "register any future experiment before rendering its test reels; no experiment or creative preference is inferred from this setup conversation"
+        ],
+        "proposals": [],
+        "lessons": []
+      },
+      "schedulingComplete": false
+    }
+  ]
+}

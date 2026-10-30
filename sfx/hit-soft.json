@@ -1,0 +1,19 @@
+{
+  "slug": "hit-soft",
+  "name": "hit-soft",
+  "category": "hit",
+  "file": "sfx/hit-soft.wav",
+  "duration": 0.264,
+  "channels": 1,
+  "loudness": null,
+  "peak": -5.9,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/536768/",
+  "author": "egomassive",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:19+00:00",
+  "tags": [
+    "thump",
+    "soft"
+  ]
+}

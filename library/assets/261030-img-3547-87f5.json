@@ -1,0 +1,82 @@
+{
+  "id": "261030-img-3547-87f5",
+  "kind": "video",
+  "media": "library/media/261030-img-3547-87f5.mov",
+  "originalName": "IMG_3547.mov",
+  "hash": "87f5853b850eac429ac5fdca4708fc311c7bf7e8",
+  "created": "2026-10-30T07:01:59",
+  "ingestedAt": "2026-10-30T14:24:08+00:00",
+  "probe": {
+    "duration": 10.7,
+    "width": 2160,
+    "height": 3840,
+    "fps": 24.393,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-30T07:01:59-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 2,
+    "issues": [
+      "dark",
+      "blurry",
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Night selfie while riding, says they are out early before the sun, ends with nothing better",
+    "hooks": [
+      "out before the sun again"
+    ],
+    "moments": [
+      {
+        "in": 0.6,
+        "out": 10.7,
+        "label": "line to camera: out early before the sun, nothing better",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261030-img-3547-87f5.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -21.5,
+      "peakDb": -0.9
+    },
+    "speechSeconds": 7.87,
+    "speechRanges": [
+      [
+        0.89,
+        2.98
+      ],
+      [
+        3.67,
+        6.44
+      ],
+      [
+        6.74,
+        8.23
+      ],
+      [
+        9.18,
+        10.7
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261030-img-3547-87f5.jpg"
+  ],
+  "taggedAt": "2026-10-30T14:25:16+00:00"
+}

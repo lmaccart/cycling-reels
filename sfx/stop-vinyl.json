@@ -1,0 +1,20 @@
+{
+  "slug": "stop-vinyl",
+  "name": "stop-vinyl",
+  "category": "stop",
+  "file": "sfx/stop-vinyl.wav",
+  "duration": 0.515,
+  "channels": 1,
+  "loudness": -18.5,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/842582/",
+  "author": "loganzsound",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:21+00:00",
+  "tags": [
+    "vinyl",
+    "slowdown",
+    "pitch-down"
+  ]
+}

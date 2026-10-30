@@ -1,0 +1,83 @@
+{
+  "id": "261029-img-3544-672e",
+  "kind": "video",
+  "media": "library/media/261029-img-3544-672e.mov",
+  "originalName": "IMG_3544.mov",
+  "hash": "672e0a286768768eb417cb027bf807d1d4abf826",
+  "created": "2026-10-29T15:48:53",
+  "ingestedAt": "2026-10-29T21:01:31+00:00",
+  "probe": {
+    "duration": 19.378,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.912,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T15:48:53-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "bike-check",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky",
+      "blurry"
+    ],
+    "people": "none",
+    "summary": "Handheld walk-around of the teal Factor Monza on its stand in my room, Black Inc wheels, white shoes on the floor",
+    "hooks": [
+      "the bike before intervals",
+      "she lives in my room"
+    ],
+    "moments": [
+      {
+        "in": 0.5,
+        "out": 3.0,
+        "label": "rear wheel and shoes on the floor",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 6.5,
+        "out": 12.5,
+        "label": "sweeps along the frame and drivetrain on the stand",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 13.0,
+        "out": 16.5,
+        "label": "close on the Black Inc rear wheel and dropout",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -56.6,
+      "peakDb": -38.2
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261029-img-3544-672e.jpg"
+  ],
+  "taggedAt": "2026-10-29T21:02:07+00:00"
+}

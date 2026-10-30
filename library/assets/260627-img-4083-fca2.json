@@ -1,0 +1,69 @@
+{
+  "id": "260627-img-4083-fca2",
+  "kind": "video",
+  "media": "library/media/260627-img-4083-fca2.mov",
+  "originalName": "IMG_4083.MOV",
+  "hash": "fca2ff3b5134ee1f8fa5dbd3fb31592bc6fd0679",
+  "created": "2026-06-27T10:19:29",
+  "ingestedAt": "2026-10-26T03:02:25+00:00",
+  "probe": {
+    "duration": 6.633,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-27T10:19:29-0700"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "scenery",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Pan across a narrow road through redwoods, some motion blur",
+    "hooks": [],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 2.2,
+        "label": "narrow road into the redwoods",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 3.6,
+        "out": 6.6,
+        "label": "pan across the trees back to the road",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -54.3,
+      "peakDb": -36.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260627-img-4083-fca2.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

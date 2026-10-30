@@ -1,0 +1,63 @@
+{
+  "id": "260805-img-3129-fc4a",
+  "kind": "video",
+  "media": "library/media/260805-img-3129-fc4a.mov",
+  "originalName": "IMG_3129.MOV",
+  "hash": "fc4a87f89cd21b756acd6bbdd8d3b89b87051d08",
+  "created": "2026-08-05T09:25:41",
+  "ingestedAt": "2026-10-26T03:02:14+00:00",
+  "probe": {
+    "duration": 5.2,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-08-05T09:25:41-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 2,
+    "issues": [],
+    "people": "none",
+    "summary": "Close-up of the Garmin head unit mid-ride",
+    "hooks": [],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 3.4,
+        "label": "garmin close-up mid-ride",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -23.2,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 0.59,
+    "speechRanges": [
+      [
+        3.19,
+        3.78
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260805-img-3129-fc4a.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:05+00:00"
+}

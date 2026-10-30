@@ -1,0 +1,91 @@
+{
+  "id": "261029-img-3533-faf8",
+  "kind": "video",
+  "media": "library/media/261029-img-3533-faf8.mov",
+  "originalName": "IMG_3533.mov",
+  "hash": "faf8a30548e48bc31af3031d446defb2df3487cc",
+  "created": "2026-10-29T06:57:09",
+  "ingestedAt": "2026-10-29T16:13:29+00:00",
+  "probe": {
+    "duration": 41.118,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.998,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T06:57:09-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "gear",
+    "shot": "static",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Kit-up in the bathroom, phone propped: bibs on, red floral jersey, socks",
+    "hooks": [
+      "getting ready for intervals before class",
+      "kit-up speedrun",
+      "the jersey is doing most of the work today"
+    ],
+    "notes": "Shirtless for the first ~8 s; no audio worth using",
+    "moments": [
+      {
+        "in": 8.5,
+        "out": 16.0,
+        "label": "pulls the red jersey on",
+        "score": 4,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 16.5,
+        "out": 24.0,
+        "label": "jersey settled, grabs the socks",
+        "score": 3,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 26.0,
+        "out": 35.5,
+        "label": "socks on, standing up",
+        "score": 3,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 37.0,
+        "out": 41.0,
+        "label": "leans into frame to stop the recording",
+        "score": 3,
+        "focusX": 0.75,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -47.4,
+      "peakDb": -17.4
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261029-img-3533-faf8.jpg"
+  ],
+  "taggedAt": "2026-10-29T16:14:52+00:00"
+}

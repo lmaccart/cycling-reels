@@ -1,0 +1,19 @@
+{
+  "slug": "scratch-record",
+  "name": "scratch-record",
+  "category": "scratch",
+  "file": "sfx/scratch-record.wav",
+  "duration": 0.301,
+  "channels": 2,
+  "loudness": null,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/274129/",
+  "author": "jameswrowles",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:21+00:00",
+  "tags": [
+    "record",
+    "dj"
+  ]
+}

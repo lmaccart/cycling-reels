@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# ./reels <command>  — runs the cycling-reels CLI with this folder's Python env.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export REELS_HOME="$HERE"
+if [ -f "$HERE/.env" ]; then set -a; . "$HERE/.env"; set +a; fi
+PY="$HERE/.venv/bin/python"
+if [ ! -x "$PY" ]; then
+  echo "No Python environment yet — run ./setup.sh first." >&2
+  exit 1
+fi
+export PYTHONPATH="$HERE/scripts${PYTHONPATH:+:$PYTHONPATH}"
+exec "$PY" -m reels "$@"

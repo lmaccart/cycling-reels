@@ -1,0 +1,119 @@
+{
+  "id": "260624-img-2763-4b77",
+  "kind": "video",
+  "media": "library/media/260624-img-2763-4b77.mov",
+  "originalName": "IMG_2763.MOV",
+  "hash": "4b77f0d657d2a9d6c4981c9308cefa9fd9711741",
+  "created": "2026-06-24T08:25:47",
+  "ingestedAt": "2026-10-26T03:01:52+00:00",
+  "probe": {
+    "duration": 15.767,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-24T08:25:47-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Long shadow on an empty road through green fields under blue sky, ends in a selfie",
+    "hooks": [
+      "just me and my shadow",
+      "the road was empty and so was my brain"
+    ],
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 4.3,
+        "label": "shadow rider on an empty road, fields and blue sky",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 8.6,
+        "out": 12.6,
+        "label": "pov over the bars chasing my own shadow",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 13.0,
+        "out": 15.77,
+        "label": "tilted selfie, big grin, sky behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ]
+  },
+  "transcript": "library/transcripts/260624-img-2763-4b77.json",
+  "used": [
+    {
+      "plan": "2026-11-01-empty-roads",
+      "at": "2026-10-26T03:24:42+00:00",
+      "in": 0.3,
+      "out": 4.3
+    },
+    {
+      "plan": "2026-11-01-empty-roads",
+      "at": "2026-10-26T03:24:42+00:00",
+      "in": 8.6,
+      "out": 10.3
+    },
+    {
+      "plan": "zz-demo-sound",
+      "at": "2026-10-28T01:22:18+00:00",
+      "in": 13.0,
+      "out": 15.6
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -18.9,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 7.72,
+    "speechRanges": [
+      [
+        3.42,
+        5.67
+      ],
+      [
+        7.16,
+        7.85
+      ],
+      [
+        8.73,
+        10.47
+      ],
+      [
+        11.54,
+        13.22
+      ],
+      [
+        13.85,
+        15.21
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260624-img-2763-4b77.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

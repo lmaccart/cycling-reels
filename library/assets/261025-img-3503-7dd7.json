@@ -1,0 +1,47 @@
+{
+  "id": "261025-img-3503-7dd7",
+  "kind": "video",
+  "media": "library/media/261025-img-3503-7dd7.mov",
+  "originalName": "IMG_3503.MOV",
+  "hash": "7dd70204c4b0482a964f62b3dd031c3f9ef70a35",
+  "created": "2026-10-25T15:45:37",
+  "ingestedAt": "2026-10-27T16:14:59+00:00",
+  "probe": {
+    "duration": 5.667,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-25T15:45:37-0500"
+  },
+  "status": "skip",
+  "tags": {
+    "skip": true,
+    "reason": "duplicate re-drop of IMG_3503 (already ingested as 261025-img-3503-659c)"
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -24.5,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 0.68,
+    "speechRanges": [
+      [
+        2.46,
+        3.14
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261025-img-3503-7dd7.jpg"
+  ],
+  "taggedAt": "2026-10-27T16:15:44+00:00"
+}

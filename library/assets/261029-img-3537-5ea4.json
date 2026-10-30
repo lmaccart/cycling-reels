@@ -1,0 +1,98 @@
+{
+  "id": "261029-img-3537-5ea4",
+  "kind": "video",
+  "media": "library/media/261029-img-3537-5ea4.mov",
+  "originalName": "IMG_3537.mov",
+  "hash": "5ea4d46f545bb86aa4e38a2a870ae55298471efd",
+  "created": "2026-10-29T08:06:36",
+  "ingestedAt": "2026-10-29T16:13:36+00:00",
+  "probe": {
+    "duration": 11.583,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T08:06:36-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Selfie between intervals: two done, feeling good, two minutes rest, one left",
+    "hooks": [
+      "two down one to go",
+      "the rest interval is never long enough",
+      "one left lets make it happen"
+    ],
+    "notes": "6.2–7.6 s the phone swings to the road/bars",
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 3.0,
+        "label": "thats two done, feeling good",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 7.8,
+        "out": 11.58,
+        "label": "one left, lets make it happen",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261029-img-3537-5ea4.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -21.4,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 7.68,
+    "speechRanges": [
+      [
+        0.31,
+        1.48
+      ],
+      [
+        1.85,
+        2.89
+      ],
+      [
+        4.31,
+        5.13
+      ],
+      [
+        6.26,
+        8.01
+      ],
+      [
+        8.31,
+        10.09
+      ],
+      [
+        10.46,
+        11.58
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261029-img-3537-5ea4.jpg"
+  ],
+  "taggedAt": "2026-10-29T16:14:53+00:00"
+}

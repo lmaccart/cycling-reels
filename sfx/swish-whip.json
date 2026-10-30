@@ -1,0 +1,19 @@
+{
+  "slug": "swish-whip",
+  "name": "swish-whip",
+  "category": "swish",
+  "file": "sfx/swish-whip.wav",
+  "duration": 0.173,
+  "channels": 2,
+  "loudness": null,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/838766/",
+  "author": "JW_Audio",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-27T23:54:14+00:00",
+  "tags": [
+    "whip",
+    "swish"
+  ]
+}

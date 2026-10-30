@@ -1,0 +1,62 @@
+{
+  "id": "261027-img-3517-56be",
+  "kind": "video",
+  "media": "library/media/261027-img-3517-56be.mov",
+  "originalName": "IMG_3517.MOV",
+  "hash": "56be38ffee57a97cf0a41e2ed4adfd8d3e56db5f",
+  "created": "2026-10-27T07:41:59",
+  "ingestedAt": "2026-10-27T16:15:03+00:00",
+  "probe": {
+    "duration": 2.8,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-27T07:41:59-0500"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "blurry"
+    ],
+    "people": "me",
+    "summary": "Teal bike in a steel elevator, computer on, doors start to open — heading out",
+    "hooks": [
+      "the elevator ride is the warm-up"
+    ],
+    "moments": [
+      {
+        "in": 1.1,
+        "out": 2.8,
+        "label": "bike in the elevator, doors opening",
+        "score": 3,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -32.4,
+      "peakDb": -12.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261027-img-3517-56be.jpg"
+  ],
+  "taggedAt": "2026-10-27T16:15:44+00:00"
+}

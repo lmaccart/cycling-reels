@@ -1,0 +1,85 @@
+{
+  "id": "261029-img-3536-db04",
+  "kind": "video",
+  "media": "library/media/261029-img-3536-db04.mov",
+  "originalName": "IMG_3536.mov",
+  "hash": "db04445ce8491fccf64e473c76c468fc98942230",
+  "created": "2026-10-29T07:51:50",
+  "ingestedAt": "2026-10-29T16:13:35+00:00",
+  "probe": {
+    "duration": 6.65,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T07:51:50-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Low selfie angle riding under trees, says the session plan: 3x12 sub-threshold, one down",
+    "hooks": [
+      "today were doing 3x12 sub threshold",
+      "the plan for this morning"
+    ],
+    "notes": "User confirmed: sub T = sub-threshold; ends with one down",
+    "moments": [
+      {
+        "in": 0.4,
+        "out": 4.0,
+        "label": "today were doing 3x12 sub T",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 0.4,
+        "out": 6.65,
+        "label": "3x12 sub T, one down",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261029-img-3536-db04.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -27.1,
+      "peakDb": -3.9
+    },
+    "speechSeconds": 3.91,
+    "speechRanges": [
+      [
+        0.82,
+        2.18
+      ],
+      [
+        2.55,
+        4.14
+      ],
+      [
+        5.69,
+        6.65
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261029-img-3536-db04.jpg"
+  ],
+  "taggedAt": "2026-10-29T16:25:29+00:00"
+}

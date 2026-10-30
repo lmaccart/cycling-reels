@@ -1,0 +1,18 @@
+{
+  "slug": "riser-1-5s",
+  "name": "riser-1-5s",
+  "category": "riser",
+  "file": "sfx/riser-1-5s.wav",
+  "duration": 1.509,
+  "channels": 2,
+  "loudness": -20.0,
+  "peak": -1.8,
+  "normalized": "-20 LUFS / -1.5 dBTP ceiling",
+  "source": "https://freesound.org/s/757504/",
+  "author": "dadudmc",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:19+00:00",
+  "tags": [
+    "riser"
+  ]
+}

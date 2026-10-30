@@ -1,0 +1,77 @@
+{
+  "id": "260627-img-4085-d971",
+  "kind": "video",
+  "media": "library/media/260627-img-4085-d971.mov",
+  "originalName": "IMG_4085.MOV",
+  "hash": "d971a7803339b43a29ba72607a457bbd02084a89",
+  "created": "2026-06-27T10:59:29",
+  "ingestedAt": "2026-10-26T03:02:26+00:00",
+  "probe": {
+    "duration": 10.633,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-27T10:59:29-0700"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "none",
+    "summary": "Smooth POV rolling down a winding road through tall redwoods",
+    "hooks": [
+      "the trees here are taller than my ftp",
+      "pov: your commute is through the redwoods"
+    ],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 5.0,
+        "label": "rolling through the redwoods",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 5.0,
+        "out": 10.6,
+        "label": "winding through the trees past a house",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-10-28-bike-trip",
+      "at": "2026-10-26T03:22:11+00:00",
+      "in": 0.4,
+      "out": 4.4
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -52.4,
+      "peakDb": -22.3
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260627-img-4085-d971.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

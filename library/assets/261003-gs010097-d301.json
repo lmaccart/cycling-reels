@@ -1,0 +1,92 @@
+{
+  "id": "261003-gs010097-d301",
+  "kind": "video",
+  "media": "library/media/261003-gs010097-d301.360",
+  "originalName": "GS010097.360",
+  "hash": "d30147352bcfdc5008db238ce02133c029aa6546",
+  "created": "2026-10-03T07:04:25",
+  "ingestedAt": "2026-10-26T03:00:40+00:00",
+  "probe": {
+    "duration": 4.075,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-03T07:04:25.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 2,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "Short 360 clip at a stop with riders in Rice kits, someone waves, a hand grabs the camera",
+    "hooks": [],
+    "notes": "360 cam upside down under the bars",
+    "angles": {
+      "road": {
+        "yaw": 180.0,
+        "pitch": 25.0,
+        "fov": 95.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 3.0,
+        "label": "crew at the stop, someone waves",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -30.6,
+      "peakDb": -7.8
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261003-gs010097-d301.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:25+00:00",
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  }
+}

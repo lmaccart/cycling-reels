@@ -1,0 +1,67 @@
+{
+  "id": "261029-img-3538-daf8",
+  "kind": "video",
+  "media": "library/media/261029-img-3538-daf8.mov",
+  "originalName": "IMG_3538.mov",
+  "hash": "daf898b36c5e85e50724c3d55ff7665b79f9ba52",
+  "created": "2026-10-29T08:21:31",
+  "ingestedAt": "2026-10-29T16:13:37+00:00",
+  "probe": {
+    "duration": 2.033,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T08:21:31-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "selfie",
+    "quality": 2,
+    "issues": [
+      "shaky",
+      "blurry"
+    ],
+    "people": "me",
+    "summary": "Two-second selfie that swings down to the hoods",
+    "hooks": [],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 1.0,
+        "label": "quick look at the face mid-effort",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -30.7,
+      "peakDb": -10.7
+    },
+    "speechSeconds": 0.78,
+    "speechRanges": [
+      [
+        0.38,
+        1.16
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261029-img-3538-daf8.jpg"
+  ],
+  "taggedAt": "2026-10-29T16:14:53+00:00"
+}

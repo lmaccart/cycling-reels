@@ -1,0 +1,19 @@
+{
+  "slug": "click-tick",
+  "name": "click-tick",
+  "category": "click",
+  "file": "sfx/click-tick.wav",
+  "duration": 0.155,
+  "channels": 2,
+  "loudness": null,
+  "peak": -5.3,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/678248/",
+  "author": "Pixeliota",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-27T23:54:15+00:00",
+  "tags": [
+    "click",
+    "tick"
+  ]
+}

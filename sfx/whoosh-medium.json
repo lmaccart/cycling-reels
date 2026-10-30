@@ -1,0 +1,19 @@
+{
+  "slug": "whoosh-medium",
+  "name": "whoosh-medium",
+  "category": "whoosh",
+  "file": "sfx/whoosh-medium.wav",
+  "duration": 0.698,
+  "channels": 2,
+  "loudness": -22.6,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/449996/",
+  "author": "DJT4NN3R",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:17+00:00",
+  "tags": [
+    "whoosh",
+    "medium"
+  ]
+}

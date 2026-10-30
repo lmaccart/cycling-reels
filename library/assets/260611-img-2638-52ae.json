@@ -1,0 +1,69 @@
+{
+  "id": "260611-img-2638-52ae",
+  "kind": "video",
+  "media": "library/media/260611-img-2638-52ae.mov",
+  "originalName": "IMG_2638.MOV",
+  "hash": "52ae9721c5e7ec3fcaf69a82d799889018b30382",
+  "created": "2026-06-11T09:54:37",
+  "ingestedAt": "2026-10-26T03:01:46+00:00",
+  "probe": {
+    "duration": 11.8,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-11T09:54:37-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "indoor",
+    "shot": "handheld",
+    "quality": 2,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Phone pan from the trainer cockpit to Zwift on the TV in a living room, rainy window",
+    "hooks": [
+      "zwift because the weather said no"
+    ],
+    "moments": [
+      {
+        "in": 1.5,
+        "out": 5.5,
+        "label": "pan from the bars up to zwift on the tv",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-10-29-first-ride-back",
+      "at": "2026-10-26T03:22:45+00:00",
+      "in": 1.5,
+      "out": 4.6
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -38.0,
+      "peakDb": -18.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260611-img-2638-52ae.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:03+00:00"
+}

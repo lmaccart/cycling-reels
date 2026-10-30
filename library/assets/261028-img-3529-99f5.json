@@ -1,0 +1,92 @@
+{
+  "id": "261028-img-3529-99f5",
+  "kind": "video",
+  "media": "library/media/261028-img-3529-99f5.mov",
+  "originalName": "IMG_3529.mov",
+  "hash": "99f502fea73da301e73eb721de62084068bc71b9",
+  "created": "2026-10-28T07:02:37",
+  "ingestedAt": "2026-10-28T16:19:17+00:00",
+  "probe": {
+    "duration": 9.667,
+    "width": 2160,
+    "height": 3840,
+    "fps": 24.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-28T07:02:37-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Selfie line to camera at dawn in kit and helmet: morning, 7am, doing two hours zone 2; looks around mid-clip",
+    "hooks": [
+      "7am and already in the kit",
+      "two hours zone 2, bright and early",
+      "pov: you said yes to the early ride"
+    ],
+    "notes": "Transcript confirmed by the user.",
+    "moments": [
+      {
+        "in": 0.6,
+        "out": 3.0,
+        "label": "\"morning, it is 7 a.m.\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 3.8,
+        "out": 9.4,
+        "label": "\"bright and early, we are doing two hours zone 2\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261028-img-3529-99f5.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -35.2,
+      "peakDb": -17.4
+    },
+    "speechSeconds": 4.74,
+    "speechRanges": [
+      [
+        0.98,
+        2.54
+      ],
+      [
+        4.09,
+        5.13
+      ],
+      [
+        6.17,
+        7.24
+      ],
+      [
+        8.06,
+        9.13
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261028-img-3529-99f5.jpg"
+  ],
+  "taggedAt": "2026-10-28T16:29:18+00:00"
+}

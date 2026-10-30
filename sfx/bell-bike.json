@@ -1,0 +1,19 @@
+{
+  "slug": "bell-bike",
+  "name": "bell-bike",
+  "category": "bell",
+  "file": "sfx/bell-bike.wav",
+  "duration": 1.4,
+  "channels": 2,
+  "loudness": -17.6,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/536554/",
+  "author": "gis_sweden",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:20+00:00",
+  "tags": [
+    "bicycle",
+    "ding"
+  ]
+}

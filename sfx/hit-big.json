@@ -1,0 +1,19 @@
+{
+  "slug": "hit-big",
+  "name": "hit-big",
+  "category": "hit",
+  "file": "sfx/hit-big.wav",
+  "duration": 0.69,
+  "channels": 1,
+  "loudness": -19.4,
+  "peak": -5.6,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/350978/",
+  "author": "cabled_mess",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:19+00:00",
+  "tags": [
+    "boom",
+    "impact"
+  ]
+}

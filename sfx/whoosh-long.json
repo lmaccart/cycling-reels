@@ -1,0 +1,19 @@
+{
+  "slug": "whoosh-long",
+  "name": "whoosh-long",
+  "category": "whoosh",
+  "file": "sfx/whoosh-long.wav",
+  "duration": 1.389,
+  "channels": 2,
+  "loudness": -20.0,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/423799/",
+  "author": "ch_ase",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:18+00:00",
+  "tags": [
+    "whoosh",
+    "long"
+  ]
+}

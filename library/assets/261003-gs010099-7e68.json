@@ -1,0 +1,182 @@
+{
+  "id": "261003-gs010099-7e68",
+  "kind": "video",
+  "media": "library/media/261003-gs010099-7e68.360",
+  "originalName": "GS010099.360",
+  "hash": "7e687e190f236eee47bbe362b8c7f73a5f32855b",
+  "created": "2026-10-03T09:05:19",
+  "ingestedAt": "2026-10-26T03:00:58+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-03T09:05:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 2,
+    "issues": [
+      "obstructed",
+      "boring"
+    ],
+    "people": "none",
+    "summary": "360 bar cam riding city streets with traffic, a smudge on the lens",
+    "hooks": [],
+    "notes": "360 cam upside down under the bars; water droplet on the lens",
+    "angles": {
+      "road": {
+        "yaw": 180.0,
+        "pitch": 25.0,
+        "fov": 95.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "in": 305.0,
+        "out": 313.0,
+        "label": "skyline in the distance",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 405.0,
+        "out": 413.0,
+        "label": "under the oaks on a quiet street",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261003-gs010099-7e68.json",
+  "used": [
+    {
+      "plan": "zz-demo-sound",
+      "at": "2026-10-28T01:22:18+00:00",
+      "in": 277.0,
+      "out": 281.867
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -20.2,
+      "peakDb": -3.0
+    },
+    "speechSeconds": 21.04,
+    "speechRanges": [
+      [
+        6.94,
+        7.82
+      ],
+      [
+        193.91,
+        194.89
+      ],
+      [
+        371.54,
+        372.07
+      ],
+      [
+        391.22,
+        393.61
+      ],
+      [
+        394.33,
+        394.98
+      ],
+      [
+        399.29,
+        400.55
+      ],
+      [
+        406.74,
+        408.74
+      ],
+      [
+        410.55,
+        411.62
+      ],
+      [
+        423.9,
+        425.86
+      ],
+      [
+        426.33,
+        427.59
+      ],
+      [
+        427.83,
+        431.88
+      ],
+      [
+        450.94,
+        452.42
+      ],
+      [
+        461.11,
+        462.92
+      ],
+      [
+        464.54,
+        465.26
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261003-gs010099-7e68-1.jpg",
+    "library/sheets/261003-gs010099-7e68-2.jpg",
+    "library/sheets/261003-gs010099-7e68-3.jpg",
+    "library/sheets/261003-gs010099-7e68-4.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:25+00:00",
+  "telemetry": "library/telemetry/261003-gs010099-7e68.json",
+  "gpsSummary": {
+    "goodSeconds": 390.0,
+    "gaps": 10,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 9.98,
+    "movingAvgSpeed": 6.48,
+    "movingSeconds": 350.6,
+    "distance": 2283.6,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -222.8,
+    "altMax": 35.2
+  }
+}

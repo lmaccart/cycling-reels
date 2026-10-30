@@ -1,0 +1,74 @@
+{
+  "id": "261028-img-3528-59f1",
+  "kind": "video",
+  "media": "library/media/261028-img-3528-59f1.mov",
+  "originalName": "IMG_3528.mov",
+  "hash": "59f11aeb4e33e7c84638b1a6837582c42460ea8e",
+  "created": "2026-10-28T07:02:27",
+  "ingestedAt": "2026-10-28T16:19:16+00:00",
+  "probe": {
+    "duration": 5.838,
+    "width": 2160,
+    "height": 3840,
+    "fps": 33.4,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-28T07:02:27-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 2,
+    "issues": [
+      "dark",
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Dark pre-dawn start: Garmin shows ROAD activity, then handheld rolling past lit buildings with the bike shadow on the path",
+    "hooks": [
+      "still dark out and we are already rolling",
+      "the start nobody sees"
+    ],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 1.3,
+        "label": "Garmin on the ROAD screen in the dark",
+        "score": 3,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 1.3,
+        "out": 5.0,
+        "label": "rolling out past the lit buildings, bike shadow",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -37.4,
+      "peakDb": -24.0
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261028-img-3528-59f1.jpg"
+  ],
+  "taggedAt": "2026-10-28T16:20:03+00:00"
+}

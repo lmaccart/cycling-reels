@@ -1,0 +1,50 @@
+{
+  "slug": "2026-10-30-chasing-the-group",
+  "postDate": "2026-10-30",
+  "hook": {
+    "text": "me chasing the group like it owes me money"
+  },
+  "segments": [
+    {
+      "asset": "260907-img-3293-99b3",
+      "moment": 0
+    },
+    {
+      "asset": "261003-gs020098-0bd2",
+      "in": 184.0,
+      "out": 188.0,
+      "view": "road"
+    },
+    {
+      "asset": "261003-gs020098-0bd2",
+      "in": 33.0,
+      "out": 37.0,
+      "view": "road"
+    },
+    {
+      "asset": "261025-img-3503-659c",
+      "text": [
+        {
+          "text": "found a friend back here",
+          "at": 0.1,
+          "for": 1.4,
+          "position": "center"
+        }
+      ],
+      "in": 3.8,
+      "out": 4.8,
+      "speed": 0.7
+    }
+  ],
+  "music": "jiglr-lapse",
+  "post": {
+    "caption": "always one wheel off the back. at least the company is good back there",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#groupride",
+      "#cyclinglife"
+    ],
+    "altText": "POV clips chasing a group of road cyclists down wide roads and tree-lined park roads, ending with a selfie with a smiling friend."
+  }
+}

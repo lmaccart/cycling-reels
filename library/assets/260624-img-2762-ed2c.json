@@ -1,0 +1,81 @@
+{
+  "id": "260624-img-2762-ed2c",
+  "kind": "video",
+  "media": "library/media/260624-img-2762-ed2c.mov",
+  "originalName": "IMG_2762.MOV",
+  "hash": "ed2c0c739d0842c966ce2708b58d3c0255c31f52",
+  "created": "2026-06-24T07:11:11",
+  "ingestedAt": "2026-10-26T03:01:50+00:00",
+  "probe": {
+    "duration": 6.967,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-24T07:11:11-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Sunny country road POV over the bars, then a grinning selfie on the move",
+    "hooks": [
+      "me pretending this is easy"
+    ],
+    "moments": [
+      {
+        "in": 1.0,
+        "out": 3.9,
+        "label": "rolling pov over the bars, sunny road",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 3.9,
+        "out": 6.97,
+        "label": "grinning selfie while riding",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ]
+  },
+  "transcript": "library/transcripts/260624-img-2762-ed2c.json",
+  "used": [
+    {
+      "plan": "2026-10-29-first-ride-back",
+      "at": "2026-10-26T03:22:45+00:00",
+      "in": 1.0,
+      "out": 5.5
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -20.5,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 2.8,
+    "speechRanges": [
+      [
+        4.12,
+        6.92
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260624-img-2762-ed2c.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

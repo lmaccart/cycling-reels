@@ -1,0 +1,18 @@
+{
+  "slug": "2026-10-31-bridges",
+  "postDate": "2026-10-31",
+  "hook": {"text": "summer was mostly bridges apparently"},
+  "segments": [
+    {"asset": "260716-img-2992-7b53", "in": 4.0, "out": 7.6},
+    {"asset": "260725-img-3035-80a4", "moment": 0, "transition": "fade"},
+    {"asset": "260725-img-3035-80a4", "in": 7.6, "out": 9.5, "captions": "transcript"},
+    {"asset": "260809-img-3164-3516", "moment": 0, "transition": "fade",
+     "text": [{"text": "and one more at dusk", "at": 0.4, "for": 2.4}]}
+  ],
+  "music": "good-day",
+  "post": {
+    "caption": "flat, windy, gorgeous. the bridge is always the best part of the loop. which one's your favorite",
+    "hashtags": ["#cycling", "#roadcycling", "#cyclingphotos", "#outsideisfree"],
+    "altText": "Handheld clips riding across long bridges over water in morning and evening light, ending in a bike lane with a city skyline at dusk."
+  }
+}

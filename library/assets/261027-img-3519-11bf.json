@@ -1,0 +1,42 @@
+{
+  "id": "261027-img-3519-11bf",
+  "kind": "video",
+  "media": "library/media/261027-img-3519-11bf.mov",
+  "originalName": "IMG_3519.MOV",
+  "hash": "11bf84046d1cba947c6a8ba44cc342db81934193",
+  "created": "2026-10-27T07:45:00",
+  "ingestedAt": "2026-10-27T16:15:06+00:00",
+  "probe": {
+    "duration": 10.0,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-27T07:45:00-0500"
+  },
+  "status": "skip",
+  "tags": {
+    "skip": true,
+    "reason": "phone swinging while riding: thigh, stem and upside-down road, nothing usable"
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -34.2,
+      "peakDb": -16.7
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261027-img-3519-11bf.jpg"
+  ],
+  "taggedAt": "2026-10-27T16:15:44+00:00"
+}

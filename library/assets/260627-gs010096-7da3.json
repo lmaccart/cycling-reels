@@ -1,0 +1,125 @@
+{
+  "id": "260627-gs010096-7da3",
+  "kind": "video",
+  "media": "library/media/260627-gs010096-7da3.360",
+  "originalName": "GS010096.360",
+  "hash": "7da34d414a9a810ef7cb0856d5c95e3b416ff8d8",
+  "created": "2026-06-27T09:41:55",
+  "ingestedAt": "2026-10-26T03:00:35+00:00",
+  "probe": {
+    "duration": 76.459,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-27T09:41:55.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "360 bar cam on a tree-lined road with a rider ahead, rolling up to the group at the end",
+    "hooks": [
+      "pov: my camera can see me suffering"
+    ],
+    "notes": "360 cam hangs upside down under the bars: road ahead = yaw 180 with roll 180",
+    "angles": {
+      "road": {
+        "yaw": 180.0,
+        "pitch": 25.0,
+        "fov": 95.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "in": 5.0,
+        "out": 11.0,
+        "label": "road ahead past a crossroads sign",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 36.0,
+        "out": 44.0,
+        "label": "under the oak canopy, rider up the road",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 70.0,
+        "out": 76.0,
+        "label": "rolling up to the group",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -17.1,
+      "peakDb": -5.2
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260627-gs010096-7da3-1.jpg",
+    "library/sheets/260627-gs010096-7da3-2.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:25+00:00",
+  "telemetry": "library/telemetry/260627-gs010096-7da3.json",
+  "gpsSummary": {
+    "goodSeconds": 28.8,
+    "gaps": 3,
+    "first": 0.0,
+    "last": 71.8,
+    "maxSpeed": 15.84,
+    "movingAvgSpeed": 9.85,
+    "movingSeconds": 28.0,
+    "distance": 275.8,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 170.0,
+    "altMax": 268.2
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "brand": {
+    "handle": "@yourhandle",
+    "textStyle": "light",
+    "captionStyle": "native",
+    "accent": "#FFE14D",
+    "endCard": false,
+    "endCardCta": "follow for more rides"
+  },
+  "schedule": {
+    "timezone": "America/Chicago",
+    "times": ["18:30"]
+  },
+  "transcription": {
+    "model": "small.en",
+    "language": "en",
+    "keyterms": [
+      "crit", "criterium", "peloton", "breakaway", "attack", "paceline", "echelon", "draft",
+      "KOM", "QOM", "Strava", "Zwift", "FTP", "watts", "cadence", "bonk",
+      "Specialized", "Trek", "Canyon", "Cervelo", "Garmin", "Wahoo"
+    ]
+  },
+  "hashtags": {
+    "always": ["#cycling", "#roadcycling"],
+    "pool": [
+      "#roadbike", "#bikelife", "#cyclinglife", "#cyclist", "#ridebikes",
+      "#bikeracing", "#crit", "#outsideisfree", "#cyclingphotos", "#bikeporn"
+    ]
+  },
+  "render": {
+    "crf": 20,
+    "hookSeconds": 2.6,
+    "endCardSeconds": 1.6,
+    "loudness": -14,
+    "concurrency": null,
+    "browserExecutable": null,
+    "punchStageScale": 1.4
+  },
+  "audio": {
+    "musicVolume": 0.5,
+    "ambientVolume": 0.15,
+    "ambientVolumeNoMusic": 0.8,
+    "speechVolume": 1.0,
+    "duckVolume": 0.18,
+    "natVolume": 1.0,
+    "natMusicVolume": 0.2,
+    "cleanNat": true,
+    "rideOnlyMaxBoost": 12
+  },
+  "sfx": {
+    "gain": 0.7,
+    "auto": true,
+    "autoSpacing": 1.5,
+    "autoMax": 4,
+    "autoRules": {
+      "transition": "whoosh-medium",
+      "cameraMove": "whoosh-long",
+      "textBeat": {"sound": "pop-soft", "gain": 0.45},
+      "payoff": "hit-big",
+      "payoffRiser": {"sound": "riser-1-5s", "gain": 0.5},
+      "punchIn": "swish-whip"
+    }
+  },
+  "captions": {
+    "maxWordsPerPage": 6,
+    "maxCharsPerPage": 32
+  },
+  "units": "imperial",
+  "ingest": {
+    "moveOriginals": true
+  },
+  "upload": {
+    "endpoint": null,
+    "bucket": null,
+    "prefix": "reels/",
+    "publicBaseUrl": null
+  }
+}

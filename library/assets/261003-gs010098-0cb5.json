@@ -1,0 +1,234 @@
+{
+  "id": "261003-gs010098-0cb5",
+  "kind": "video",
+  "media": "library/media/261003-gs010098-0cb5.360",
+  "originalName": "GS010098.360",
+  "hash": "0cb5390cedf7fbb589743b922888a40d733422ba",
+  "created": "2026-10-03T08:25:46",
+  "ingestedAt": "2026-10-26T03:00:41+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-03T08:25:46.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "360 bar cam in a group ride on park roads under oaks and pines, riders passing and pulling",
+    "hooks": [
+      "pov: the group ride was supposed to be chill",
+      "pov: my camera can see behind me"
+    ],
+    "notes": "360 cam upside down under the bars; riders mostly from behind",
+    "angles": {
+      "road": {
+        "yaw": 180.0,
+        "pitch": 25.0,
+        "fov": 95.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "in": 104.0,
+        "out": 110.0,
+        "label": "on a wheel under the oaks",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 124.0,
+        "out": 130.0,
+        "label": "sitting in, line of riders ahead",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 144.0,
+        "out": 150.0,
+        "label": "two riders ahead under the trees",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 244.0,
+        "out": 250.0,
+        "label": "riders come past on both sides",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 445.0,
+        "out": 451.0,
+        "label": "paceline under big pines",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 475.0,
+        "out": 481.0,
+        "label": "group ahead around the bend",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261003-gs010098-0cb5.json",
+  "used": [
+    {
+      "plan": "2026-10-27-group-ride-chill",
+      "at": "2026-10-26T03:21:23+00:00",
+      "in": 125.0,
+      "out": 129.0
+    },
+    {
+      "plan": "2026-10-27-group-ride-chill",
+      "at": "2026-10-26T03:21:23+00:00",
+      "in": 244.0,
+      "out": 250.0
+    },
+    {
+      "plan": "2026-10-27-group-ride-chill",
+      "at": "2026-10-26T03:21:23+00:00",
+      "in": 445.0,
+      "out": 450.5
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -18.9,
+      "peakDb": -4.4
+    },
+    "speechSeconds": 26.76,
+    "speechRanges": [
+      [
+        183.45,
+        184.23
+      ],
+      [
+        189.98,
+        190.7
+      ],
+      [
+        192.31,
+        193.74
+      ],
+      [
+        195.61,
+        196.3
+      ],
+      [
+        196.86,
+        197.51
+      ],
+      [
+        197.85,
+        201.45
+      ],
+      [
+        201.91,
+        202.82
+      ],
+      [
+        204.12,
+        206.95
+      ],
+      [
+        207.29,
+        208.07
+      ],
+      [
+        211.0,
+        212.26
+      ],
+      [
+        212.89,
+        220.58
+      ],
+      [
+        220.95,
+        221.9
+      ],
+      [
+        225.3,
+        225.96
+      ],
+      [
+        253.3,
+        254.02
+      ],
+      [
+        255.38,
+        256.42
+      ],
+      [
+        258.01,
+        258.86
+      ],
+      [
+        340.31,
+        341.51
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261003-gs010098-0cb5-1.jpg",
+    "library/sheets/261003-gs010098-0cb5-2.jpg",
+    "library/sheets/261003-gs010098-0cb5-3.jpg",
+    "library/sheets/261003-gs010098-0cb5-4.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:25+00:00",
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "id": "260627-img-2804-0b3e",
+  "kind": "video",
+  "media": "library/media/260627-img-2804-0b3e.mov",
+  "originalName": "IMG_2804.MOV",
+  "hash": "0b3ed8253517ae1d2ad05c379abdbf7ed5eef6b5",
+  "created": "2026-06-27T11:42:26",
+  "ingestedAt": "2026-10-26T03:01:57+00:00",
+  "probe": {
+    "duration": 6.433,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-27T11:42:26-0700"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "chase",
+    "quality": 4,
+    "issues": [],
+    "people": "others",
+    "summary": "Handheld shot of a riding buddy in a coral jersey on a ridge road with forested hills behind",
+    "hooks": [
+      "the views up here are unfair"
+    ],
+    "moments": [
+      {
+        "in": 2.2,
+        "out": 5.9,
+        "label": "buddy riding the ridge, hills behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ]
+  },
+  "transcript": "library/transcripts/260627-img-2804-0b3e.json",
+  "used": [
+    {
+      "plan": "2026-10-28-bike-trip",
+      "at": "2026-10-26T03:22:11+00:00",
+      "in": 2.4,
+      "out": 5.6
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -24.8,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 5.81,
+    "speechRanges": [
+      [
+        0.0,
+        4.74
+      ],
+      [
+        5.34,
+        6.41
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260627-img-2804-0b3e.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

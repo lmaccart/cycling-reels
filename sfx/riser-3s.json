@@ -1,0 +1,19 @@
+{
+  "slug": "riser-3s",
+  "name": "riser-3s",
+  "category": "riser",
+  "file": "sfx/riser-3s.wav",
+  "duration": 2.77,
+  "channels": 2,
+  "loudness": -20.0,
+  "peak": -8.7,
+  "normalized": "-20 LUFS / -1.5 dBTP ceiling",
+  "source": "https://freesound.org/s/685256/",
+  "author": "syntheffects",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:18+00:00",
+  "tags": [
+    "riser",
+    "synth"
+  ]
+}

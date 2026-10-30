@@ -1,0 +1,74 @@
+{
+  "id": "261028-img-3530-aa11",
+  "kind": "video",
+  "media": "library/media/261028-img-3530-aa11.mov",
+  "originalName": "IMG_3530.mov",
+  "hash": "aa113d226d16096e95206f1c262e14772e0d586d",
+  "created": "2026-10-28T07:36:02",
+  "ingestedAt": "2026-10-28T16:19:19+00:00",
+  "probe": {
+    "duration": 9.527,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.937,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-28T07:36:02-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "others",
+    "summary": "Handheld POV over the bars chasing a rider with a red tail light down a park road at dusk, ends whip-panning into the bushes",
+    "hooks": [
+      "chasing a tail light at 7am",
+      "pov: you said you would take it easy"
+    ],
+    "notes": "Rider ahead seen only from behind (not identifiable). Last 2s is a blur pan — unusable except as a whip transition.",
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 2.4,
+        "label": "look down at the bars and Garmin, mint frame",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 1.6,
+        "out": 6.4,
+        "label": "chasing the rider with the red tail light round the bend",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -36.3,
+      "peakDb": -9.3
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261028-img-3530-aa11.jpg"
+  ],
+  "taggedAt": "2026-10-28T16:20:04+00:00"
+}

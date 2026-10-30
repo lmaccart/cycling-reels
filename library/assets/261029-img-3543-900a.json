@@ -1,0 +1,106 @@
+{
+  "id": "261029-img-3543-900a",
+  "kind": "video",
+  "media": "library/media/261029-img-3543-900a.mov",
+  "originalName": "IMG_3543.mov",
+  "hash": "900a5c1eb5c0531e1fb74ebe0ead1f3a7a7ac85a",
+  "created": "2026-10-29T15:46:25",
+  "ingestedAt": "2026-10-29T21:01:28+00:00",
+  "probe": {
+    "duration": 45.885,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.998,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T15:46:25-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "static",
+    "quality": 3,
+    "issues": [
+      "boring"
+    ],
+    "people": "me",
+    "summary": "Static phone on the bed in my room: walk up talking into a small handheld mic, swap shirts, gesture around, point at the bike, then grab the phone. Mic audio is not in the file (flat room tone only)",
+    "hooks": [
+      "getting ready to ride",
+      "giving a tour nobody asked for"
+    ],
+    "notes": "Talking into a wireless mic but the phone file has no voice, only a flat noise floor around -44 dB. Usable as silent b-roll unless the mic recording turns up",
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 4.0,
+        "label": "walks up to the camera holding the mic",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 12.5,
+        "out": 19.5,
+        "label": "swaps shirts by the bike",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 20.5,
+        "out": 26.0,
+        "label": "talks into the mic, shrugs and gestures at the room",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 26.5,
+        "out": 34.5,
+        "label": "walks up talking into the mic and points at the bike",
+        "score": 3,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 41.5,
+        "out": 45.88,
+        "label": "grabs the phone, close-up with the mic",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -44.8,
+      "peakDb": -12.9
+    },
+    "speechSeconds": 1.45,
+    "speechRanges": [
+      [
+        1.21,
+        2.66
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261029-img-3543-900a.jpg"
+  ],
+  "taggedAt": "2026-10-29T21:03:07+00:00"
+}

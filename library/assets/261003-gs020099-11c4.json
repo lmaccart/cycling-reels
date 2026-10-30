@@ -1,0 +1,302 @@
+{
+  "id": "261003-gs020099-11c4",
+  "kind": "video",
+  "media": "library/media/261003-gs020099-11c4.360",
+  "originalName": "GS020099.360",
+  "hash": "11c47ac03fd30a90f05a2a37d22bb6c46428452f",
+  "created": "2026-10-03T09:05:19",
+  "ingestedAt": "2026-10-26T03:01:31+00:00",
+  "probe": {
+    "duration": 431.403,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-03T09:05:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "others",
+    "summary": "360 bar cam riding home through neighbourhood streets with a buddy, oak canopy and city blocks",
+    "hooks": [],
+    "notes": "360 cam upside down under the bars; riding home with a buddy on a yellow bike, chatting",
+    "angles": {
+      "road": {
+        "yaw": 180.0,
+        "pitch": 25.0,
+        "fov": 95.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "in": 163.0,
+        "out": 170.0,
+        "label": "under an oak canopy",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 188.0,
+        "out": 193.0,
+        "label": "buddy rolls up alongside",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 208.0,
+        "out": 215.0,
+        "label": "tree-lined street",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261003-gs020099-11c4.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -21.7,
+      "peakDb": -2.0
+    },
+    "speechSeconds": 85.31,
+    "speechRanges": [
+      [
+        32.09,
+        33.22
+      ],
+      [
+        59.77,
+        60.74
+      ],
+      [
+        68.79,
+        70.38
+      ],
+      [
+        74.23,
+        75.82
+      ],
+      [
+        77.02,
+        78.79
+      ],
+      [
+        79.32,
+        80.78
+      ],
+      [
+        81.27,
+        82.22
+      ],
+      [
+        88.79,
+        90.18
+      ],
+      [
+        92.09,
+        97.26
+      ],
+      [
+        97.69,
+        100.97
+      ],
+      [
+        106.94,
+        108.1
+      ],
+      [
+        121.53,
+        122.76
+      ],
+      [
+        123.32,
+        124.65
+      ],
+      [
+        126.1,
+        128.52
+      ],
+      [
+        129.21,
+        130.18
+      ],
+      [
+        133.75,
+        134.57
+      ],
+      [
+        135.06,
+        137.16
+      ],
+      [
+        137.78,
+        139.94
+      ],
+      [
+        140.22,
+        141.32
+      ],
+      [
+        143.54,
+        145.9
+      ],
+      [
+        146.58,
+        147.43
+      ],
+      [
+        148.28,
+        149.7
+      ],
+      [
+        156.44,
+        158.02
+      ],
+      [
+        295.19,
+        295.78
+      ],
+      [
+        297.75,
+        298.57
+      ],
+      [
+        306.01,
+        307.43
+      ],
+      [
+        315.83,
+        317.22
+      ],
+      [
+        319.35,
+        319.94
+      ],
+      [
+        325.98,
+        327.46
+      ],
+      [
+        343.29,
+        350.98
+      ],
+      [
+        351.42,
+        353.54
+      ],
+      [
+        354.04,
+        355.14
+      ],
+      [
+        355.7,
+        356.9
+      ],
+      [
+        358.1,
+        359.11
+      ],
+      [
+        359.42,
+        361.06
+      ],
+      [
+        361.94,
+        364.01
+      ],
+      [
+        364.54,
+        367.11
+      ],
+      [
+        367.42,
+        373.32
+      ],
+      [
+        374.36,
+        377.61
+      ],
+      [
+        378.52,
+        379.85
+      ],
+      [
+        380.86,
+        387.02
+      ],
+      [
+        387.58,
+        388.65
+      ],
+      [
+        397.78,
+        398.89
+      ],
+      [
+        400.12,
+        402.12
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261003-gs020099-11c4-1.jpg",
+    "library/sheets/261003-gs020099-11c4-2.jpg",
+    "library/sheets/261003-gs020099-11c4-3.jpg",
+    "library/sheets/261003-gs020099-11c4-4.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:25+00:00",
+  "telemetry": "library/telemetry/261003-gs020099-11c4.json",
+  "gpsSummary": {
+    "goodSeconds": 418.4,
+    "gaps": 6,
+    "first": 0.0,
+    "last": 431.2,
+    "maxSpeed": 8.3,
+    "movingAvgSpeed": 6.14,
+    "movingSeconds": 349.8,
+    "distance": 2164.4,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -8.7,
+    "altMax": 75.8
+  }
+}

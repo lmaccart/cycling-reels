@@ -1,0 +1,82 @@
+{
+  "id": "260630-img-2846-cdc4",
+  "kind": "video",
+  "media": "library/media/260630-img-2846-cdc4.mov",
+  "originalName": "IMG_2846.MOV",
+  "hash": "cdc478ab0963b395d80ca334d999393d2b1cd4f4",
+  "created": "2026-06-30T11:56:16",
+  "ingestedAt": "2026-10-26T03:01:59+00:00",
+  "probe": {
+    "duration": 15.0,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-30T11:56:16-0700"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Handheld ride through dry golden hills with a view over the valley",
+    "hooks": [],
+    "moments": [
+      {
+        "in": 2.5,
+        "out": 5.6,
+        "label": "road through dry golden hills",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 7.4,
+        "out": 10.0,
+        "label": "swing out to the valley view",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ]
+  },
+  "transcript": "library/transcripts/260630-img-2846-cdc4.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -25.1,
+      "peakDb": -0.9
+    },
+    "speechSeconds": 4.08,
+    "speechRanges": [
+      [
+        4.28,
+        5.9
+      ],
+      [
+        7.93,
+        9.32
+      ],
+      [
+        10.17,
+        11.24
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260630-img-2846-cdc4.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

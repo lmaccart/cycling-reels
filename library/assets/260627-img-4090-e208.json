@@ -1,0 +1,76 @@
+{
+  "id": "260627-img-4090-e208",
+  "kind": "video",
+  "media": "library/media/260627-img-4090-e208.mov",
+  "originalName": "IMG_4090.MOV",
+  "hash": "e208dfe94229be308048584b4a6bd9f04428a623",
+  "created": "2026-06-27T11:39:35",
+  "ingestedAt": "2026-10-26T03:02:28+00:00",
+  "probe": {
+    "duration": 8.9,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-27T11:39:35-0700"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "scenery",
+    "shot": "handheld",
+    "quality": 4,
+    "issues": [],
+    "people": "none",
+    "summary": "Pan from a ridge road over forested hills to a distant ocean haze under clouds",
+    "hooks": [
+      "worth every pedal stroke"
+    ],
+    "moments": [
+      {
+        "in": 2.5,
+        "out": 6.2,
+        "label": "view opens over the forested hills",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 6.2,
+        "out": 8.9,
+        "label": "pan back to the road on the ridge",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-10-28-bike-trip",
+      "at": "2026-10-26T03:22:11+00:00",
+      "in": 3.0,
+      "out": 5.6
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -55.2,
+      "peakDb": -36.8
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260627-img-4090-e208.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

@@ -1,0 +1,19 @@
+{
+  "slug": "whoosh-short",
+  "name": "whoosh-short",
+  "category": "whoosh",
+  "file": "sfx/whoosh-short.wav",
+  "duration": 0.154,
+  "channels": 1,
+  "loudness": null,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/831936/",
+  "author": "1bob",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-27T23:54:14+00:00",
+  "tags": [
+    "whoosh",
+    "short"
+  ]
+}

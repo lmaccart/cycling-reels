@@ -1,0 +1,17 @@
+{
+  "slug": "2026-10-29-first-ride-back",
+  "postDate": "2026-10-29",
+  "hook": {"text": "the zwift era vs the first ride back"},
+  "segments": [
+    {"asset": "260611-img-2638-52ae", "in": 1.5, "out": 4.6},
+    {"asset": "260615-img-2653-b599", "moment": 1,
+     "text": [{"text": "zwift. again.", "at": 0.3, "for": 2.4}]},
+    {"asset": "260624-img-2762-ed2c", "in": 1.0, "out": 5.5, "captions": "transcript"}
+  ],
+  "music": "vacation-uke",
+  "post": {
+    "caption": "weeks of living room laps and then finally the real thing. the grin says it all",
+    "hashtags": ["#cycling", "#roadcycling", "#zwift", "#bikelife"],
+    "altText": "Phone clips of an indoor trainer setup with Zwift on a TV, then a sunny outdoor ride ending in a grinning selfie saying we're biking again."
+  }
+}

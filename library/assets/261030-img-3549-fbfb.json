@@ -1,0 +1,91 @@
+{
+  "id": "261030-img-3549-fbfb",
+  "kind": "video",
+  "media": "library/media/261030-img-3549-fbfb.mov",
+  "originalName": "IMG_3549.mov",
+  "hash": "fbfb98b7ea874621d33f8ccbbe57d3a605acf280",
+  "created": "2026-10-30T08:01:53",
+  "ingestedAt": "2026-10-30T14:24:11+00:00",
+  "probe": {
+    "duration": 12.068,
+    "width": 2160,
+    "height": 3840,
+    "fps": 48.557,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-30T08:01:53-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "others",
+    "summary": "Walks in with the bike through the door and closet, then wakes the roommate in bed: how are you sleepyhead",
+    "hooks": [
+      "my roommate when I get back from a ride",
+      "slept through my whole ride"
+    ],
+    "notes": "User confirmed 2026-10-30 it is fine to feature the roommate",
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 3.0,
+        "label": "walks in, bike wheel and door",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 7.5,
+        "out": 12.07,
+        "label": "wakes the roommate: how are you sleepyhead",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": [
+      {
+        "at": 3.5,
+        "for": 0.8,
+        "kind": "other",
+        "score": 2,
+        "note": "door creak as I walk in, some footsteps"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261030-img-3549-fbfb.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -29.0,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 3.19,
+    "speechRanges": [
+      [
+        8.6,
+        10.15
+      ],
+      [
+        10.42,
+        12.06
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261030-img-3549-fbfb.jpg"
+  ],
+  "taggedAt": "2026-10-30T14:34:01+00:00"
+}

@@ -1,0 +1,92 @@
+{
+  "id": "260711-img-2954-4b28",
+  "kind": "video",
+  "media": "library/media/260711-img-2954-4b28.mov",
+  "originalName": "IMG_2954.MOV",
+  "hash": "4b28c67a8c7086966d68d19fa936e007b652a677",
+  "created": "2026-07-11T19:40:16",
+  "ingestedAt": "2026-10-26T03:02:07+00:00",
+  "probe": {
+    "duration": 14.533,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-07-11T19:40:16-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 5,
+    "issues": [],
+    "people": "me",
+    "summary": "Golden-hour ride over a harbor bridge, sun low over the water, ends in a waving selfie",
+    "hooks": [
+      "golden hour hits different on a bike",
+      "pov: you timed the bridge perfectly"
+    ],
+    "moments": [
+      {
+        "in": 2.4,
+        "out": 6.0,
+        "label": "onto the bridge, golden light",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 9.4,
+        "out": 11.8,
+        "label": "sun sitting low over the water",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 11.8,
+        "out": 14.5,
+        "label": "waving selfie on the bridge",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-10-26-golden-bridge",
+      "at": "2026-10-26T03:20:27+00:00",
+      "in": 2.4,
+      "out": 6.0
+    },
+    {
+      "plan": "2026-10-26-golden-bridge",
+      "at": "2026-10-26T03:20:27+00:00",
+      "in": 9.4,
+      "out": 14.5
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -31.5,
+      "peakDb": -11.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260711-img-2954-4b28.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

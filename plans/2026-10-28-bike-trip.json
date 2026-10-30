@@ -1,0 +1,59 @@
+{
+  "slug": "2026-10-28-bike-trip",
+  "postDate": "2026-10-28",
+  "hook": {
+    "text": "packed the bike for this one"
+  },
+  "segments": [
+    {
+      "asset": "260626-img-2778-e9ed",
+      "moment": 0
+    },
+    {
+      "asset": "260627-img-4085-d971",
+      "in": 0.4,
+      "out": 4.4,
+      "transition": "fade"
+    },
+    {
+      "asset": "260627-img-4090-e208",
+      "in": 3.0,
+      "out": 5.6,
+      "transition": "fade"
+    },
+    {
+      "asset": "260627-img-2804-0b3e",
+      "in": 2.4,
+      "out": 5.6,
+      "text": [
+        {
+          "text": "the views up here are unfair",
+          "at": 0.3,
+          "for": 2.6
+        }
+      ]
+    },
+    {
+      "asset": "260627-img-4093-7e56",
+      "moment": 0,
+      "transition": "fade"
+    },
+    {
+      "asset": "260701-img-2862-38b9",
+      "in": 2.2,
+      "out": 5.0,
+      "transition": "fade"
+    }
+  ],
+  "music": "lesfm-in-the-forest",
+  "post": {
+    "caption": "the bike got its own bag and honestly earned it. redwoods, ridge roads, golden hills",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#biketravel",
+      "#ridebikes"
+    ],
+    "altText": "Montage of a bike trip: wheeling a bike bag through an airport, riding through tall redwoods, a view over forested hills, a friend riding a ridge road, and empty roads through golden hills."
+  }
+}

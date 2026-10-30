@@ -1,0 +1,73 @@
+{
+  "id": "261030-img-3546-6552",
+  "kind": "video",
+  "media": "library/media/261030-img-3546-6552.mov",
+  "originalName": "IMG_3546.mov",
+  "hash": "6552d4fdc6eb4e82bae209eecdac9e37cee1940d",
+  "created": "2026-10-30T07:01:46",
+  "ingestedAt": "2026-10-30T14:24:06+00:00",
+  "probe": {
+    "duration": 7.88,
+    "width": 2160,
+    "height": 3840,
+    "fps": 24.492,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-30T07:01:46-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 2,
+    "issues": [
+      "dark",
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Handheld night POV on empty streets under streetlights, Garmin on the bars, passes a parked red truck",
+    "hooks": [
+      "the roads are mine before sunrise"
+    ],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 3.5,
+        "label": "empty road under streetlights, shadow of the bike",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 3.0,
+        "out": 5.5,
+        "label": "rolls past a parked red truck",
+        "score": 3,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -36.9,
+      "peakDb": -18.2
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261030-img-3546-6552.jpg"
+  ],
+  "taggedAt": "2026-10-30T14:25:16+00:00"
+}

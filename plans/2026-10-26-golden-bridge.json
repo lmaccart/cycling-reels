@@ -1,0 +1,16 @@
+{
+  "slug": "2026-10-26-golden-bridge",
+  "postDate": "2026-10-26",
+  "hook": {"text": "pov: you timed the bridge perfectly"},
+  "segments": [
+    {"asset": "260711-img-2954-4b28", "moment": 0},
+    {"asset": "260711-img-2954-4b28", "in": 9.4, "out": 14.5, "transition": "fade",
+     "text": [{"text": "okay that was fun", "at": 2.8, "for": 2.2}]}
+  ],
+  "music": "journey-home",
+  "post": {
+    "caption": "caught the bridge right as the sun dropped. didn't plan it, taking full credit anyway",
+    "hashtags": ["#cycling", "#roadcycling", "#goldenhour", "#outsideisfree"],
+    "altText": "Handheld POV riding over a harbor bridge at golden hour, the sun low over the water, ending with the rider waving at the camera."
+  }
+}

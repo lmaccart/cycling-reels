@@ -1,0 +1,16 @@
+.venv/
+.cache/
+.env
+remotion/node_modules/
+inbox/*
+!inbox/README.md
+library/media/
+out/
+config.json
+
+music/
+models/
+.DS_Store
+library/sheets/
+library/thumbs/
+library/sounds/*.jpg

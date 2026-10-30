@@ -1,0 +1,67 @@
+{
+  "id": "260907-img-3293-99b3",
+  "kind": "video",
+  "media": "library/media/260907-img-3293-99b3.mov",
+  "originalName": "IMG_3293.MOV",
+  "hash": "99b3fdfaaa95cc09358830864a847f9838eb03d2",
+  "created": "2026-09-07T09:22:34",
+  "ingestedAt": "2026-10-26T03:02:21+00:00",
+  "probe": {
+    "duration": 8.567,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-09-07T09:22:34-0500"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "handheld",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "POV following riders down a wide sunny boulevard, group strung out ahead",
+    "hooks": [
+      "pov: you got dropped at the first light"
+    ],
+    "moments": [
+      {
+        "in": 2.8,
+        "out": 8.57,
+        "label": "chasing the group down a wide road",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-10-30-chasing-the-group",
+      "at": "2026-10-26T03:23:31+00:00",
+      "in": 2.8,
+      "out": 8.567
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -43.7,
+      "peakDb": -22.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260907-img-3293-99b3.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:05+00:00"
+}

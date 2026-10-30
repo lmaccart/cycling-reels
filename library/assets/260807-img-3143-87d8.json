@@ -1,0 +1,60 @@
+{
+  "id": "260807-img-3143-87d8",
+  "kind": "video",
+  "media": "library/media/260807-img-3143-87d8.mov",
+  "originalName": "IMG_3143.MOV",
+  "hash": "87d8f331bdad2a2b13b5f2dc36dee352d7456069",
+  "created": "2026-08-07T10:15:05",
+  "ingestedAt": "2026-10-26T03:02:15+00:00",
+  "probe": {
+    "duration": 5.0,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-08-07T10:15:05-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "selfie",
+    "quality": 2,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Awkward-angle selfie of helmet and neck, ends looking at the camera",
+    "hooks": [],
+    "moments": [
+      {
+        "in": 3.8,
+        "out": 5.0,
+        "label": "finally finds the camera",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -34.0,
+      "peakDb": -10.2
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260807-img-3143-87d8.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:05+00:00"
+}

@@ -1,0 +1,72 @@
+{
+  "id": "260626-img-2778-e9ed",
+  "kind": "video",
+  "media": "library/media/260626-img-2778-e9ed.mov",
+  "originalName": "IMG_2778.MOV",
+  "hash": "e9ede778d87b5bb29b34bda8cc2c5a58c207c74f",
+  "created": "2026-06-26T04:48:44",
+  "ingestedAt": "2026-10-26T03:01:54+00:00",
+  "probe": {
+    "duration": 2.467,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-06-26T04:48:44-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "travel",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Rolling a bike travel bag along a wet airport curb at night",
+    "hooks": [
+      "the bike always gets its own bag"
+    ],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 2.47,
+        "label": "wheeling the bike bag through the airport",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-10-28-bike-trip",
+      "at": "2026-10-26T03:22:11+00:00",
+      "in": 0.0,
+      "out": 2.467
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -26.9,
+      "peakDb": -7.0
+    },
+    "speechSeconds": 0.5,
+    "speechRanges": [
+      [
+        0.63,
+        1.13
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260626-img-2778-e9ed.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:06:04+00:00"
+}

@@ -1,0 +1,19 @@
+{
+  "slug": "2026-10-27-group-ride-chill",
+  "postDate": "2026-10-27",
+  "hook": {"text": "pov: the group ride was supposed to be chill"},
+  "segments": [
+    {"asset": "261003-gs010098-0cb5", "in": 125.0, "out": 129.0, "view": "road"},
+    {"asset": "261003-gs010098-0cb5", "moment": 3, "view": "road",
+     "text": [{"text": "and then everyone came past", "at": 1.2, "for": 2.6}]},
+    {"asset": "261003-gs010098-0cb5", "in": 445.0, "out": 450.5,
+     "path": [{"at": 2.6, "view": "road"}, {"at": 3.0, "view": "rider"}],
+     "text": [{"text": "me holding on for dear life", "at": 3.1, "for": 2.3}]}
+  ],
+  "music": "roa-highway",
+  "post": {
+    "caption": "nobody ever means it when they say chill. 360 cam under the bars so you can see me hanging on",
+    "hashtags": ["#cycling", "#roadcycling", "#groupride", "#bikelife"],
+    "altText": "360 camera view from a bike in a group ride on a tree-lined park road, riders passing on both sides, then the camera swings back to the rider pedalling."
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "slug": "2026-11-01-empty-roads",
+  "postDate": "2026-11-01",
+  "hook": {
+    "text": "the road was empty and so was my brain"
+  },
+  "segments": [
+    {
+      "asset": "260624-img-2763-4b77",
+      "moment": 0
+    },
+    {
+      "asset": "260705-img-2903-f10a",
+      "moment": 0,
+      "transition": "fade"
+    },
+    {
+      "asset": "260624-img-2763-4b77",
+      "in": 8.6,
+      "out": 10.3
+    },
+    {
+      "asset": "260705-img-2903-f10a",
+      "text": [
+        {
+          "text": "10/10 no notes",
+          "at": 0.1,
+          "for": 1.35
+        }
+      ],
+      "in": 9.95,
+      "out": 11.05,
+      "speed": 0.75
+    }
+  ],
+  "music": "golden-hours",
+  "post": {
+    "caption": "blue sky, no cars, my shadow for company. the good kind of quiet",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#solo",
+      "#ridebikes"
+    ],
+    "altText": "Handheld POV of a cyclist riding empty country roads under blue sky, their shadow on the asphalt, ending in a grinning selfie."
+  }
+}

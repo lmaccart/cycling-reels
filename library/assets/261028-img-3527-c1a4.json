@@ -1,0 +1,82 @@
+{
+  "id": "261028-img-3527-c1a4",
+  "kind": "video",
+  "media": "library/media/261028-img-3527-c1a4.mov",
+  "originalName": "IMG_3527.mov",
+  "hash": "c1a4f2fecc9ccf14416c07676bc5b2865b9a06a9",
+  "created": "2026-10-28T06:55:48",
+  "ingestedAt": "2026-10-28T16:19:14+00:00",
+  "probe": {
+    "duration": 30.035,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.997,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-28T06:55:48-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "gear",
+    "shot": "static",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Phone propped in the bathroom: bibs on, then the Pacebend Weekend / Meteor jersey, ends walking out of frame",
+    "hooks": [
+      "kitting up for a 7am ride",
+      "getting ready for zone 2 be like",
+      "the only part of the ride i rush"
+    ],
+    "notes": "Starts shirtless (0–3.5s) — moments start at bibs-up. Speeds up well as a kit-up timelapse.",
+    "moments": [
+      {
+        "in": 3.5,
+        "out": 12.5,
+        "label": "pulls the bibs up and sorts the straps",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 12.5,
+        "out": 21.5,
+        "label": "jersey on, zips up, fixes the hair",
+        "score": 4,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 21.0,
+        "out": 29.5,
+        "label": "hair fix, then walks out of frame",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -48.0,
+      "peakDb": -14.1
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261028-img-3527-c1a4.jpg"
+  ],
+  "taggedAt": "2026-10-28T16:20:03+00:00"
+}

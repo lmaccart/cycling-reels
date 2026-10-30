@@ -1,0 +1,19 @@
+{
+  "slug": "pop-soft",
+  "name": "pop-soft",
+  "category": "pop",
+  "file": "sfx/pop-soft.wav",
+  "duration": 0.216,
+  "channels": 1,
+  "loudness": null,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/202230/",
+  "author": "deraj",
+  "license": "CC0-1.0",
+  "addedAt": "2026-10-28T00:03:19+00:00",
+  "tags": [
+    "pop",
+    "text"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "id": "261029-img-3534-e5e9",
+  "kind": "video",
+  "media": "library/media/261029-img-3534-e5e9.mov",
+  "originalName": "IMG_3534.mov",
+  "hash": "e5e9482e2b053aa3b4018c877059bee9916fa87a",
+  "created": "2026-10-29T07:00:42",
+  "ingestedAt": "2026-10-29T16:13:32+00:00",
+  "probe": {
+    "duration": 10.07,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.881,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T07:00:42-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Rolling the bike into the building elevator, it is not working, annoyed line to camera",
+    "hooks": [
+      "the ride started before the ride started",
+      "when the elevator decides youre taking the stairs with the bike",
+      "building elevator vs me"
+    ],
+    "notes": "Contains a swear (5.7 s); the M floor display shows it stuck",
+    "moments": [
+      {
+        "in": 1.5,
+        "out": 10.07,
+        "label": "elevator wont come: are you serious right now bro",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 1.5,
+        "out": 5.0,
+        "label": "staring at the stuck M display with the bike",
+        "score": 3,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261029-img-3534-e5e9.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -38.0,
+      "peakDb": -13.5
+    },
+    "speechSeconds": 4.77,
+    "speechRanges": [
+      [
+        3.29,
+        5.1
+      ],
+      [
+        5.69,
+        7.5
+      ],
+      [
+        8.92,
+        10.07
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261029-img-3534-e5e9.jpg"
+  ],
+  "taggedAt": "2026-10-29T16:14:52+00:00"
+}

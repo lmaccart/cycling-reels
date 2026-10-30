@@ -1,0 +1,76 @@
+{
+  "id": "261029-img-3540-4544",
+  "kind": "video",
+  "media": "library/media/261029-img-3540-4544.mov",
+  "originalName": "IMG_3540.mov",
+  "hash": "4544380e717aba889918213e11ebb2bddba370a4",
+  "created": "2026-10-29T08:21:50",
+  "ingestedAt": "2026-10-29T16:13:40+00:00",
+  "probe": {
+    "duration": 17.442,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.971,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-29T08:21:50-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 2,
+    "issues": [
+      "obstructed",
+      "boring"
+    ],
+    "people": "me",
+    "summary": "Phone pointed up at pine trees with a dark blur in the foreground, then down to the bars and wet road",
+    "hooks": [],
+    "notes": "Talking: lets go lets go, no no not yet not yet",
+    "moments": [
+      {
+        "in": 15.0,
+        "out": 17.4,
+        "label": "bars, computer and wet road",
+        "score": 2,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261029-img-3540-4544.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -24.2,
+      "peakDb": -0.9
+    },
+    "speechSeconds": 5.75,
+    "speechRanges": [
+      [
+        0.28,
+        1.0
+      ],
+      [
+        6.87,
+        9.16
+      ],
+      [
+        9.56,
+        12.3
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261029-img-3540-4544.jpg"
+  ],
+  "taggedAt": "2026-10-29T16:14:53+00:00"
+}

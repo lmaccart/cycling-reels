@@ -1,0 +1,85 @@
+{
+  "id": "260705-img-2903-f10a",
+  "kind": "video",
+  "media": "library/media/260705-img-2903-f10a.mov",
+  "originalName": "IMG_2903.MOV",
+  "hash": "f10a8c0ee78ffd7297f28fc95a42c25e56527401",
+  "created": "2026-07-05T14:18:27",
+  "ingestedAt": "2026-10-26T03:02:05+00:00",
+  "probe": {
+    "duration": 11.9,
+    "width": 2160,
+    "height": 3840,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-07-05T14:18:27-0400"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Rural road past farmhouses on a sunny day, ends in a grinning selfie",
+    "hooks": [],
+    "moments": [
+      {
+        "in": 2.0,
+        "out": 5.6,
+        "label": "rural road past houses and big trees",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 9.95,
+        "out": 11.05,
+        "label": "grinning selfie while riding",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-01-empty-roads",
+      "at": "2026-10-26T03:24:42+00:00",
+      "in": 2.0,
+      "out": 5.6
+    },
+    {
+      "plan": "2026-11-01-empty-roads",
+      "at": "2026-10-26T03:24:42+00:00",
+      "in": 9.95,
+      "out": 11.05
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -26.1,
+      "peakDb": -1.6
+    },
+    "speechSeconds": 0.78,
+    "speechRanges": [
+      [
+        7.58,
+        8.36
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260705-img-2903-f10a.jpg"
+  ],
+  "taggedAt": "2026-10-26T03:19:34+00:00"
+}

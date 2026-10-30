@@ -1,0 +1,35 @@
+# Shot list: every ride
+
+The cycling reels that grow accounts show a person (not just the road), a payoff you can see, and something funny or useful. Batch 1 was almost all first-person road footage, so the jokes were told in text instead of shown. These shots fix that. The ★ ones take about 5 minutes in total, so get them every ride. Grab the rest when you get the chance.
+
+## Before you roll
+
+1. ★ **Kit-up in 4–5 quick clips** (2–3 s each, same framing): shoes, helmet buckle, glasses, bottle into the cage, wheeling out the door. → ride-vlog timestamps, "loading" trend openers, story setups.
+2. **The bike, still**: drive side, cockpit from above, one slow push-in on a detail. Phone on the ground or against a wall. → bike checks, covers, beat edits.
+
+## On the ride
+
+3. ★ **One pass-by**: prop the phone low (curb, rock, mini tripod) on a quiet road and ride past close at speed, then once straight toward it. It's the shot every good cycling edit uses, and the only way you're in frame when you ride solo. Budget 5–10 minutes.
+4. ★ **Your face at the hard part**: a 3–5 s selfie at the top of the climb, after your pull, in the rain. Breathing, grinning, wrecked. → the payoff every "pov:" joke needs.
+5. ★ **One sentence to camera, stopped**: whatever's true right then ("this hill again", "we're biking again"). Put your back to the wind. → talking reels with captions, story reels.
+6. **The computer when the number is good**: 2 s on the screen at top speed, the grade, the summit. → real numbers on screen (we never invent them).
+7. **360 in third person**: the MAX on a pole off the seatpost, or a selfie stick held out (the stick disappears in 360), for a minute or two of the best stretch. Under the bars it only sees sky, road and your stem. → chase-cam and look-back shots, group rides.
+8. **The group** (group rides): the roll-out from behind, someone pulling, the regroup, everyone at the stop. Ask before friends' faces go in. → the group-ride series, trends about group roles.
+9. **The view, held still**: 5 s without moving at the best spot. → scenery reels, endings that loop.
+10. **Whatever only this ride had**: weather, a sign, a dog, a flat, a detour, the wrong turn. → the relatable and funny reels.
+
+## After
+
+11. ★ **Café, food, bike on the wall**: 2–3 clips. → "the coffee stop was the real goal", vlog timestamps.
+12. **The summary screen**: computer or Strava totals, 2 s. → real numbers for captions and recaps.
+13. *Bonus:* tan lines, mud, the gas-station snack haul.
+
+**Doing a series** (e.g. "can i hold the fast group's wheel · ep 2")? Add one line to camera before the ride (the goal) and one after (how it went).
+
+## How to film
+
+- Hold every shot 5–10 s: start before the moment and stop after it. Several short clips beat one long take.
+- **iPhone: 4K at 60 fps** (Settings → Camera → Record Video), so slow motion looks smooth (your clips are 30 fps now), and **HDR Video off**.
+- Shoot the phone shots of you vertical. Pass-bys can be horizontal; they get cropped.
+- **GoPro MAX:** your files are 3K at 60 fps, which is good for slow-mo. Use 5.6K/30 when you want sharper reframes and won't slow it down.
+- Film when you're stopped, or from a mount. A phone mount on the bars or chest gives steadier POV than holding it, and leaves both hands free near traffic.
