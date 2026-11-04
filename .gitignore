@@ -14,3 +14,5 @@ models/
 library/sheets/
 library/thumbs/
 library/sounds/*.jpg
+__pycache__/
+*.pyc

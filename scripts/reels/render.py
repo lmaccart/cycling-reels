@@ -12,6 +12,7 @@ from typing import Any
 
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
+from .bleep import check_bleep, masked_words, mute_filter, resolve_bleeps, tone_graph, unbleeped_swears
 from .config import Project
 from .images import open_image
 from .library import all_assets, load_asset, resolve_id, save_asset
@@ -204,6 +205,7 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
         spec["transition"] = _pick(spec, "transition", "cut", TRANSITIONS, errors, where)
         check_segment(spec, asset, errors, where)
         check_punch(spec, asset, errors, where)
+        check_bleep(spec, asset, errors, where)
         if spec.get("volume") is not None:
             spec["volume"] = _num(spec, "volume", 1.0, 0, 1.5, errors, where)
         frames = max(1, round(seconds * fps))
@@ -764,11 +766,23 @@ def build(project: Project, plan: dict) -> dict:
     pages: list[dict] = []
     transcripts: dict[str, dict] = {}
     for sg in segs:
-        if sg.spec["captions"] == "transcript":
+        if sg.kind == "video" and (sg.spec["captions"] == "transcript" or sg.spec.get("bleep")) and sg.asset.get("transcript"):
             aid = sg.asset["id"]
             if aid not in transcripts:
                 transcripts[aid] = read_json(project.abs(sg.asset["transcript"]))
-            got = caption_pages_for(sg, transcripts[aid].get("words") or [], fps, project.config["captions"])
+        seg_words = (transcripts.get(sg.asset["id"]) or {}).get("words") or []
+        if sg.kind == "video":
+            resolve_bleeps(sg.spec, seg_words)
+            b = sg.spec.get("bleep")
+            if b and not sg.spec["_bleeps"]:
+                warnings.append(f"segment {sg.index + 1} bleep: nothing to bleep between {sg.spec['in']:g}s and {sg.spec['out']:g}s")
+            loud = sg.spec.get("volume") is None or sg.spec["volume"] > 0
+            left = unbleeped_swears(sg.spec, seg_words) if loud else []
+            if left:
+                warnings.append(f"segment {sg.index + 1}: swearing not bleeped ({', '.join(left)}) — add \"bleep\": true or cut around it")
+        if sg.spec["captions"] == "transcript":
+            aid = sg.asset["id"]
+            got = caption_pages_for(sg, masked_words(sg.spec, transcripts[aid].get("words") or []), fps, project.config["captions"])
             if not got:
                 warnings.append(f"segment {sg.index + 1}: no transcript words between {sg.spec['in']}s and {sg.spec['out']}s")
             pages += got
@@ -991,10 +1005,16 @@ def stage_video(
     if use_audio:
         # short fades at both edges so hard cuts don't pop; `clean` = gentle highpass + denoise against wind
         dur = sg.frames / fps
-        af = [f"asetpts=PTS-STARTPTS,atempo={speed:g},aresample=48000"] + ([CLEAN_AF] if clean else [])
-        af += [f"afade=t=in:st=0:d={EDGE_FADE:g}"] if edges[0] else []
-        af += ["apad"] + ([f"afade=t=out:st={max(0.0, dur - EDGE_FADE):.4f}:d={EDGE_FADE:g}"] if edges[1] else [])
-        graph += f";[0:a:0]{','.join(af)}[a]"
+        mute = mute_filter(spec)  # bleeps: silence the source words before retiming
+        af = ["asetpts=PTS-STARTPTS"] + ([mute] if mute else []) + [f"atempo={speed:g},aresample=48000"] + ([CLEAN_AF] if clean else [])
+        fades = [f"afade=t=in:st=0:d={EDGE_FADE:g}"] if edges[0] else []
+        fades += ["apad"] + ([f"afade=t=out:st={max(0.0, dur - EDGE_FADE):.4f}:d={EDGE_FADE:g}"] if edges[1] else [])
+        tone = tone_graph(spec, dur)
+        if tone:
+            af.append("aformat=sample_rates=48000:channel_layouts=stereo")
+            graph += f";[0:a:0]{','.join(af)}[am];{tone};[am][bt]amix=inputs=2:duration=first:normalize=0,{','.join(fades)}[a]"
+        else:
+            graph += f";[0:a:0]{','.join(af + fades)}[a]"
     cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-ss", f"{spec['in']:.3f}", "-t", f"{spec['out'] - spec['in']:.3f}", "-i", src]
     cmd += ["-filter_complex", graph, "-map", "[v]"]
     cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"] if use_audio else ["-an"]
@@ -1343,6 +1363,8 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
             src = f"{fmt_ts(sg.spec['in'])}-{fmt_ts(sg.spec['out'])}"
             frame = cam_txt or (sg.spec["frame"] + (f"@{sg.spec['focusX']:.2f}" if sg.spec["frame"] == "crop" else ""))
             extra = (f" x{sg.spec['speed']:g}" if sg.spec["speed"] != 1 else "") + (" captions" if sg.spec["captions"] == "transcript" else "")
+            if sg.spec.get("_bleeps"):
+                extra += f" bleep({sg.spec['bleep']['sound']}): " + ", ".join(f"{s:.2f}-{e:.2f}s" for s, e in sg.spec["_bleeps"])
         else:
             src, frame, extra = "photo", cam_txt or f"{sg.spec['fit']}/{sg.spec['motion']}", ""
         log(f"  {sg.index + 1:>2}  {fmt_ts(sg.start / fps):>7}  {sg.frames / fps:4.1f}s  {sg.asset['id']:<34} {src:<17} {frame}{extra}")
