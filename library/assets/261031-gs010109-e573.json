@@ -148,5 +148,11 @@
   "gpsSummary": {
     "goodSeconds": 0
   },
-  "taggedAt": "2026-10-31T18:57:33+00:00"
+  "taggedAt": "2026-10-31T18:57:33+00:00",
+  "strava": {
+    "activity": "20806944935",
+    "offset": 5.5,
+    "clock": "gps-same-camera",
+    "shift": -192.5
+  }
 }

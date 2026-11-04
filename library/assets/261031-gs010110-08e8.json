@@ -171,5 +171,12 @@
     "altMin": 8.3,
     "altMax": 25.6
   },
-  "taggedAt": "2026-10-31T19:24:59+00:00"
+  "taggedAt": "2026-10-31T19:24:59+00:00",
+  "strava": {
+    "activity": "20806944935",
+    "offset": 1846.0,
+    "clock": "gps",
+    "shift": -192.0,
+    "fitMetres": 2.9
+  }
 }

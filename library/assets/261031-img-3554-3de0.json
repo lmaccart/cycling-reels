@@ -81,5 +81,11 @@
   "sheets": [
     "library/sheets/261031-img-3554-3de0.jpg"
   ],
-  "taggedAt": "2026-10-31T19:03:11+00:00"
+  "taggedAt": "2026-10-31T19:03:11+00:00",
+  "strava": {
+    "activity": "20806944935",
+    "offset": 5557.0,
+    "clock": "phone",
+    "shift": 0.0
+  }
 }

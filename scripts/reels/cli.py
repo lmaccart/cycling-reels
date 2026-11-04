@@ -283,6 +283,10 @@ def cmd_show(project: Project, args) -> int:
         from .telemetry import summary_line
 
         log(f"  {summary_line(project, a['gpsSummary'])}" + (f"  ({a['telemetry']})" if a.get("telemetry") else ""))
+    from .strava import show_lines
+
+    for line in show_lines(project, a):
+        log(line)
     for u in a.get("used") or []:
         span = f" {fmt_ts(u['in'])}-{fmt_ts(u['out'])}" if "in" in u else ""
         log(f"  used in {u['plan']}{span}")
@@ -658,6 +662,19 @@ def cmd_stats(project: Project, args) -> int:
     return 0
 
 
+def cmd_strava(project: Project, args) -> int:
+    from .strava import import_file, link_assets, print_list
+
+    if args.strava_cmd == "import":
+        for f in args.files:
+            import_file(project, f, args.activity)
+    elif args.strava_cmd == "link":
+        link_assets(project, args.activities or None)
+    else:
+        print_list(project)
+    return 0
+
+
 def cmd_review(project: Project, args) -> int:
     from .review import record_feedback, register_experiment, review
 
@@ -858,6 +875,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("words", nargs="*", help="'import <file.json>' to load a pull (default: print the report)")
     s.add_argument("--since", help="only reels posted on/after YYYY-MM-DD")
     s.set_defaults(fn=cmd_stats)
+
+    s = sub.add_parser("strava", help="Strava rides: import what Claude pulled from the Strava connector, link clips, list rides")
+    s.set_defaults(fn=cmd_strava, strava_cmd="list")
+    ssub = s.add_subparsers(dest="strava_cmd")
+    r = ssub.add_parser("import", help="save list_activities / get_activity_performance / get_activity_streams output and link clips")
+    r.add_argument("files", nargs="+", help="saved connector responses (JSON)")
+    r.add_argument("--activity", help="ride id (needed for performance and streams files)")
+    r = ssub.add_parser("link", help="re-link library clips to the imported rides (e.g. after ingesting more footage)")
+    r.add_argument("activities", nargs="*", help="ride ids (default: all)")
+    ssub.add_parser("list", help="imported rides, their numbers and linked clips")
 
     s = sub.add_parser("review", help="weekly learning: review evidence, record feedback/experiments, close a scheduled batch")
     s.add_argument("--week", help="date in the batch week, YYYY-MM-DD (default: current local week)")

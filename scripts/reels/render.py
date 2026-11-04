@@ -42,6 +42,7 @@ STATS_TOP, STAT_ROW, TOP_TEXT = 240, 78, 420
 ROUTE_TOP, ROUTE_SIZE = STATS_TOP, 220
 GPS_VALUES = ("gps", "gps:max", "gps:avg")
 GPS_LABELS = {"gps": "speed", "gps:max": "top speed", "gps:avg": "avg"}
+from .strava import VALUES as STRAVA_VALUES  # noqa: E402
 
 
 @dataclass
@@ -415,11 +416,14 @@ def _stats(project: Project, segs: list[Seg], total: int, fps: int, warnings: li
         for j, st in enumerate(sg.spec.get("stats") or []):
             where = f"segment {sg.index + 1} stats[{j}]"
             raw = str(st.get("value") or "").strip().lower()
-            gps = raw if raw.startswith("gps") else None
-            if gps and gps not in GPS_VALUES:
+            gps = raw if raw.startswith(("gps", "strava:")) else None
+            if gps and gps.startswith("gps") and gps not in GPS_VALUES:
                 errors.append(f"{where}: value {gps!r} unknown — GPS values are {', '.join(GPS_VALUES)}")
                 continue
-            label = screen_text(st.get("label") or (GPS_LABELS.get(gps, "") if gps else ""), warnings, where)
+            if gps and gps.startswith("strava:") and gps not in STRAVA_VALUES:
+                errors.append(f"{where}: value {gps!r} unknown — Strava values are {', '.join(STRAVA_VALUES)}")
+                continue
+            label = screen_text(st.get("label") or ((GPS_LABELS.get(gps) or STRAVA_VALUES.get(gps, "")) if gps else ""), warnings, where)
             value = gps or screen_text(st.get("value"), warnings, where)
             if not label or not value:
                 warnings.append(f"{where}: needs both label and value — dropped")
@@ -433,7 +437,8 @@ def _stats(project: Project, segs: list[Seg], total: int, fps: int, warnings: li
                 continue
             chip: dict[str, Any] = {"label": label, "value": value, "startFrame": s, "endFrame": e}
             if gps:
-                got = _gps_stat(project, sg, gps, s, e, fps, errors, where)
+                stat_fn = _strava_stat if gps.startswith("strava:") else _gps_stat
+                got = stat_fn(project, sg, gps, s, e, fps, errors, where)
                 if not got:
                     continue
                 chip.update(got)
@@ -505,6 +510,108 @@ def _gps_stat(project: Project, sg: Seg, kind: str, s: int, e: int, fps: int, er
     return {"value": str(int(round(speed_in(project, v)))), "unit": unit}
 
 
+# --------------------------------------------------------------------------
+# Strava (the linked ride): ride totals, live speed/power/HR, route map
+# --------------------------------------------------------------------------
+
+
+def _strava_act(project: Project, sg: Seg, errors: list[str], where: str) -> dict | None:
+    from .strava import linked_activity
+
+    if not (sg.asset.get("strava") or {}).get("activity"):
+        errors.append(f"{where}: {sg.asset['id']} has no Strava ride linked (./reels strava list) — fetch that ride and ./reels strava import it")
+        return None
+    act = linked_activity(project, sg.asset)
+    if act is None:
+        errors.append(f"{where}: Strava ride {sg.asset['strava']['activity']} isn't in strava/activities/ — import it again")
+    return act
+
+
+def _ride_time(sg: Seg, frame: float, fps: int) -> float:
+    """Ride seconds (Strava stream time) shown at a reel frame."""
+    t = _clip_time(sg, frame, fps) if sg.kind == "video" else 0.0
+    return float(sg.asset["strava"]["offset"]) + t
+
+
+def _strava_stat(project: Project, sg: Seg, kind: str, s: int, e: int, fps: int, errors: list[str], where: str) -> dict | None:
+    from .strava import CLIP_VALUES, LIVE_UNITS, LIVE_VALUES, RIDE_VALUES, live_value, moment_value, ride_value
+    from .telemetry import unit_names
+
+    act = _strava_act(project, sg, errors, where)
+    if act is None:
+        return None
+    if kind in RIDE_VALUES:
+        got = ride_value(project, act, kind)
+    elif kind in CLIP_VALUES:
+        a = _ride_time(sg, sg.start, fps) if kind == "strava:mile" else _ride_time(sg, s, fps)
+        got = moment_value(project, act, kind, a, max(a + 0.5, _ride_time(sg, e, fps)))
+    else:
+        assert kind in LIVE_VALUES
+        if sg.kind != "video":
+            errors.append(f"{where}: live Strava values only work on video segments")
+            return None
+        every = max(1, round(fps / 5))
+        values = []
+        for f in range(s, e, every):
+            v = live_value(project, act, kind, _ride_time(sg, f + every / 2, fps))
+            if v is None:
+                errors.append(f"{where}: no Strava {LIVE_VALUES[kind]} at {fmt_ts(_ride_time(sg, f, fps))} into ride {act['id']} (needs its streams, without a gap there)")
+                return None
+            values.append(v)
+        unit = unit_names(project)["speed"] if kind == "strava:speed" else LIVE_UNITS[kind]
+        return {"value": values[0], "unit": unit, "live": {"everyFrames": every, "values": values}, "source": "strava"}
+    if isinstance(got, str):
+        errors.append(f"{where}: {got}")
+        return None
+    return {"value": got[0], "unit": got[1], "source": "strava"}
+
+
+def _route_norm(pts: list[tuple[float, float]]):
+    import math
+
+    lat0 = math.radians(sum(p[0] for p in pts) / len(pts))
+
+    def xy(lat: float, lon: float) -> tuple[float, float]:
+        return lon * math.cos(lat0), lat
+
+    xs, ys = [xy(*p)[0] for p in pts], [xy(*p)[1] for p in pts]
+    span = max(max(xs) - min(xs), max(ys) - min(ys), 1e-6)
+    cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+
+    def norm(lat: float, lon: float) -> list[float]:
+        x, y = xy(lat, lon)
+        return [round(0.5 + (x - cx) / span, 4), round(0.5 - (y - cy) / span, 4)]  # north up
+
+    return norm
+
+
+def _strava_route(project: Project, sg: Seg, s: int, e: int, fps: int, errors: list[str], where: str) -> dict | None:
+    from .strava import Streams, route_points
+
+    act = _strava_act(project, sg, errors, where)
+    if act is None:
+        return None
+    pts, trimmed = route_points(act)
+    if len(pts) < 2:
+        errors.append(f"{where}: ride {act['id']} has no location stream — import get_activity_streams with --activity {act['id']}")
+        return None
+    norm = _route_norm([(p[1], p[2]) for p in pts])
+    step = max(1, len(pts) // 600)
+    path = [norm(p[1], p[2]) for p in pts[::step]] + ([norm(pts[-1][1], pts[-1][2])] if (len(pts) - 1) % step else [])
+    st = Streams(act["streams"])
+    t0, t1 = pts[0][0], pts[-1][0]
+    dots = []
+    for f in range(s, e):
+        t = _ride_time(sg, f + 0.5, fps)
+        loc = st.location(t)
+        if loc is None or (trimmed and not t0 <= t <= t1):
+            why = "within the trimmed first/last km of a Maine ride" if loc is not None else "outside the ride's GPS"
+            errors.append(f"{where}: clip moment {fmt_ts(t)} into ride {act['id']} is {why} — no map here")
+            return None
+        dots.append(norm(*loc))
+    return {"_key": f"strava:{act['id']}", "startFrame": s, "endFrame": e, "paths": [path], "dots": dots}
+
+
 def _chapters(project: Project, asset: dict) -> list[dict]:
     """GoPro splits one recording into chapters (GS010099, GS020099…); the route spans them all."""
     m = re.match(r"^(G[A-Z])\d\d(\d{4})\.", str(asset.get("originalName") or ""), re.I)
@@ -531,6 +638,22 @@ def _routes(project: Project, segs: list[Seg], total: int, fps: int, limit: int)
         if not sg.spec.get("route"):
             continue
         where = f"segment {sg.index + 1} route"
+        if sg.spec.get("route") == "strava":
+            s, e = sg.start, min(sg.end, limit)
+            if e - s < 10:
+                continue
+            got = _strava_route(project, sg, s, e, fps, errors, where)
+            if got:
+                prev = out[-1] if out else None
+                if prev and prev["_key"] == got["_key"] and s <= prev["endFrame"]:
+                    prev["dots"] = prev["dots"][: s - prev["startFrame"]] + got["dots"]
+                    prev["endFrame"] = e
+                else:
+                    out.append(got)
+            continue
+        if sg.spec.get("route") is not True:
+            errors.append(f"{where}: route is true (GoPro GPS) or \"strava\" (the linked ride)")
+            continue
         tr = _track(project, sg, errors, where)
         if tr is None:
             continue
@@ -1372,10 +1495,14 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
         log(f"  hook: \"{props['hook']['text']}\" until {props['hook']['endFrame'] / fps:.1f}s")
     log(f"  captions: {len(props['captions'])} pages  ·  text beats: {len(props['beats'])}  ·  stats: {len(props['stats'])}")
     for st in props["stats"]:
-        if st.get("unit"):  # GPS pill: say what it will show
-            vals = [int(v) for v in st["live"]["values"]] if st.get("live") else [int(st["value"])]
-            shown = f"{min(vals)}–{max(vals)}" if min(vals) != max(vals) else str(vals[0])
-            log(f"  gps: \"{st['label']}\" {shown} {st['unit']}{' (live)' if st.get('live') else ''}  {st['startFrame'] / fps:.1f}-{st['endFrame'] / fps:.1f}s")
+        if st.get("unit") is not None and (st.get("live") or st.get("source") or st["value"].isdigit()):  # data pill: say what it will show
+            if st.get("live"):
+                vals = [int(v) for v in st["live"]["values"]]
+                shown = f"{min(vals)}–{max(vals)}" if min(vals) != max(vals) else str(vals[0])
+            else:
+                shown = st["value"]
+            src = "strava" if st.get("source") == "strava" else "gps"
+            log(f"  {src}: \"{st['label']}\" {shown} {st['unit']}{' (live)' if st.get('live') else ''}  {st['startFrame'] / fps:.1f}-{st['endFrame'] / fps:.1f}s")
     for r in props.get("routes") or []:
         log(f"  route map {r['startFrame'] / fps:.1f}-{r['endFrame'] / fps:.1f}s ({len(r['paths'])} line(s))")
     for sg in built["segs"]:

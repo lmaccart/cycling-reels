@@ -65,8 +65,8 @@ A track added with `--instagram` (a trending song, see [music.md](music.md)) is 
 | `sfx` | `[]` | Sound-effect cues with `at` / `endAt` in seconds from the segment start: `[{"sound": "hit-soft", "at": 0.2}]` |
 | `transition` | `cut` | `fade` = short crossfade from the previous segment (overlaps by ~0.27 s) |
 | `text` | `[]` | Text beats: `{"text": "legs said no", "at": 0.3, "for": 2.2, "position": "lower", "style": "dark"}`; `at` is seconds from the segment start; position `top`, `center` or `lower` (default `lower`, or `top` when the segment has captions). Beats that would collide with the hook or captions are moved automatically (the CLI says so) |
-| `stats` | `[]` | Small data pills top-left: `{"label": "grade", "value": "12%", "at": 0.3, "for": 3}`; `for` defaults to the rest of the segment. Real numbers only. GoPro clips can also show their own GPS — see **GPS stats and route map** |
-| `route` | `false` | `true` = small map of the recording's GPS track, top-right, with a dot at the current position (GoPro clips with telemetry) |
+| `stats` | `[]` | Small data pills top-left: `{"label": "grade", "value": "12%", "at": 0.3, "for": 3}`; `for` defaults to the rest of the segment. Real numbers only. GoPro clips can also show their own GPS — see **GPS stats and route map**; clips linked to a Strava ride can show its numbers — see **Strava stats and route map** |
+| `route` | `false` | `true` = small map of the recording's GPS track, top-right, with a dot at the current position (GoPro clips with telemetry); `"strava"` = the whole linked Strava ride (any clip, phone too) — see **Strava stats and route map** |
 
 ## Sound design
 
@@ -170,6 +170,27 @@ Units follow config `units` (`imperial` = mph, `metric` = km/h). `label` is opti
 ```json
 {"asset": "261003-gs020099-11c4", "in": 351, "out": 357, "view": "road", "route": true,
  "stats": [{"value": "gps"}, {"value": "gps:max"}]}
+```
+
+## Strava stats and route map (the linked ride)
+
+Clips filmed during a ride the user recorded on Strava are linked to it (`./reels strava list`, `./reels show <id>` prints the link and the speed/power/HR at the clip). Strava data from the user's own account counts as the user giving the number (they confirmed, incl. heart rate and power), so it may go on screen — but only through these values, never typed in. Works on phone clips and photos as well as GoPro.
+
+| Stat `value` | Shows | Default `label` |
+| --- | --- | --- |
+| `"strava:speed"` / `"strava:power"` / `"strava:hr"` / `"strava:cadence"` | Live, ~5×/s, at the real-world moment on screen (power = 3 s average). Video only | `speed` / `power` / `HR` / `cadence` |
+| `"strava:mile"` | Distance into the ride where the segment starts (mi; km when metric) | `mile` |
+| `"strava:temp"` | Bike computer temperature over the segment (°F) | `temp` |
+| `"strava:distance"` / `"strava:moving-time"` / `"strava:elapsed-time"` / `"strava:elevation"` | Whole ride: mi, h:mm, h:mm, ft (Garmin barometric — fine to show) | `distance` / `moving time` / `ride time` / `elevation` |
+| `"strava:avg-speed"` / `"strava:max-speed"` / `"strava:avg-power"` / `"strava:avg-hr"` / `"strava:max-hr"` | Whole ride averages / maxima | `avg` / `top speed` / `avg power` / `avg HR` / `max HR` |
+
+`"route": "strava"` draws the whole ride's line top-right with a dot where the clip was filmed; consecutive segments from the same ride share one map. Rides that start or end in Maine (home) lose their first and last 1 km; elsewhere the full route is fine (the user's call). No segment-PR text: Strava only says how many PRs a ride had, not which.
+
+`./reels check` fails when a clip has no linked ride, the ride lacks the streams/performance data for a value, or the moment falls in a gap (auto-pause, before/after the ride). It prints what each `strava:` pill will show.
+
+```json
+{"asset": "261104-img-3579", "in": 0, "out": 3, "route": "strava",
+ "stats": [{"value": "strava:speed"}, {"value": "strava:hr"}, {"value": "strava:distance"}]}
 ```
 
 ## Photo segments

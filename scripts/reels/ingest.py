@@ -140,6 +140,20 @@ def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> l
 
         run_telemetry(project, videos, quiet_none=True)
 
+    # Strava: link the new clips to rides already imported; say which days still need a ride fetched
+    if new:
+        from .images import parse_date as _pd
+        from .strava import all_activities, link_assets
+
+        days = sorted({str(a["created"])[:10] for a in new})
+        acts = [x["id"] for x in all_activities(project) if str(x.get("start_local", ""))[:10] in days]
+        if acts:
+            link_assets(project, acts)
+        have = {str(x.get("start_local", ""))[:10] for x in all_activities(project)}
+        missing = [d for d in days if d not in have and _pd(d)]
+        if missing:
+            log(f"  no Strava ride imported for {', '.join(missing)} — fetch it with the Strava connector and ./reels strava import (reference/strava.md)")
+
     for ext, n in sorted(ignored.items()):
         log(f"  (left {n} {ext} file{'s' if n > 1 else ''} in inbox — not ingestible)")
     if new:
