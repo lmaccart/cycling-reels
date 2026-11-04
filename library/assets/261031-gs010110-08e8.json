@@ -1,0 +1,175 @@
+{
+  "id": "261031-gs010110-08e8",
+  "kind": "video",
+  "media": "library/media/261031-gs010110-08e8.360",
+  "originalName": "GS010110.360",
+  "hash": "08e8831cafc0ecc5bc2c44a548bd3f9aabbd2638",
+  "created": "2026-10-31T08:16:49",
+  "ingestedAt": "2026-10-31T18:51:16+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T08:16:49.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle in the club paceline on wide suburban roads; camera slips on its mount at ~2:20, then a forward view past my legs to the group ahead; ends stopped next to a striped vehicle",
+    "hooks": [
+      "the view from under my saddle"
+    ],
+    "notes": "Mount shifts at ~2:20. Before: forward = yaw 180 roll 90, back = yaw 0 roll -90. After: forward2 = yaw 90 pitch 25 roll 0, side2 = yaw 160 pitch 25 roll 90. GPS good the whole clip; fastest 0:25-0:40 (~28 mph avg); stopped from ~7:45.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "forward2": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "side2": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 25.0,
+        "out": 32.0,
+        "label": "fastest stretch, legs spinning, road ahead",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 32.0,
+        "out": 39.0,
+        "label": "fast stretch, empty road unspooling behind",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 122.0,
+        "out": 130.0,
+        "label": "teammates sitting on my wheel in the paceline",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 196.0,
+        "out": 204.0,
+        "label": "paceline ahead past my legs and teal frame",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward2"
+      },
+      {
+        "in": 296.0,
+        "out": 304.0,
+        "label": "riders strung out ahead along a grassy verge",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward2"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 300.5,
+        "for": 4.0,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking while coasting in the group, loudness drops, AudioSet Bicycle 0.82, no wind or speech; other riders' freehubs may be mixed in"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -18.2,
+      "peakDb": -4.1
+    },
+    "speechSeconds": 0.94,
+    "speechRanges": [
+      [
+        2.01,
+        2.95
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs010110-08e8-1.jpg",
+    "library/sheets/261031-gs010110-08e8-2.jpg",
+    "library/sheets/261031-gs010110-08e8-3.jpg",
+    "library/sheets/261031-gs010110-08e8-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs010110-08e8.json",
+  "gpsSummary": {
+    "goodSeconds": 479.6,
+    "gaps": 0,
+    "first": 3.0,
+    "last": 482.4,
+    "maxSpeed": 12.97,
+    "movingAvgSpeed": 9.55,
+    "movingSeconds": 458.8,
+    "distance": 4386.9,
+    "altitudeOk": true,
+    "elevationGain": 24.6,
+    "elevationLoss": 14.3,
+    "altMin": 8.3,
+    "altMax": 25.6
+  },
+  "taggedAt": "2026-10-31T19:24:59+00:00"
+}

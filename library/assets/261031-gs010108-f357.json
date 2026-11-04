@@ -1,0 +1,266 @@
+{
+  "id": "261031-gs010108-f357",
+  "kind": "video",
+  "media": "library/media/261031-gs010108-f357.360",
+  "originalName": "GS010108.360",
+  "hash": "f35798b2b2e10719fe684baab0c554f3a9be57b9",
+  "created": "2026-10-31T07:33:39",
+  "ingestedAt": "2026-10-31T18:50:41+00:00",
+  "probe": {
+    "duration": 395.115,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T07:33:39.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "360 cam under the saddle: wheel the bike out of the apartment, elevator ride down, roll across campus under the oaks, then wait at the meetup while the group rolls in",
+    "hooks": [
+      "pov: you take your bike in the elevator",
+      "group ride starts in the elevator"
+    ],
+    "notes": "Camera under the saddle on its side today (not the usual upside-down bar mount): forward = yaw 180 roll +90 (past my legs/frame), back = yaw 0 roll -90 (over the rear wheel). Speech 3:00-6:30 is group chatter at the meetup, not a line to ca",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 45.0,
+        "out": 52.0,
+        "label": "taking the bike down in the elevator",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 76.0,
+        "out": 82.0,
+        "label": "rolls out of the lobby, freehub ticking",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 145.0,
+        "out": 152.0,
+        "label": "oak-lined campus road trailing away behind at dawn",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 148.0,
+        "out": 154.0,
+        "label": "pedalling leg and teal frame, road ahead under the oaks",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 183.0,
+        "out": 192.0,
+        "label": "pulls up at the brick arch meetup spot",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 228.0,
+        "out": 236.0,
+        "label": "club riders rolling in to the meetup",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 7.7,
+        "for": 1.4,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking while wheeling the bike down the dark hallway"
+      },
+      {
+        "at": 77.8,
+        "for": 3.0,
+        "kind": "freehub",
+        "score": 4,
+        "note": "clean freehub ratchet coasting out of the lobby, no wind, indoor quiet"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261031-gs010108-f357.json",
+  "used": [
+    {
+      "plan": "2026-11-06-elevator-loop",
+      "at": "2026-11-01T17:27:16+00:00",
+      "in": 45.0,
+      "out": 48.633
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -23.8,
+      "peakDb": -0.2
+    },
+    "speechSeconds": 87.21,
+    "speechRanges": [
+      [
+        223.06,
+        223.85
+      ],
+      [
+        242.14,
+        243.66
+      ],
+      [
+        244.86,
+        246.95
+      ],
+      [
+        247.35,
+        248.01
+      ],
+      [
+        248.63,
+        249.22
+      ],
+      [
+        257.4,
+        260.2
+      ],
+      [
+        261.11,
+        263.14
+      ],
+      [
+        264.44,
+        265.22
+      ],
+      [
+        266.33,
+        267.11
+      ],
+      [
+        268.38,
+        273.22
+      ],
+      [
+        273.82,
+        277.0
+      ],
+      [
+        278.07,
+        280.39
+      ],
+      [
+        315.51,
+        325.96
+      ],
+      [
+        327.67,
+        331.18
+      ],
+      [
+        333.37,
+        342.76
+      ],
+      [
+        344.7,
+        349.06
+      ],
+      [
+        349.91,
+        353.45
+      ],
+      [
+        354.04,
+        355.82
+      ],
+      [
+        360.41,
+        361.67
+      ],
+      [
+        362.78,
+        372.68
+      ],
+      [
+        373.05,
+        374.5
+      ],
+      [
+        374.97,
+        377.29
+      ],
+      [
+        377.69,
+        382.92
+      ],
+      [
+        383.35,
+        394.99
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs010108-f357-1.jpg",
+    "library/sheets/261031-gs010108-f357-2.jpg",
+    "library/sheets/261031-gs010108-f357-3.jpg",
+    "library/sheets/261031-gs010108-f357-4.jpg"
+  ],
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  },
+  "taggedAt": "2026-10-31T18:57:02+00:00"
+}

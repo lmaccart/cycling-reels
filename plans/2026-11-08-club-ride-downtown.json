@@ -1,0 +1,72 @@
+{
+ "slug": "2026-11-08-club-ride-downtown",
+ "postDate": "2026-11-08",
+ "format": "ride-montage",
+ "hook": {
+  "text": "saturday club ride, downtown and back"
+ },
+ "segments": [
+  {
+   "asset": "261031-gs030112",
+   "in": 64.0,
+   "out": 66.5,
+   "view": "skyline"
+  },
+  {
+   "asset": "261031-gs030112",
+   "in": 97.0,
+   "out": 99.0,
+   "view": "skyline"
+  },
+  {
+   "asset": "261031-gs020111",
+   "in": 56.0,
+   "out": 58.0,
+   "view": "wheel"
+  },
+  {
+   "asset": "261031-gs010112",
+   "in": 171.0,
+   "out": 173.0,
+   "view": "forward",
+   "stats": [
+    {
+     "value": "gps"
+    }
+   ]
+  },
+  {
+   "asset": "261031-img-3398",
+   "duration": 1.6,
+   "motion": "zoom-in"
+  },
+  {
+   "asset": "261031-img-3418",
+   "duration": 2.6,
+   "motion": "zoom-out",
+   "payoff": true,
+   "text": [
+    {
+     "text": "same time next week?",
+     "at": 0.5,
+     "for": 2.0,
+     "position": "top"
+    }
+   ]
+  }
+ ],
+ "music": {
+  "track": "angel-of-my-dreams",
+  "cutOnBeat": true
+ },
+ "post": {
+  "caption": "club ride through downtown houston, open roads after, burritos at the end. same time next week",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#houstoncycling"
+  ],
+  "altText": "360 camera montage of a club ride between downtown towers and on open roads, ending with a team photo in front of a brick arch."
+ }
+}

@@ -1,0 +1,235 @@
+{
+  "id": "261031-gs030110-3226",
+  "kind": "video",
+  "media": "library/media/261031-gs030110-3226.360",
+  "originalName": "GS030110.360",
+  "hash": "32265347ebc300be4b2c7e79b8027a05b39edf18",
+  "created": "2026-10-31T08:16:49",
+  "ingestedAt": "2026-10-31T18:53:04+00:00",
+  "probe": {
+    "duration": 210.304,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T08:16:49.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle: paceline chat about tire pressure, someone gets told their headset is loose, the group pulls over and crowds round a storm drain worried my multitool was about to go down it (it didn't)",
+    "hooks": [
+      "my multitool almost went down the drain",
+      "the whole group stopped for a storm drain",
+      "guys what is your deadlift"
+    ],
+    "notes": "Post-shift mount: forward = yaw 90 pitch 25 roll 0, side = yaw 160 pitch 25 roll 90 (frames the group at the drain). Transcript fixed (Silca, headset) and the hallucinated keyterm tail removed; ends 3:29.6. User confirmed 2026-10-31: they were worried my multitool would go down the drain, but it didn't actually fall. Names: only put a name on screen if clearly heard; Owen's in this clip is in a garbled sentence - don't use.",
+    "angles": {
+      "side": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      },
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 4.0,
+        "out": 11.0,
+        "label": "rolling in the paceline, legs spinning",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 105.0,
+        "out": 114.0,
+        "label": "\"your headset is loose\" ... \"roll slow, roll slow\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      },
+      {
+        "in": 183.5,
+        "out": 197.0,
+        "label": "everyone panicking that my multitool is going down the drain: \"look familiar? except you are not getting it back this time\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      },
+      {
+        "in": 197.0,
+        "out": 208.5,
+        "label": "group standing over the drain grate trying to work out a rescue: \"guys what is your deadlift again\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 149.8,
+        "for": 2.5,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ratchet as we coast in to pull over, quiet, almost no wind"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261031-gs030110-3226.json",
+  "used": [
+    {
+      "plan": "2026-11-05-multitool-drain",
+      "at": "2026-11-01T17:31:16+00:00",
+      "in": 192.65,
+      "out": 197.85
+    },
+    {
+      "plan": "2026-11-05-multitool-drain",
+      "at": "2026-11-01T17:31:16+00:00",
+      "in": 204.9,
+      "out": 207.3
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -21.4,
+      "peakDb": -0.4
+    },
+    "speechSeconds": 53.77,
+    "speechRanges": [
+      [
+        83.0,
+        83.69
+      ],
+      [
+        85.69,
+        87.75
+      ],
+      [
+        87.99,
+        91.21
+      ],
+      [
+        91.67,
+        100.87
+      ],
+      [
+        104.73,
+        105.7
+      ],
+      [
+        106.52,
+        108.39
+      ],
+      [
+        109.02,
+        109.77
+      ],
+      [
+        110.74,
+        112.81
+      ],
+      [
+        114.3,
+        115.37
+      ],
+      [
+        117.14,
+        118.44
+      ],
+      [
+        160.12,
+        161.19
+      ],
+      [
+        164.92,
+        166.47
+      ],
+      [
+        178.65,
+        179.82
+      ],
+      [
+        180.22,
+        184.58
+      ],
+      [
+        185.05,
+        193.35
+      ],
+      [
+        193.85,
+        195.08
+      ],
+      [
+        196.38,
+        202.73
+      ],
+      [
+        203.61,
+        210.15
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs030110-3226-1.jpg",
+    "library/sheets/261031-gs030110-3226-2.jpg",
+    "library/sheets/261031-gs030110-3226-3.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs030110-3226.json",
+  "gpsSummary": {
+    "goodSeconds": 210.4,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 210.2,
+    "maxSpeed": 11.1,
+    "movingAvgSpeed": 7.72,
+    "movingSeconds": 122.0,
+    "distance": 952.2,
+    "altitudeOk": true,
+    "elevationGain": 6.1,
+    "elevationLoss": 8.1,
+    "altMin": 12.7,
+    "altMax": 22.0
+  },
+  "taggedAt": "2026-10-31T19:00:02+00:00"
+}

@@ -1,0 +1,36 @@
+{
+  "id": "261031-img-3421-d65c",
+  "kind": "photo",
+  "media": "library/media/261031-img-3421-d65c.jpeg",
+  "originalName": "IMG_3421.jpeg",
+  "hash": "d65c37379b52ae5877ad0c442c53c11e872f932b",
+  "created": "2026-10-31T13:29:09",
+  "ingestedAt": "2026-10-31T18:53:31+00:00",
+  "probe": {
+    "width": 5712,
+    "height": 4284,
+    "created": "2026:10:31 13:29:09"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "cafe",
+    "shot": "photo",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Team eating burrito bowls and burritos at a long patio table under umbrellas, everyone on their phones",
+    "hooks": [
+      "checking strava before the food is gone",
+      "post-ride lunch, everyone on their phone"
+    ],
+    "score": 4,
+    "focusX": 0.45,
+    "focusY": 0.6
+  },
+  "transcript": null,
+  "used": [],
+  "sheets": [
+    "library/sheets/261031-img-3421-d65c.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:19+00:00"
+}

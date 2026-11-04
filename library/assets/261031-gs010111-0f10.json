@@ -1,0 +1,160 @@
+{
+  "id": "261031-gs010111-0f10",
+  "kind": "video",
+  "media": "library/media/261031-gs010111-0f10.360",
+  "originalName": "GS010111.360",
+  "hash": "0f10f5c33213d2ac2c7ff15dbdd91bb4016ecddb",
+  "created": "2026-10-31T09:35:32",
+  "ingestedAt": "2026-10-31T18:51:34+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T09:35:32.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle, sunny now: regroup stop, the whole group waiting at a traffic light, then fast riding on an open two-lane road with yellow lines, wheels just ahead",
+    "hooks": [
+      "pov: sitting on a wheel at speed",
+      "when the group finally gets to the open road"
+    ],
+    "notes": "Post-shift mount: forward = yaw 90 pitch 25 roll 0, side = yaw 160 pitch 25 roll 90. GPS good; fastest ~6:19-6:56 (~27 mph). Transcript is a Whisper hallucination (no real speech) - never caption it.",
+    "angles": {
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 286.0,
+        "out": 294.0,
+        "label": "group waiting at the light, riders glancing at the camera",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 329.0,
+        "out": 337.0,
+        "label": "group rolls off from the light",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 379.0,
+        "out": 386.0,
+        "label": "fast on the open road, sunny, yellow lines",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 410.0,
+        "out": 417.0,
+        "label": "fastest stretch on a wheel, open road",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 443.0,
+        "out": 450.0,
+        "label": "riders swap around just ahead at speed",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261031-gs010111-0f10.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -17.9,
+      "peakDb": -0.9
+    },
+    "speechSeconds": 1.88,
+    "speechRanges": [
+      [
+        284.73,
+        285.38
+      ],
+      [
+        316.31,
+        317.54
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs010111-0f10-1.jpg",
+    "library/sheets/261031-gs010111-0f10-2.jpg",
+    "library/sheets/261031-gs010111-0f10-3.jpg",
+    "library/sheets/261031-gs010111-0f10-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs010111-0f10.json",
+  "gpsSummary": {
+    "goodSeconds": 479.6,
+    "gaps": 0,
+    "first": 3.0,
+    "last": 482.4,
+    "maxSpeed": 12.46,
+    "movingAvgSpeed": 9.32,
+    "movingSeconds": 392.6,
+    "distance": 3665.8,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -0.0,
+    "altMax": 26.9
+  },
+  "taggedAt": "2026-10-31T19:00:29+00:00"
+}

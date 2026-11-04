@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Iterator
 
 from .config import Project
-from .library import all_assets, load_asset, save_asset
+from .library import all_assets, load_asset, update_asset
 from .media import ffprobe_json, run
 from .util import ReelsError, fmt_ts, log, now_iso, warn
 
@@ -444,12 +444,10 @@ def extract_asset(project: Project, asset: dict) -> dict | None:
     out = telemetry_dir(project) / f"{asset['id']}.json"
     if data["samples"]:
         _write_compact(out, data)
-        asset["telemetry"] = project.rel(out)
+        update_asset(project, asset, telemetry=project.rel(out), gpsSummary=data["summary"])
     else:
         out.unlink(missing_ok=True)
-        asset["telemetry"] = None
-    asset["gpsSummary"] = data["summary"] if data["samples"] else {"goodSeconds": 0}
-    save_asset(project, asset)
+        update_asset(project, asset, telemetry=None, gpsSummary={"goodSeconds": 0})
     return data
 
 

@@ -1,0 +1,165 @@
+{
+  "id": "261031-gs020111-5ba0",
+  "kind": "video",
+  "media": "library/media/261031-gs020111-5ba0.360",
+  "originalName": "GS020111.360",
+  "hash": "5ba0ec8241575a1e226934d65415e5888b67c187",
+  "created": "2026-10-31T09:35:32",
+  "ingestedAt": "2026-10-31T18:52:28+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T09:35:32.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle on open sunny two-lane roads past fields: wheels ahead, a teammate sitting on my wheel behind, and my own shadow riding along the asphalt beside me",
+    "hooks": [
+      "pov: you are the one being drafted",
+      "my shadow kept up the whole time",
+      "who is on my wheel"
+    ],
+    "notes": "Post-shift mount: forward = yaw 90 pitch 25 roll 0; wheel = yaw 100 pitch 45 roll 0 looks back at the rider behind me face-on; shadow = yaw 160 pitch 25 roll 90 (my shadow on the road). Fastest ~5:02-5:24 (~29.5 mph). Lens smudge visible ar",
+    "angles": {
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "wheel": {
+        "yaw": 100.0,
+        "pitch": 45.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "shadow": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 56.0,
+        "out": 64.0,
+        "label": "teammate in blue tucked on my wheel, face-on, fields behind",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "wheel"
+      },
+      {
+        "in": 56.0,
+        "out": 64.0,
+        "label": "my shadow pedalling along the road beside me",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "shadow"
+      },
+      {
+        "in": 252.0,
+        "out": 260.0,
+        "label": "white-helmet teammate on my wheel, sunny open road",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "wheel"
+      },
+      {
+        "in": 302.0,
+        "out": 310.0,
+        "label": "fastest stretch, wheel ahead, yellow lines flying",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 412.0,
+        "out": 419.0,
+        "label": "shadow riding along the yellow line",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "shadow"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-08-club-ride-downtown",
+      "at": "2026-11-01T17:30:40+00:00",
+      "in": 56.0,
+      "out": 57.867
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -16.7,
+      "peakDb": -3.8
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261031-gs020111-5ba0-1.jpg",
+    "library/sheets/261031-gs020111-5ba0-2.jpg",
+    "library/sheets/261031-gs020111-5ba0-3.jpg",
+    "library/sheets/261031-gs020111-5ba0-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs020111-5ba0.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 13.32,
+    "movingAvgSpeed": 10.29,
+    "movingSeconds": 482.4,
+    "distance": 4965.2,
+    "altitudeOk": true,
+    "elevationGain": 4.0,
+    "elevationLoss": 6.0,
+    "altMin": 20.0,
+    "altMax": 25.7
+  },
+  "taggedAt": "2026-10-31T19:01:06+00:00"
+}

@@ -1,0 +1,44 @@
+{"at": "2026-10-31T19:03:25+00:00", "category": "production", "kind": "tooling", "note": "Running ./reels tag while ./reels transcribe was still running lost the tags on 2 clips (transcribe rewrote the asset records from a stale copy). Re-tagged by hand. Fix: run them one after the other, or have transcribe re-read the record before saving.", "slug": null, "source": "user"}
+{"at": "2026-10-31T19:05:22+00:00", "category": "preference", "kind": "on-screen-text", "note": "Teammates' names can go on screen when clearly heard in the footage audio; otherwise say him/her/them.", "slug": null, "source": "user"}
+{"at": "2026-11-01T17:25:03+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-02-intervals-before-class.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:25:33+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-02-intervals-before-class.json in 30.3s", "slug": "2026-11-02-intervals-before-class", "source": "cli"}
+{"at": "2026-11-01T17:25:34+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-03-train-horn.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:26:05+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-03-train-horn.json in 31.7s", "slug": "2026-11-03-train-horn", "source": "cli"}
+{"at": "2026-11-01T17:26:05+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-04-wake-the-roommate.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:26:33+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-04-wake-the-roommate.json in 27.7s", "slug": "2026-11-04-wake-the-roommate", "source": "cli"}
+{"at": "2026-11-01T17:26:33+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-05-multitool-drain.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:26:56+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-05-multitool-drain.json in 22.9s", "slug": "2026-11-05-multitool-drain", "source": "cli"}
+{"at": "2026-11-01T17:26:56+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-06-elevator-loop.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:27:16+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-06-elevator-loop.json in 19.6s", "slug": "2026-11-06-elevator-loop", "source": "cli"}
+{"at": "2026-11-01T17:27:16+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-07-regroup-confessions.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:27:43+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-07-regroup-confessions.json in 27.5s", "slug": "2026-11-07-regroup-confessions", "source": "cli"}
+{"at": "2026-11-01T17:27:44+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-08-club-ride-downtown.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:28:20+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-08-club-ride-downtown.json in 36.6s", "slug": "2026-11-08-club-ride-downtown", "source": "cli"}
+{"at": "2026-11-01T17:28:47+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-02-intervals-before-class.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:29:15+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-02-intervals-before-class.json in 28.0s", "slug": "2026-11-02-intervals-before-class", "source": "cli"}
+{"at": "2026-11-01T17:29:15+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-05-multitool-drain.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:29:37+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-05-multitool-drain.json in 21.4s", "slug": "2026-11-05-multitool-drain", "source": "cli"}
+{"at": "2026-11-01T17:29:37+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-03-train-horn.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:30:04+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-03-train-horn.json in 27.2s", "slug": "2026-11-03-train-horn", "source": "cli"}
+{"at": "2026-11-01T17:30:04+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-08-club-ride-downtown.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:30:40+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-08-club-ride-downtown.json in 36.5s", "slug": "2026-11-08-club-ride-downtown", "source": "cli"}
+{"at": "2026-11-01T17:30:55+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-05-multitool-drain.json", "slug": null, "source": "cli"}
+{"at": "2026-11-01T17:31:16+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-05-multitool-drain.json in 21.2s", "slug": "2026-11-05-multitool-drain", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "preference", "kind": "approval", "note": "user approved all 7 reels for Nov 2-8 without edits ('Approve all')", "slug": null, "source": "user"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-02-intervals-before-class", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-03-train-horn", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-04-wake-the-roommate", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-05-multitool-drain", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-06-elevator-loop", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-07-regroup-confessions", "source": "cli"}
+{"at": "2026-11-01T17:45:04+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-08-club-ride-downtown", "source": "cli"}
+{"at": "2026-11-01T17:46:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-02-intervals-before-class", "source": "cli"}
+{"at": "2026-11-01T17:46:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-03-train-horn", "source": "cli"}
+{"at": "2026-11-01T17:46:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-04-wake-the-roommate", "source": "cli"}
+{"at": "2026-11-01T17:46:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-05-multitool-drain", "source": "cli"}
+{"at": "2026-11-01T17:46:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-06-elevator-loop", "source": "cli"}
+{"at": "2026-11-01T17:46:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-07-regroup-confessions", "source": "cli"}
+{"at": "2026-11-01T17:46:24+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-08-club-ride-downtown", "source": "cli"}
+{"at": "2026-11-01T17:46:24+00:00", "category": "production", "kind": "analytics", "note": "stats import: pulledAt written in local time ahead of UTC was skipped as a future snapshot; re-imported with the real UTC time", "slug": null, "source": "user"}
+{"at": "2026-11-01T17:46:24+00:00", "category": "production", "kind": "captions", "note": "transcript-caption windows picked up stray low-confidence words from before the in-point (intervals 'on', multitool 'left'); fixed by moving in-points past the previous word's end time", "slug": null, "source": "user"}
+{"at": "2026-11-04T17:21:22+00:00", "category": "preference", "kind": "audio", "note": "Swearing in talking clips: bleep it (user OK'd 2026-11-04) rather than cutting around it", "source": "user"}

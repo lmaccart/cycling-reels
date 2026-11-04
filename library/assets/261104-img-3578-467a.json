@@ -1,0 +1,38 @@
+{
+  "id": "261104-img-3578-467a",
+  "kind": "photo",
+  "media": "library/media/261104-img-3578-467a.jpeg",
+  "originalName": "IMG_3578.jpeg",
+  "hash": "467a67362a1ac69e74c062073ef6f1b76d29353e",
+  "created": "2026-11-04T07:16:45",
+  "ingestedAt": "2026-11-04T15:08:14+00:00",
+  "probe": {
+    "width": 4284,
+    "height": 5712,
+    "created": "2026:11:04 07:16:45"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "bike-check",
+    "shot": "photo",
+    "quality": 3,
+    "issues": [
+      "blurry"
+    ],
+    "people": "me",
+    "summary": "Top-down cockpit shot while riding: Garmin on the integrated bar, teal Factor top tube, knee in frame, road blurred",
+    "hooks": [
+      "the view for two hours"
+    ],
+    "notes": "Garmin screen is small and hard to read; do not put its numbers on screen",
+    "score": 3,
+    "focusX": 0.4,
+    "focusY": 0.35
+  },
+  "transcript": null,
+  "used": [],
+  "sheets": [
+    "library/sheets/261104-img-3578-467a.jpg"
+  ],
+  "taggedAt": "2026-11-04T15:09:21+00:00"
+}

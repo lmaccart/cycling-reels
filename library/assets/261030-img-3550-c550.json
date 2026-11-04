@@ -1,0 +1,36 @@
+{
+  "id": "261030-img-3550-c550",
+  "kind": "photo",
+  "media": "library/media/261030-img-3550-c550.jpeg",
+  "originalName": "IMG_3550.jpeg",
+  "hash": "c5502e64f8434ad35bfda96d33b149ae55ca2649",
+  "created": "2026-10-30T13:55:29",
+  "ingestedAt": "2026-10-31T18:53:32+00:00",
+  "probe": {
+    "width": 3024,
+    "height": 4032,
+    "created": "2026:10:30 13:55:29"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "photo",
+    "quality": 4,
+    "issues": [],
+    "people": "others",
+    "summary": "Blue Pacific tandem bike parked by a trash can on a tree-lined campus path, a student walking past",
+    "hooks": [
+      "found my next race bike",
+      "who is riding this and can i join"
+    ],
+    "score": 3,
+    "focusX": 0.55,
+    "focusY": 0.6
+  },
+  "transcript": null,
+  "used": [],
+  "sheets": [
+    "library/sheets/261030-img-3550-c550.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:19+00:00"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "261031-img-3410-bc2d",
+  "kind": "photo",
+  "media": "library/media/261031-img-3410-bc2d.jpeg",
+  "originalName": "IMG_3410.jpeg",
+  "hash": "bc2d23b2820b52734f6c906dd28c0bd62f5d8410",
+  "created": "2026-10-31T13:29:08",
+  "ingestedAt": "2026-10-31T18:53:31+00:00",
+  "probe": {
+    "width": 3024,
+    "height": 4032,
+    "created": "2026:10:31 13:29:08"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "photo",
+    "quality": 4,
+    "issues": [],
+    "people": "others",
+    "summary": "Close-up of a grinning Rice cycling rider, hair sticking out of a white Specialized helmet, overpass behind",
+    "hooks": [
+      "helmet hair is part of the kit"
+    ],
+    "score": 4,
+    "focusX": 0.55,
+    "focusY": 0.45
+  },
+  "transcript": null,
+  "used": [],
+  "sheets": [
+    "library/sheets/261031-img-3410-bc2d.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:19+00:00"
+}

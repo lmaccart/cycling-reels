@@ -66,7 +66,14 @@
     ]
   },
   "transcript": "library/transcripts/261030-img-3549-fbfb.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-04-wake-the-roommate",
+      "at": "2026-11-01T17:26:33+00:00",
+      "in": 7.6,
+      "out": 11.3
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -29.0,

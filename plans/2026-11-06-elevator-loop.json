@@ -1,0 +1,10 @@
+{"slug":"2026-11-06-elevator-loop","postDate":"2026-11-06","format":"relatable-pov","loop":true,
+ "hook":{"text":"me and this elevator before every ride"},
+ "segments":[
+  {"asset":"261029-img-3534","in":3.0,"out":5.5,"captions":"transcript"},
+  {"asset":"261031-gs010108","in":45.0,"out":48.5,"view":"back","text":[{"text":"it came. eventually","at":0.3,"for":2.6}]},
+  {"asset":"261029-img-3534","in":1.5,"out":3.0}],
+ "music":{"track":"housewife","cutOnBeat":true},
+ "post":{"caption":"the ride doesn't start until the elevator says so",
+  "hashtags":["#cycling","#roadcycling","#apartmentlife","#bikelife"],
+  "altText":"A cyclist with their bike stares at an elevator that won't come and asks if it's serious, then finally rides down in it."}}

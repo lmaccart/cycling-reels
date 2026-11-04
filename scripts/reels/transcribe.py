@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .config import Project
-from .library import all_assets, load_asset, save_asset
+from .library import all_assets, load_asset, update_asset
 from .media import load_audio_16k
 from .util import ReelsError, log, now_iso, write_json
 
@@ -77,8 +77,7 @@ def transcribe(
                 "words": words,
             },
         )
-        asset["transcript"] = project.rel(out)
-        save_asset(project, asset)
+        update_asset(project, asset, transcript=project.rel(out))
         text = " ".join(s["text"] for s in segs)
         log(f"transcribed {asset['id']}: {len(words)} words — \"{text[:140]}{'…' if len(text) > 140 else ''}\"")
         done += 1

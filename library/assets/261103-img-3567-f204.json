@@ -1,0 +1,68 @@
+{
+  "id": "261103-img-3567-f204",
+  "kind": "video",
+  "media": "library/media/261103-img-3567-f204.mov",
+  "originalName": "IMG_3567.mov",
+  "hash": "f2040919ce28c56758e9264fcf7ab6bcf25ee215",
+  "created": "2026-11-03T07:19:38",
+  "ingestedAt": "2026-11-03T19:53:21+00:00",
+  "probe": {
+    "duration": 4.19,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.905,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-03T07:19:38-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Handlebar POV crossing a city intersection on a green bike lane, cars and a school bus around",
+    "hooks": [
+      "the commute to the hurt"
+    ],
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 4.0,
+        "label": "rolls across the intersection off the green lane",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -17.7,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 1.23,
+    "speechRanges": [
+      [
+        1.18,
+        2.41
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261103-img-3567-f204.jpg"
+  ],
+  "taggedAt": "2026-11-03T19:55:21+00:00"
+}

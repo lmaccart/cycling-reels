@@ -1,0 +1,35 @@
+{
+  "id": "261031-img-3407-8141",
+  "kind": "photo",
+  "media": "library/media/261031-img-3407-8141.jpeg",
+  "originalName": "IMG_3407.jpeg",
+  "hash": "8141c56d647fcf8e56fa6a62e984eb7274f911db",
+  "created": "2026-10-31T13:29:09",
+  "ingestedAt": "2026-10-31T18:53:31+00:00",
+  "probe": {
+    "width": 5712,
+    "height": 4284,
+    "created": "2026:10:31 13:29:09"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "photo",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "Whole group milling around a gas-station forecourt, bikes leaned on the wall",
+    "hooks": [
+      "gas station regroup"
+    ],
+    "score": 3,
+    "focusX": 0.5,
+    "focusY": 0.6
+  },
+  "transcript": null,
+  "used": [],
+  "sheets": [
+    "library/sheets/261031-img-3407-8141.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:19+00:00"
+}

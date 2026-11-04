@@ -1,0 +1,213 @@
+{
+  "id": "261031-gs020112-8262",
+  "kind": "video",
+  "media": "library/media/261031-gs020112-8262.360",
+  "originalName": "GS020112.360",
+  "hash": "8262e86221f930645882313fb06c4676ee025b85",
+  "created": "2026-10-31T11:01:56",
+  "ingestedAt": "2026-10-31T18:52:46+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T11:01:56.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle, sunny with big clouds: end of the regroup (\"alright lets roll\"), someone singing shine bright like a diamond, a recap of a sprint from the back of the group, then easy riding back into the city past tall buildings",
+    "hooks": [
+      "someone always sings on the group ride",
+      "started from the back of the group",
+      "the ride home is the best part"
+    ],
+    "notes": "Post-shift mount: forward = yaw 90 pitch 25 roll 0, side = yaw 160 pitch 25 roll 90. GPS good, easy pace (max ~22 mph). Transcript: lyric fixed; 1:11-2:09 is silence inside one segment. The sprint recap names a teammate (Owen) and swears -",
+    "angles": {
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 45.4,
+        "out": 51.0,
+        "label": "\"alright lets roll\" - group clips in and rolls off",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      },
+      {
+        "in": 58.9,
+        "out": 70.5,
+        "label": "someone singing shine bright like a diamond while we ride",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward"
+      },
+      {
+        "in": 129.0,
+        "out": 141.5,
+        "label": "sprint recap: \"started from the back, saw him go and tried to get around... perfect\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward"
+      },
+      {
+        "in": 304.0,
+        "out": 311.0,
+        "label": "group shadows stretched across the road in the sun",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 416.0,
+        "out": 423.0,
+        "label": "rolling back into the city under tall buildings",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 100.8,
+        "for": 2.4,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking in the pack, evenly spaced clicks, wind 0.03, no speech; group still pedalling so modest"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261031-gs020112-8262.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -20.1,
+      "peakDb": -1.5
+    },
+    "speechSeconds": 38.35,
+    "speechRanges": [
+      [
+        1.3,
+        19.02
+      ],
+      [
+        20.5,
+        22.57
+      ],
+      [
+        33.4,
+        34.25
+      ],
+      [
+        45.62,
+        46.79
+      ],
+      [
+        47.96,
+        50.12
+      ],
+      [
+        57.3,
+        58.09
+      ],
+      [
+        59.38,
+        61.16
+      ],
+      [
+        65.02,
+        68.46
+      ],
+      [
+        69.3,
+        70.86
+      ],
+      [
+        129.3,
+        133.03
+      ],
+      [
+        135.93,
+        136.52
+      ],
+      [
+        136.79,
+        138.5
+      ],
+      [
+        140.73,
+        141.51
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs020112-8262-1.jpg",
+    "library/sheets/261031-gs020112-8262-2.jpg",
+    "library/sheets/261031-gs020112-8262-3.jpg",
+    "library/sheets/261031-gs020112-8262-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs020112-8262.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 9.93,
+    "movingAvgSpeed": 7.84,
+    "movingSeconds": 391.8,
+    "distance": 3081.1,
+    "altitudeOk": true,
+    "elevationGain": 20.3,
+    "elevationLoss": 18.2,
+    "altMin": 8.0,
+    "altMax": 21.4
+  },
+  "taggedAt": "2026-10-31T19:24:59+00:00"
+}

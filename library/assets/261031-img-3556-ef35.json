@@ -1,0 +1,79 @@
+{
+  "id": "261031-img-3556-ef35",
+  "kind": "video",
+  "media": "library/media/261031-img-3556-ef35.mov",
+  "originalName": "IMG_3556.mov",
+  "hash": "ef35f06c1694b09aac8a241188772580b2b07ce4",
+  "created": "2026-10-31T11:57:25",
+  "ingestedAt": "2026-10-31T18:53:37+00:00",
+  "probe": {
+    "duration": 8.525,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.941,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T11:57:25-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "cafe",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "POV walking out a cafe door holding a red drink, past parked bikes to the team at the patio tables",
+    "hooks": [
+      "post-ride drink run"
+    ],
+    "moments": [
+      {
+        "in": 1.8,
+        "out": 4.5,
+        "label": "walking out with the red drink",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 4.5,
+        "out": 8.4,
+        "label": "bikes by the bin, team at the patio tables",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -24.6,
+      "peakDb": -8.8
+    },
+    "speechSeconds": 1.12,
+    "speechRanges": [
+      [
+        5.3,
+        6.02
+      ],
+      [
+        8.12,
+        8.52
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-img-3556-ef35.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:19+00:00"
+}

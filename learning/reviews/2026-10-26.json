@@ -107,6 +107,307 @@
         "lessons": []
       },
       "schedulingComplete": false
+    },
+    {
+      "at": "2026-11-01T17:16:03.977213+00:00",
+      "phase": "planning",
+      "audience": {
+        "latestPull": "2026-10-30T18:00:00+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-10-30T18:00:00+00:00",
+            "snapshot": "analytics/2026-10-30T180000.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 3.7699305555555553,
+            "reach": 182.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4733727810650888,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005494505494505495
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-10-30T18:00:00+00:00",
+            "snapshot": "analytics/2026-10-30T180000.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 0.7699768518518518,
+            "reach": 509.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 62.9,
+            "watchThrough": 0.706746765249538,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005893909626719057
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-10-30T18:00:00+00:00",
+            "snapshot": "analytics/2026-10-30T180000.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 1.769236111111111,
+            "reach": 157.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 42.9,
+            "watchThrough": 0.23857677902621724,
+            "sharesReach": 0.006369426751592357,
+            "savesReach": 0.0,
+            "likesReach": 0.012738853503184714
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-10-30T18:00:00+00:00",
+            "snapshot": "analytics/2026-10-30T180000.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 2.769108796296296,
+            "reach": 163.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3309477756286267,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012269938650306749
+          }
+        ],
+        "sevenDayWindow": [],
+        "under48Hours": 2,
+        "preliminary": 2,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": [
+          "2026-11-01T180000.json"
+        ]
+      },
+      "feedback": [
+        {
+          "at": "2026-10-31T19:03:25+00:00",
+          "category": "production",
+          "kind": "tooling",
+          "note": "Running ./reels tag while ./reels transcribe was still running lost the tags on 2 clips (transcribe rewrote the asset records from a stale copy). Re-tagged by hand. Fix: run them one after the other, or have transcribe re-read the record before saving.",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-10-31T19:05:22+00:00",
+          "category": "preference",
+          "kind": "on-screen-text",
+          "note": "Teammates' names can go on screen when clearly heard in the footage audio; otherwise say him/her/them.",
+          "slug": null,
+          "source": "user"
+        }
+      ],
+      "experiments": [],
+      "batch": [],
+      "notes": {},
+      "schedulingComplete": false
+    },
+    {
+      "at": "2026-11-01T17:16:11.413426+00:00",
+      "phase": "planning",
+      "audience": {
+        "latestPull": "2026-11-01T17:16:11+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-01T17:16:11Z",
+            "snapshot": "analytics/2026-11-01T171611.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 5.739502314814815,
+            "reach": 182.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4733727810650888,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005494505494505495
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-01T17:16:11Z",
+            "snapshot": "analytics/2026-11-01T171611.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 2.739548611111111,
+            "reach": 511.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 63.0,
+            "watchThrough": 0.706192236598891,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005870841487279843
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-01T17:16:11Z",
+            "snapshot": "analytics/2026-11-01T171611.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 3.7388078703703704,
+            "reach": 157.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 42.9,
+            "watchThrough": 0.23857677902621724,
+            "sharesReach": 0.006369426751592357,
+            "savesReach": 0.0,
+            "likesReach": 0.012738853503184714
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-01T17:16:11Z",
+            "snapshot": "analytics/2026-11-01T171611.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 4.738680555555556,
+            "reach": 163.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3309477756286267,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012269938650306749
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-01T17:16:11Z",
+            "snapshot": "analytics/2026-11-01T171611.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 1.7386805555555556,
+            "reach": 157.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 56.1,
+            "watchThrough": 0.30775805391190003,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0
+          }
+        ],
+        "sevenDayWindow": [],
+        "under48Hours": 1,
+        "preliminary": 4,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": []
+      },
+      "feedback": [
+        {
+          "at": "2026-10-31T19:03:25+00:00",
+          "category": "production",
+          "kind": "tooling",
+          "note": "Running ./reels tag while ./reels transcribe was still running lost the tags on 2 clips (transcribe rewrote the asset records from a stale copy). Re-tagged by hand. Fix: run them one after the other, or have transcribe re-read the record before saving.",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-10-31T19:05:22+00:00",
+          "category": "preference",
+          "kind": "on-screen-text",
+          "note": "Teammates' names can go on screen when clearly heard in the footage audio; otherwise say him/her/them.",
+          "slug": null,
+          "source": "user"
+        }
+      ],
+      "experiments": [],
+      "batch": [],
+      "notes": {},
+      "schedulingComplete": false
     }
   ]
 }

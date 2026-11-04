@@ -1,0 +1,49 @@
+{
+ "slug": "2026-11-02-intervals-before-class",
+ "postDate": "2026-11-02",
+ "format": "story-with-stakes",
+ "hook": {
+  "text": "intervals before class. let's see if i survive"
+ },
+ "segments": [
+  {
+   "asset": "261029-img-3536",
+   "in": 0.4,
+   "out": 4.0,
+   "captions": "transcript"
+  },
+  {
+   "asset": "261029-img-3537",
+   "in": 9.15,
+   "out": 11.5,
+   "captions": "transcript"
+  },
+  {
+   "asset": "261029-img-3541",
+   "in": 7.7,
+   "out": 9.4,
+   "captions": "transcript",
+   "payoff": true
+  },
+  {
+   "asset": "261029-img-3541",
+   "in": 17.3,
+   "out": 20.2,
+   "captions": "transcript"
+  }
+ ],
+ "music": {
+  "track": "what-you-waiting-for",
+  "cutOnBeat": true
+ },
+ "post": {
+  "caption": "3x12 sub threshold before school. the last one was not as fun as the first one. how early do you train?",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#intervals",
+   "#studentathlete"
+  ],
+  "altText": "Selfie clips of a cyclist mid-workout saying the plan is 3x12 sub threshold, one left, made it, then heading to cool down and back to school."
+ }
+}

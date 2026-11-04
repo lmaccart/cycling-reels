@@ -1,0 +1,88 @@
+{
+  "id": "261103-img-3566-0dfe",
+  "kind": "video",
+  "media": "library/media/261103-img-3566-0dfe.mov",
+  "originalName": "IMG_3566.mov",
+  "hash": "0dfedd5f12d13fe2fa00e2f27daa2cf8c4aa7b52",
+  "created": "2026-11-03T07:12:20",
+  "ingestedAt": "2026-11-03T19:53:19+00:00",
+  "probe": {
+    "duration": 8.948,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.899,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-03T07:12:20-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Garmin screen then selfie with the bike in a steel elevator announcing todays workout, phone tumbles at the end",
+    "hooks": [
+      "the bike takes the elevator too",
+      "todays menu: suffering"
+    ],
+    "notes": "transcript says 4 by 8 of team — workout name unclear (tempo?), confirm before putting it on screen",
+    "moments": [
+      {
+        "in": 0.2,
+        "out": 2.4,
+        "label": "garmin screen on the bars in the elevator",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "type": "bike-check"
+      },
+      {
+        "in": 1.8,
+        "out": 7.9,
+        "label": "selfie in the elevator: today we have 4 by 8, lets go",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261103-img-3566-0dfe.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -28.1,
+      "peakDb": -8.3
+    },
+    "speechSeconds": 4.63,
+    "speechRanges": [
+      [
+        2.04,
+        3.11
+      ],
+      [
+        3.74,
+        4.78
+      ],
+      [
+        5.46,
+        7.98
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261103-img-3566-0dfe.jpg"
+  ],
+  "taggedAt": "2026-11-03T19:55:21+00:00"
+}

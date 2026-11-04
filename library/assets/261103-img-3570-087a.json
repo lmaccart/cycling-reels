@@ -1,0 +1,111 @@
+{
+  "id": "261103-img-3570-087a",
+  "kind": "video",
+  "media": "library/media/261103-img-3570-087a.mov",
+  "originalName": "IMG_3570.mov",
+  "hash": "087a48d40eae8561c3db26f5a90af173e60ab5a1",
+  "created": "2026-11-03T08:04:55",
+  "ingestedAt": "2026-11-03T19:53:25+00:00",
+  "probe": {
+    "duration": 13.117,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-03T08:04:55-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Gasping selfie after an interval, swears, phone swings to the road, then at least its pretty, im suffering over a park road",
+    "hooks": [
+      "at least its pretty",
+      "the interval was not pretty"
+    ],
+    "notes": "contains a swear at ~1.1s; middle of transcript (gonna stress) unclear",
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 3.9,
+        "label": "that was 348 (swears) out of breath",
+        "score": 4,
+        "focusX": 0.75,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 6.8,
+        "out": 8.6,
+        "label": "phone swings down, road blur",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "type": "solo-ride"
+      },
+      {
+        "in": 9.5,
+        "out": 11.9,
+        "label": "at least its pretty, im suffering",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 11.8,
+        "out": 13.1,
+        "label": "tree-lined park road ahead",
+        "score": 3,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false,
+        "type": "scenery"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261103-img-3570-087a.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -22.9,
+      "peakDb": -0.1
+    },
+    "speechSeconds": 4.65,
+    "speechRanges": [
+      [
+        0.31,
+        1.61
+      ],
+      [
+        1.94,
+        2.6
+      ],
+      [
+        2.9,
+        3.91
+      ],
+      [
+        10.1,
+        11.78
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261103-img-3570-087a.jpg"
+  ],
+  "taggedAt": "2026-11-03T19:55:21+00:00"
+}

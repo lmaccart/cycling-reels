@@ -59,7 +59,20 @@
     "sounds": []
   },
   "transcript": "library/transcripts/261029-img-3534-e5e9.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-06-elevator-loop",
+      "at": "2026-11-01T17:27:16+00:00",
+      "in": 3.0,
+      "out": 5.467
+    },
+    {
+      "plan": "2026-11-06-elevator-loop",
+      "at": "2026-11-01T17:27:16+00:00",
+      "in": 1.867,
+      "out": 3.0
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -38.0,

@@ -1,0 +1,89 @@
+{
+  "id": "261104-img-3580-da2b",
+  "kind": "video",
+  "media": "library/media/261104-img-3580-da2b.mov",
+  "originalName": "IMG_3580.mov",
+  "hash": "da2be2e4dd4941affdf4b79d31efb2499acd9baf",
+  "created": "2026-11-04T09:00:51",
+  "ingestedAt": "2026-11-04T15:08:15+00:00",
+  "probe": {
+    "duration": 35.128,
+    "width": 2160,
+    "height": 3840,
+    "fps": 29.976,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-04T09:00:51-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "gear",
+    "shot": "static",
+    "quality": 2,
+    "issues": [
+      "dark"
+    ],
+    "people": "me",
+    "summary": "Phone propped low on the floor: kitting up, pulling on white Boa road shoes and dialling them tight, then grabbing the bike",
+    "hooks": [
+      "kit-up, the slow part"
+    ],
+    "moments": [
+      {
+        "in": 4.5,
+        "out": 9.0,
+        "label": "pulling on the first shoe",
+        "score": 2,
+        "focusX": 0.45,
+        "focusY": 0.35,
+        "speech": false
+      },
+      {
+        "in": 16.0,
+        "out": 22.0,
+        "label": "cranking the Boa dial tight",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.35,
+        "speech": false
+      },
+      {
+        "in": 27.5,
+        "out": 31.0,
+        "label": "second shoe on",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.35,
+        "speech": false
+      }
+    ],
+    "sounds": [
+      {
+        "at": 16.3,
+        "for": 5.6,
+        "kind": "other",
+        "score": 3,
+        "note": "Boa dial ratcheting clicks indoors, dense even ticks, no wind or speech"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -37.5,
+      "peakDb": -2.9
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261104-img-3580-da2b.jpg"
+  ],
+  "taggedAt": "2026-11-04T15:09:21+00:00"
+}

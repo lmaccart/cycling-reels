@@ -46,6 +46,15 @@ def save_asset(project: Project, asset: dict) -> None:
     write_json(asset_file(project, asset["id"]), asset)
 
 
+def update_asset(project: Project, asset: dict, **fields) -> None:
+    """Set fields on the record as it is on disk now, so slow jobs don't overwrite tags saved meanwhile."""
+    path = asset_file(project, asset["id"])
+    fresh = read_json(path) if path.exists() else dict(asset)
+    fresh.update(fields)
+    asset.update(fields)
+    write_json(path, fresh)
+
+
 def find_by_hash(project: Project, h: str) -> str | None:
     for a in all_assets(project):
         if a.get("hash") == h:

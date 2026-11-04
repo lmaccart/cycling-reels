@@ -1,4 +1,75 @@
 {
   "version": 1,
-  "experiments": []
+  "experiments": [
+    {
+      "id": "2026-w45-no-music",
+      "hypothesis": "a ride-sound-only reel (no music, 'sound on' hook) may hold viewers as well as or better than music reels because it stands out in the feed",
+      "change": "no music: ride audio only with one nat window (train horn); otherwise a short group-ride reel like the controls",
+      "primaryMetric": "hold",
+      "successCriterion": "hold clearly above the week's music reels of similar length (≥5 pp); otherwise inconclusive — one reel can't settle it",
+      "testSlugs": [
+        "2026-11-03-train-horn"
+      ],
+      "controlSlugs": [
+        "2026-11-07-regroup-confessions",
+        "2026-11-05-multitool-drain",
+        "2026-11-08-club-ride-downtown"
+      ],
+      "registeredAt": "2026-11-01T17:25:00+00:00"
+    },
+    {
+      "id": "2026-w45-loop",
+      "hypothesis": "a seamless swap-halves loop may raise watch-through because replays count as watch time",
+      "change": "loop: true with a swap-halves seam on a ~7 s POV joke",
+      "primaryMetric": "watchThrough",
+      "successCriterion": "watch-through materially above comparable short non-loop reels (≥15 pp); otherwise inconclusive",
+      "testSlugs": [
+        "2026-11-06-elevator-loop"
+      ],
+      "controlSlugs": [
+        "2026-11-04-wake-the-roommate",
+        "2026-11-05-multitool-drain"
+      ],
+      "registeredAt": "2026-11-01T17:25:00+00:00"
+    },
+    {
+      "id": "2026-w45-voice-first",
+      "hypothesis": "opening on teammates' real dialogue with transcript captions (no setup shot) may hold better than text-led reels",
+      "change": "first shot is a teammate talking with speech captions, short hook only",
+      "primaryMetric": "hold",
+      "successCriterion": "hold repeatedly above text-led reels of similar length; otherwise inconclusive",
+      "testSlugs": [
+        "2026-11-05-multitool-drain",
+        "2026-11-07-regroup-confessions"
+      ],
+      "controlSlugs": [
+        "2026-11-04-wake-the-roommate",
+        "2026-11-08-club-ride-downtown"
+      ],
+      "registeredAt": "2026-11-01T17:25:01+00:00"
+    },
+    {
+      "id": "2026-w45-trending-songs",
+      "hypothesis": "mixing in this week's trending songs may lift likes per reach versus last week's free tracks (audio page discovery)",
+      "change": "trending song mixed in instead of a no-copyright track; historical controls, so format, footage and week are confounded",
+      "primaryMetric": "likesReach",
+      "successCriterion": "a repeated, large difference in likes/reach (and reach, noted separately) across ≥3 reels each; treat as observational",
+      "testSlugs": [
+        "2026-11-02-intervals-before-class",
+        "2026-11-04-wake-the-roommate",
+        "2026-11-05-multitool-drain",
+        "2026-11-06-elevator-loop",
+        "2026-11-07-regroup-confessions",
+        "2026-11-08-club-ride-downtown"
+      ],
+      "controlSlugs": [
+        "2026-10-26-golden-bridge",
+        "2026-10-27-group-ride-chill",
+        "2026-10-28-bike-trip",
+        "2026-10-29-first-ride-back",
+        "2026-10-30-chasing-the-group"
+      ],
+      "registeredAt": "2026-11-01T17:25:01+00:00"
+    }
+  ]
 }

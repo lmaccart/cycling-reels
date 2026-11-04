@@ -1,4 +1,46 @@
-# Talking reels: week of Nov 2–8
+# Talking reels
+
+## Next up (picked 2026-11-01): film these two
+
+Same rules as before: say it your own way, and only say things that are true for you. The captions come from what you actually say, so anything below in [brackets] is for you to fill in.
+
+### A · how i fit training around classes
+
+About 30 s, standing still, talking to camera. This is your niche: the student who races.
+
+1. **Hook:** "how i fit training around classes." *(hook text: how i fit training around classes)*
+2. **When you ride:** "most days i'm on the bike at [time] before my first class." *(cut to: dark kit-up / night ride clip)*
+3. **The workout:** "weekdays are short. [an hour easy / intervals like 3x12 sub threshold]." *(cut to: Garmin in the dark, riding past the trees)*
+4. **The real part:** one honest line, e.g. "the hard part isn't the ride, it's [staying awake in lecture / homework with dead legs / getting to class on time]." *(your face, hold it)*
+5. **Weekends:** "saturdays are the long one with the club." *(cut to: the club ride / team photo)*
+6. **Ending:** "what's your schedule like?" *(your face; the post caption asks the same)*
+
+B-roll already in the library (unused): `261028-img-3529` "morning, it is 7 a.m.", `261028-img-3528` Garmin in the dark, `261029-img-3533` red jersey kit-up, `261029-img-3539` hands on the hoods, `261030-img-3547` night selfie, `261028-img-3527` kit-up. Film fresh if you can: backpack next to the helmet, walking into class in kit (off-bike #19).
+
+### B · a hot take
+
+15–25 s, your face the whole time. One opinion, two reasons, then stop. Pick one you actually believe (or write your own):
+
+- "zwift is better than riding outside in a houston summer. fight me."
+- "group rides are better than solo rides, and it's not close."
+- "early morning rides are the only good rides."
+
+Shape:
+1. **The take** in one sentence, straight to camera. *(hook text = the take)*
+2. **Reason one** and **reason two**, short and specific to you.
+3. **Close the door:** "and i'm not changing my mind." / "tell me i'm wrong."
+
+Don't explain too much. Leave a gap people will want to argue about in the comments.
+
+## Filming both
+
+- Quiet room, facing a window, phone vertical at 4K/60, at eye level (on a shelf or a stack of books).
+- Mic plugged into the phone if you have one. Otherwise get close to the phone with no fan or AC running.
+- Say each line 2–3 times. Pause a second between takes, and I'll cut the best one.
+- Film both in one sitting, and drop the clips in `inbox/` as usual.
+
+## Earlier scripts (2026-10-26, not filmed yet)
+
 
 First try at talking to the camera with a mic. There are two reels: one you film standing still, which plays over footage already in the library, and one mic'd up on a ride this week. You talk. I cut the pauses, caption every word, keep your voice going over the ride footage and put the text on top.
 

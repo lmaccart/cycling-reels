@@ -1,0 +1,64 @@
+{
+  "id": "261104-img-3576-c757",
+  "kind": "video",
+  "media": "library/media/261104-img-3576-c757.mov",
+  "originalName": "IMG_3576.mov",
+  "hash": "c757af4174f15dd4fcc3813eb3ce5ab41da985bc",
+  "created": "2026-11-04T06:50:30",
+  "ingestedAt": "2026-11-04T15:08:10+00:00",
+  "probe": {
+    "duration": 4.625,
+    "width": 3840,
+    "height": 2160,
+    "fps": 59.892,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-04T06:50:30-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "travel",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Teal Factor bike leaning in a steel elevator, camera settles after a quick pan",
+    "hooks": [
+      "the bike gets the elevator too",
+      "heading down before sunrise"
+    ],
+    "moments": [
+      {
+        "in": 1.0,
+        "out": 4.5,
+        "label": "bike standing in the elevator",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.6,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -36.9,
+      "peakDb": -24.5
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261104-img-3576-c757.jpg"
+  ],
+  "taggedAt": "2026-11-04T15:09:21+00:00"
+}

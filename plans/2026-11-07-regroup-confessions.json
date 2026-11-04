@@ -1,0 +1,10 @@
+{"slug":"2026-11-07-regroup-confessions","postDate":"2026-11-07","format":"talking-clip",
+ "hook":{"text":"overheard at the regroup"},
+ "segments":[
+  {"asset":"261031-gs030111","in":153.2,"out":157.8,"view":"side","captions":"transcript"},
+  {"asset":"261031-gs010112","in":293.7,"out":295.7,"view":"side","captions":"transcript"},
+  {"asset":"261031-gs010112","in":297.5,"out":300.5,"view":"side","captions":"transcript","payoff":true}],
+ "music":{"track":"dame-hombro","cutOnBeat":true},
+ "post":{"caption":"group ride regroups are basically therapy. send this to the one who always pulls too hard",
+  "hashtags":["#cycling","#roadcycling","#groupride","#cyclinghumor"],
+  "altText":"360 camera clips of cyclists stopped at regroups, one admitting a pull was a mistake and another debating how long to sit on a wheel."}}

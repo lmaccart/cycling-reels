@@ -1,0 +1,11 @@
+{"slug":"2026-11-04-wake-the-roommate","postDate":"2026-11-04","format":"relatable-pov",
+ "hook":{"text":"what my roommate wakes up to"},
+ "segments":[
+  {"asset":"261030-img-3545","in":11.0,"out":13.0},
+  {"asset":"261030-img-3546","in":0.0,"out":2.2,"text":[{"text":"out before the sun","at":0.2,"for":1.9}]},
+  {"asset":"261030-img-3548","in":0.1,"out":3.6,"captions":"transcript"},
+  {"asset":"261030-img-3549","in":7.6,"out":11.3,"captions":"transcript","payoff":true}],
+ "music":{"track":"sometimes","cutOnBeat":true},
+ "post":{"caption":"hour easy before the sun comes up, then the most important part of the morning. send this to whoever you'd wake up",
+  "hashtags":["#cycling","#roadcycling","#morningride","#roommates"],
+  "altText":"A cyclist kits up in the dark, rides past streetlights, says it's time to wake up the roommate, then walks in to wake them up."}}

@@ -1,0 +1,129 @@
+{
+  "id": "261103-img-3572-4f0a",
+  "kind": "video",
+  "media": "library/media/261103-img-3572-4f0a.mov",
+  "originalName": "IMG_3572.mov",
+  "hash": "4f0a80387efd2ab9759edbc4c556dd2a11db0899",
+  "created": "2026-11-03T08:31:53",
+  "ingestedAt": "2026-11-03T19:53:28+00:00",
+  "probe": {
+    "duration": 27.968,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.996,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-03T08:31:53-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Post-workout recap selfie, sweaty and wrecked: heat got me, interval watts, nearly threw up, going to lie down, then pans to the bike against a tree",
+    "hooks": [
+      "the bike looks better than i feel",
+      "at least look how pretty the bike is",
+      "post-interval honesty"
+    ],
+    "notes": "transcript around 6.7-8.3 (third in our rod / you can record it) unclear",
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 3.8,
+        "label": "dont know if im dehydrated or the heat got the best of me",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 6.6,
+        "out": 10.3,
+        "label": "third interval, says 325 I think",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 11.0,
+        "out": 17.2,
+        "label": "went too hard at the start of the second one, 400 then last one 305",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 18.0,
+        "out": 23.0,
+        "label": "tried my best not to throw up, gonna lay down for a bit",
+        "score": 5,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 24.2,
+        "out": 27.97,
+        "label": "at least look how pretty the bike is, pans to the bike",
+        "score": 5,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261103-img-3572-4f0a.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -28.1,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 20.18,
+    "speechRanges": [
+      [
+        0.6,
+        4.07
+      ],
+      [
+        6.78,
+        10.66
+      ],
+      [
+        11.16,
+        14.66
+      ],
+      [
+        14.94,
+        18.41
+      ],
+      [
+        20.44,
+        23.4
+      ],
+      [
+        23.93,
+        26.15
+      ],
+      [
+        27.29,
+        27.97
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261103-img-3572-4f0a.jpg"
+  ],
+  "taggedAt": "2026-11-03T19:55:21+00:00"
+}

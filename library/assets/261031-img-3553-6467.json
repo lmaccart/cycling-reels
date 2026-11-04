@@ -1,0 +1,70 @@
+{
+  "id": "261031-img-3553-6467",
+  "kind": "video",
+  "media": "library/media/261031-img-3553-6467.mov",
+  "originalName": "IMG_3553.mov",
+  "hash": "6467eba3f2ebe5bbee0c9f1c6d459b3992fbf1c7",
+  "created": "2026-10-31T09:13:21",
+  "ingestedAt": "2026-10-31T18:53:33+00:00",
+  "probe": {
+    "duration": 5.54,
+    "width": 3840,
+    "height": 2160,
+    "fps": 59.928,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T09:13:21-05:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [],
+    "people": "others",
+    "summary": "Pan from bikes leaned on a gas-station wall to the group refuelling, a rider in a teal kit eating a gel",
+    "hooks": [
+      "the gas station stop is the real ride"
+    ],
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 2.6,
+        "label": "teal bike against the wall, pan to the group",
+        "score": 3,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 3.0,
+        "out": 5.5,
+        "label": "rider in teal kit refuelling at the stop",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -29.6,
+      "peakDb": -14.7
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261031-img-3553-6467.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:18+00:00"
+}

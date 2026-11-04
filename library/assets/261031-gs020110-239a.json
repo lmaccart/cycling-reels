@@ -1,0 +1,174 @@
+{
+  "id": "261031-gs020110-239a",
+  "kind": "video",
+  "media": "library/media/261031-gs020110-239a.360",
+  "originalName": "GS020110.360",
+  "hash": "239ab19fcbf13793c972f7c93d0a84d3f4c138a8",
+  "created": "2026-10-31T08:16:49",
+  "ingestedAt": "2026-10-31T18:52:11+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T08:16:49.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle in the club group on wide suburban roads: rolls off from a stop beside a city bus, then steady riding with a teammate in a grey jersey alongside",
+    "hooks": [
+      "my saddle cam caught everyone",
+      "pov: the person next to you in the group ride"
+    ],
+    "notes": "Post-shift mount (same as gs010110 after 2:20): forward = yaw 90 pitch 25 roll 0, side = yaw 160 pitch 25 roll 90 (rider on my right). GPS good. Speech is group chatter.",
+    "angles": {
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 2.0,
+        "out": 9.0,
+        "label": "group rolling off next to a city bus",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      },
+      {
+        "in": 81.0,
+        "out": 88.0,
+        "label": "group strung out ahead, legs spinning",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 252.0,
+        "out": 260.0,
+        "label": "teammate in grey cruising right beside me, side-on",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 476.0,
+        "out": 482.0,
+        "label": "picking up speed behind the group",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 184.3,
+        "for": 1.8,
+        "kind": "freehub",
+        "score": 3,
+        "note": "short freehub run while coasting in the group, wind 0.02, no speech"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261031-gs020110-239a.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -18.9,
+      "peakDb": -3.4
+    },
+    "speechSeconds": 17.21,
+    "speechRanges": [
+      [
+        2.36,
+        3.59
+      ],
+      [
+        5.18,
+        6.6
+      ],
+      [
+        7.26,
+        12.62
+      ],
+      [
+        13.66,
+        15.05
+      ],
+      [
+        18.68,
+        23.08
+      ],
+      [
+        23.38,
+        26.79
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs020110-239a-1.jpg",
+    "library/sheets/261031-gs020110-239a-2.jpg",
+    "library/sheets/261031-gs020110-239a-3.jpg",
+    "library/sheets/261031-gs020110-239a-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs020110-239a.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 10.94,
+    "movingAvgSpeed": 8.99,
+    "movingSeconds": 466.4,
+    "distance": 4195.5,
+    "altitudeOk": true,
+    "elevationGain": 6.1,
+    "elevationLoss": 8.0,
+    "altMin": 15.9,
+    "altMax": 25.0
+  },
+  "taggedAt": "2026-10-31T19:24:59+00:00"
+}

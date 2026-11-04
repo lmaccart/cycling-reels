@@ -1,0 +1,242 @@
+{
+  "id": "261031-gs030111-1b17",
+  "kind": "video",
+  "media": "library/media/261031-gs030111-1b17.360",
+  "originalName": "GS030111.360",
+  "hash": "1b174546d5f4e1ec96d533d3ce48baa199fa1a5c",
+  "created": "2026-10-31T09:35:32",
+  "ingestedAt": "2026-10-31T18:53:13+00:00",
+  "probe": {
+    "duration": 226.347,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T09:35:32.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle: group pushes through an intersection (\"watch the car behind, lets go right through\"), slow roll on a wide road with my shadow ahead, then a roadside regroup with riders drinking and chatting about pulls",
+    "hooks": [
+      "why did i do that pull",
+      "the regroup is where the real talk happens"
+    ],
+    "notes": "Post-shift mount: forward = yaw 90 pitch 25 roll 0, side = yaw 160 pitch 25 roll 90. Slow chapter (max ~12 mph), regroup ~2:13-3:05 with sun flare on part of the lens. Transcript fixed (pull, sitting); words are real speech from riders, spe",
+    "angles": {
+      "side": {
+        "yaw": 160.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
+      },
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 1.8,
+        "out": 12.0,
+        "label": "\"watch the car behind... lets go right through\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward"
+      },
+      {
+        "in": 27.2,
+        "out": 38.0,
+        "label": "\"lets go guys right through, keep going all the way to the end\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward"
+      },
+      {
+        "in": 150.2,
+        "out": 158.0,
+        "label": "regroup: \"i took like a nice 300 watt pull and then i was like oh my god why did i do that\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      },
+      {
+        "in": 159.2,
+        "out": 167.0,
+        "label": "\"is everyone here, i need to eat my gel in like two seconds\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      },
+      {
+        "in": 167.0,
+        "out": 181.3,
+        "label": "ride leader: let the truck by, roll easy, then back up to speed",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261031-gs030111-1b17.json",
+  "used": [
+    {
+      "plan": "2026-11-07-regroup-confessions",
+      "at": "2026-11-01T17:27:43+00:00",
+      "in": 153.2,
+      "out": 157.967
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -22.7,
+      "peakDb": -1.1
+    },
+    "speechSeconds": 48.69,
+    "speechRanges": [
+      [
+        2.01,
+        3.4
+      ],
+      [
+        3.74,
+        4.42
+      ],
+      [
+        11.0,
+        13.13
+      ],
+      [
+        18.52,
+        19.37
+      ],
+      [
+        20.98,
+        22.15
+      ],
+      [
+        23.19,
+        24.23
+      ],
+      [
+        25.78,
+        27.37
+      ],
+      [
+        32.02,
+        34.95
+      ],
+      [
+        36.5,
+        38.02
+      ],
+      [
+        46.68,
+        47.3
+      ],
+      [
+        139.51,
+        146.73
+      ],
+      [
+        147.7,
+        158.25
+      ],
+      [
+        158.87,
+        161.9
+      ],
+      [
+        165.3,
+        167.56
+      ],
+      [
+        168.86,
+        173.38
+      ],
+      [
+        173.91,
+        175.53
+      ],
+      [
+        175.93,
+        177.93
+      ],
+      [
+        178.62,
+        179.34
+      ],
+      [
+        180.31,
+        180.94
+      ],
+      [
+        181.3,
+        182.73
+      ],
+      [
+        217.27,
+        218.06
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs030111-1b17-1.jpg",
+    "library/sheets/261031-gs030111-1b17-2.jpg",
+    "library/sheets/261031-gs030111-1b17-3.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs030111-1b17.json",
+  "gpsSummary": {
+    "goodSeconds": 226.4,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 226.2,
+    "maxSpeed": 5.55,
+    "movingAvgSpeed": 4.64,
+    "movingSeconds": 170.6,
+    "distance": 798.0,
+    "altitudeOk": true,
+    "elevationGain": 4.1,
+    "elevationLoss": 0.0,
+    "altMin": 17.9,
+    "altMax": 26.6
+  },
+  "taggedAt": "2026-10-31T19:01:41+00:00"
+}

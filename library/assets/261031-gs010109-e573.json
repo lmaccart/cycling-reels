@@ -1,0 +1,152 @@
+{
+  "id": "261031-gs010109-e573",
+  "kind": "video",
+  "media": "library/media/261031-gs010109-e573.360",
+  "originalName": "GS010109.360",
+  "hash": "e573090de94935d8b8f98d1340f6f73f6330bbfb",
+  "created": "2026-10-31T07:46:09",
+  "ingestedAt": "2026-10-31T18:50:58+00:00",
+  "probe": {
+    "duration": 677.931,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T07:46:09.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle rolling out with the club through tree-lined neighbourhood streets, a teammate in a grey jersey riding just behind-left, the group strung out behind",
+    "hooks": [
+      "pov: my camera is watching who sits on my wheel",
+      "the group ride from under my saddle"
+    ],
+    "notes": "Same saddle mount as gs010108. Picture freezes from ~6:20 to the end while audio keeps going (likely a stalled video track) - nothing usable after 6:15. Frame/saddle block part of every view.",
+    "angles": {
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 90.0
+      },
+      "side": {
+        "yaw": 15.0,
+        "pitch": -55.0,
+        "fov": 100.0,
+        "roll": -90.0
+      }
+    },
+    "moments": [
+      {
+        "in": 86.0,
+        "out": 94.0,
+        "label": "teammate on my wheel, oaks overhead",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 86.0,
+        "out": 94.0,
+        "label": "club strung out behind under the oaks",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back"
+      },
+      {
+        "in": 160.0,
+        "out": 167.0,
+        "label": "rolling over the double yellow lines, legs and frame",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 345.0,
+        "out": 352.0,
+        "label": "teammate riding alongside on a quiet street",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261031-gs010109-e573.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -20.0,
+      "peakDb": -1.8
+    },
+    "speechSeconds": 6.09,
+    "speechRanges": [
+      [
+        0.15,
+        3.24
+      ],
+      [
+        6.14,
+        7.02
+      ],
+      [
+        11.7,
+        13.32
+      ],
+      [
+        14.74,
+        15.24
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs010109-e573-1.jpg",
+    "library/sheets/261031-gs010109-e573-2.jpg",
+    "library/sheets/261031-gs010109-e573-3.jpg",
+    "library/sheets/261031-gs010109-e573-4.jpg"
+  ],
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  },
+  "taggedAt": "2026-10-31T18:57:33+00:00"
+}

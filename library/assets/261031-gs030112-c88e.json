@@ -1,0 +1,158 @@
+{
+  "id": "261031-gs030112-c88e",
+  "kind": "video",
+  "media": "library/media/261031-gs030112-c88e.360",
+  "originalName": "GS030112.360",
+  "hash": "c88ea4eb7a4f15dbb34d6f9d33c93a76a8fdbfb4",
+  "created": "2026-10-31T11:01:56",
+  "ingestedAt": "2026-10-31T18:53:23+00:00",
+  "probe": {
+    "duration": 177.109,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-10-31T11:01:56.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "360 cam under the saddle rolling through downtown with the club: riders behind me framed by glass skyscrapers and big blue sky, slow city streets, crosswalks and planters",
+    "hooks": [
+      "group ride but make it downtown",
+      "pov: the city is your group ride",
+      "the last mile is the prettiest"
+    ],
+    "notes": "Post-shift mount: forward = yaw 90 pitch 25 roll 0; skyline = yaw 160 pitch 45 roll 90 looks back/up at the group with towers behind. GPS UNRELIABLE downtown (reports ~30 mph under an overpass - urban canyon); do not use gps stats on this c",
+    "angles": {
+      "skyline": {
+        "yaw": 160.0,
+        "pitch": 45.0,
+        "fov": 110.0,
+        "roll": 90.0
+      },
+      "forward": {
+        "yaw": 90.0,
+        "pitch": 25.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 64.0,
+        "out": 72.0,
+        "label": "club riding behind me between glass towers",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "skyline"
+      },
+      {
+        "in": 96.0,
+        "out": 104.0,
+        "label": "group fanned out across a downtown street, skyscrapers above",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "skyline"
+      },
+      {
+        "in": 96.0,
+        "out": 103.0,
+        "label": "wheels ahead through a wet downtown street",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward"
+      },
+      {
+        "in": 121.0,
+        "out": 129.0,
+        "label": "teammate in blue under a white tower, blue sky",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "skyline"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-08-club-ride-downtown",
+      "at": "2026-11-01T17:30:40+00:00",
+      "in": 64.0,
+      "out": 66.367
+    },
+    {
+      "plan": "2026-11-08-club-ride-downtown",
+      "at": "2026-11-01T17:30:40+00:00",
+      "in": 97.0,
+      "out": 98.867
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -19.0,
+      "peakDb": -3.1
+    },
+    "speechSeconds": 0.98,
+    "speechRanges": [
+      [
+        87.22,
+        88.2
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261031-gs030112-c88e-1.jpg",
+    "library/sheets/261031-gs030112-c88e-2.jpg"
+  ],
+  "telemetry": "library/telemetry/261031-gs030112-c88e.json",
+  "gpsSummary": {
+    "goodSeconds": 177.2,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 177.0,
+    "maxSpeed": 14.95,
+    "movingAvgSpeed": 6.75,
+    "movingSeconds": 174.8,
+    "distance": 1181.7,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 13.6,
+    "altMax": 194.8
+  },
+  "taggedAt": "2026-10-31T19:02:58+00:00"
+}

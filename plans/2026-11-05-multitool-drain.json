@@ -1,0 +1,39 @@
+{
+ "slug": "2026-11-05-multitool-drain",
+ "postDate": "2026-11-05",
+ "format": "talking-clip",
+ "hook": {
+  "text": "my multitool vs a storm drain"
+ },
+ "segments": [
+  {
+   "asset": "261031-gs030110",
+   "in": 192.65,
+   "out": 197.9,
+   "view": "side",
+   "captions": "transcript"
+  },
+  {
+   "asset": "261031-gs030110",
+   "in": 204.9,
+   "out": 207.4,
+   "view": "side",
+   "captions": "transcript",
+   "payoff": true
+  }
+ ],
+ "music": {
+  "track": "sunshine-instrumental",
+  "cutOnBeat": true
+ },
+ "post": {
+  "caption": "whole group ride stopped to stare at a storm drain. it survived. what's the dumbest thing your group has stopped for?",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#cyclinglife"
+  ],
+  "altText": "360 camera view of a group of cyclists standing around a storm drain grate, joking about a multitool and asking about each other's deadlift."
+ }
+}

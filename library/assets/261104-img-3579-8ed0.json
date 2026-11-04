@@ -1,0 +1,81 @@
+{
+  "id": "261104-img-3579-8ed0",
+  "kind": "video",
+  "media": "library/media/261104-img-3579-8ed0.mov",
+  "originalName": "IMG_3579.mov",
+  "hash": "8ed058027d0838c41c5d1656ca24120e51efd477",
+  "created": "2026-11-04T07:16:46",
+  "ingestedAt": "2026-11-04T15:08:14+00:00",
+  "probe": {
+    "duration": 5.992,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.75,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-04T07:16:46-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "others",
+    "summary": "Handheld phone on the ride: cockpit, then a swing to a rider in orange-white kit riding alongside in golden low sun, back to the bars",
+    "hooks": [
+      "wait, no way"
+    ],
+    "moments": [
+      {
+        "in": 2.4,
+        "out": 4.0,
+        "label": "rider alongside in low golden sun through trees",
+        "score": 4,
+        "focusX": 0.35,
+        "focusY": 0.6,
+        "speech": false
+      },
+      {
+        "in": 2.4,
+        "out": 5.99,
+        "label": "swing to rider then back to bars, says wait no way",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261104-img-3579-8ed0.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -23.0,
+      "peakDb": -1.5
+    },
+    "speechSeconds": 2.14,
+    "speechRanges": [
+      [
+        3.26,
+        4.52
+      ],
+      [
+        5.11,
+        5.99
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261104-img-3579-8ed0.jpg"
+  ],
+  "taggedAt": "2026-11-04T15:09:21+00:00"
+}

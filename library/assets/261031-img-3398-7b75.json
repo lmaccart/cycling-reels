@@ -1,0 +1,40 @@
+{
+  "id": "261031-img-3398-7b75",
+  "kind": "photo",
+  "media": "library/media/261031-img-3398-7b75.jpeg",
+  "originalName": "IMG_3398.jpeg",
+  "hash": "7b75d5a7aa2fd591ea439558bd523404989498c3",
+  "created": "2026-10-31T13:29:09",
+  "ingestedAt": "2026-10-31T18:53:30+00:00",
+  "probe": {
+    "width": 4284,
+    "height": 5712,
+    "created": "2026:10:31 13:29:09"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "photo",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Wide shot of the group stopped at an intersection, rider in front sticking her tongue out, another laughing with eyes closed",
+    "hooks": [
+      "the face you make at every red light"
+    ],
+    "score": 4,
+    "focusX": 0.35,
+    "focusY": 0.55
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-08-club-ride-downtown",
+      "at": "2026-11-01T17:30:40+00:00"
+    }
+  ],
+  "sheets": [
+    "library/sheets/261031-img-3398-7b75.jpg"
+  ],
+  "taggedAt": "2026-10-31T18:54:19+00:00"
+}

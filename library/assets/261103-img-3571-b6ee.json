@@ -1,0 +1,69 @@
+{
+  "id": "261103-img-3571-b6ee",
+  "kind": "video",
+  "media": "library/media/261103-img-3571-b6ee.mov",
+  "originalName": "IMG_3571.mov",
+  "hash": "b6ee30d0634fab07cd963d31b10381a9855e1ea1",
+  "created": "2026-11-03T08:29:03",
+  "ingestedAt": "2026-11-03T19:53:27+00:00",
+  "probe": {
+    "duration": 1.7,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-03T08:29:03-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "bike-check",
+    "shot": "static",
+    "quality": 3,
+    "issues": [
+      "blurry"
+    ],
+    "people": "none",
+    "summary": "Teal bike leaning on a tree in a park, hazy morning light, sidewalk foreground",
+    "hooks": [
+      "she did nothing wrong"
+    ],
+    "notes": "lens looks hazy/smudged",
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 1.7,
+        "label": "bike resting against the tree",
+        "score": 3,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -33.1,
+      "peakDb": -17.2
+    },
+    "speechSeconds": 1.06,
+    "speechRanges": [
+      [
+        0.0,
+        1.06
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261103-img-3571-b6ee.jpg"
+  ],
+  "taggedAt": "2026-11-03T19:55:21+00:00"
+}

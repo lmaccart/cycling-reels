@@ -1,0 +1,40 @@
+{
+ "slug": "2026-11-03-train-horn",
+ "postDate": "2026-11-03",
+ "format": "just-the-bike",
+ "autoSfx": false,
+ "hook": {
+  "text": "sound on. the group ride finally met its match"
+ },
+ "segments": [
+  {
+   "asset": "261031-gs010112",
+   "in": 170.0,
+   "out": 173.5,
+   "view": "forward",
+   "clean": true
+  },
+  {
+   "asset": "261031-gs010112",
+   "in": 355.5,
+   "out": 360.6,
+   "view": "side",
+   "nat": {
+    "at": 0.6,
+    "for": 3.8,
+    "volume": 1.5
+   },
+   "payoff": true
+  }
+ ],
+ "post": {
+  "caption": "you can be on the fastest stretch of the day and still lose to a train. no music on this one",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#sound"
+  ],
+  "altText": "360 camera footage of a fast group ride on an open road, then the group stopped at a railroad crossing while a train horn blasts."
+ }
+}

@@ -1,0 +1,96 @@
+{
+  "id": "261103-img-3569-0bb6",
+  "kind": "video",
+  "media": "library/media/261103-img-3569-0bb6.mov",
+  "originalName": "IMG_3569.mov",
+  "hash": "0bb6547af640b3060ca13086d701663b98f6c729",
+  "created": "2026-11-03T07:55:19",
+  "ingestedAt": "2026-11-03T19:53:24+00:00",
+  "probe": {
+    "duration": 6.25,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-03T07:55:19-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Low-angle riding selfie against blue sky after interval one, quick cut to bars and Garmin",
+    "hooks": [
+      "one down, three to go",
+      "two minutes rest is not enough"
+    ],
+    "moments": [
+      {
+        "in": 0.0,
+        "out": 4.9,
+        "label": "interval one done, 345 watts, two minutes rest",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 3.3,
+        "out": 4.2,
+        "label": "glance down at the bars and garmin",
+        "score": 2,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false,
+        "type": "solo-ride"
+      },
+      {
+        "in": 4.4,
+        "out": 6.2,
+        "label": "back at it, lets go",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261103-img-3569-0bb6.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -19.5,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 5.28,
+    "speechRanges": [
+      [
+        0.15,
+        3.05
+      ],
+      [
+        3.54,
+        5.13
+      ],
+      [
+        5.46,
+        6.25
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261103-img-3569-0bb6.jpg"
+  ],
+  "taggedAt": "2026-11-03T19:55:21+00:00"
+}

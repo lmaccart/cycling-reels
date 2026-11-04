@@ -24,6 +24,18 @@ The cycling reels that grow accounts show a person (not just the road), a payoff
 12. **The summary screen**: computer or Strava totals, 2 s. → real numbers for captions and recaps.
 13. *Bonus:* tan lines, mud, the gas-station snack haul.
 
+## Off-bike days
+
+No ride? These still make reels, and they show the person behind the bike, which is what the accounts that get comments do. Phone vertical, 4K/60, propped on a shelf or a stack of books.
+
+14. ★ **Lines to camera, all in one sitting**: 5–10 one-liners, 3–8 s each: a reaction, an unpopular opinion, a series opener ("day 1 of…"), a question for comments. Stand still, face a window, quiet room. → talking reels with captions, hooks for other reels.
+15. **Kit-up low → full reveal**: start on your feet/legs, then pull back (or step back) to the full kit in one move. → the "reveal" trend.
+16. **The bike, still** (see #2): drive side, cockpit from above, a slow push-in on a detail. → bike checks, covers.
+17. **Bike chores**: washing it, lubing the chain, pumping tires, putting it away. 5–10 s each, with the sound. → satisfying ASMR-ish clips, "nobody tells you about" reels.
+18. **Life around riding**: kit in the laundry, the post-ride fridge raid, breakfast, your roommate's reaction to you in lycra. → relatable jokes.
+19. **School + cycling**: helmet next to the backpack, rushing to class in kit, studying with dead legs, the bike in the hallway. → your niche: the student who races.
+20. **Indoor trainer**: a few clips on Zwift (face, screen, sweat on the floor). → more "zwift vs outside" contrasts, the best reel so far.
+
 **Doing a series** (e.g. "can i hold the fast group's wheel · ep 2")? Add one line to camera before the ride (the goal) and one after (how it went).
 
 ## How to film

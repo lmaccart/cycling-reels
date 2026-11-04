@@ -66,7 +66,20 @@
     "sounds": []
   },
   "transcript": "library/transcripts/261029-img-3541-9004.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-02-intervals-before-class",
+      "at": "2026-11-01T17:29:15+00:00",
+      "in": 7.7,
+      "out": 9.467
+    },
+    {
+      "plan": "2026-11-02-intervals-before-class",
+      "at": "2026-11-01T17:29:15+00:00",
+      "in": 17.3,
+      "out": 20.367
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -21.8,
