@@ -1,6 +1,6 @@
 # Reel plan files
 
-One JSON file per reel in `plans/`, named `<YYYY-MM-DD>-<slug>.json`. Validate with `./reels check <file>`, render with `./reels render <file>`. Output goes to `out/<slug>/` (reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json — plus preview.mp4 when the song is attached by Instagram). `reel.mp4` is always exactly what gets uploaded.
+One JSON file per reel in `plans/`, named `<YYYY-MM-DD>-<slug>.json`. Validate with `./reels check <file>` (several at once: `./reels check plans/2026-11-*.json` checks them all and lists every problem), render with `./reels render <file>`. Output goes to `out/<slug>/` (reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json — plus preview.mp4 when the song is attached by Instagram). `reel.mp4` is always exactly what gets uploaded. `./reels project <file>` writes the same reel as an editable Remotion project for Kino or Remotion Studio ([kino.md](kino.md)).
 
 Every segment must be a clip or photo from `library/` — footage the user recorded and ingested. The renderer checks each file's fingerprint against the original it ingested and refuses anything else; there is no way to add generated, stock or downloaded visuals.
 
@@ -22,7 +22,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | `loop` | no | `false` | `true` = a seamless loop: no music fades, no end card, the length snapped to whole bars of the song, and `check` / `render` judge the seam — see **Loops** |
 | `punchOnBeats` | no | – | `{"every": 4, "scale": 1.1}`: a punch-in every `every` beats of the music (in on one, back out on the next), on clips without their own `punch` — see **Punch-ins** |
 | `cover` | no | end of hook | Seconds into the reel for cover.jpg |
-| `post` | for queueing | – | `{"caption": "...", "hashtags": ["#cycling", ...], "altText": "...", "firstComment": "..."}`; a music credit is appended automatically when the track has one |
+| `post` | for queueing | – | `{"caption": "...", "hashtags": ["#cycling", ...], "altText": "...", "firstComment": "...", "collaborators": ["@club"], "peopleTags": ["@friend"]}`; a music credit is appended automatically when the track has one. `collaborators` (≤ 5) = an Instagram Collab: the reel shows on their profile and to their followers too, once each accepts the invite in the app; `peopleTags` = people tagged on the reel (they're notified). Only handles the user gave you and only people who are in it or agreed — never guess a handle |
 
 **Text styles** (`style` on hook, text beats and end card): `light` = black text on a white box (TikTok's classic), `dark` = white text on a black box, `plain` = white text with an outline. Default comes from config `brand.textStyle`. Text appears exactly as written — write it in lowercase if that's how it should look. `*asterisks*` are ignored. One emoji is fine.
 
@@ -67,6 +67,34 @@ A track added with `--instagram` (a trending song, see [music.md](music.md)) is 
 | `text` | `[]` | Text beats: `{"text": "legs said no", "at": 0.3, "for": 2.2, "position": "lower", "style": "dark"}`; `at` is seconds from the segment start; position `top`, `center` or `lower` (default `lower`, or `top` when the segment has captions). Beats that would collide with the hook or captions are moved automatically (the CLI says so) |
 | `stats` | `[]` | Small data pills top-left: `{"label": "grade", "value": "12%", "at": 0.3, "for": 3}`; `for` defaults to the rest of the segment. Real numbers only. GoPro clips can also show their own GPS — see **GPS stats and route map**; clips linked to a Strava ride can show its numbers — see **Strava stats and route map** |
 | `route` | `false` | `true` = small map of the recording's GPS track, top-right, with a dot at the current position (GoPro clips with telemetry); `"strava"` = the whole linked Strava ride (any clip, phone too) — see **Strava stats and route map** |
+| `cutaways` | `[]` | B-roll over this clip while its own audio (the voice), captions and text keep going: `[{"at": 1.5, "asset": "<id>", "in": 3.0, "out": 5.0}]` — see **Cutaways** |
+
+## Cutaways
+
+A talking clip that cuts to the ride while the voice carries on — the standard way to keep a talking reel moving. A cutaway lays library footage over a video segment for a stretch: the picture changes, but the segment's own audio (speech, ride sounds, nat windows, bleeps), its captions, text beats and punch-ins carry on underneath. The cutaway is silent, staged and framed like any segment, and checked against its original like any segment.
+
+| Field | Default | Notes |
+| --- | --- | --- |
+| `at` | – | Seconds from the segment start (reel time, like text beats). The cutaway has to end inside the segment |
+| `asset` | – | Clip or photo id from the library (a prefix works) |
+| `moment` / `in`, `out` | – | Video: as on a segment. Length on screen = (`out` − `in`) / `speed`; at least 0.4 s |
+| `speed`, `frame`, `focusX`, `focusY`, `zoom` | as on segments | e.g. `"speed": 0.5` slow-mo B-roll under the voice |
+| `view`, `yaw`, `pitch`, `fov`, `roll`, `path`, `projection` | as on segments | 360 clips |
+| `duration`, `motion`, `fit` | 2.5 s, `zoom-in`, `cover` | Photos |
+
+Not on a cutaway (they belong to the segment): `captions`, `text`, `stats`, `route`, `nat`, `bleep`, `punch`, `sfx`, `transition`, `payoff`, `volume`, `clean`. One cutaway at a time per segment. Live numbers (`gps…`, live/clip `strava:` values) and route maps can't share a segment with cutaways — they'd describe the clip underneath, not the shot on screen; whole-ride Strava totals are fine.
+
+- `cutOnBeat` moves segment cuts, not cutaways; a cutaway that no longer fits a segment the beat made shorter is trimmed to its end (or dropped, with a warning).
+- **Hiding a jump cut:** end a cutaway on the last frames of one talking segment and start the next segment with a cutaway that continues the same B-roll (`in` = where the first one's `out` left off) — the voice jumps, the picture doesn't.
+- `./reels check` lists each cutaway under its segment; usage tracking covers cutaways too (`./reels show <id>`, `library --unused`).
+
+```json
+{"asset": "261029-img-3536", "in": 0.4, "out": 9.0, "captions": "transcript",
+ "cutaways": [
+   {"at": 1.8, "asset": "261028-img-3528", "in": 1.0, "out": 3.2},
+   {"at": 5.0, "asset": "261029-img-3533", "moment": 0, "speed": 0.5},
+   {"at": 7.4, "asset": "261031-img-3418", "duration": 1.2, "motion": "zoom-in"}]}
+```
 
 ## Sound design
 
@@ -224,6 +252,16 @@ On a 360 **photo**, `view`/`projection` reframe it and the usual `motion` (slow 
 ```
 
 Preview any framing before rendering: `./reels frames <id> --view rider --at 140,141.5` or `--planet`.
+
+## Retention warnings
+
+`./reels check` (and `render`) also flag, as warnings — advice, not errors:
+
+- **a photo as the first shot** (a still first frame is the easiest to scroll past), and **a crossfade in the first 2 s**;
+- **mostly-fade edits** (more than half the cuts, at least two) — they read as a slideshow;
+- **5 s or more where nothing changes on screen** — no cut, cutaway, punch-in, 360 keyframe, caption page, text beat, hook exit or nat window (fine for a deliberate held view);
+- **speech captions cutting into a word**: an `in` inside a word shows a stray half-word caption, an `out` inside one clips it (with the time to move to), and **low-confidence transcript words** (often wind);
+- **footage another reel already shows** (rendered, not discarded) — followers notice repeats.
 
 ## Timing tips
 

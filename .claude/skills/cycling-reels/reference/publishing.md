@@ -21,8 +21,12 @@ Metricool can't take a file from this computer directly — the video must be re
    - provider/network `instagram`, Instagram type `REEL`, show on feed `true`
    - text = the contents of `out/<slug>/caption.txt`
    - media = the reel's link; first comment = `firstComment` if set
+   - **cover** = the frame in `cover.jpg`: `videoCoverMilliseconds` = post.json `coverMs` (or `videoThumbnailUrl` = `coverUrl` when `./reels upload` set one). Otherwise Instagram picks a frame for the grid itself.
+   - **collaborators** (post.json `collaborators`) → `instagramData.collaborators: [{"username": "<handle>", "deleted": false}]`; **people tags** (`peopleTags`) → `instagramData.carouselTags: {"0": [{"username": "<handle>"}]}`. Tell the user each collaborator gets an invite to accept in the Instagram app (private accounts can't be collaborators).
+   - `isAiGenerated: false` — every frame is the user's own footage.
    - not a draft, auto-publish on
    - **the song**, when post.json has `instagramAudio` (see below)
+   - **Already scheduled?** If post.json carries a `metricoolId` (a re-render of a reel that was scheduled), update that post with the connector's update tool instead of creating a second one, and confirm with the user.
    Tool and field names vary between connector versions, so read the tool's schema rather than assuming. If Metricool rejects a field, show the user the error instead of guessing.
 4. Confirm with the connector's list-scheduled-posts tool, then record it: `./reels mark <slug> scheduled --metricool-id <id>`.
 5. Close the weekly production review per [learning.md](learning.md):
@@ -44,9 +48,13 @@ Notes:
 - Audio must be AAC ≤128 kbps and video ≤25 Mbps — the renderer already outputs that.
 - Changing a reel after it's scheduled: re-render, re-upload, then update the scheduled post (or delete and recreate it) with the connector, and confirm with the user.
 
+### Trial reels (later)
+
+Instagram Trial Reels are shown to non-followers first — a clean way to test an experiment's variant without the followers seeing both. Metricool schedules them as Instagram type `TRIAL_REEL`, but only on accounts with 1,000+ followers that Instagram has enabled (otherwise publishing fails at the scheduled time), and a trial can't have collaborators. Use it only when the user asks and the account qualifies.
+
 ## B. Manual (no connector)
 
-Send the user `out/QUEUE.md`. For each entry they upload `reel.mp4` in Instagram (or Meta Business Suite / Metricool's web planner) at the listed time and paste the caption block — and when the entry lists a song, add it in the app (the file has no music). Optional: `cover.jpg` as the cover. When done: `./reels mark <slug> scheduled` (or `posted`).
+Send the user `out/QUEUE.md`. For each entry they upload `reel.mp4` in Instagram (or Meta Business Suite / Metricool's web planner) at the listed time and paste the caption block — and when the entry lists a song, add it in the app (the file has no music). Optional: `cover.jpg` as the cover; the entry also lists any collaborators to invite and people to tag. When done: `./reels mark <slug> scheduled` (or `posted`).
 
 Run the same closing review for this batch. Unconfirmed manual posts stay queued and
 the checkpoint stays incomplete; only mark scheduled/posted after the user confirms.

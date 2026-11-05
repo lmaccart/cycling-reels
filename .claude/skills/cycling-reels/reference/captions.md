@@ -59,9 +59,26 @@ Come straight from the transcript; just fix misheard words in the transcript JSO
 
 - 1–2 short lines in the same voice. The first line can echo or extend the hook; don't repeat it word for word.
 - Work in the plain words someone would search for — Instagram search reads captions: "group ride", "road bike", "first century", a place name the user gave you. Only true ones.
-- Optional light question to get comments ("where's your quiet loop?"), or, when the reel is about a type of riding buddy, a send prompt ("send this to whoever says 'easy pace'"). Not on every reel.
+- One reason to respond — a light question ("where's your quiet loop?"), a send prompt when the reel is about a type of riding buddy ("send this to whoever says 'easy pace'"), a pick, or a series hook. See [Give people a reason to answer](#give-people-a-reason-to-answer).
 - Under ~200 characters. No essays, no "link in bio" unless the user asks.
 - Music credits are added automatically from the track's record — don't write them yourself. Trending songs (added with `--instagram`) get no credit line — Instagram shows the song on the reel.
+
+## Give people a reason to answer
+
+All six reels measured so far (posted Oct 26–31, last pull Nov 3) got 0 comments and 0 saves, and 0–3 likes on ~130–510 reach: people watched, almost nobody responded. Each reel gets **one** reason to respond — rotate them across the week, and never more than one per reel:
+
+| Reason | Where | Natural | Not this |
+| --- | --- | --- | --- |
+| A question only cyclists can answer | caption (or the last text beat) | "what's your 6am excuse?" · "be honest, how early is too early for intervals" | "comment below!!" |
+| A take to argue with | hook or last beat, from the user's real opinion | "zwift is better than riding outside in a houston summer" | ragebait the user doesn't believe |
+| A send | caption | "send this to whoever said 'easy spin'" | "share if you agree" |
+| A series hook | last beat + caption | "ep 3 next saturday: can i hold the wheel" | "follow for part 2" |
+| A pick | caption | "left loop or right loop?" | "like for left, comment for right" |
+
+- Meta demotes engagement bait ("comment YES", "like if…", "tag 3 friends"). Ask something a person would genuinely answer.
+- `post.firstComment` can start the thread with a follow-up question or a detail ("the coffee was $7, for the record") — not a repeat of the caption.
+- When someone besides the rider is in it and the user OKs it: `post.peopleTags` notifies them, and a Collab (`post.collaborators`, e.g. the club's account) puts the reel in front of their followers too. Only handles the user gives you.
+- The other half is the user answering the first comments within the hour (QUEUE.md reminds them): replies count as comments too, and people keep talking under a reel that answers back.
 
 ## Hashtags (`post.hashtags`)
 

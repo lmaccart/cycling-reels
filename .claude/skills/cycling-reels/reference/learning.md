@@ -56,7 +56,8 @@ Write an object, then run `./reels review experiment --file <experiment.json>`:
 ```
 
 Metric keys: `hold` (percentage points), `watchThrough`, `sharesReach`, `savesReach`,
-`likesReach` (the latter four are ratios). IDs are immutable: identical registration is
+`likesReach`, `commentsReach`, `engagement` (likes+comments+shares+saves per reach) and
+`viewsReach` (views per account reached: replays) — all ratios but `hold`. IDs are immutable: identical registration is
 a no-op; a changed design needs a new ID. Test reels cannot already have post.json;
 historical controls are allowed but disclose confounders. Two tests can stay inconclusive;
 register enough future test slugs for replications rather than rewriting an old design.

@@ -10,6 +10,8 @@ What gets reach on Instagram is watch time (people finish and rewatch), likes pe
 4. **Cut with the music.** Music-driven reels use `"cutOnBeat": true`. Montage shots 1–2 s (2–4 beats), story shots 2–4 s. Fewer long fades; hard cuts on the beat read as edited, fades read as a slideshow.
 5. **Readable with the sound off.** Many people watch muted — the hook and beats alone should tell it.
 6. **End on something:** a loop back into the first shot (same direction of travel, same framing — `"loop": true`, see [Loops](#loops)), a punchline, or a question worth answering.
+7. **One reason to respond.** A question only cyclists can answer, a take to argue with, a send prompt, a pick, or the next episode — one per reel, rotated through the week ([captions.md](captions.md#give-people-a-reason-to-answer)). Comments and sends are where the account is weakest.
+8. **Keep it moving.** Something should change on screen at least every few seconds — a cut, a [cutaway](plan-schema.md#cutaways), a punch-in or a text beat. `./reels check` flags 5 s+ stretches where nothing does, photo openings and slideshow fades.
 
 ## Formats
 
@@ -18,12 +20,12 @@ What gets reach on Instagram is watch time (people finish and rewatch), likes pe
 | **This week's trend** | 7–20 s | A trend from [music.md](music.md)'s lists, done with ride footage: the song, its format, our footage. Fit it to cycling (Later's notes help) | Whatever that trend's format needs | (the trend's own text format) |
 | **Ride vlog timestamps** | 12–25 s | 5–8 shots, each with a time label: alarm, coffee, roll-out, the climb, café, home. Time labels come from each clip's real recording time (`created` in `./reels show`, local wall-clock) | Kit-up, roll-out, mid-ride, café, end | "6:12 am · legs not awake yet" |
 | **Story with stakes** (make it a series) | 15–35 s | Setup → the effort → honest result. Same title each episode so people follow along | The before, the face during, the result | "can i hold the fast group's wheel · ep 2" |
-| **Tips from your own riding** | 15–30 s | 3 tips, each over the shot that shows it; talking clip with captions or text beats | Talking clip or illustrating shots | "3 things that made group rides less scary" |
+| **Tips from your own riding** | 15–30 s | 3 tips, each over the shot that shows it: one talking clip with captions and a `cutaway` per tip (the voice keeps going), or text beats over ride shots | Talking clip or illustrating shots | "3 things that made group rides less scary" |
 | **Relatable POV, with a visible punchline** | 6–12 s | Setup (POV) → cut to the proof (face, computer, the gap, the café) | POV + a reaction/proof shot | "pov: the group ride was supposed to be chill" |
 | **Beat edit** | 8–15 s | 6–10 shots of 2–4 beats on a trending song: pass-bys, low angles, details, slow-mo, the view. One text beat at most | Pass-bys, details, 60 fps for slow-mo | "sunday loop, no notes" |
 | **The climb** | 12–20 s | Approach → steepest bit (slow-mo the hardest 2 s) → the face at the top → view | Climb POV, face at the top, view | "this hill had no business being this steep" |
 | **Descent / speed** | 7–12 s | Fastest stretch, end on the corner exit; a speed pill from a computer in frame or the GoPro's own GPS (`"value": "gps"`) | Descent POV, computer shot | "didn't touch the brakes once" |
-| **Talking clip** | 15–40 s | One clip with `captions: "transcript"` + 1–2 cutaways; hook = the point | One sentence to camera | "the one thing that fixed my climbing" |
+| **Talking clip** | 15–40 s | One clip with `captions: "transcript"` + a `cutaway` every 3–5 s to what's being talked about (the voice and captions carry on — [Cutaways](plan-schema.md#cutaways)); come back to the face for the punchline; hook = the point | One sentence to camera + B-roll of it | "the one thing that fixed my climbing" |
 | **Before / after** | 8–14 s | A contrast pair: km 1 vs km 90, 6am vs 9am, start vs summit, summer vs now | Matching shots at both ends | "km 1 vs km 90" |
 | **Question / debate** | 7–12 s | Strong footage + a question cyclists will argue about in the comments | Any good footage | "would you ride this road at 6am?" |
 | **Ride montage** | 10–18 s | 5–7 short moments and photos, music-driven, cut on the beat | Variety from one ride | "come on a 6am ride with me" |
@@ -90,6 +92,12 @@ A 360 clip is several shots in one — use that. Every angle still has to come f
 | **Group check** | in a group ride, alternate road ahead and the wheel behind | "pov: you're on the front" |
 
 Keep pans slow (2–3 s for a half turn) unless it's a deliberate whip — fast spins feel dizzy. Don't pan on every clip; one camera move per reel lands better than five. The current under-the-bars mount mostly sees sky, the road and the stem; a pole or seatpost mount (see SHOTLIST.md) gives real third-person shots.
+
+## Reach beyond the followers
+
+- **Collab with the club.** A group-ride reel the club would happily share can go out as an Instagram Collab (`post.collaborators`, the club's or a teammate's handle — the user gives it and they accept in the app): it shows on both profiles and to both sets of followers. Ask the user once which accounts are open to it.
+- **Tag who's in it** (`post.peopleTags`) when they're clearly in the shot and fine with it — tagged riders get notified and often share it to their story.
+- **Trial Reels** (shown to non-followers first) suit experiments, but need 1,000+ followers and can't have collaborators ([publishing.md](publishing.md#trial-reels-later)).
 
 ## Music
 
