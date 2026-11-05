@@ -133,6 +133,19 @@ Scheduling closes production review, not audience evaluation or proof of publica
 Revisit results next week. Keep publication/mute failures separate from creative performance;
 record unresolved errors in the closing checkpoint.
 
+## Notes from a session without `out/`
+
+`out/` (post.json, plan copies) is git-ignored and only exists where the reels were rendered. A session
+working from a fresh checkout (e.g. a cloud session reviewing the code) must not run `./reels review`:
+it would match no posted reel and record misleading audience evidence in the history. It saves its
+interpretation as a review-input file instead — `learning/notes/<YYYY-MM-DD>-<topic>.json`, same schema
+as above — and says so. The next local run applies each notes file that no checkpoint contains yet
+(compare with the `notes` stored in `learning/reviews/*.json`) before planning:
+
+```bash
+./reels review --week <the week the notes are about> --file learning/notes/<file>.json
+```
+
 ## Unattended runs
 
 Run the planning review, record lessons/experiments, then prepare/render only. Don't

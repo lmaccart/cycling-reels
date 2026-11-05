@@ -15,7 +15,7 @@ This folder is a pipeline: raw footage → library of tagged moments → reel pl
 - **Write like a person, not a brand.** Hooks, on-screen text and captions follow [reference/captions.md](reference/captions.md): lowercase, casual, specific, a little funny; no hype words, no ALL CAPS, at most one emoji. Text renders exactly as you write it.
 - **Never publish or schedule a reel the user hasn't approved.** Approval means they saw it (or its preview) and said yes, in this conversation. "Approve this batch" counts for that batch only.
 - **Don't invent facts.** Speeds, grades, distances, watts, race results and place names must come from the user, the footage itself (a bike computer in frame, a road sign) or a transcript. Otherwise write text without numbers. Camera GPS from GoPro telemetry counts as the footage (the user confirmed): show it only through `"value": "gps…"` stats so the number comes from the data — never type a speed in by hand. GoPro altitude drifts badly, so no elevation numbers. Strava data from the user's own account counts as the user giving the number (incl. heart rate and power): show it only through `"value": "strava:…"` stats. Never put other athletes' Strava names or data on screen.
-- **Be careful with other people.** Avoid close-ups of identifiable strangers and don't feature anyone's crash unless the user says it's fine. Tag `people` honestly so this is visible at planning time.
+- **Be careful with other people.** Avoid close-ups of identifiable strangers and don't feature anyone's crash unless the user says it's fine. Tag `people` honestly so this is visible at planning time. Collab invites and people tags (`post.collaborators`, `post.peopleTags`) only for handles the user gives you, of people who are in the reel or agreed.
 - Keep the user's originals: never delete or edit anything in `library/media/`.
 
 ## Weekly batch (the normal flow)
@@ -81,7 +81,7 @@ Nobody is there to approve, so do steps 0–5 only, then stop: don't approve, qu
 | `./reels music add <url> [--instagram "Title Artist"] [--name x] [--start m:ss] [--credit "…"]` (alias `./reels yt2mp3 <url>`) | Download a track to `music/` as MP3, detect its beats, record source, rights and credit; `--instagram` marks a trending song (mixed in; attached from Instagram's library only with config `audio.attachSongs`) |
 | `./reels music list` | Tracks with bpm, start point, rights, credit and usage |
 | `./reels music beats <track> [--from m:ss] [--for N]` | Tempo and beat times, for timing cuts and text |
-| `./reels check <plan>` / `./reels render <plan>` | Validate (prints the timeline and the sound sheet: nat windows, drops, sound-effect cues with their source) / render a plan |
+| `./reels check <plan…>` / `./reels render <plan>` | Validate one plan or a whole batch (prints the timeline with cutaways, the sound sheet: nat windows, drops, sound-effect cues with their source, and retention/caption/reuse warnings) / render a plan |
 | `./reels project <plan> [--out DIR]` | Write one reel as a self-contained Remotion project (template + exact props + its staged clips) to open in Remotion Studio or import into Kino ([reference/kino.md](reference/kino.md)) |
 | `./reels discard <slug>` | Delete a render, free its clips and its song's usage |
 | `./reels queue [--start YYYY-MM-DD] [--times 07:30,18:30]` / `--list` | Assign posting slots, write `out/QUEUE.md` |

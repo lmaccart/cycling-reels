@@ -62,6 +62,8 @@ with actual ages retained rather than pretending these are exact day-seven resul
 - `learning/feedback.jsonl`: user feedback and production events, kept even after discards.
 - `learning/experiments.json`: immutable hypotheses, primary metrics and test/control slugs,
   registered before test reels are rendered.
+- `learning/notes/`: review notes waiting for `./reels review --file` — e.g. from a cloud session,
+  which can't see `out/` and so doesn't run the review itself.
 
 Aim for five familiar approaches and two tests in a seven-reel week when footage allows.
 Experiments stay inconclusive until enough comparable results exist. Permanent skill,
@@ -164,7 +166,7 @@ Run `./reels --help` or see `.claude/skills/cycling-reels/SKILL.md`. The main on
 | `library/assets/` | one JSON per asset: probe info, fingerprint, tags, moments, usage |
 | `library/sheets/` / `library/transcripts/` | contact sheets / word-level transcripts |
 | `plans/` | one JSON per reel (Claude writes these) |
-| `out/<slug>/` | reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json |
+| `out/<slug>/` | reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json (+ `project/` from `./reels project`) |
 | `music/` | downloaded tracks (`.mp3`) with their source/credit records (`.json`) |
 | `sfx/` | free sound effects (`.wav`) with source/author/licence records (`.json`) |
 | `library/sounds/` / `library/telemetry/` | detected ride sounds + spectrograms / GoPro GPS per clip |

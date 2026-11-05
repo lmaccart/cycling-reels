@@ -11,7 +11,7 @@ The cycling reels that grow accounts show a person (not just the road), a payoff
 
 3. ★ **One pass-by**: prop the phone low (curb, rock, mini tripod) on a quiet road and ride past close at speed, then once straight toward it. It's the shot every good cycling edit uses, and the only way you're in frame when you ride solo. Budget 5–10 minutes.
 4. ★ **Your face at the hard part**: a 3–5 s selfie at the top of the climb, after your pull, in the rain. Breathing, grinning, wrecked. → the payoff every "pov:" joke needs.
-5. ★ **One sentence to camera, stopped**: whatever's true right then ("this hill again", "we're biking again"). Put your back to the wind. → talking reels with captions, story reels.
+5. ★ **One sentence to camera, stopped**: whatever's true right then ("this hill again", "we're biking again"). Put your back to the wind. → talking reels with captions, story reels — and your voice can keep going over the ride footage (cutaways), so the line doesn't have to carry the whole reel.
 6. **The computer when the number is good**: 2 s on the screen at top speed, the grade, the summit. → real numbers on screen (we never invent them).
 7. **360 in third person**: the MAX on a pole off the seatpost, or a selfie stick held out (the stick disappears in 360), for a minute or two of the best stretch. Under the bars it only sees sky, road and your stem. → chase-cam and look-back shots, group rides.
 8. **The group** (group rides): the roll-out from behind, someone pulling, the regroup, everyone at the stop. Ask before friends' faces go in. → the group-ride series, trends about group roles.
@@ -41,6 +41,7 @@ No ride? These still make reels, and they show the person behind the bike, which
 ## How to film
 
 - Hold every shot 5–10 s: start before the moment and stop after it. Several short clips beat one long take.
+- **Film what you talk about.** If a line to camera mentions the Garmin, the climb or the café, grab 3–5 s of it too: talking reels cut to it while you keep talking.
 - **iPhone: 4K at 60 fps** (Settings → Camera → Record Video), so slow motion looks smooth (your clips are 30 fps now), and **HDR Video off**.
 - Shoot the phone shots of you vertical. Pass-bys can be horizontal; they get cropped.
 - **GoPro MAX:** your files are 3K at 60 fps, which is good for slow-mo. Use 5.6K/30 when you want sharper reframes and won't slow it down.

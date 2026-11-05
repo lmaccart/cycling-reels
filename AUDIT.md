@@ -119,5 +119,9 @@ one — its 180° "AutoMotion" shutter would add natural motion blur, but it doe
 1. Review this PR; run `./reels selftest` on the Mac (it needs the Whisper/YAMNet downloads this session couldn't reach — here steps 1–7 were run directly and passed, including the new cutaway check).
 2. Tell Claude which accounts are fine for Collabs/tags (e.g. the club), and whether to try Kino.
 3. Film the two talking reels in TALKING-REELS.md — cutaways now make them work as written.
-4. At the next weekly review, note that the Nov 2 proposal (caption in-point check) is implemented, and consider
-   registering a comments experiment (`primaryMetric: "commentsReach"`) for the caption prompts.
+4. Record this audit in the learning history: on the Mac, after merging, run
+   `./reels review --week 2026-11-02 --file learning/notes/2026-11-05-audit.json`. It adds a checkpoint
+   (strengths, weaknesses, the Nov 2 proposal marked implemented, proposals) and regenerates `learning/LESSONS.md`
+   with two new lessons: `aud-interaction-01` and `prod-captions-01`. It wasn't run here because this checkout has no
+   `out/`, so the review would have matched none of the posted reels. Then consider registering a comments experiment
+   (`primaryMetric: "commentsReach"`) for the caption prompts.
