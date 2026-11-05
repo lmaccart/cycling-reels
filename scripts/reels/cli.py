@@ -472,10 +472,30 @@ def cmd_library(project: Project, args) -> int:
 
 
 def cmd_check(project: Project, args) -> int:
+    """Checks every plan given (a batch: plans/2026-11-*.json) and reports all the problems, not just the first plan's."""
     from .render import check_plan
+    from .review import auto_event
 
-    for p in args.plans:
-        check_plan(project, p)
+    failed = []
+    for i, p in enumerate(args.plans):
+        if i:
+            log("")
+        try:
+            check_plan(project, p)
+        except ReelsError as e:
+            failed.append(p)
+            print(f"error: {p}: {e}", file=sys.stderr)
+    if failed:
+        auto_event(project, "command-failed", f"check failed for {len(failed)} of {len(args.plans)} plan(s); record a sanitized cause and fix with review feedback")
+        if len(args.plans) > 1:
+            print(f"\n{len(failed)} of {len(args.plans)} plans have problems: {', '.join(Path(p).name for p in failed)}", file=sys.stderr)
+    return 1 if failed else 0
+
+
+def cmd_project(project: Project, args) -> int:
+    from .kino import export_project
+
+    export_project(project, args.plan, out=args.out)
     return 0
 
 
@@ -797,6 +817,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("plans", nargs="+")
     s.add_argument("--keep-staging", action="store_true")
     s.set_defaults(fn=cmd_render)
+
+    s = sub.add_parser(
+        "project",
+        help="write one reel as a self-contained Remotion project (open it in Remotion Studio, or import the folder into Kino)",
+    )
+    s.add_argument("plan")
+    s.add_argument("--out", help="empty folder to write it to (default: out/<slug>/project)")
+    s.set_defaults(fn=cmd_project)
 
     s = sub.add_parser("discard", help="delete a rendered reel and free its clips")
     s.add_argument("slug")

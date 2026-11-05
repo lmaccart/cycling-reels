@@ -247,6 +247,27 @@ def _band(path: Path, a: float, b: float, af: str) -> tuple[float, float]:
     return tuple(-120.0 if not m or m.group(1) == "-inf" else float(m.group(1)) for m in got)  # type: ignore[return-value]
 
 
+def _check_cutaway(reel: Path, tmp: Path, at: float, length: float) -> list[str]:
+    """The cutaway over segment 1: a different picture for its stretch, the segment's picture after it,
+    and the segment's own audio (the landscape clip's 330 Hz tone) carrying straight on underneath."""
+    from .loop import ssim
+
+    frames = {}
+    for name, t in (("before", at - 0.2), ("during", at + length / 2), ("after", at + length + 0.25)):
+        frames[name] = tmp / f"cutaway-{name}.png"
+        extract_frame(reel, t, frames[name])
+    same, changed = ssim(frames["before"], frames["after"]), ssim(frames["before"], frames["during"])
+    problems = []
+    if same is None or changed is None or changed > same - 0.15:
+        problems.append(f"cutaway: the picture should change for {at:g}–{at + length:g}s and come back after "
+                        f"(SSIM before/after {same}, before/during {changed})")  # fmt: skip
+    tone = "bandpass=f=330:width_type=q:w=10"
+    under, before = _band(reel, at + 0.2, at + length - 0.2, tone)[0], _band(reel, at - 0.5, at - 0.1, tone)[0]
+    if abs(under - before) > 3:
+        problems.append(f"cutaway: the segment's audio should keep going under it ({under:.0f} dB vs {before:.0f} dB before)")
+    return problems
+
+
 def _check_sound(project: Project, land: dict, vert: dict, photo: dict) -> str:
     """Sound design on the test clips (330 Hz ride tone, 60 Hz kick song, 880 Hz blip sfx): a nat window
     lifts the ride audio, a drop silences the song, cues land on time, auto rules and the song guard work,
@@ -503,7 +524,8 @@ def selftest(project: Project, *, keep: bool = False) -> bool:
             "slug": "selftest-reel",
             "hook": {"text": "pov: the self-test actually passed"},
             "segments": [
-                {"asset": land["id"], "moment": 0, "captions": "transcript", "stats": [{"label": "grade", "value": "8%"}]},
+                {"asset": land["id"], "moment": 0, "captions": "transcript", "stats": [{"label": "grade", "value": "8%"}],
+                 "cutaways": [{"at": 0.8, "asset": vert["id"], "in": 0.5, "out": 1.5}]},
                 {"asset": vert["id"], "moment": 0, "speed": 0.5, "transition": "fade",
                  "text": [{"text": "legs said no 💀", "at": 0.3, "style": "dark"}]},
                 {"asset": photo["id"], "duration": 2.5, "fit": "blurfill", "motion": "zoom-out", "transition": "fade",
@@ -517,7 +539,7 @@ def selftest(project: Project, *, keep: bool = False) -> bool:
         write_json(test.plans_dir / "selftest-reel.json", plan)
         post = render_plan(test, test.plans_dir / "selftest-reel.json")
 
-        log("7/9 checking the output (Instagram spec, 360 camera move, credit line, footage guard)…")
+        log("7/9 checking the output (Instagram spec, 360 camera move, cutaway, credit line, footage guard)…")
         reel = test.abs(post["file"])
         info = ffprobe_json(reel)
         v = next(s for s in info["streams"] if s["codec_type"] == "video")
@@ -544,6 +566,9 @@ def selftest(project: Project, *, keep: bool = False) -> bool:
             seen = _panel_at(reel, at, tmp)
             if seen != want:
                 problems.append(f"360 camera move: expected the {want} panel at {at:.2f}s, saw {seen}")
+        problems += _check_cutaway(reel, tmp, 0.8, 1.0)
+        if not any(s.get("cutaway") for s in post.get("segments") or []):
+            problems.append("post.json should list the cutaway's footage (usage tracking)")
         for f in ("cover.jpg", "preview.jpg", "post.json", "caption.txt"):
             if not (reel.parent / f).exists():
                 problems.append(f"missing {f}")

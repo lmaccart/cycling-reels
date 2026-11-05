@@ -22,7 +22,8 @@ from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment
 from .mix import music_drops, music_levels, nat_windows, quiet_nat, volume_keys
 from .music import ensure_beats, parse_time, record_usage, release_usage, resolve_track
 from .punch import check_beats_punch, check_punch, ends_zoomed, punch_keys, resolve_punches, stage_scale
-from .queue import caption_block
+from .queue import caption_block, carry_over, post_extras
+from .retention import caption_cuts, retention_warnings
 from .sheets import build_sheet
 from .sphere import camera_filter, photo_view, plan_camera, source_graph
 from .util import ReelsError, clamp, even, fmt_ts, log, now_iso, quick_hash, read_json, slugify, warn, write_json
@@ -42,6 +43,7 @@ STATS_TOP, STAT_ROW, TOP_TEXT = 240, 78, 420
 ROUTE_TOP, ROUTE_SIZE = STATS_TOP, 220
 GPS_VALUES = ("gps", "gps:max", "gps:avg")
 GPS_LABELS = {"gps": "speed", "gps:max": "top speed", "gps:avg": "avg"}
+from .strava import RIDE_VALUES as STRAVA_RIDE_VALUES  # noqa: E402
 from .strava import VALUES as STRAVA_VALUES  # noqa: E402
 
 
@@ -119,6 +121,205 @@ def footage_problem(project: Project, asset: dict, cache: dict[str, str | None])
     return problem
 
 
+def _visual(
+    project: Project, s: dict, where: str, errors: list[str], warnings: list[str], verified: dict[str, str | None]
+) -> tuple[dict, dict, float] | None:
+    """One clip or photo from the library — a segment or a cutaway: footage check, in/out (or a
+    tagged moment), speed, framing and 360 camera. Returns (asset, spec, seconds on screen), or
+    None after recording the problem in `errors`."""
+    try:
+        asset = load_asset(project, resolve_id(project, str(s.get("asset", ""))))
+    except ReelsError as e:
+        errors.append(f"{where}: {e}")
+        return None
+    problem = footage_problem(project, asset, verified)
+    if problem:
+        errors.append(f"{where}: {problem}")
+        return None
+    spec: dict[str, Any] = dict(s)
+    spec["asset"] = asset["id"]
+    tags = asset.get("tags") or {}
+    if asset.get("status") == "skip":
+        warnings.append(f"{where}: {asset['id']} was tagged skip")
+
+    is_360 = bool(asset["probe"].get("sphere"))
+    moment_view = None
+    if asset["kind"] == "video":
+        dur = float(asset["probe"]["duration"])
+        if "moment" in spec:
+            moments = tags.get("moments") or []
+            mi = spec["moment"]
+            if not isinstance(mi, int) or not 0 <= mi < len(moments):
+                errors.append(f"{where}: moment {mi!r} doesn't exist on {asset['id']} ({len(moments)} moments)")
+                return None
+            m = moments[mi]
+            spec.setdefault("in", m["in"])
+            spec.setdefault("out", m["out"])
+            moment_view = m.get("view")
+            if not is_360:
+                spec.setdefault("focusX", m.get("focusX", 0.5))
+                spec.setdefault("focusY", m.get("focusY", 0.5))
+        if "in" not in spec or "out" not in spec:
+            errors.append(f"{where}: video clips need in/out seconds (or a moment index)")
+            return None
+        spec["in"] = _num(spec, "in", 0, 0, dur, errors, where)
+        spec["out"] = min(_num(spec, "out", dur, 0, dur + 0.05, errors, where), dur)
+        if spec["out"] - spec["in"] < 0.3:
+            errors.append(f"{where}: out must be at least 0.3 s after in")
+            return None
+        spec["speed"] = _num(spec, "speed", 1.0, 0.25, 4.0, errors, where)
+        spec["zoom"] = _num(spec, "zoom", 1.0, 1.0, 3.0, errors, where)
+        spec["focusX"] = _num(spec, "focusX", 0.5, 0, 1, errors, where)
+        spec["focusY"] = _num(spec, "focusY", 0.5, 0, 1, errors, where)
+        spec["frame"] = _pick(spec, "frame", "crop", FRAMES, errors, where)
+        spec["captions"] = _pick(spec, "captions", "none", ("transcript", "none"), errors, where)
+        if spec["captions"] == "transcript" and not asset.get("transcript"):
+            errors.append(f"{where}: captions=transcript but {asset['id']} has no transcript (./reels transcribe {asset['id']})")
+        seconds = (spec["out"] - spec["in"]) / spec["speed"]
+        if is_360:
+            spec["sphere"] = plan_camera(spec, tags, moment_view, seconds, errors, warnings, where, s)
+    else:
+        spec["duration"] = _num(spec, "duration", 2.5, 0.8, 12, errors, where)
+        spec["motion"] = _pick(spec, "motion", "zoom-in", MOTIONS, errors, where)
+        spec["fit"] = _pick(spec, "fit", "cover", FITS, errors, where)
+        spec["focusX"] = _num(spec, "focusX", tags.get("focusX", 0.5), 0, 1, errors, where)
+        spec["focusY"] = _num(spec, "focusY", tags.get("focusY", 0.5), 0, 1, errors, where)
+        if spec.get("captions") == "transcript":
+            errors.append(f"{where}: photos can't have transcript captions")
+        spec["captions"] = "none"
+        seconds = spec["duration"]
+        if is_360:
+            spec["sphere"] = plan_camera(spec, tags, None, seconds, errors, warnings, where, s)
+            spec["fit"] = "cover"
+            if spec["sphere"]["path"]:
+                spec["motion"] = "none"  # the camera move is the motion
+    return asset, spec, seconds
+
+
+# Cutaways: B-roll laid over a video segment for a moment while the segment's own audio (the
+# voice), captions and text carry on. The segment owns everything but the picture, so these
+# fields belong on it, not on a cutaway.
+CUTAWAY_SEGMENT_ONLY = ("captions", "text", "stats", "route", "nat", "bleep", "punch", "sfx", "transition", "payoff",
+                        "cutaways", "volume", "clean")  # fmt: skip
+CUTAWAY_MIN_FRAMES = 12  # 0.4 s at 30 fps: anything shorter reads as a glitch
+
+
+def _cutaways(
+    project: Project, sg: Seg, raw: Any, fps: int, errors: list[str], warnings: list[str], verified: dict[str, str | None], where: str
+) -> list[dict]:
+    """A segment's cutaways, sorted: [{"seg": Seg (the B-roll; staged silent), "start": frames from the segment start, "where"}]."""
+    if raw in (None, False, []):
+        return []
+    if not isinstance(raw, list):
+        errors.append(f'{where}: cutaways must be a list like [{{"at": 1.5, "asset": "<id>", "in": 3, "out": 5}}]')
+        return []
+    if sg.kind != "video":
+        errors.append(f"{where}: cutaways go on video segments — they cover the picture while the clip's own audio keeps going")
+        return []
+    out: list[dict] = []
+    for k, c in enumerate(raw):
+        cw = f"{where} cutaway {k + 1}"
+        if not isinstance(c, dict) or c.get("at") is None or not c.get("asset"):
+            errors.append(f'{cw}: use {{"at": <seconds from the segment start>, "asset": "<id>", "in": …, "out": …}} (or "moment"; "duration" for a photo)')
+            continue
+        misplaced = [key for key in CUTAWAY_SEGMENT_ONLY if key in c]
+        if misplaced:
+            errors.append(f"{cw}: {', '.join(misplaced)} belong on the segment — under a cutaway its own audio, captions and text keep going")
+            continue
+        at = _num(c, "at", 0, 0, 600, errors, cw)
+        got = _visual(project, {key: v for key, v in c.items() if key != "at"}, cw, errors, warnings, verified)
+        if got is None:
+            continue
+        asset, spec, seconds = got
+        # silent B-roll: nothing of its own but the picture
+        spec.update(captions="none", transition="cut", nat=[], clean=False, payoff=False, bleep=None, _bleeps=[], punch=None, _punches=[])
+        frames = max(1, round(seconds * fps))
+        start = round(at * fps)
+        if frames < CUTAWAY_MIN_FRAMES:
+            errors.append(f"{cw}: {seconds:.2f}s is too short to register — make it at least {CUTAWAY_MIN_FRAMES / fps:.1f}s")
+            continue
+        if start + frames > sg.frames + 1:
+            errors.append(f"{cw}: runs {(start + frames - sg.frames) / fps:.2f}s past the end of its segment ({sg.frames / fps:.2f}s) — move \"at\" or shorten it")
+            continue
+        out.append({"seg": Seg(index=sg.index, kind=asset["kind"], asset=asset, spec=spec, frames=frames), "start": start, "where": cw})
+    out.sort(key=lambda c: c["start"])
+    for a, b in zip(out, out[1:]):
+        if b["start"] < a["start"] + a["seg"].frames:
+            errors.append(f"{b['where']}: overlaps {a['where']} — one cutaway at a time")
+    if out:
+        # A data pill describes the clip under the cutaway, not the footage on screen.
+        values = [str(st.get("value") or "").strip().lower() for st in sg.spec.get("stats") or [] if isinstance(st, dict)]
+        clip_data = [v for v in values if v.startswith("gps") or (v.startswith("strava:") and v not in STRAVA_RIDE_VALUES)]
+        if clip_data or sg.spec.get("route"):
+            errors.append(f"{where}: {', '.join(clip_data) or 'the route map'} would describe the clip under the cutaways, not the footage "
+                          "on screen — put live numbers on a segment without cutaways (whole-ride Strava totals are fine)")  # fmt: skip
+    return out
+
+
+def fit_cutaways(segs: list[Seg], fps: int, warnings: list[str]) -> None:
+    """Beat snapping / loop retiming can shorten a segment by up to a beat: cutaways that no
+    longer fit are trimmed to its end, or dropped when too little is left."""
+    for sg in segs:
+        kept = []
+        for c in sg.spec.get("_cutaways") or []:
+            room = sg.frames - c["start"]
+            if room < CUTAWAY_MIN_FRAMES:
+                warnings.append(f"{c['where']}: its segment got shorter when it was retimed to the music — the cutaway no longer fits, dropped")
+                continue
+            if c["seg"].frames > room:
+                _set_frames(c["seg"], room, fps)
+            kept.append(c)
+        sg.spec["_cutaways"] = kept
+
+
+def cutaway_name(sg: Seg, k: int) -> str:
+    """Staged file stem of a segment's k-th cutaway (the template and stage() agree on it)."""
+    return f"cut{sg.index}-{k}"
+
+
+def cutaway_props(sg: Seg) -> list[dict]:
+    """Template props for a segment's cutaways (frames relative to the segment start)."""
+    out = []
+    for k, c in enumerate(sg.spec.get("_cutaways") or []):
+        cs = c["seg"]
+        p: dict[str, Any] = {"startFrame": c["start"], "durationInFrames": cs.frames}
+        if cs.kind == "video" or (cs.spec.get("sphere") or {}).get("path"):
+            p.update(kind="video", src=f"{cutaway_name(sg, k)}.mp4")
+        else:
+            p.update(kind="photo", src=f"{cutaway_name(sg, k)}.jpg", motion=cs.spec["motion"], fit=cs.spec["fit"],
+                     focusX=cs.spec["focusX"], focusY=cs.spec["focusY"])  # fmt: skip
+        out.append(p)
+    return out
+
+
+def visuals(segs: list[Seg]) -> list[tuple[str, Seg, bool]]:
+    """Every clip and photo on screen: (where, Seg, is_cutaway) for the segments and their cutaways."""
+    out = []
+    for sg in segs:
+        out.append((f"segment {sg.index + 1}", sg, False))
+        out += [(c["where"], c["seg"], True) for c in sg.spec.get("_cutaways") or []]
+    return out
+
+
+def reuse_warnings(slug: str, segs: list[Seg]) -> list[str]:
+    """Footage another reel already used (rendered, not discarded): followers notice repeats."""
+    out = []
+    for where, v, _ in visuals(segs):
+        for u in v.asset.get("used") or []:
+            other = u.get("plan")
+            if not other or other == slug:
+                continue
+            if v.kind == "video" and "in" in u:
+                if u["in"] < v.spec["out"] and v.spec["in"] < u["out"]:
+                    span = f"{fmt_ts(max(u['in'], v.spec['in']))}-{fmt_ts(min(u['out'], v.spec['out']))}"
+                    out.append(f"{where}: {v.asset['id']} {span} is already in {other} — pick unused footage (./reels library --unused)")
+                    break
+            elif v.kind == "photo":
+                out.append(f"{where}: photo {v.asset['id']} is already in {other} — pick an unused one (./reels library --unused)")
+                break
+    return out
+
+
 def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
     fps = int(project.cfg("render", "fps"))
     errors: list[str] = []
@@ -136,73 +337,10 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
         if not isinstance(s, dict):
             errors.append(f"{where}: must be an object")
             continue
-        try:
-            asset = load_asset(project, resolve_id(project, str(s.get("asset", ""))))
-        except ReelsError as e:
-            errors.append(f"{where}: {e}")
+        got = _visual(project, s, where, errors, warnings, verified)
+        if got is None:
             continue
-        problem = footage_problem(project, asset, verified)
-        if problem:
-            errors.append(f"{where}: {problem}")
-            continue
-        spec: dict[str, Any] = dict(s)
-        spec["asset"] = asset["id"]
-        tags = asset.get("tags") or {}
-        if asset.get("status") == "skip":
-            warnings.append(f"{where}: {asset['id']} was tagged skip")
-
-        is_360 = bool(asset["probe"].get("sphere"))
-        moment_view = None
-        if asset["kind"] == "video":
-            dur = float(asset["probe"]["duration"])
-            if "moment" in spec:
-                moments = tags.get("moments") or []
-                mi = spec["moment"]
-                if not isinstance(mi, int) or not 0 <= mi < len(moments):
-                    errors.append(f"{where}: moment {mi!r} doesn't exist on {asset['id']} ({len(moments)} moments)")
-                    continue
-                m = moments[mi]
-                spec.setdefault("in", m["in"])
-                spec.setdefault("out", m["out"])
-                moment_view = m.get("view")
-                if not is_360:
-                    spec.setdefault("focusX", m.get("focusX", 0.5))
-                    spec.setdefault("focusY", m.get("focusY", 0.5))
-            if "in" not in spec or "out" not in spec:
-                errors.append(f"{where}: video segments need in/out seconds (or a moment index)")
-                continue
-            spec["in"] = _num(spec, "in", 0, 0, dur, errors, where)
-            spec["out"] = min(_num(spec, "out", dur, 0, dur + 0.05, errors, where), dur)
-            if spec["out"] - spec["in"] < 0.3:
-                errors.append(f"{where}: out must be at least 0.3 s after in")
-                continue
-            spec["speed"] = _num(spec, "speed", 1.0, 0.25, 4.0, errors, where)
-            spec["zoom"] = _num(spec, "zoom", 1.0, 1.0, 3.0, errors, where)
-            spec["focusX"] = _num(spec, "focusX", 0.5, 0, 1, errors, where)
-            spec["focusY"] = _num(spec, "focusY", 0.5, 0, 1, errors, where)
-            spec["frame"] = _pick(spec, "frame", "crop", FRAMES, errors, where)
-            spec["captions"] = _pick(spec, "captions", "none", ("transcript", "none"), errors, where)
-            if spec["captions"] == "transcript" and not asset.get("transcript"):
-                errors.append(f"{where}: captions=transcript but {asset['id']} has no transcript (./reels transcribe {asset['id']})")
-            seconds = (spec["out"] - spec["in"]) / spec["speed"]
-            if is_360:
-                spec["sphere"] = plan_camera(spec, tags, moment_view, seconds, errors, warnings, where, s)
-        else:
-            spec["duration"] = _num(spec, "duration", 2.5, 0.8, 12, errors, where)
-            spec["motion"] = _pick(spec, "motion", "zoom-in", MOTIONS, errors, where)
-            spec["fit"] = _pick(spec, "fit", "cover", FITS, errors, where)
-            spec["focusX"] = _num(spec, "focusX", tags.get("focusX", 0.5), 0, 1, errors, where)
-            spec["focusY"] = _num(spec, "focusY", tags.get("focusY", 0.5), 0, 1, errors, where)
-            if spec.get("captions") == "transcript":
-                errors.append(f"{where}: photos can't have transcript captions")
-            spec["captions"] = "none"
-            seconds = spec["duration"]
-            if is_360:
-                spec["sphere"] = plan_camera(spec, tags, None, seconds, errors, warnings, where, s)
-                spec["fit"] = "cover"
-                if spec["sphere"]["path"]:
-                    spec["motion"] = "none"  # the camera move is the motion
-
+        asset, spec, seconds = got
         spec["transition"] = _pick(spec, "transition", "cut", TRANSITIONS, errors, where)
         check_segment(spec, asset, errors, where)
         check_punch(spec, asset, errors, where)
@@ -212,7 +350,9 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
         frames = max(1, round(seconds * fps))
         if frames < 10:
             warnings.append(f"{where}: only {frames} frames long")
-        segs.append(Seg(index=len(segs), kind=asset["kind"], asset=asset, spec=spec, frames=frames))
+        sg = Seg(index=len(segs), kind=asset["kind"], asset=asset, spec=spec, frames=frames)
+        spec["_cutaways"] = _cutaways(project, sg, s.get("cutaways"), fps, errors, warnings, verified, where)
+        segs.append(sg)
 
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
@@ -878,6 +1018,14 @@ def build(project: Project, plan: dict) -> dict:
     if swap[0]:  # retiming must keep the seam: the last segment gives way at its start
         segs[-1].spec["_keepOut"] = True
     music = resolve_music(project, plan, segs, fps, warnings, loop=loop, grid_for="punchOnBeats" if on_beats else "")
+    fit_cutaways(segs, fps, warnings)  # after retiming: segments may have moved their out by up to a beat
+    warnings += reuse_warnings(str(plan.get("slug") or ""), segs)
+    if loop:
+        first = (segs[0].spec.get("_cutaways") or [None])[0]
+        last = (segs[-1].spec.get("_cutaways") or [None])[-1]
+        if (first and first["start"] == 0) or (last and last["start"] + last["seg"].frames >= segs[-1].frames):
+            warnings.append("loop: a cutaway covers the seam, but the seam check measures the clip under it — start the first "
+                            "cutaway after 0 s and end the last one before the reel does")  # fmt: skip
     baked = music if music and not music.get("instagram") else None
     total = segs[-1].end
     secs = total / fps
@@ -908,6 +1056,7 @@ def build(project: Project, plan: dict) -> dict:
             got = caption_pages_for(sg, masked_words(sg.spec, transcripts[aid].get("words") or []), fps, project.config["captions"])
             if not got:
                 warnings.append(f"segment {sg.index + 1}: no transcript words between {sg.spec['in']}s and {sg.spec['out']}s")
+            warnings += caption_cuts(sg, transcripts[aid].get("words") or [])
             pages += got
 
     words = {aid: t.get("words") or [] for aid, t in transcripts.items()}
@@ -938,6 +1087,9 @@ def build(project: Project, plan: dict) -> dict:
             zoom = punch_keys(sg, fps)
             if zoom:
                 seg_props[-1]["punch"] = zoom
+            cuts = cutaway_props(sg)
+            if cuts:
+                seg_props[-1]["cutaways"] = cuts
         elif (sg.spec.get("sphere") or {}).get("path"):
             # 360 photo with a camera move: staged as a short silent clip
             seg_props.append({"kind": "video", "src": f"seg{sg.index}.mp4", "durationInFrames": sg.frames, "transitionInFrames": sg.trans, "volume": 0})
@@ -1008,8 +1160,14 @@ def build(project: Project, plan: dict) -> dict:
         if top:
             hook_props["offsetTop"] = top
     beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes)
+    warnings += retention_warnings(segs, pages, beats, nat, hook_props, fps, total)
 
     drops = music_drops(plan, total, fps, errors, warnings)
+    post = plan.get("post") or {}
+    if not isinstance(post, dict):
+        errors.append('post must be an object like {"caption": "...", "hashtags": ["#cycling"]}')
+        post = {}
+    extras = post_extras(project, post, errors)
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     if drops and not baked:
@@ -1041,7 +1199,6 @@ def build(project: Project, plan: dict) -> dict:
                     "so Instagram still recognizes the trending song"
                 )
 
-    post = plan.get("post") or {}
     if not str(post.get("caption", "")).strip():
         warnings.append("plan has no post.caption yet — add one before queueing")
 
@@ -1069,7 +1226,8 @@ def build(project: Project, plan: dict) -> dict:
     }
     sound = {"nat": nat, "drops": drops, "cues": cues, "cleanNat": bool(acfg["cleanNat"]), "music": bool(music_props)}
     loop_info = {"swap": swap_halves(segs, fps), "bars": (music or {}).get("loop")} if loop else None  # as retimed
-    return {"segs": segs, "props": props, "warnings": warnings, "music": music, "sound": sound, "total": int(total), "fps": fps, "loop": loop_info}
+    return {"segs": segs, "props": props, "warnings": warnings, "music": music, "sound": sound, "total": int(total), "fps": fps,
+            "loop": loop_info, "post": extras}  # fmt: skip
 
 
 # --------------------------------------------------------------------------
@@ -1078,10 +1236,11 @@ def build(project: Project, plan: dict) -> dict:
 
 
 def stage_video(
-    project: Project, sg: Seg, out: Path, fps: int, *, clean: bool = False, scale: float = 1.0, edges: tuple[bool, bool] = (True, True)
+    project: Project, sg: Seg, out: Path, fps: int, *, clean: bool = False, scale: float = 1.0, edges: tuple[bool, bool] = (True, True),
+    audio: bool = True,
 ) -> None:
     """`scale` > 1 stages the clip larger than the reel (punch-ins stay sharp; the template scales it down);
-    `edges` = (fade in, fade out) the audio — a loop's seam leaves them off."""
+    `edges` = (fade in, fade out) the audio — a loop's seam leaves them off; `audio=False` = picture only (cutaways)."""
     probe, spec = sg.asset["probe"], sg.spec
     src = project.abs(sg.asset["media"])
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
@@ -1095,7 +1254,7 @@ def stage_video(
     if spec.get("sphere"):
         # 360: rebuild the sphere, then point a virtual camera (fixed, or moving along a path)
         src_graph, pad, inproj = source_graph(probe)
-        cam = camera_filter(spec["sphere"], inproj, tw, th, fps, sg.frames, out.parent / f"cam{sg.index}.cmd")
+        cam = camera_filter(spec["sphere"], inproj, tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"))
         graph = f"{src_graph};[{pad}]setpts=(PTS-STARTPTS)/{speed:g},fps={fps},{cam},{tail}"
     elif spec["frame"] == "crop":
         zoom = spec["zoom"]
@@ -1124,7 +1283,7 @@ def stage_video(
             f"pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:color=black,{tail}"
         )
 
-    use_audio = bool(probe.get("hasAudio")) and 0.5 <= speed <= 2.0
+    use_audio = audio and bool(probe.get("hasAudio")) and 0.5 <= speed <= 2.0
     if use_audio:
         # short fades at both edges so hard cuts don't pop; `clean` = gentle highpass + denoise against wind
         dur = sg.frames / fps
@@ -1150,7 +1309,7 @@ def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int) -> None:
     """A 360 photo with a camera path becomes a short silent clip."""
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
     src = project.abs(sg.asset["media"])
-    cam = camera_filter(sg.spec["sphere"], "e", tw, th, fps, sg.frames, out.parent / f"cam{sg.index}.cmd")
+    cam = camera_filter(sg.spec["sphere"], "e", tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"))
     graph = f"[0:v]format=yuv420p,fps={fps},{cam},setsar=1,format=yuv420p[v]"
     run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", fps, "-t", f"{sg.frames / fps + 0.5:.3f}", "-i", src,
          "-filter_complex", graph, "-map", "[v]", "-an", "-frames:v", sg.frames, "-c:v", "libx264", "-preset", "veryfast",
@@ -1198,6 +1357,14 @@ def stage(project: Project, built: dict, staging: Path) -> None:
             stage_photo_pan(project, sg, staging / f"seg{sg.index}.mp4", built["fps"])
         else:
             stage_photo(project, sg, staging / f"seg{sg.index}.jpg")
+        for k, c in enumerate(sg.spec.get("_cutaways") or []):  # silent B-roll over the segment
+            cs, name = c["seg"], cutaway_name(sg, k)
+            if cs.kind == "video":
+                stage_video(project, cs, staging / f"{name}.mp4", built["fps"], audio=False)
+            elif (cs.spec.get("sphere") or {}).get("path"):
+                stage_photo_pan(project, cs, staging / f"{name}.mp4", built["fps"])
+            else:
+                stage_photo(project, cs, staging / f"{name}.jpg")
     if built["props"]["music"]:
         mp: Path = built["music"]["path"]
         shutil.copy2(mp, staging / f"music{mp.suffix.lower()}")
@@ -1334,8 +1501,9 @@ def make_preview(reel: Path, duration: float, out: Path, title: str) -> None:
 
 
 def mark_usage(project: Project, slug: str, segs: list[Seg]) -> None:
+    """Records which footage this reel shows (segments and cutaways), so other reels don't repeat it."""
     by_asset: dict[str, list[Seg]] = {}
-    for sg in segs:
+    for _, sg, _ in visuals(segs):
         by_asset.setdefault(sg.asset["id"], []).append(sg)
     for a in all_assets(project):
         used = a.get("used") or []
@@ -1389,7 +1557,8 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
     cover_t = plan.get("cover")
     if cover_t is None:
         cover_t = (hook["endFrame"] - 4) / fps if hook else min(1.0, duration / 2)
-    extract_frame(reel, float(cover_t), out_dir / "cover.jpg")
+    cover_t = float(clamp(float(cover_t), 0.0, max(0.0, duration - 1 / fps)))
+    extract_frame(reel, cover_t, out_dir / "cover.jpg")
     make_preview(reel, duration, out_dir / "preview.jpg", f"{slug}  ·  {duration:.1f}s")
 
     plan_copy = {k: v for k, v in plan.items() if not k.startswith("_")}
@@ -1398,7 +1567,8 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
     post_path = out_dir / "post.json"
     prev = read_json(post_path) if post_path.exists() else {}
     if prev.get("status") in ("scheduled", "posted"):
-        warn(f"{slug} was already {prev['status']} — re-schedule it so the new render is the one that posts")
+        mid = f" (Metricool post {prev['metricoolId']}, kept in post.json — update that post rather than scheduling a second one)" if prev.get("metricoolId") else ""
+        warn(f"{slug} was already {prev['status']} — it needs approval again, then re-schedule it so the new render is the one that posts{mid}")
     p = plan.get("post") or {}
     hashtags = [h if str(h).startswith("#") else f"#{h}" for h in (p.get("hashtags") or [])]
     post = {
@@ -1407,6 +1577,7 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
         "renderedAt": now_iso(),
         "file": project.rel(reel),
         "cover": project.rel(out_dir / "cover.jpg"),
+        "coverMs": int(round(cover_t * 1000)),  # the same frame, for the scheduler's cover setting (Metricool videoCoverMilliseconds)
         "preview": project.rel(out_dir / "preview.jpg"),
         "duration": round(duration, 2),
         "sizeMB": round(reel.stat().st_size / 1e6, 1),
@@ -1414,16 +1585,19 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
         "hashtags": hashtags,
         "altText": str(p.get("altText", "")).strip(),
         "firstComment": str(p.get("firstComment", "")).strip(),
+        **{k: v for k, v in (built.get("post") or {}).items() if v},  # collaborators, peopleTags
         "postDate": plan.get("postDate"),
         "scheduledFor": prev.get("scheduledFor"),
         "timezone": prev.get("timezone"),
         "mediaUrl": None,
         "metricoolId": None,
         "segments": [
-            {"asset": sg.asset["id"], **({"in": sg.spec["in"], "out": sg.spec["out"]} if sg.kind == "video" else {})}
-            for sg in built["segs"]
-        ],
+            {"asset": v.asset["id"], **({"in": v.spec["in"], "out": v.spec["out"]} if v.kind == "video" else {}),
+             **({"cutaway": True} if is_cut else {})}
+            for _, v, is_cut in visuals(built["segs"])
+        ],  # fmt: skip
     }
+    carry_over(prev, post)  # history, the Metricool post id and the live reel's id survive a re-render
     if built["loop"]:
         post["loop"] = {"swapHalves": built["loop"]["swap"][0], **({"seamSsim": seam["seam"], "stepSsim": seam["step"]} if seam else {})}
     if music:
@@ -1491,6 +1665,11 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
         else:
             src, frame, extra = "photo", cam_txt or f"{sg.spec['fit']}/{sg.spec['motion']}", ""
         log(f"  {sg.index + 1:>2}  {fmt_ts(sg.start / fps):>7}  {sg.frames / fps:4.1f}s  {sg.asset['id']:<34} {src:<17} {frame}{extra}")
+        for c in sg.spec.get("_cutaways") or []:
+            cs = c["seg"]
+            a, b = (sg.start + c["start"]) / fps, (sg.start + c["start"] + cs.frames) / fps
+            what = f"{fmt_ts(cs.spec['in'])}-{fmt_ts(cs.spec['out'])}" if cs.kind == "video" else "photo"
+            log(f"        cutaway {a:5.2f}-{b:.2f}s  {cs.asset['id']:<34} {what:<17} (picture only — the segment's audio keeps going)")
     if props["hook"]:
         log(f"  hook: \"{props['hook']['text']}\" until {props['hook']['endFrame'] / fps:.1f}s")
     log(f"  captions: {len(props['captions'])} pages  ·  text beats: {len(props['beats'])}  ·  stats: {len(props['stats'])}")

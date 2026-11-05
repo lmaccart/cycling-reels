@@ -9,6 +9,62 @@ from .config import Project
 from .util import ReelsError, log, now_iso, read_json, warn, write_json
 
 STATUSES = ("rendered", "approved", "queued", "scheduled", "posted", "rejected")
+LEAD = timedelta(minutes=15)  # a slot must be at least this far ahead: Metricool refuses past times, and scheduling takes a moment
+# Instagram usernames: letters, digits, '.' and '_', up to 30, not starting/ending with '.' (and no '..').
+HANDLE = re.compile(r"^@?([A-Za-z0-9_](?:[A-Za-z0-9_.]{0,28}[A-Za-z0-9_])?)$")
+MAX_COLLABORATORS = 5  # Instagram's limit per reel
+# What a re-render keeps from the previous post.json: the Metricool post it may already be scheduled as
+# (update that one instead of scheduling a duplicate) and the live reel's identity (analytics).
+KEEP_ON_RERENDER = ("metricoolId", "reelId", "instagramUrl")
+
+
+def handles(raw: object, field: str, errors: list[str], *, own: str | None = None, limit: int | None = None) -> list[str]:
+    """Instagram usernames from a plan's post block, lowercased and without the '@'.
+    Only accounts the user named — never guess a handle."""
+    if raw in (None, [], ""):
+        return []
+    items = [raw] if isinstance(raw, str) else raw
+    if not isinstance(items, list):
+        errors.append(f'post.{field} must be a list of Instagram handles like ["@yourclub"]')
+        return []
+    out: list[str] = []
+    for h in items:
+        m = HANDLE.match(h.strip()) if isinstance(h, str) else None
+        if not m or ".." in m.group(1):
+            errors.append(f"post.{field}: {h!r} isn't an Instagram handle (letters, digits, '.' and '_', up to 30)")
+            continue
+        name = m.group(1).lower()
+        if own and name == own:
+            errors.append(f"post.{field}: @{name} is this account")
+            continue
+        if name not in out:
+            out.append(name)
+    if limit is not None and len(out) > limit:
+        errors.append(f"post.{field}: Instagram allows at most {limit}, got {len(out)}")
+    return out
+
+
+def post_extras(project: Project, post: dict, errors: list[str]) -> dict:
+    """Validated collab and people-tag handles for post.json (both optional)."""
+    own = str(project.cfg("brand", "handle") or "").strip().lstrip("@").lower() or None
+    return {
+        "collaborators": handles(post.get("collaborators"), "collaborators", errors, own=own, limit=MAX_COLLABORATORS),
+        "peopleTags": handles(post.get("peopleTags"), "peopleTags", errors, own=own),
+    }
+
+
+def carry_over(prev: dict, post: dict) -> dict:
+    """A re-render replaces the reel's media, not its paper trail: the status history, the Metricool
+    post it may already be scheduled as, and (once posted) the live reel's Instagram id stay."""
+    for k in KEEP_ON_RERENDER:
+        if prev.get(k) and not post.get(k):
+            post[k] = prev[k]
+    post["history"] = list(prev.get("history") or []) + [{"status": "rendered", "at": post.get("renderedAt") or now_iso()}]
+    return post
+
+
+def handle_list(names: list[str] | None) -> str:
+    return ", ".join(f"@{n}" for n in names or [])
 
 
 def posts(project: Project) -> list[tuple[Path, dict]]:
@@ -70,21 +126,29 @@ def write_queue_md(project: Project) -> Path:
         f"_Updated {now:%a %b} {now.day}, {now:%I:%M %p} ({tz.key}). "
         "queued = ready to schedule · scheduled = waiting in Metricool/Instagram · posted = live._",
         "",
+        "_When one goes live: answer the first comments within the hour and pin a good one — replies count as "
+        "comments too, and a thread that answers back gets more of them._",
+        "",
     ]
     if not items:
         lines.append("Nothing queued yet.")
     for p in items:
         dt = datetime.fromisoformat(p["scheduledFor"])
+        cover_at = f" (frame at {p['coverMs'] / 1000:.1f} s)" if isinstance(p.get("coverMs"), int) else ""
         lines += [
             f"## {dt:%a %b} {dt.day}, {dt:%I:%M %p} — {p['slug']} [{p['status']}]",
             "",
             f"- File: `{p['file']}` ({p.get('duration')} s, {p.get('sizeMB')} MB)",
-            f"- Cover: `{p['cover']}`",
+            f"- Cover: `{p['cover']}`{cover_at}",
         ]
         if p.get("mediaUrl"):
             lines.append(f"- Media URL: {p['mediaUrl']}")
         if song_note(p):
             lines.append(f"- Song: {song_note(p)}")
+        if p.get("collaborators"):
+            lines.append(f"- Collab with: {handle_list(p['collaborators'])} (each accepts the invite in the Instagram app)")
+        if p.get("peopleTags"):
+            lines.append(f"- Tag: {handle_list(p['peopleTags'])}")
         if p.get("metricoolId"):
             lines.append(f"- Metricool post id: {p['metricoolId']}")
         lines += ["", "```", caption_block(p), "```", ""]
@@ -125,6 +189,11 @@ def queue(project: Project, *, start: str | None = None, times: list[str] | None
     candidates.sort(key=lambda x: (x[1].get("postDate") or "9999-12-31", x[0].parent.name))
     day = date.fromisoformat(start) if start else now.date() + timedelta(days=1)
     queued: list[dict] = []
+
+    def open_slot(d: str, t: str) -> bool:
+        """Free, and not already past (a postDate of today, or --start today, can't use this morning's slot)."""
+        return (d, t) not in taken and datetime.fromisoformat(f"{d}T{t}:00").replace(tzinfo=tz) > now + LEAD
+
     for path, p in candidates:
         if not (p.get("caption") or "").strip():
             warn(f"{p['slug']}: no caption — skipped (add post.caption to its plan and re-render)")
@@ -137,9 +206,9 @@ def queue(project: Project, *, start: str | None = None, times: list[str] | None
             except ValueError:
                 pd_date = None
             if pd_date and pd_date >= now.date():
-                slot = next(((pd, t) for t in slot_times if (pd, t) not in taken), None)
+                slot = next(((pd, t) for t in slot_times if open_slot(pd, t)), None)
         while slot is None:
-            slot = next(((day.isoformat(), t) for t in slot_times if (day.isoformat(), t) not in taken), None)
+            slot = next(((day.isoformat(), t) for t in slot_times if open_slot(day.isoformat(), t)), None)
             if slot is None:
                 day += timedelta(days=1)
         taken.add(slot)
@@ -214,6 +283,10 @@ def export(project: Project, dest: str, slugs: list[str] | None = None) -> list[
             song = " — ".join(x for x in (ig.get("title"), ig.get("artist")) if x) or ig.get("audio")
             start = ig.get("start") or 0
             when += f"Add music in the Instagram app: {song}, from {int(start // 60)}:{start % 60:04.1f}\n\n"
+        if p.get("collaborators"):
+            when += f"Invite collaborators: {handle_list(p['collaborators'])}\n\n"
+        if p.get("peopleTags"):
+            when += f"Tag: {handle_list(p['peopleTags'])}\n\n"
         extra = f"\n\nAlt text: {p['altText']}" if p.get("altText") else ""
         (target / f"{stem}.txt").write_text(when + caption_block(p) + extra + "\n", encoding="utf-8")
         written.append(video)

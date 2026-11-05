@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .config import Project
-from .util import ReelsError, read_json, write_json
+from .util import ReelsError, read_json, warn, write_json
 
 
 def asset_file(project: Project, asset_id: str) -> Path:
@@ -17,7 +17,9 @@ def all_assets(project: Project) -> list[dict]:
     for p in sorted(project.assets_dir.glob("*.json")):
         try:
             out.append(read_json(p))
-        except Exception:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
+            # Skipping it silently would make the clip vanish from the library (and its usage with it).
+            warn(f"skipping unreadable asset record library/assets/{p.name} ({type(e).__name__}) — fix or restore it from git")
             continue
     return sorted(out, key=lambda a: (a.get("created") or "", a["id"]))
 
