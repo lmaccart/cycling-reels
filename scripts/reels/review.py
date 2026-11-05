@@ -7,12 +7,13 @@ from datetime import date, datetime, timedelta, timezone
 from statistics import median
 from zoneinfo import ZoneInfo
 
-from .analytics import _parse_iso, _ratio, match_row, parse_rows
+from .analytics import _parse_iso, _ratio, interaction_metrics, match_row, parse_rows
 from .config import Project
 from .queue import posts
 from .util import ReelsError, log, now_iso, read_json, warn, write_json
 
-METRICS = ("hold", "watchThrough", "sharesReach", "savesReach", "likesReach")
+# commentsReach / engagement (likes+comments+shares+saves) are per reach; viewsReach = views per account reached (replays).
+METRICS = ("hold", "watchThrough", "sharesReach", "savesReach", "likesReach", "commentsReach", "engagement", "viewsReach")
 CATEGORIES = ("preference", "production")
 
 
@@ -119,7 +120,7 @@ def audience(project: Project) -> dict:
                       "hold": row.get("holdRate"), "watchThrough": _ratio(row.get("avgWatch"), post.get("duration")),
                       "sharesReach": _ratio(row.get("shares"), row.get("reach")),
                       "savesReach": _ratio(row.get("saved"), row.get("reach")),
-                      "likesReach": _ratio(row.get("likes"), row.get("reach"))}
+                      "likesReach": _ratio(row.get("likes"), row.get("reach")), **interaction_metrics(row)}
             for key in (*METRICS, "reach"):
                 if sample[key] is not None and not math.isfinite(sample[key]):
                     sample[key] = None

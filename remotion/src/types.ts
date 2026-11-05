@@ -22,6 +22,23 @@ export type Motion =
   | 'pan-up'
   | 'pan-down';
 
+/** B-roll laid over a video segment for a moment: the segment's own audio (the voice, ride sounds),
+ * captions and text keep going underneath. Always a clip or photo from the user's own library,
+ * pre-cut and pre-framed at 9:16 by the CLI; video cutaways are silent. */
+export type Cutaway = {
+  kind: 'video' | 'photo';
+  /** Path relative to the render's public dir. */
+  src: string;
+  /** Frames from the segment start. */
+  startFrame: number;
+  durationInFrames: number;
+  /** Photo only: slow move and framing, as on photo segments. */
+  motion?: Motion;
+  fit?: 'cover' | 'blurfill';
+  focusX?: number;
+  focusY?: number;
+};
+
 /** Every segment is a clip or photo from the user's own footage library — nothing else can be shown. */
 export type Segment = {
   kind: 'video' | 'photo';
@@ -38,6 +55,8 @@ export type Segment = {
   /** Optional punch-in zooms (video only): [frame from the segment start, scale, originX 0..1, originY 0..1]
    * keyframes, eased between. Only the footage zooms; the clip may be staged larger than the frame. */
   punch?: [number, number, number, number][];
+  /** Optional B-roll over this segment (video segments only); its audio keeps playing. */
+  cutaways?: Cutaway[];
   /** Photo only: slow move and framing. */
   motion?: Motion;
   fit?: 'cover' | 'blurfill';
@@ -67,6 +86,8 @@ export type StatChip = {
   unit?: string;
   /** GPS speed: values[i] is shown from startFrame + i * everyFrames (whole units, real telemetry only). */
   live?: { everyFrames: number; values: string[] };
+  /** Where a data value comes from ('strava'); absent for typed values and GoPro GPS. Not shown. */
+  source?: string;
 };
 
 /** GPS track of the recording (lines only where the camera had a fix), 0..1 box coords, north up. */

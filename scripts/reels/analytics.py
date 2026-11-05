@@ -20,6 +20,7 @@ DEFAULT_FIELDS = list(FIELD_KEYS)
 NUMERIC = {"comments", "likes", "reach", "saved", "shares", "views", "avgWatch", "totalWatch", "retention", "holdRate", "reposts"}
 MATCH_WINDOW = timedelta(hours=3)
 EARLY_HOURS = 48
+FUTURE_SLACK = timedelta(minutes=10)  # clock skew allowed on a pull's pulledAt
 
 
 def _num(v: Any) -> float | None:
@@ -119,6 +120,10 @@ def import_file(project: Project, path: str) -> None:
     if not pulled:
         pulled = now_iso()
         warn("no pulledAt in the file — using now")
+    if _parse_iso(pulled) > datetime.now(timezone.utc) + FUTURE_SLACK:
+        # Saving it would only have the weekly review skip it later as a "future snapshot".
+        raise ReelsError(f"pulledAt {pulled} is in the future — that's usually local time written with a Z (or no offset). "
+                         f"Write when the pull happened in UTC, e.g. {now_iso()}")  # fmt: skip
     stamp = _parse_iso(pulled).astimezone(timezone.utc).strftime("%Y-%m-%dT%H%M%S")
     snap = project.root / "analytics" / f"{stamp}.json"
     plist = posts(project)
@@ -169,6 +174,22 @@ def _ratio(a: float | None, b: float | None) -> float | None:
     return None if a is None or not b else a / b
 
 
+def engagement(row: dict) -> float | None:
+    """(likes + comments + shares + saves) per account reached — Metricool's "interactions" over reach.
+    Unknown when any part is missing (missing is not zero)."""
+    parts = [row.get(k) for k in ("likes", "comments", "shares", "saved")]
+    if any(v is None for v in parts):
+        return None
+    return _ratio(sum(parts), row.get("reach"))
+
+
+def interaction_metrics(row: dict) -> dict:
+    """Ratios for how people responded, beyond watching: comments and all interactions per reach, and
+    views per account reached (> 1 = people replayed it: what loops are for)."""
+    return {"commentsReach": _ratio(row.get("comments"), row.get("reach")), "engagement": engagement(row),
+            "viewsReach": _ratio(row.get("views"), row.get("reach"))}  # fmt: skip
+
+
 def build_report(project: Project, since: str | None = None) -> tuple[list[dict], list[dict]]:
     latest = _latest_rows(project)
     if not latest:
@@ -210,6 +231,7 @@ def build_report(project: Project, since: str | None = None) -> tuple[list[dict]
             "watchThrough": _ratio(row.get("avgWatch"), length), "hold": row.get("holdRate"),
             "likesReach": _ratio(row.get("likes"), row.get("reach")), "sharesReach": _ratio(row.get("shares"), row.get("reach")),
             "savesReach": _ratio(row.get("saved"), row.get("reach")), "comments": row.get("comments"),
+            **interaction_metrics(row),
             "ageDays": age, "early": age * 24 < EARLY_HOURS, "url": row.get("url"),
         }
         reels.append(r)
@@ -231,10 +253,15 @@ def _hold(v: float | None) -> str:
 
 COLS = [
     ("date", "posted"), ("slug", "slug"), ("format", "format"), ("hook", "hook"), ("song", "song"), ("length", "len s"),
-    ("segments", "segs"), ("sphere", "360"), ("views", "views"), ("reach", "reach"), ("avgWatch", "avg s"),
-    ("watchThrough", "watch-thru"), ("hold", "3s hold"), ("likesReach", "likes/reach"), ("sharesReach", "shares/reach"),
-    ("savesReach", "saves/reach"), ("comments", "cmts"), ("ageDays", "age d"),
+    ("segments", "segs"), ("sphere", "360"), ("views", "views"), ("reach", "reach"), ("viewsReach", "views/reach"),
+    ("avgWatch", "avg s"), ("watchThrough", "watch-thru"), ("hold", "3s hold"), ("likesReach", "likes/reach"),
+    ("sharesReach", "shares/reach"), ("savesReach", "saves/reach"), ("comments", "cmts"), ("engagement", "eng/reach"),
+    ("ageDays", "age d"),
 ]
+
+
+def _times(v: float | None) -> str:
+    return "—" if v is None else f"{v:.2f}×"
 
 
 def _cell(r: dict, k: str) -> str:
@@ -243,7 +270,9 @@ def _cell(r: dict, k: str) -> str:
         return "yes" if v else "no"
     if k == "hold":
         return _hold(v)
-    if k in ("watchThrough", "likesReach", "sharesReach", "savesReach"):
+    if k == "viewsReach":
+        return _times(v)
+    if k in ("watchThrough", "likesReach", "sharesReach", "savesReach", "commentsReach", "engagement"):
         return _f(v, pct=True)
     if k in ("length", "avgWatch"):
         return _f(v, ".1f")
@@ -282,11 +311,17 @@ def _summary(reels: list[dict]) -> list[str]:
         f"3 s hold {_hold(_mean([r['hold'] for r in base]))} · likes/reach {_f(_mean([r['likesReach'] for r in base]), pct=True)} · "
         f"shares/reach {_f(_mean([r['sharesReach'] for r in base]), pct=True)} · saves/reach {_f(_mean([r['savesReach'] for r in base]), pct=True)}"
     )
+    lines.append(
+        f"  views/reach {_times(_mean([r['viewsReach'] for r in base]))} (replays) · comments/reach "
+        f"{_f(_mean([r['commentsReach'] for r in base]), pct=True)} · engagement/reach {_f(_mean([r['engagement'] for r in base]), pct=True)}"
+    )
     lines.append("")
     if len(judged) < 2:
         lines.append("Best/worst: need at least 2 reels older than 48 h.")
         return lines
-    for key, label, fmt in (("hold", "3 s hold rate", _hold), ("watchThrough", "watch-through", lambda v: _f(v, pct=True)), ("sharesReach", "shares per reach", lambda v: _f(v, pct=True))):
+    pct = lambda v: _f(v, pct=True)  # noqa: E731
+    for key, label, fmt in (("hold", "3 s hold rate", _hold), ("watchThrough", "watch-through", pct), ("sharesReach", "shares per reach", pct),
+                            ("engagement", "engagement per reach", pct)):  # fmt: skip
         have = [r for r in judged if r[key] is not None]
         if len(have) < 2:
             lines.append(f"{label}: not enough data")
@@ -307,7 +342,8 @@ def _by_group(reels: list[dict], key: str) -> list[str]:
     for g, rs in sorted(groups.items()):
         lines.append(
             f"| {g} | {len(rs)} | {_hold(_mean([r['hold'] for r in rs]))} | {_f(_mean([r['watchThrough'] for r in rs]), pct=True)} | "
-            f"{_f(_mean([r['sharesReach'] for r in rs]), pct=True)} | {_f(_mean([r['savesReach'] for r in rs]), pct=True)} | {_f(_mean([r['reach'] for r in rs]))} |"
+            f"{_f(_mean([r['sharesReach'] for r in rs]), pct=True)} | {_f(_mean([r['savesReach'] for r in rs]), pct=True)} | "
+            f"{_f(_mean([r['engagement'] for r in rs]), pct=True)} | {_f(_mean([r['reach'] for r in rs]))} |"
         )
     return lines
 
@@ -336,7 +372,8 @@ def stats(project: Project, since: str | None = None) -> None:
         else:
             rows = _by_group(reels, key)
         if rows:
-            md += [f"## By {title} (reels older than 48 h)", "", f"| {title} | reels | 3s hold | watch-thru | shares/reach | saves/reach | avg reach |", "|---|---|---|---|---|---|---|"] + rows + [""]
+            md += [f"## By {title} (reels older than 48 h)", "", f"| {title} | reels | 3s hold | watch-thru | shares/reach | saves/reach | eng/reach | avg reach |",
+                   "|---|---|---|---|---|---|---|---|"] + rows + [""]  # fmt: skip
     if unmatched:
         md += ["## Unmatched rows", ""] + [f"- reel {r['reelId']} {r['postedAt'][:16]}Z {r['url'] or ''} {r['content'][:60]!r}" for r in unmatched] + [""]
     out = project.out_dir / "PERFORMANCE.md"

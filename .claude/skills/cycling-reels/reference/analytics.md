@@ -35,5 +35,8 @@ Instagram's head, Adam Mosseri, names watch time, likes per reach and sends (sha
 - **Watch-through** (avg watch time / length): low means the reel is too long or the pacing drags. Shorten or cut faster.
 - **Shares/reach and saves/reach**: high means relatable (shares) or useful (saves). Make more of what earns them.
 - **Likes/reach**: the general "liked it" signal.
+- **Views/reach** (replays): views per account reached; above 1 means people watched it again — what loops are for.
+- **Comments/reach and engagement/reach** (likes + comments + shares + saves, per reach — Metricool's "interactions"): whether people responded, not just watched. Through the Nov 3 pull every reel had 0 comments and 0–2% engagement; the caption prompts in [captions.md](captions.md#give-people-a-reason-to-answer) target them. Engagement is unknown (—), not 0, when any part is missing.
+- IGRE28 ("reel view rate") is Instagram's share of views that lasted past 3 s — the `3s hold` column.
 - Compare formats, songs and 360 vs flat footage only once each group has a few reels. The report's group tables are only shown with 2+ groups of reels older than 48 h.
 - Small-account numbers are noisy: act on big gaps, not 5% differences. The report gives numbers and rankings only; interpreting them is the planner's job.

@@ -56,7 +56,8 @@ Write an object, then run `./reels review experiment --file <experiment.json>`:
 ```
 
 Metric keys: `hold` (percentage points), `watchThrough`, `sharesReach`, `savesReach`,
-`likesReach` (the latter four are ratios). IDs are immutable: identical registration is
+`likesReach`, `commentsReach`, `engagement` (likes+comments+shares+saves per reach) and
+`viewsReach` (views per account reached: replays) — all ratios but `hold`. IDs are immutable: identical registration is
 a no-op; a changed design needs a new ID. Test reels cannot already have post.json;
 historical controls are allowed but disclose confounders. Two tests can stay inconclusive;
 register enough future test slugs for replications rather than rewriting an old design.
@@ -131,6 +132,19 @@ user confirms it really was scheduled.
 Scheduling closes production review, not audience evaluation or proof of publication.
 Revisit results next week. Keep publication/mute failures separate from creative performance;
 record unresolved errors in the closing checkpoint.
+
+## Notes from a session without `out/`
+
+`out/` (post.json, plan copies) is git-ignored and only exists where the reels were rendered. A session
+working from a fresh checkout (e.g. a cloud session reviewing the code) must not run `./reels review`:
+it would match no posted reel and record misleading audience evidence in the history. It saves its
+interpretation as a review-input file instead — `learning/notes/<YYYY-MM-DD>-<topic>.json`, same schema
+as above — and says so. The next local run applies each notes file that no checkpoint contains yet
+(compare with the `notes` stored in `learning/reviews/*.json`) before planning:
+
+```bash
+./reels review --week <the week the notes are about> --file learning/notes/<file>.json
+```
 
 ## Unattended runs
 

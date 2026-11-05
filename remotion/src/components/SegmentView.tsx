@@ -1,6 +1,9 @@
 import React from 'react';
-import { Easing, Img, OffthreadVideo, interpolate, staticFile, useCurrentFrame } from 'remotion';
-import type { Segment } from '../types';
+import { AbsoluteFill, Easing, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import type { Cutaway, Segment } from '../types';
+
+/** What a still needs to be shown: a photo segment, or a photo cutaway. */
+type Still = Pick<Segment, 'src' | 'durationInFrames' | 'motion' | 'fit' | 'focusX' | 'focusY'>;
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 
@@ -26,11 +29,32 @@ const punchAt = (keys: [number, number, number, number][], f: number): [number, 
 // Only two kinds of visuals exist: a clip or a photo from the user's library.
 // Video clips arrive pre-cut, pre-cropped and pre-timed at 9:16 by the CLI
 // (ffmpeg, 1080x1920 or larger for punch-ins), so the template only lays them on the timeline.
+// Cutaways are more of the same, laid over the segment: the picture changes, the segment's
+// audio (its voice) carries on underneath, and text/captions stay on top of everything.
 export const SegmentView: React.FC<{ seg: Segment }> = ({ seg }) => {
-  if (seg.kind === 'video') {
-    return <VideoView seg={seg} />;
+  const base = seg.kind === 'video' ? <VideoView seg={seg} /> : <PhotoView seg={seg} />;
+  if (!seg.cutaways?.length) {
+    return base;
   }
-  return <PhotoView seg={seg} />;
+  return (
+    <AbsoluteFill>
+      {base}
+      {seg.cutaways.map((c, i) => (
+        <Sequence key={`cutaway-${i}`} from={c.startFrame} durationInFrames={c.durationInFrames}>
+          <CutawayView cut={c} />
+        </Sequence>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
+const CutawayView: React.FC<{ cut: Cutaway }> = ({ cut }) => {
+  if (cut.kind === 'video') {
+    return (
+      <OffthreadVideo src={staticFile(cut.src)} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    );
+  }
+  return <PhotoView seg={cut} />;
 };
 
 const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
@@ -54,7 +78,7 @@ const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
   return <OffthreadVideo src={staticFile(seg.src)} volume={volume} muted={!audible} style={style} />;
 };
 
-const PhotoView: React.FC<{ seg: Segment }> = ({ seg }) => {
+const PhotoView: React.FC<{ seg: Still }> = ({ seg }) => {
   const frame = useCurrentFrame();
   const p = interpolate(frame, [0, Math.max(1, seg.durationInFrames - 1)], [0, 1], clamp);
   const t = Easing.bezier(0.33, 0, 0.67, 1)(p);

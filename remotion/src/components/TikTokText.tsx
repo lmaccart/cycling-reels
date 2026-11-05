@@ -63,10 +63,11 @@ export const TikTokText: React.FC<{
   );
 };
 
-/** Quick, understated entrance/exit like TikTok's default text: tiny pop in, fade out. */
-export const useEntrance = (durationInFrames: number) => {
+/** Quick, understated entrance/exit like TikTok's default text: tiny pop in, fade out.
+ * `enter: false` = already fully there on the first frame (only the exit animates). */
+export const useEntrance = (durationInFrames: number, { enter = true }: { enter?: boolean } = {}) => {
   const frame = useCurrentFrame();
-  const inP = interpolate(frame, [0, 4], [0, 1], clamp);
+  const inP = enter ? interpolate(frame, [0, 4], [0, 1], clamp) : 1;
   const outP = interpolate(frame, [durationInFrames - 4, durationInFrames], [1, 0], clamp);
   return {
     opacity: Math.min(inP, outP),

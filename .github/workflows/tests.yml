@@ -1,0 +1,42 @@
+# Unit tests (no network, no models; a few stage real clips with ffmpeg) and a typecheck of
+# the Remotion template. Nothing here renders a reel or touches footage, music or accounts.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ffmpeg
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: Python deps for the tests
+        run: python -m pip install --quiet pillow numpy
+      - name: Unit tests
+        run: PYTHONPATH=scripts python -m unittest discover -s tests -v
+
+  template:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: remotion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: remotion/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck the template
+        run: npx tsc --noEmit

@@ -96,6 +96,6 @@ No group ride this week? Same shape on a solo hill: "this hill again" at the bot
 
 ## To build before Sunday
 
-- **Cutaways (needed).** The renderer can already jump-cut and caption a talking clip. But each clip plays only its own sound, so your voice stops every time the picture cuts to the ride. The fix is a new plan field, `cutaways`: library footage laid over the talking track at set times, muted, while your voice and captions keep going. It also covers usage tracking (so those clips aren't reused), `./reels check` output, docs and the selftest. I'll test it on an old clip that has speech in it; nothing gets posted.
+- ~~**Cutaways (needed).**~~ **Built (2026-11-05):** segment field `cutaways` lays library footage over the talking clip at set times, silent, while your voice and captions keep going — with usage tracking, `./reels check` output, docs (plan-schema.md "Cutaways") and the selftest. Both scripts above can now cut to the B-roll listed for each line.
 - **Maybe:** voice cleanup (cutting wind rumble, light denoise). I'll decide after hearing the real takes.
 - **Only if your mic can't plug into the phone:** syncing the mic's own recording to the video.

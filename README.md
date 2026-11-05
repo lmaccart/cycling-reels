@@ -11,7 +11,7 @@ inbox/  ──ingest──▶  library/  ──Claude tags moments──▶  pla
 - **Only your footage.** Every clip and photo in a reel comes from what you recorded and dropped in `inbox/`. Nothing is generated, and no stock or downloaded visuals are used: the renderer checks each file against the original it ingested and refuses anything else.
 - **Classify:** Claude looks at a contact sheet of each clip and tags it (climb, descent, race, scenery…), scores it, and marks the best moments and where the rider is in frame.
 - **360 video:** GoPro MAX / MAX 2 `.360` files go straight in. Claude picks the angles (road ahead, you, the group) and each reel shot is a reframed 9:16 view, a camera move or a tiny planet.
-- **Subtitles:** clips where you talk get word-level transcripts (Whisper, on your Mac, free) shown as TikTok-style captions. Wordless ride footage gets a hook and short on-screen lines instead.
+- **Subtitles:** clips where you talk get word-level transcripts (Whisper, on your Mac, free) shown as TikTok-style captions, and talking reels can cut away to the ride while your voice keeps going (`cutaways`). Wordless ride footage gets a hook and short on-screen lines instead.
 - **Text that looks and sounds like TikTok:** TikTok Sans (TikTok's own open-source font) in the classic white-box / black-box / plain styles, sentence case, written the way people actually post ("pov: the group ride was supposed to be chill"), not ad copy.
 - **Music from YouTube:** `./reels music search` / `./reels yt2mp3 <url>` downloads tracks as MP3 with yt-dlp, records the source and credit line, and starts each reel past the song's intro.
 - **Sound design:** your own ride sounds (freehub, clipping in, pass-bys) brought up for a moment, a music drop before the payoff, and a few sound effects from a small free (CC0) library — whooshes, pops, hits. Never AI-generated.
@@ -62,13 +62,16 @@ with actual ages retained rather than pretending these are exact day-seven resul
 - `learning/feedback.jsonl`: user feedback and production events, kept even after discards.
 - `learning/experiments.json`: immutable hypotheses, primary metrics and test/control slugs,
   registered before test reels are rendered.
+- `learning/notes/`: review notes waiting for `./reels review --file` — e.g. from a cloud session,
+  which can't see `out/` and so doesn't run the review itself.
 
 Aim for five familiar approaches and two tests in a seven-reel week when footage allows.
 Experiments stay inconclusive until enough comparable results exist. Permanent skill,
 recipe, shot-list or code changes are proposed for your approval, not silently applied.
 See [.claude/skills/cycling-reels/reference/learning.md](.claude/skills/cycling-reels/reference/learning.md)
-for input schemas, safeguards and missing-connector behavior. Test the learning commands
-without media/network access with `PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests`.
+for input schemas, safeguards and missing-connector behavior. Run the unit tests (no network;
+a few use ffmpeg) with `PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests` —
+GitHub Actions runs them, plus a typecheck of the Remotion template, on every pull request.
 
 ### Music
 
@@ -124,6 +127,10 @@ In the Claude desktop app, create a **local** scheduled task (Code → Routines/
 
 Your Mac has to be awake at that time (it's skipped otherwise). When it's done, open a session and approve/schedule as above. Approval stays with you on purpose: nothing goes out under your name unseen.
 
+### Reviewing on a timeline (Kino or Remotion Studio, optional)
+
+`./reels project plans/<file>.json` writes one reel to `out/<slug>/project/` as a standalone Remotion project: the template, the reel's exact timeline and its own staged clips (nothing else from your library). Open it with `npm install && npm run studio`, or import the folder into [Kino](https://kino.ai), an agent-first video editor with review links and time-coded comments that Claude can read once you connect Kino's MCP server. Edits you make there come back as plan changes; the reel that gets posted is always the one `./reels render` makes. See `.claude/skills/cycling-reels/reference/kino.md`.
+
 ## Posting
 
 - **Metricool (automatic):** connect your Instagram Business/Creator account in Metricool and enable the Metricool connector in Claude. Metricool takes media by link, so either set up the optional R2 bucket (`./reels upload`, see `.claude/skills/cycling-reels/reference/publishing.md`) or put the files in your Metricool-linked Google Drive/Dropbox. The free plan caps scheduling at 20 posts — daily posting needs a paid plan.
@@ -144,7 +151,8 @@ Run `./reels --help` or see `.claude/skills/cycling-reels/SKILL.md`. The main on
 | `./reels telemetry <id> --fast 5` | GoPro GPS: fastest stretches (`--at`, `--start/--end` too) |
 | `./reels stats import <file>` / `./reels stats` | import a Metricool analytics pull / per-reel performance → `out/PERFORMANCE.md` |
 | `./reels review` / `review feedback` / `review experiment` / `review close` | weekly retrospective, lessons, user feedback, production issues and experiments |
-| `./reels check plans/x.json` / `./reels render plans/x.json` | validate (incl. the sound cue sheet) / render a reel |
+| `./reels check plans/x.json` / `./reels render plans/x.json` | validate (incl. the sound cue sheet and retention warnings; several plans at once) / render a reel |
+| `./reels project plans/x.json` | one reel as an editable Remotion project — open it in Remotion Studio or import it into Kino |
 | `./reels queue` / `./reels mark <slug> approved\|scheduled\|posted` | posting slots and status |
 | `./reels export --to <folder>` | copy queued reels + captions somewhere |
 | `./reels doctor [--fix]` / `./reels selftest` | health checks (`--fix` also updates yt-dlp) |
@@ -158,7 +166,7 @@ Run `./reels --help` or see `.claude/skills/cycling-reels/SKILL.md`. The main on
 | `library/assets/` | one JSON per asset: probe info, fingerprint, tags, moments, usage |
 | `library/sheets/` / `library/transcripts/` | contact sheets / word-level transcripts |
 | `plans/` | one JSON per reel (Claude writes these) |
-| `out/<slug>/` | reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json |
+| `out/<slug>/` | reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json (+ `project/` from `./reels project`) |
 | `music/` | downloaded tracks (`.mp3`) with their source/credit records (`.json`) |
 | `sfx/` | free sound effects (`.wav`) with source/author/licence records (`.json`) |
 | `library/sounds/` / `library/telemetry/` | detected ride sounds + spectrograms / GoPro GPS per clip |
