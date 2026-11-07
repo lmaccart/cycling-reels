@@ -7,6 +7,7 @@ import { Captions } from './components/Captions';
 import { EndCardView } from './components/EndCard';
 import { HookTitle } from './components/HookTitle';
 import { MusicTrack } from './components/MusicTrack';
+import { ProgressBarView } from './components/ProgressBar';
 import { RouteMapView } from './components/RouteMap';
 import { SafeArea, Vignette } from './components/Overlays';
 import { SegmentView } from './components/SegmentView';
@@ -39,6 +40,12 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
       {(p.routes ?? []).map((r, i) => (
         <Sequence key={`route-${i}`} from={r.startFrame} durationInFrames={r.endFrame - r.startFrame}>
           <RouteMapView route={r} accent={p.brand.accent} />
+        </Sequence>
+      ))}
+
+      {(p.progress ?? []).map((b, i) => (
+        <Sequence key={`progress-${i}`} from={b.startFrame} durationInFrames={b.endFrame - b.startFrame}>
+          <ProgressBarView bar={b} accent={p.brand.accent} />
         </Sequence>
       ))}
 

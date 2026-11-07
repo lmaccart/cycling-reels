@@ -99,6 +99,24 @@ export type RouteMap = {
   dots: [number, number][];
 };
 
+/** Series progress (road to 5 W/kg), built from library/progress.json by the CLI. */
+export type ProgressBar = {
+  startFrame: number;
+  endFrame: number;
+  label: string;
+  value: number;
+  prevValue: number;
+  /** 0..1 from the series' first entry to the goal. */
+  fill: number;
+  prevFill: number;
+  goalText: string;
+  unit: string;
+  note: string;
+  /** 0 = no fill animation (first entry). */
+  fillFrames: number;
+  asOf: string;
+};
+
 export type Hook = {
   text: string;
   startFrame: number;
@@ -154,6 +172,8 @@ export type ReelProps = {
   stats: StatChip[];
   /** Optional; absent in reels without a route map. */
   routes?: RouteMap[];
+  /** Optional; absent in reels without a progress bar. */
+  progress?: ProgressBar[];
   music: Music | null;
   /** Optional; absent in reels without sound effects. */
   sfx?: SfxCue[];

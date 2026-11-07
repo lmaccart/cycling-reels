@@ -17,3 +17,4 @@ library/sounds/*.jpg
 __pycache__/
 *.pyc
 strava/
+library/telemetry/

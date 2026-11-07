@@ -200,7 +200,7 @@ def _visual(
 # voice), captions and text carry on. The segment owns everything but the picture, so these
 # fields belong on it, not on a cutaway.
 CUTAWAY_SEGMENT_ONLY = ("captions", "text", "stats", "route", "nat", "bleep", "punch", "sfx", "transition", "payoff",
-                        "cutaways", "volume", "clean")  # fmt: skip
+                        "cutaways", "volume", "clean", "progress")  # fmt: skip
 CUTAWAY_MIN_FRAMES = 12  # 0.4 s at 30 fps: anything shorter reads as a glitch
 
 
@@ -453,7 +453,8 @@ def _overlaps(a: dict, b: dict) -> bool:
 
 
 def place_beats(
-    beats: list[dict], hook: dict | None, pages: list[dict], stats: list[dict], warnings: list[str], routes: list[dict] = ()
+    beats: list[dict], hook: dict | None, pages: list[dict], stats: list[dict], warnings: list[str], routes: list[dict] = (),
+    bars: list[dict] = (),
 ) -> list[dict]:
     """Moves text beats out of the way of the hook, captions and stat chips."""
     out = []
@@ -474,15 +475,17 @@ def place_beats(
                 warnings.append(f"text '{b['text']}' collides with the hook and captions — dropped")
                 continue
         if b["position"] == "top":
-            top = top_offset(b, stats, routes)
+            top = top_offset(b, stats, routes, bars)
             if top:
                 b["offsetTop"] = top
         out.append(b)
     return out
 
 
-def top_offset(item: dict, stats: list[dict], routes: list[dict] = ()) -> int | None:
-    """Pushes top-placed text below any stat pills (or route map) visible while it's on screen."""
+def top_offset(item: dict, stats: list[dict], routes: list[dict] = (), bars: list[dict] = ()) -> int | None:
+    """Pushes top-placed text below any stat pills, route map or progress bar visible while it's on screen."""
+    from .progress import BAR_HEIGHT, BAR_TOP
+
     chips = max(
         (sum(1 for s in stats if s["startFrame"] <= f < s["endFrame"]) for f in range(item["startFrame"], item["endFrame"])),
         default=0,
@@ -490,6 +493,8 @@ def top_offset(item: dict, stats: list[dict], routes: list[dict] = ()) -> int | 
     needed = STATS_TOP + chips * STAT_ROW + 24
     if any(_overlaps(item, r) for r in routes):
         needed = max(needed, ROUTE_TOP + ROUTE_SIZE + 24)
+    if any(_overlaps(item, b) for b in bars):
+        needed = max(needed, BAR_TOP + BAR_HEIGHT + 24)
     return needed if needed > TOP_TEXT else None
 
 
@@ -576,6 +581,10 @@ def _stats(project: Project, segs: list[Seg], total: int, fps: int, warnings: li
                 warnings.append(f"{where}: too short to read — dropped")
                 continue
             chip: dict[str, Any] = {"label": label, "value": value, "startFrame": s, "endFrame": e}
+            if gps == "gps" and _strava_can(project, sg, "speed", s, e, fps):
+                errors.append(f"{where}: {sg.asset['id']} is linked to a Strava ride that covers this moment — use \"strava:speed\" "
+                              "(Strava GPS first; GoPro GPS only where Strava has no data)")  # fmt: skip
+                continue
             if gps:
                 stat_fn = _strava_stat if gps.startswith("strava:") else _gps_stat
                 got = stat_fn(project, sg, gps, s, e, fps, errors, where)
@@ -706,6 +715,16 @@ def _strava_stat(project: Project, sg: Seg, kind: str, s: int, e: int, fps: int,
     return {"value": got[0], "unit": got[1], "source": "strava"}
 
 
+def _strava_can(project: Project, sg: Seg, what: str, s: int, e: int, fps: int) -> bool:
+    """True when the clip's linked Strava ride can show this ("speed" pill or "route" map) for the
+    whole span, so GoPro GPS isn't needed. Strava is the preferred GPS source."""
+    if not (sg.asset.get("strava") or {}).get("activity") or e - s < 1:
+        return False
+    if what == "speed":
+        return _strava_stat(project, sg, "strava:speed", s, e, fps, [], "") is not None if sg.kind == "video" else False
+    return _strava_route(project, sg, s, e, fps, [], "") is not None
+
+
 def _route_norm(pts: list[tuple[float, float]]):
     import math
 
@@ -793,6 +812,10 @@ def _routes(project: Project, segs: list[Seg], total: int, fps: int, limit: int)
             continue
         if sg.spec.get("route") is not True:
             errors.append(f"{where}: route is true (GoPro GPS) or \"strava\" (the linked ride)")
+            continue
+        if _strava_can(project, sg, "route", sg.start, min(sg.end, limit), fps):
+            errors.append(f"{where}: {sg.asset['id']} is linked to a Strava ride that covers this moment — use \"route\": \"strava\" "
+                          "(Strava GPS first; GoPro GPS only where Strava has no data)")  # fmt: skip
             continue
         tr = _track(project, sg, errors, where)
         if tr is None:
@@ -1155,11 +1178,15 @@ def build(project: Project, plan: dict) -> dict:
     pages = _trim(pages, limit, 4)
     stats = _trim(_stats(project, segs, total, fps, warnings), limit)
     routes = _routes(project, segs, total, fps, limit)
+    from .progress import bars as progress_bars, clashes
+
+    bars = progress_bars(project, segs, total, fps, limit, warnings)
+    errors += clashes(bars, stats, routes, fps)
     if hook_props and hook_props["position"] == "top":
-        top = top_offset(hook_props, stats, routes)
+        top = top_offset(hook_props, stats, routes, bars)
         if top:
             hook_props["offsetTop"] = top
-    beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes)
+    beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes, bars)
     warnings += retention_warnings(segs, pages, beats, nat, hook_props, fps, total)
 
     drops = music_drops(plan, total, fps, errors, warnings)
@@ -1219,6 +1246,7 @@ def build(project: Project, plan: dict) -> dict:
         "beats": beats,
         "stats": stats,
         **({"routes": routes} if routes else {}),
+        **({"progress": bars} if bars else {}),
         "music": music_props,
         **({"sfx": cue_props(cues)} if cues else {}),
         "endCard": end_props,
@@ -1682,6 +1710,9 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
                 shown = st["value"]
             src = "strava" if st.get("source") == "strava" else "gps"
             log(f"  {src}: \"{st['label']}\" {shown} {st['unit']}{' (live)' if st.get('live') else ''}  {st['startFrame'] / fps:.1f}-{st['endFrame'] / fps:.1f}s")
+    for b in props.get("progress") or []:
+        log(f"  progress: \"{b['label']}\" {b['value']:.2f} {b['unit']} (entry {b['asOf']}), {b['goalText']}, {b['note'] or 'no to-go note'}  "
+            f"{b['startFrame'] / fps:.1f}-{b['endFrame'] / fps:.1f}s")
     for r in props.get("routes") or []:
         log(f"  route map {r['startFrame'] / fps:.1f}-{r['endFrame'] / fps:.1f}s ({len(r['paths'])} line(s))")
     for sg in built["segs"]:
