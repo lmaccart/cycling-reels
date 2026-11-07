@@ -106,11 +106,7 @@ one — its 180° "AutoMotion" shutter would add natural motion blur, but it doe
 
 ## Privacy
 
-- **GoPro GPS tracks are committed** (`library/telemetry/*.json`: 12 files, ~21,600 fixes) while `strava/` is
-  git-ignored for the same reason. None start or end in the home region (checked without printing coordinates),
-  but they trace exact routes from the club meeting point. **Proposed:** git-ignore `library/telemetry/` (it
-  regenerates with `./reels telemetry --force`). Not done here: removing tracked files would delete your local
-  copies on the next pull, so that's your decision.
+- **GoPro GPS tracks** (`library/telemetry/`): **done 2026-11-07** (user's call). They're git-ignored and untracked, and local copies stay. Older commits still contain them (private repo). Strava is the main GPS source now; see plan-schema.md "GPS: Strava first".
 - Transcripts (teammates' voices, names) are committed too — fine for a private repo; worth knowing if it's ever shared.
 - Kino uploads are opt-in, one reel at a time (see above).
 

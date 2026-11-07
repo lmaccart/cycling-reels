@@ -1,5 +1,23 @@
 # Talking reels
 
+## Road to 5 W/kg · ep 1 (outlined 2026-11-07, filming 11-07)
+
+About 45–60 s. Talking to camera, cut together with your own clips from the 11-03 workout (none of them used in a reel yet). It works as a plain sequence of clips, so it doesn't need `cutaways`.
+
+Start numbers (you, 11-07): FTP 335 W, 78 kg → 4.29 W/kg. 5 W/kg at that weight = 390 W, a gap of +55 W. Say the numbers yourself on camera so they come from you. Weight is your call; W/kg alone is fine. The progress bar shows them on screen anyway (`./reels progress`).
+
+1. **Hook (face):** "i'm at 4.3 watts per kilo. the goal is 5. episode one is me failing a workout." *(hook text: road to 5 w/kg · ep 1)*
+2. **One line for non-cyclists (face):** "watts per kilo is basically how hard you can push for your size. it's the number that matters going uphill."
+3. **The workout (11-03 clips, their own audio):** `3566` "4 by 8 of tempo let's go" → `3568` "let's get it baby" → `3569` "interval one done, 345 watts" → `3570` "that was 348, [bleep]… at least it's pretty".
+4. **The fade (face, or `3572` itself):** 345 → 348 → 325 → ~305. "i went out at 400 watts at the start of the second one." Cut to the `3572` recap: "try my best not to throw up."
+5. **What went wrong (face):** your honest version. Check this one first: on your Strava zones, tempo tops out at 302 W, so 345 was above your FTP. Either the plan was harder than "tempo" or overcooking it was the mistake. Say whichever is true. The 11-03 Strava weather was 74°F at 94% humidity, if heat is part of it.
+6. **The gap (face):** "5 w/kg is about 390 watts for me. that's 55 more than now." *(progress bar on screen: 4.29 → goal 5.0, "55 W to go")*
+7. **Next / CTA (face):** "next week i redo it and actually pace it. follow if you want to see if i make it." *(post caption asks: what's your w/kg goal?)*
+
+End on `3571` (bike against the tree) as a quiet last shot, or straight on your face.
+
+Filming: same setup as "Filming both" below. Record the hook 3 different ways (e.g. start with "i'm at 4.3…", start with "episode one is me failing", start with the 348 swear clip). Wear the same kit or the same spot each episode so the series looks the same every time.
+
 ## Next up (picked 2026-11-01): film these two
 
 Same rules as before: say it your own way, and only say things that are true for you. The captions come from what you actually say, so anything below in [brackets] is for you to fill in.

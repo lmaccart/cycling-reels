@@ -695,6 +695,15 @@ def cmd_strava(project: Project, args) -> int:
     return 0
 
 
+def cmd_progress(project: Project, args) -> int:
+    from .progress import print_progress, set_entry
+
+    if args.progress_cmd == "set":
+        set_entry(project, ftp=args.ftp, weight=args.weight, date=args.date, goal=args.goal)
+    print_progress(project)
+    return 0
+
+
 def cmd_review(project: Project, args) -> int:
     from .review import record_feedback, register_experiment, review
 
@@ -913,6 +922,16 @@ def build_parser() -> argparse.ArgumentParser:
     r = ssub.add_parser("link", help="re-link library clips to the imported rides (e.g. after ingesting more footage)")
     r.add_argument("activities", nargs="*", help="ride ids (default: all)")
     ssub.add_parser("list", help="imported rides, their numbers and linked clips")
+
+    s = sub.add_parser("progress", help="series progress bar (road to 5 W/kg): the FTP and weight the user gave, by date")
+    s.set_defaults(fn=cmd_progress, progress_cmd="show")
+    psub = s.add_subparsers(dest="progress_cmd")
+    r = psub.add_parser("set", help="log the user's FTP and weight for a date (replaces that date's entry)")
+    r.add_argument("--ftp", type=float, help="FTP in watts, as the user gave it")
+    r.add_argument("--weight", type=float, help="weight in kg, as the user gave it")
+    r.add_argument("--date", help="YYYY-MM-DD (default: today)")
+    r.add_argument("--goal", type=float, help="goal W/kg (default 5)")
+    psub.add_parser("show", help="the logged entries")
 
     s = sub.add_parser("review", help="weekly learning: review evidence, record feedback/experiments, close a scheduled batch")
     s.add_argument("--week", help="date in the batch week, YYYY-MM-DD (default: current local week)")

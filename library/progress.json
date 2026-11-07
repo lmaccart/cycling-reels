@@ -1,0 +1,13 @@
+{
+  "wkg": {
+    "goal": 5.0,
+    "entries": [
+      {
+        "date": "2026-11-07",
+        "ftp": 335.0,
+        "weightKg": 78.0,
+        "source": "user"
+      }
+    ]
+  }
+}

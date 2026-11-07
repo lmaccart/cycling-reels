@@ -104,7 +104,7 @@ Each batch, Claude checks this week's trending Reels audio lists (CreatorDB, Lat
 
 ### GoPro GPS
 
-GoPro clips carry GPS, read at ingest into `library/telemetry/`. A plan can show the real speed as a live pill (`"stats": [{"value": "gps"}]`, or `gps:max` / `gps:avg`) and a small route map (`"route": true`). Only stretches with a good GPS fix can show numbers. `./reels telemetry <clip> --fast 5` finds the fastest stretches. GoPro altitude drifts, so there's no elevation pill.
+GPS comes from the linked Strava ride first (`strava:speed`, `"route": "strava"`); GoPro GPS is the fallback for clips with no ride or Strava gaps, and `./reels check` enforces that. GoPro clips carry GPS, read at ingest into `library/telemetry/` (not tracked in git; `./reels telemetry --force` rebuilds it). A plan can show the real speed as a live pill (`"stats": [{"value": "gps"}]`, or `gps:max` / `gps:avg`) and a small route map (`"route": true`). Only stretches with a good GPS fix can show numbers. `./reels telemetry <clip> --fast 5` finds the fastest stretches. GoPro altitude drifts, so there's no elevation pill.
 
 ### 360 video (GoPro MAX / MAX 2)
 
@@ -149,6 +149,7 @@ Run `./reels --help` or see `.claude/skills/cycling-reels/SKILL.md`. The main on
 | `./reels music search "…" --free` / `./reels yt2mp3 <url>` / `./reels music list` | find, download and list tracks |
 | `./reels sounds <id>` / `./reels library --sounds` / `./reels sfx list` | ride sounds in a clip / tagged sounds / the sound-effect library |
 | `./reels telemetry <id> --fast 5` | GoPro GPS: fastest stretches (`--at`, `--start/--end` too) |
+| `./reels progress` | Road to 5 W/kg entries for the progress bar (`progress set --ftp --weight --date`) |
 | `./reels stats import <file>` / `./reels stats` | import a Metricool analytics pull / per-reel performance → `out/PERFORMANCE.md` |
 | `./reels review` / `review feedback` / `review experiment` / `review close` | weekly retrospective, lessons, user feedback, production issues and experiments |
 | `./reels check plans/x.json` / `./reels render plans/x.json` | validate (incl. the sound cue sheet and retention warnings; several plans at once) / render a reel |

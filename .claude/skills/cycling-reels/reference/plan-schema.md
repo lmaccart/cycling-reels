@@ -66,6 +66,7 @@ A track added with `--instagram` (a trending song, see [music.md](music.md)) is 
 | `transition` | `cut` | `fade` = short crossfade from the previous segment (overlaps by ~0.27 s) |
 | `text` | `[]` | Text beats: `{"text": "legs said no", "at": 0.3, "for": 2.2, "position": "lower", "style": "dark"}`; `at` is seconds from the segment start; position `top`, `center` or `lower` (default `lower`, or `top` when the segment has captions). Beats that would collide with the hook or captions are moved automatically (the CLI says so) |
 | `stats` | `[]` | Small data pills top-left: `{"label": "grade", "value": "12%", "at": 0.3, "for": 3}`; `for` defaults to the rest of the segment. Real numbers only. GoPro clips can also show their own GPS — see **GPS stats and route map**; clips linked to a Strava ride can show its numbers — see **Strava stats and route map** |
+| `progress` | `false` | `true` or `{"asOf": "2026-11-07"}` = the road to 5 W/kg bar across the top — see **Progress bar** |
 | `route` | `false` | `true` = small map of the recording's GPS track, top-right, with a dot at the current position (GoPro clips with telemetry); `"strava"` = the whole linked Strava ride (any clip, phone too) — see **Strava stats and route map** |
 | `cutaways` | `[]` | B-roll over this clip while its own audio (the voice), captions and text keep going: `[{"at": 1.5, "asset": "<id>", "in": 3.0, "out": 5.0}]` — see **Cutaways** |
 
@@ -179,6 +180,10 @@ Sharpness: a punch scales the clip up, so segments with punches are staged at th
  "music": {"track": "roa-highway", "cutOnBeat": true}}
 ```
 
+## GPS: Strava first, GoPro only when needed
+
+The user's rule (2026-11-07): GPS numbers and route maps come from the linked Strava ride (`strava:speed`, `"route": "strava"`). GoPro telemetry is the fallback for clips with no linked ride, or moments where the Strava streams have a gap. `./reels check` refuses `"gps"` and `"route": true` when the linked ride covers the moment and names the Strava value to use. `gps:max` / `gps:avg` (top/avg speed over just the clip) have no Strava counterpart, so they stay allowed. GoPro tracks are still read at ingest: they correct the GoPro clock against Strava. `library/telemetry/` isn't tracked in git; `./reels telemetry --force` rebuilds it.
+
 ## GPS stats and route map (GoPro telemetry)
 
 GoPro clips carry the camera's GPS. `./reels telemetry` (run automatically by `ingest`) keeps only good fixes (3D fix, DOP ≤ 5) in `library/telemetry/<id>.json`; `./reels show <id>` prints the summary. Camera GPS counts as something the footage shows, so these numbers may go on screen — the CLI computes them, never type them in yourself.
@@ -220,6 +225,19 @@ Clips filmed during a ride the user recorded on Strava are linked to it (`./reel
 {"asset": "261104-img-3579", "in": 0, "out": 3, "route": "strava",
  "stats": [{"value": "strava:speed"}, {"value": "strava:hr"}, {"value": "strava:distance"}]}
 ```
+
+## Progress bar (road to 5 W/kg)
+
+A series bar for the Road to 5 W/kg episodes. The numbers are the FTP and weight the user gives, logged by date in `library/progress.json`:
+
+```
+./reels progress set --ftp 335 --weight 78 --date 2026-11-07   # only numbers the user said
+./reels progress                                               # list entries
+```
+
+`"progress": {"asOf": "2026-11-07"}` on a segment draws a full-width card at the top: the label (`road to 5 w/kg`), the W/kg (FTP ÷ weight, 2 decimals), `goal 5.0`, the watts still needed (`55 W to go`; `"toGo": false` hides it), and a bar that runs from the series' **first** entry (empty) to the goal (full). When there's an earlier entry, the bar and number count up from it. Always set `asOf` to the episode's recording date so a later re-render keeps that episode's numbers (`./reels check` warns without it). `at` / `for` work as for stats; `label` overrides the text.
+
+It takes the top of the frame, so it can't share the screen with stat pills or a route map (`./reels check` fails); top text and a top hook move below it automatically. Put it on the segment where the numbers are said, or on the hook segment. Don't show the user's weight on its own; W/kg and watts are the numbers for the series.
 
 ## Photo segments
 
