@@ -1,0 +1,70 @@
+{
+ "slug": "2026-11-14-every-bridge-sprint-zone",
+ "postDate": "2026-11-14",
+ "format": "story-with-stakes",
+ "hook": {
+  "text": "every bridge up is a sprint zone",
+  "seconds": 2.5
+ },
+ "segments": [
+  {
+   "asset": "261107-gs030116-789a",
+   "in": 388.3,
+   "out": 390.65,
+   "view": "behind",
+   "nat": true
+  },
+  {
+   "asset": "261107-gs030116-789a",
+   "in": 390.86,
+   "out": 393.75,
+   "view": "behind",
+   "captions": "transcript"
+  },
+  {
+   "asset": "261107-gs040116-c34f",
+   "in": 355.0,
+   "out": 358.4,
+   "view": "road",
+   "stats": [
+    {
+     "value": "strava:speed"
+    }
+   ]
+  },
+  {
+   "asset": "261107-gs050116-c114",
+   "in": 161.5,
+   "out": 165.0,
+   "view": "road",
+   "payoff": true,
+   "stats": [
+    {
+     "label": "ride top speed",
+     "value": "strava:max-speed"
+    }
+   ],
+   "text": [
+    {
+     "text": "it was in fact on",
+     "at": 0.4,
+     "for": 2.6
+    }
+   ]
+  }
+ ],
+ "music": {
+  "track": "housewife"
+ },
+ "post": {
+  "caption": "houston group ride rules: every bridge up is a sprint. who's the one in your group that calls it?",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#sprint"
+  ],
+  "altText": "A rider announces every bridge is a sprint zone at a stoplight, then the group rides fast past houses with a speed readout.",
+  "firstComment": "results are still under review"
+ }
+}

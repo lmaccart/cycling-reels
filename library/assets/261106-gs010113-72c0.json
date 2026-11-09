@@ -1,0 +1,145 @@
+{
+  "id": "261106-gs010113-72c0",
+  "kind": "video",
+  "media": "library/media/261106-gs010113-72c0.360",
+  "originalName": "GS010113.360",
+  "hash": "72c0bf0f5d8da3b096c3d98a4f60888a3bce0df7",
+  "created": "2026-11-06T22:27:20",
+  "ingestedAt": "2026-11-07T18:36:13+00:00",
+  "probe": {
+    "duration": 19.029,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-06T23:27:20.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "handheld",
+    "quality": 2,
+    "issues": [
+      "dark"
+    ],
+    "people": "others",
+    "summary": "360 cam held at a desk the night before: me and a friend laughing at a video game on a laptop",
+    "hooks": [
+      "night before the long ride, very responsible",
+      "pre-ride prep looked like this"
+    ],
+    "angles": {
+      "desk": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": 0.0
+      },
+      "friend": {
+        "yaw": 150.0,
+        "pitch": 0.0,
+        "fov": 85.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 0.4,
+        "out": 6.5,
+        "label": "here is what we were doing before the long ride",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 14.0,
+        "out": 17.5,
+        "label": "good morning america",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261106-gs010113-72c0.json",
+  "used": [
+    {
+      "plan": "2026-11-09-fortnite-before-the-long-ride",
+      "at": "2026-11-08T21:20:24+00:00",
+      "in": 3.0,
+      "out": 6.22
+    },
+    {
+      "plan": "2026-11-09-fortnite-before-the-long-ride",
+      "at": "2026-11-08T21:20:24+00:00",
+      "in": 9.95,
+      "out": 11.9
+    },
+    {
+      "plan": "2026-11-09-fortnite-before-the-long-ride",
+      "at": "2026-11-08T21:20:24+00:00",
+      "in": 16.45,
+      "out": 17.7
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -26.5,
+      "peakDb": -1.9
+    },
+    "speechSeconds": 11.06,
+    "speechRanges": [
+      [
+        0.6,
+        6.15
+      ],
+      [
+        7.64,
+        10.12
+      ],
+      [
+        12.31,
+        13.0
+      ],
+      [
+        14.58,
+        15.53
+      ],
+      [
+        16.41,
+        17.8
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261106-gs010113-72c0.jpg"
+  ],
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  },
+  "createdCamera": "2026-11-06T23:27:20",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:19+00:00"
+}

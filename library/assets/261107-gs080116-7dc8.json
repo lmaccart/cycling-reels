@@ -1,0 +1,137 @@
+{
+  "id": "261107-gs080116-7dc8",
+  "kind": "video",
+  "media": "library/media/261107-gs080116-7dc8.360",
+  "originalName": "GS080116.360",
+  "hash": "7dc8a1e33abeaca682f7dbe2e4c023b8cd9b75aa",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:38:49+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "cafe",
+    "shot": "static",
+    "quality": 2,
+    "issues": [
+      "boring"
+    ],
+    "people": "others",
+    "summary": "Bike leaning at the stop under an awning while riders come and go; picked up and rolled out at the end",
+    "hooks": [],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 45.0,
+        "out": 56.0,
+        "label": "a rider rolls in next to my bike",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 420.0,
+        "out": 428.0,
+        "label": "grab the bike and roll out",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -21.4,
+      "peakDb": -3.0
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261107-gs080116-7dc8-1.jpg",
+    "library/sheets/261107-gs080116-7dc8-2.jpg",
+    "library/sheets/261107-gs080116-7dc8-3.jpg",
+    "library/sheets/261107-gs080116-7dc8-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261107-gs080116-7dc8.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 1.51,
+    "movingAvgSpeed": 1.34,
+    "movingSeconds": 4.0,
+    "distance": 47.5,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 1.9,
+    "altMax": 34.9
+  },
+  "strava": {
+    "activity": "20897870704",
+    "offset": 5300.7,
+    "clock": "gps-same-camera",
+    "shift": -246.7
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:56+00:00"
+}

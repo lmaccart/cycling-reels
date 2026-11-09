@@ -1,0 +1,110 @@
+{
+  "id": "261108-img-3606-dbcd",
+  "kind": "video",
+  "media": "library/media/261108-img-3606-dbcd.mov",
+  "originalName": "IMG_3606.mov",
+  "hash": "dbcd681f30c608c4c986ef0cecd26c534e40ee47",
+  "created": "2026-11-08T09:22:29",
+  "ingestedAt": "2026-11-08T18:56:34+00:00",
+  "probe": {
+    "duration": 10.482,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.819,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-08T09:22:29-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "selfie",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Phone in hand on a Houston street: bars and bike-lane marking, swings up to a gray sky and says it's beautiful, whips round to a big grin at camera, back to the bars",
+    "hooks": [
+      "little gray today. it's beautiful",
+      "forecast: gray. mood: unreasonable",
+      "nobody is this happy 6 minutes into a ride"
+    ],
+    "location": "Houston, Texas",
+    "notes": "Selfie itself is only ~7.6-8.2 s inside a fast whip (blur either side). Line is audible at 3.5-4.9 and 6.0-7.0; Whisper stretches its word timings (it's 4.53-6.21) and is low-confidence on little/gray, so check against the audio before usin",
+    "moments": [
+      {
+        "in": 0.3,
+        "out": 3.2,
+        "label": "bars over the bike-lane marking, camera lifts up the street",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false
+      },
+      {
+        "in": 3.3,
+        "out": 9.2,
+        "label": "says little gray today, it's beautiful, then whips round to a huge grin",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261108-img-3606-dbcd.json",
+  "used": [
+    {
+      "plan": "2026-11-15-little-gray",
+      "at": "2026-11-08T21:25:54+00:00",
+      "in": 0.6,
+      "out": 3.2
+    },
+    {
+      "plan": "2026-11-15-little-gray",
+      "at": "2026-11-08T21:25:54+00:00",
+      "in": 3.3,
+      "out": 7.3
+    },
+    {
+      "plan": "2026-11-15-little-gray",
+      "at": "2026-11-08T21:25:54+00:00",
+      "in": 7.3,
+      "out": 8.2
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -26.8,
+      "peakDb": -0.2
+    },
+    "speechSeconds": 2.33,
+    "speechRanges": [
+      [
+        3.51,
+        4.87
+      ],
+      [
+        5.98,
+        6.95
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261108-img-3606-dbcd.jpg"
+  ],
+  "strava": {
+    "activity": "20912546388",
+    "offset": 343.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-08T18:57:58+00:00"
+}

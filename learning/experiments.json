@@ -70,6 +70,39 @@
         "2026-10-30-chasing-the-group"
       ],
       "registeredAt": "2026-11-01T17:25:01+00:00"
+    },
+    {
+      "id": "2026-w46-onscreen-question",
+      "hypothesis": "putting the question on screen as the last text beat may earn more comments than asking only in the caption, since most viewers never open the caption",
+      "change": "last text beat is a question to viewers; the caption does not repeat it",
+      "primaryMetric": "commentsReach",
+      "successCriterion": "any repeated comments on test reels while controls stay at zero; with one or two reels each this is only suggestive, otherwise inconclusive",
+      "testSlugs": [
+        "2026-11-11-easy-day-laundry",
+        "2026-11-12-overheard-group-ride"
+      ],
+      "controlSlugs": [
+        "2026-11-09-fortnite-before-the-long-ride",
+        "2026-11-14-every-bridge-sprint-zone",
+        "2026-11-15-little-gray"
+      ],
+      "registeredAt": "2026-11-08T21:14:00+00:00"
+    },
+    {
+      "id": "2026-w46-trend-format",
+      "hypothesis": "doing a trend's actual on-screen format, not just using its song, may lift engagement per reach",
+      "change": "hook text uses the trend's own format ('not every angel can walk vsfs') over group-ride footage. 2026-11-10-first-in-my-bloodline removed 2026-11-09: user rewrote its text before posting, so it no longer uses the trend format",
+      "primaryMetric": "engagement",
+      "successCriterion": "engagement/reach clearly above comparable group-ride reels using a trending song only; one test only, so otherwise inconclusive",
+      "testSlugs": [
+        "2026-11-13-not-every-angel"
+      ],
+      "controlSlugs": [
+        "2026-11-14-every-bridge-sprint-zone",
+        "2026-11-08-club-ride-downtown",
+        "2026-11-07-regroup-confessions"
+      ],
+      "registeredAt": "2026-11-08T21:14:00+00:00"
     }
   ]
 }

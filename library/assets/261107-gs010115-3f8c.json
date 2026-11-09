@@ -1,0 +1,220 @@
+{
+  "id": "261107-gs010115-3f8c",
+  "kind": "video",
+  "media": "library/media/261107-gs010115-3f8c.360",
+  "originalName": "GS010115.360",
+  "hash": "3f8c76cab1a0858cdd69430578be1de28e6f6160",
+  "created": "2026-11-07T07:16:41",
+  "ingestedAt": "2026-11-07T18:36:22+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:16:41.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "Small group rolling through campus and leafy neighborhood streets early in the ride, lots of chatting",
+    "hooks": [
+      "the early miles are for gossip"
+    ],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 25.0,
+        "out": 31.0,
+        "label": "group rolling under the oaks",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 296.0,
+        "out": 302.0,
+        "label": "riders alongside on a quiet street",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 356.0,
+        "out": 362.0,
+        "label": "cruising past houses with the group",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 178.6,
+        "for": 1.0,
+        "kind": "freehub",
+        "score": 4,
+        "note": "loud clean freehub as I sit up, a little brake squeal under it"
+      },
+      {
+        "at": 476.2,
+        "for": 1.9,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking coasting, light wind"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261107-gs010115-3f8c.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -20.8,
+      "peakDb": -3.6
+    },
+    "speechSeconds": 69.33,
+    "speechRanges": [
+      [
+        186.01,
+        188.71
+      ],
+      [
+        189.82,
+        190.98
+      ],
+      [
+        191.8,
+        193.83
+      ],
+      [
+        194.1,
+        201.64
+      ],
+      [
+        201.88,
+        202.95
+      ],
+      [
+        203.22,
+        212.9
+      ],
+      [
+        214.04,
+        223.21
+      ],
+      [
+        223.51,
+        227.5
+      ],
+      [
+        229.02,
+        236.9
+      ],
+      [
+        238.04,
+        239.94
+      ],
+      [
+        240.25,
+        249.93
+      ],
+      [
+        250.33,
+        261.61
+      ],
+      [
+        270.36,
+        270.82
+      ],
+      [
+        271.67,
+        272.46
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs010115-3f8c-1.jpg",
+    "library/sheets/261107-gs010115-3f8c-2.jpg",
+    "library/sheets/261107-gs010115-3f8c-3.jpg",
+    "library/sheets/261107-gs010115-3f8c-4.jpg"
+  ],
+  "strava": {
+    "activity": "20897870704",
+    "offset": 682.4,
+    "clock": "gps",
+    "shift": -249.6,
+    "fitMetres": 3.2
+  },
+  "telemetry": "library/telemetry/261107-gs010115-3f8c.json",
+  "gpsSummary": {
+    "goodSeconds": 83.2,
+    "gaps": 0,
+    "first": 399.4,
+    "last": 482.4,
+    "maxSpeed": 7.86,
+    "movingAvgSpeed": 6.54,
+    "movingSeconds": 78.2,
+    "distance": 514.4,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 43.0,
+    "altMax": 78.1
+  },
+  "createdCamera": "2026-11-07T08:16:41",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:55+00:00"
+}

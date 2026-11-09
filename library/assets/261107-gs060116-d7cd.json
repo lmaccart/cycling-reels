@@ -1,0 +1,170 @@
+{
+  "id": "261107-gs060116-d7cd",
+  "kind": "video",
+  "media": "library/media/261107-gs060116-d7cd.360",
+  "originalName": "GS060116.360",
+  "hash": "d7cd591240775429f796823a725555f483445b5e",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:38:12+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Long paceline through neighborhoods; a yellow-kit rider rides alongside near 6:00; ends with 'snack time' at the stop",
+    "hooks": [
+      "the real reason we ride: snack time",
+      "only riding this far for the snacks"
+    ],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 255.0,
+        "out": 262.0,
+        "label": "our shadows on the road",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 366.0,
+        "out": 373.0,
+        "label": "yellow-kit rider right alongside at speed",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 476.0,
+        "out": 482.5,
+        "label": "'snack time'",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "behind"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 469.9,
+        "for": 2.4,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking as we coast into the stop, no wind"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261107-gs060116-d7cd.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -21.2,
+      "peakDb": -3.9
+    },
+    "speechSeconds": 4.37,
+    "speechRanges": [
+      [
+        2.07,
+        3.56
+      ],
+      [
+        479.19,
+        481.51
+      ],
+      [
+        481.94,
+        482.5
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs060116-d7cd-1.jpg",
+    "library/sheets/261107-gs060116-d7cd-2.jpg",
+    "library/sheets/261107-gs060116-d7cd-3.jpg",
+    "library/sheets/261107-gs060116-d7cd-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261107-gs060116-d7cd.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 10.36,
+    "movingAvgSpeed": 8.17,
+    "movingSeconds": 464.8,
+    "distance": 3803.5,
+    "altitudeOk": true,
+    "elevationGain": 16.5,
+    "elevationLoss": 22.2,
+    "altMin": 18.8,
+    "altMax": 33.8
+  },
+  "strava": {
+    "activity": "20897870704",
+    "offset": 4335.5,
+    "clock": "gps",
+    "shift": -246.9,
+    "fitMetres": 2.2
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:55+00:00"
+}

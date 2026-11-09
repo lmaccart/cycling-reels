@@ -1,0 +1,391 @@
+{
+  "id": "261108-img-3610-59ba",
+  "kind": "video",
+  "media": "library/media/261108-img-3610-59ba.mov",
+  "originalName": "IMG_3610.mov",
+  "hash": "59bae5737061265eb2b438bb770826b805cd29ab",
+  "created": "2026-11-08T20:32:25",
+  "ingestedAt": "2026-11-09T02:58:33+00:00",
+  "probe": {
+    "duration": 293.062,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.882,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-08T20:32:25-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "static",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Road to 5 W/kg ep 1 talking to camera at a desk in a green fleece and cap, several takes of each line",
+    "hooks": [
+      "road to 5 w/kg · ep 1",
+      "episode one is me failing a workout",
+      "i'm at 4.3 watts per kilo. the goal is 5"
+    ],
+    "notes": "User-spoken numbers differ from the outline: FTP 'right around 340' (progress entry is 335); intervals ~340, 345, ~320, ~310; target 318-350. 'calf gel' at ~1:40 may be 'caf gel' (Whisper).",
+    "moments": [
+      {
+        "in": 11.9,
+        "out": 19.17,
+        "label": "hook take 1: at 4.3, goal is 5, ep 1 is me failing a workout",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 34.56,
+        "out": 43.65,
+        "label": "hook take 2",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 44.82,
+        "out": 53.29,
+        "label": "hook take 3: cleanest full read",
+        "score": 5,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 44.82,
+        "out": 64.11,
+        "label": "hook into what w/kg is, up to the tour de france line",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 97.66,
+        "out": 103.35,
+        "label": "workout started great, gel and carb mix",
+        "score": 3,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 103.6,
+        "out": 117.59,
+        "label": "first interval around 340, jumped to 400 to pass people before a corner, power didn't come down",
+        "score": 5,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 127.22,
+        "out": 138.63,
+        "label": "averaged 345 for that interval, target zone 318 to 350",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 144.07,
+        "out": 158.26,
+        "label": "third and fourth came around and i was cooked",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 178.11,
+        "out": 188.36,
+        "label": "the 400 jump is what took a toll",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 221.66,
+        "out": 230.13,
+        "label": "also 74 degrees and nearly 100% humidity",
+        "score": 3,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 240.53,
+        "out": 244.96,
+        "label": "tough duo hit pretty hard, failed the workout",
+        "score": 3,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 247.25,
+        "out": 255.88,
+        "label": "started cycling just over a year ago, sometimes you fail a workout",
+        "score": 5,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 256.55,
+        "out": 260.82,
+        "label": "progress is not linear but it is upwards",
+        "score": 5,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 276.97,
+        "out": 281.34,
+        "label": "this week should flow nicer, follow along take 1",
+        "score": 4,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      },
+      {
+        "in": 282.49,
+        "out": 287.02,
+        "label": "this week should flow nicer, follow along take 2",
+        "score": 5,
+        "focusX": 0.58,
+        "focusY": 0.5,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261108-img-3610-59ba.json",
+  "used": [
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 44.82,
+      "out": 53.15
+    },
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 110.75,
+      "out": 117.6
+    },
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 145.72,
+      "out": 147.96
+    },
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 149.68,
+      "out": 150.22
+    },
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 256.55,
+      "out": 260.85
+    },
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 282.55,
+      "out": 287.05
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -36.5,
+      "peakDb": -3.3
+    },
+    "speechSeconds": 159.82,
+    "speechRanges": [
+      [
+        12.25,
+        19.34
+      ],
+      [
+        23.26,
+        27.24
+      ],
+      [
+        29.18,
+        32.14
+      ],
+      [
+        34.9,
+        37.96
+      ],
+      [
+        38.26,
+        41.35
+      ],
+      [
+        42.2,
+        43.53
+      ],
+      [
+        45.14,
+        48.62
+      ],
+      [
+        48.89,
+        53.26
+      ],
+      [
+        54.62,
+        58.44
+      ],
+      [
+        59.54,
+        64.42
+      ],
+      [
+        97.56,
+        99.05
+      ],
+      [
+        99.32,
+        103.53
+      ],
+      [
+        103.96,
+        107.91
+      ],
+      [
+        108.28,
+        117.58
+      ],
+      [
+        118.65,
+        122.22
+      ],
+      [
+        122.78,
+        126.25
+      ],
+      [
+        127.67,
+        132.97
+      ],
+      [
+        133.34,
+        137.26
+      ],
+      [
+        137.56,
+        139.14
+      ],
+      [
+        143.96,
+        148.23
+      ],
+      [
+        149.46,
+        150.6
+      ],
+      [
+        151.93,
+        155.27
+      ],
+      [
+        155.51,
+        162.86
+      ],
+      [
+        167.06,
+        175.88
+      ],
+      [
+        178.55,
+        185.9
+      ],
+      [
+        186.14,
+        188.58
+      ],
+      [
+        190.65,
+        193.61
+      ],
+      [
+        197.27,
+        198.79
+      ],
+      [
+        199.54,
+        200.78
+      ],
+      [
+        221.91,
+        230.34
+      ],
+      [
+        230.74,
+        235.02
+      ],
+      [
+        238.65,
+        240.36
+      ],
+      [
+        241.43,
+        245.19
+      ],
+      [
+        247.26,
+        251.82
+      ],
+      [
+        252.15,
+        256.07
+      ],
+      [
+        257.11,
+        261.16
+      ],
+      [
+        267.0,
+        270.38
+      ],
+      [
+        272.6,
+        274.57
+      ],
+      [
+        277.3,
+        281.42
+      ],
+      [
+        282.78,
+        287.14
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261108-img-3610-59ba-1.jpg",
+    "library/sheets/261108-img-3610-59ba-2.jpg",
+    "library/sheets/261108-img-3610-59ba-3.jpg",
+    "library/sheets/261108-img-3610-59ba-4.jpg"
+  ],
+  "taggedAt": "2026-11-09T03:00:00+00:00"
+}

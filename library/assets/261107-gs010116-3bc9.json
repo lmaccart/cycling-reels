@@ -1,0 +1,181 @@
+{
+  "id": "261107-gs010116-3bc9",
+  "kind": "video",
+  "media": "library/media/261107-gs010116-3bc9.360",
+  "originalName": "GS010116.360",
+  "hash": "3bc974e69d12b73e89836831eeae238e102cffa2",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:36:38+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "sprint",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Fast solo stretch on an open road in low sun, then the group comes into view and riders come up alongside",
+    "hooks": [
+      "solo for a second there",
+      "where did everyone go"
+    ],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 10.0,
+        "out": 17.0,
+        "label": "flat out on an empty road, long shadow",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 17.0,
+        "out": 24.0,
+        "label": "legs spinning at full speed",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "legs"
+      },
+      {
+        "in": 96.0,
+        "out": 103.0,
+        "label": "riders come up on my right",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 115.0,
+        "out": 121.0,
+        "label": "rolling with the group in the sun",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261107-gs010116-3bc9.json",
+  "used": [
+    {
+      "plan": "2026-11-09-fortnite-before-the-long-ride",
+      "at": "2026-11-08T21:20:24+00:00",
+      "in": 115.5,
+      "out": 119.0
+    },
+    {
+      "plan": "2026-11-13-not-every-angel",
+      "at": "2026-11-08T21:25:30+00:00",
+      "in": 10.5,
+      "out": 13.767
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -18.2,
+      "peakDb": -3.9
+    },
+    "speechSeconds": 4.51,
+    "speechRanges": [
+      [
+        477.24,
+        480.2
+      ],
+      [
+        480.95,
+        482.5
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs010116-3bc9-1.jpg",
+    "library/sheets/261107-gs010116-3bc9-2.jpg",
+    "library/sheets/261107-gs010116-3bc9-3.jpg",
+    "library/sheets/261107-gs010116-3bc9-4.jpg"
+  ],
+  "strava": {
+    "activity": "20897870704",
+    "offset": 1924.2,
+    "clock": "gps",
+    "shift": -245.8,
+    "fitMetres": 3.3
+  },
+  "telemetry": "library/telemetry/261107-gs010116-3bc9.json",
+  "gpsSummary": {
+    "goodSeconds": 481.6,
+    "gaps": 0,
+    "first": 1.0,
+    "last": 482.4,
+    "maxSpeed": 12.74,
+    "movingAvgSpeed": 8.99,
+    "movingSeconds": 470.6,
+    "distance": 4231.4,
+    "altitudeOk": true,
+    "elevationGain": 20.8,
+    "elevationLoss": 22.5,
+    "altMin": 15.4,
+    "altMax": 40.0
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:54:13+00:00"
+}

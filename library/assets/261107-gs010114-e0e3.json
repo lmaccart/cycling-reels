@@ -1,0 +1,180 @@
+{
+  "id": "261107-gs010114-e0e3",
+  "kind": "video",
+  "media": "library/media/261107-gs010114-e0e3.360",
+  "originalName": "GS010114.360",
+  "hash": "e0e31ce400d76c89cbfa7a7e5e0335401e28f5a3",
+  "created": "2026-11-07T07:02:29",
+  "ingestedAt": "2026-11-07T18:36:15+00:00",
+  "probe": {
+    "duration": 240.661,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:02:29.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "travel",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "others",
+    "summary": "Rolling out before the ride: dark start, down the hall, bike in a steel elevator with a teammate, out of the building and across campus to the meetup",
+    "hooks": [
+      "the commute to the group ride",
+      "pov: your bike has to fit in the elevator"
+    ],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "in": 52.0,
+        "out": 60.0,
+        "label": "bikes squeezed into the elevator",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side"
+      },
+      {
+        "in": 104.0,
+        "out": 112.0,
+        "label": "out the door into the morning",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 140.0,
+        "out": 148.0,
+        "label": "rolling under the oaks across campus",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road"
+      },
+      {
+        "in": 232.0,
+        "out": 240.0,
+        "label": "pull up to the meetup",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 143.0,
+        "for": 3.0,
+        "kind": "freehub",
+        "score": 3,
+        "note": "steady freehub ticking coasting on the campus path, quiet"
+      },
+      {
+        "at": 157.0,
+        "for": 2.5,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking while coasting, quiet"
+      },
+      {
+        "at": 236.6,
+        "for": 1.0,
+        "kind": "freehub",
+        "score": 4,
+        "note": "crisp freehub buzz coasting into the meetup, no wind"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-09-fortnite-before-the-long-ride",
+      "at": "2026-11-08T21:20:24+00:00",
+      "in": 104.0,
+      "out": 105.8
+    },
+    {
+      "plan": "2026-11-10-first-in-my-bloodline",
+      "at": "2026-11-09T22:03:58+00:00",
+      "in": 232.0,
+      "out": 234.833
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -24.0,
+      "peakDb": -0.2
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261107-gs010114-e0e3-1.jpg",
+    "library/sheets/261107-gs010114-e0e3-2.jpg",
+    "library/sheets/261107-gs010114-e0e3-3.jpg"
+  ],
+  "strava": {
+    "activity": "20897870704",
+    "offset": -166.7,
+    "clock": "gps-same-camera",
+    "shift": -246.7
+  },
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  },
+  "createdCamera": "2026-11-07T08:02:29",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:55+00:00"
+}

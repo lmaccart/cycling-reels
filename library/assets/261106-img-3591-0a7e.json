@@ -1,0 +1,91 @@
+{
+  "id": "261106-img-3591-0a7e",
+  "kind": "video",
+  "media": "library/media/261106-img-3591-0a7e.mov",
+  "originalName": "IMG_3591.mov",
+  "hash": "0a7e0ec2a367866e09163ccb455072f32d20f8cb",
+  "created": "2026-11-06T09:00:35",
+  "ingestedAt": "2026-11-06T17:05:19+00:00",
+  "probe": {
+    "duration": 9.15,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-06T09:00:35-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Post-ride shirtless selfie at home: thumbs up, ride is done, just got the laundry out of the washing machine, gonna be a beautiful day",
+    "hooks": [
+      "ride done before most people are up",
+      "post-ride: laundry, then the rest of the day",
+      "the glamorous side of cycling: laundry"
+    ],
+    "notes": "Transcript clear (medium.en) except \"hours\" at 1.1 (p 0.03) — probably \"ours\"/filler, drop it from captions. Blurry swing around 2.0-2.8. Fits the post-ride/off-bike story with the 11-05 bathroom routine clips.",
+    "moments": [
+      {
+        "in": 0.2,
+        "out": 2.0,
+        "label": "thumbs up, ride is done",
+        "score": 3,
+        "focusX": 0.4,
+        "focusY": 0.4,
+        "speech": true
+      },
+      {
+        "in": 3.3,
+        "out": 9.15,
+        "label": "just got the laundry out of the washing machine, gonna be a beautiful day",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.45,
+        "speech": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261106-img-3591-0a7e.json",
+  "used": [
+    {
+      "plan": "2026-11-11-easy-day-laundry",
+      "at": "2026-11-08T21:26:51+00:00",
+      "in": 3.35,
+      "out": 9.0
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -25.5,
+      "peakDb": -0.7
+    },
+    "speechSeconds": 7.6,
+    "speechRanges": [
+      [
+        0.38,
+        2.31
+      ],
+      [
+        3.48,
+        9.15
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261106-img-3591-0a7e.jpg"
+  ],
+  "taggedAt": "2026-11-06T17:07:15+00:00"
+}

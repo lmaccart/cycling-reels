@@ -1,0 +1,45 @@
+{
+  "asset": "261108-img-3606-dbcd",
+  "model": "small.en",
+  "language": "en",
+  "createdAt": "2026-11-08T18:56:44+00:00",
+  "segments": [
+    {
+      "start": 3.31,
+      "end": 6.45,
+      "text": "Little gray today, it's beautiful"
+    }
+  ],
+  "words": [
+    {
+      "w": "Little",
+      "s": 3.31,
+      "e": 3.87,
+      "p": 0.34
+    },
+    {
+      "w": "gray",
+      "s": 3.87,
+      "e": 4.11,
+      "p": 0.507
+    },
+    {
+      "w": "today,",
+      "s": 4.11,
+      "e": 4.53,
+      "p": 0.987
+    },
+    {
+      "w": "it's",
+      "s": 4.53,
+      "e": 6.21,
+      "p": 0.979
+    },
+    {
+      "w": "beautiful",
+      "s": 6.21,
+      "e": 6.45,
+      "p": 0.997
+    }
+  ]
+}
