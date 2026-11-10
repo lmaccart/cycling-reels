@@ -72,7 +72,7 @@ Not chosen, so not a recurring theme: gaming (the Fortnite reel was a one-off).
 
 Don't fill these in by guessing:
 
-- Major, and which classes or exams are worth mentioning
+- Major, and which classes or exams are worth mentioning (found out he is a Computer Science and Neuroscience double major)
 - The first race on the spring calendar, once the schedule is out
 
 Asked on 2026-11-10 whether anything should never be said or shown, Leif said nothing comes to mind. The standing rules still apply (watts, not weight; no bragging; bleeped swearing).
