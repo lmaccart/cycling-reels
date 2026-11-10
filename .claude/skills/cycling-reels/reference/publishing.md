@@ -48,9 +48,25 @@ Notes:
 - Audio must be AAC ≤128 kbps and video ≤25 Mbps — the renderer already outputs that.
 - Changing a reel after it's scheduled: re-render, re-upload, then update the scheduled post (or delete and recreate it) with the connector, and confirm with the user.
 
-### Trial reels (later)
+### Trial reels
 
-Instagram Trial Reels are shown to non-followers first — a clean way to test an experiment's variant without the followers seeing both. Metricool schedules them as Instagram type `TRIAL_REEL`, but only on accounts with 1,000+ followers that Instagram has enabled (otherwise publishing fails at the scheduled time), and a trial can't have collaborators. Use it only when the user asks and the account qualifies.
+Instagram Trial Reels are shown to non-followers first, and can be shared to everyone afterwards. That makes them the cleanest hook test available: the same footage with a second hook goes out as a trial without followers seeing the reel twice. Leif wants to experiment with them (2026-11-10).
+
+- **Eligibility comes first.** Guides consistently report a public account with 1,000+ followers; Meta hasn't published the number, and Metricool notes some accounts over 1,000 still aren't enabled. Metricool reported 19 followers for this account on 2026-11-09, so it almost certainly doesn't qualify yet. The check that counts: the Trial toggle on the posting screen in the Instagram app. No toggle, no trials. Scheduling one anyway fails at publish time.
+- **When the toggle appears:** schedule through Metricool as Instagram type `TRIAL_REEL` (no collaborators). Register the test first like any experiment ([learning.md](learning.md)): one change (the hook), the trial as the test reel, the normal reel as its control, `hold` as the primary metric, repeated for three weeks under one `question`.
+- A trial is still a published reel: it needs the same approval as any other, and it counts against Metricool's plan limits.
+
+### Pinned reels
+
+A new visitor decides whether to follow from the top of the profile, and Instagram lets three posts be pinned there. Pinning is done by the user in the Instagram app (open the reel → ⋯ → Pin to your profile); Metricool's scheduling tool has no pin field (checked 2026-11-10).
+
+Keep three pinned, each with a different job:
+
+1. **Who this is**: a 20–30 s intro to camera (name, Rice, a year into cycling, racing collegiate in the spring, the 5 W/kg goal). Until it's filmed, use the reel with the widest reach that has Leif's face or voice in it.
+2. **The series to follow**: episode 1 of the main running series (Road to 5 W/kg), so there's a reason to come back.
+3. **The best of the personality**: among reels at least seven days old with a face or the rider's voice, the one with the best 3 s hold and watch-through.
+
+At each batch review, say which three should be pinned and why, with the numbers from `out/PERFORMANCE.md`. Change at most one pin a week, and only on a clear gap. Never pin a reel the user hasn't approved.
 
 ## B. Manual (no connector)
 

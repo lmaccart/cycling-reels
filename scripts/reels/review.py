@@ -15,6 +15,8 @@ from .util import ReelsError, log, now_iso, read_json, warn, write_json
 # commentsReach / engagement (likes+comments+shares+saves) are per reach; viewsReach = views per account reached (replays).
 METRICS = ("hold", "watchThrough", "sharesReach", "savesReach", "likesReach", "commentsReach", "engagement", "viewsReach")
 CATEGORIES = ("preference", "production")
+MIN_GROUP = 3  # measured reels per group before an experiment or a question is worth reviewing
+MAX_OPEN_QUESTIONS = 2  # at this reach a single reel settles nothing: few questions, each repeated over weeks
 
 
 def week_start(project: Project, value: str | None = None) -> str:
@@ -156,15 +158,30 @@ def register_experiment(project: Project, data: dict) -> None:
             raise ReelsError(f"experiment needs distinct reel slugs in {key}")
     if set(data["testSlugs"]) & set(data["controlSlugs"]):
         raise ReelsError("test and control reels must not overlap")
+    question = data.get("question")
+    if question is not None and (not isinstance(question, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", question)):
+        raise ReelsError("experiment question must be a kebab-case slug shared by the weeks that repeat it, e.g. onscreen-question")
     initialize(project)
     path = project.root / "learning/experiments.json"
     registry = _load(path, {})
     existing = next((e for e in registry["experiments"] if e["id"] == data["id"]), None)
     design = {k: data[k] for k in ("id", "hypothesis", "change", "primaryMetric", "successCriterion", "testSlugs", "controlSlugs")}
+    if question:
+        design["question"] = question
     if existing:
-        if all(existing[k] == v for k, v in design.items()):
+        if all(existing.get(k) == v for k, v in design.items()) and existing.get("question") == question:
             return
         raise ReelsError("experiment ID already exists; retain its original design and use a new ID")
+    if question:
+        for other in registry["experiments"]:
+            if other.get("question") != question:
+                continue
+            if other["primaryMetric"] != data["primaryMetric"]:
+                raise ReelsError(f"question {question} is measured by {other['primaryMetric']} in {other['id']}; a repeat keeps the same primaryMetric")
+            for group in ("test", "control"):
+                clash = set(data[f"{group}Slugs"]) & set(other[f"{'control' if group == 'test' else 'test'}Slugs"])
+                if clash:
+                    raise ReelsError(f"{', '.join(sorted(clash))} is on the other side of question {question} in {other['id']}")
     if any((project.out_dir / s / "post.json").exists() for s in data["testSlugs"]):
         raise ReelsError("register hypotheses before rendering test reels; controls may be historical")
     registry["experiments"].append({**design, "registeredAt": now_iso()})
@@ -183,10 +200,30 @@ def experiment_results(project: Project, evidence: dict) -> list[dict]:
             values = [r[key] for r in rows]
             groups[group] = {"n": len(values), "median": median(values) if values else None,
                              "samples": rows}
-        results.append({"id": experiment["id"], "hypothesis": experiment["hypothesis"],
+        results.append({"id": experiment["id"], "question": experiment.get("question"), "hypothesis": experiment["hypothesis"],
                         "primaryMetric": key, "successCriterion": experiment["successCriterion"], **groups,
-                        "status": "ready-for-review" if min(groups[g]["n"] for g in groups) >= 3 else "awaiting-data"})
+                        "status": "ready-for-review" if min(groups[g]["n"] for g in groups) >= MIN_GROUP else "awaiting-data"})
     return results
+
+
+def question_results(results: list[dict]) -> list[dict]:
+    """One row per question: an experiment's own id when it stands alone, or the `question` several
+    weekly registrations share. Repeats pool their measured reels (each reel once per group), so a
+    question becomes reviewable by being run again, not by one lucky reel. Never a winner."""
+    pooled: dict[str, dict] = {}
+    for r in results:
+        q = pooled.setdefault(r.get("question") or r["id"], {"question": r.get("question") or r["id"], "primaryMetric": r["primaryMetric"],
+                                                             "experiments": [], "test": {}, "control": {}})  # fmt: skip
+        q["experiments"].append(r["id"])
+        for group in ("test", "control"):
+            for sample in r[group]["samples"]:
+                q[group].setdefault(sample["slug"], sample[r["primaryMetric"]])
+    out = []
+    for q in pooled.values():
+        groups = {g: {"n": len(q[g]), "median": median(q[g].values()) if q[g] else None} for g in ("test", "control")}
+        out.append({"question": q["question"], "primaryMetric": q["primaryMetric"], "experiments": q["experiments"], "runs": len(q["experiments"]),
+                    **groups, "status": "ready-for-review" if min(groups[g]["n"] for g in groups) >= MIN_GROUP else "awaiting-data"})  # fmt: skip
+    return out
 
 
 def _validate_notes(data: dict) -> None:
@@ -264,8 +301,13 @@ def review(project: Project, *, week: str | None = None, close: bool = False,
                       "experiments": [{"id": e["id"], "group": group} for e in designs
                                       for group in ("test", "control") if slug in e[f"{group}Slugs"]],
                       "history": p.get("history", [])})
+    from .account import days as account_days, growth
+
+    results = experiment_results(project, evidence)
+    questions = question_results(results)
+    account = growth(account_days(project), since=(date.fromisoformat(week) - timedelta(days=7)).isoformat())
     checkpoint = {"at": datetime.now(timezone.utc).isoformat(), "phase": "scheduling" if close else "planning", "audience": evidence,
-                  "feedback": _feedback(project, week), "experiments": experiment_results(project, evidence),
+                  "account": account, "feedback": _feedback(project, week), "experiments": results, "questions": questions,
                   "batch": batch, "notes": notes or {},
                   "schedulingComplete": bool(close and all(p["status"] in ("scheduled", "posted") and p["scheduledFor"] for p in batch))}
     path = project.root / "learning/reviews" / f"{week}.json"
@@ -280,6 +322,8 @@ def review(project: Project, *, week: str | None = None, close: bool = False,
              f"- Seven-day-window samples: {len(evidence['sevenDayWindow'])} (collected at 7–14 d, actual ages retained in JSON).",
              "- Missing metrics are unknown, not zero. No automatic winners or causal claims.",
              f"- Unmatched reels: {len(evidence['unmatchedReelIds'])}; skipped snapshots: {len(evidence['skippedSnapshots'])}.",
+             ("- Followers: unknown — no account numbers imported for the last two weeks (reference/analytics.md)." if account["followers"] is None else
+              f"- Followers: {account['followers']:.0f} on {account['asOf']}" + (f", {account['change']:+.0f} since {account['from']}" if account["change"] is not None else " (one known day, no change to report)") + "."),
              f"- Footage: {sum((project.out_dir / r['slug'] / 'lineage.json').exists() for r in evidence['latest'])} of {len(evidence['latest'])} matched reels have lineage; see the Footage section of out/PERFORMANCE.md (descriptive; groups under 5 reels are too small to act on).", ""]
     for category, title in (("preference", "Your preferences"), ("production", "Production quality")):
         events = [e for e in checkpoint["feedback"] if e["category"] == category]
@@ -289,7 +333,14 @@ def review(project: Project, *, week: str | None = None, close: bool = False,
         lines += [f"- {e['id']}: {e['status']} · {e['primaryMetric']} · test n={e['test']['n']}, median={e['test']['median']} · control n={e['control']['n']}, median={e['control']['median']}"]
     if not checkpoint["experiments"]:
         lines += ["- No registered experiments yet."]
-    lines += ["", "Use at least 3 measured reels per group before review; that is a floor, not statistical proof.", ""]
+    open_questions = [q for q in questions if q["status"] == "awaiting-data"]
+    lines += ["", "### Questions (repeats pooled)", ""]
+    lines += [f"- {q['question']}: {q['status']} · {q['runs']} run(s) · {q['primaryMetric']} · test n={q['test']['n']}, median={q['test']['median']} · "
+              f"control n={q['control']['n']}, median={q['control']['median']}" for q in questions] or ["- None yet."]  # fmt: skip
+    if len(open_questions) > MAX_OPEN_QUESTIONS:
+        lines += ["", f"{len(open_questions)} questions are still waiting for data; the working limit is {MAX_OPEN_QUESTIONS}. Repeat an open one "
+                  "(same `question`, new id, next week's slugs) or record it as dropped in the notes before registering a new question."]  # fmt: skip
+    lines += ["", f"Use at least {MIN_GROUP} measured reels per group before review; that is a floor, not statistical proof.", ""]
     for key in ("strengths", "weaknesses", "decisions", "proposals"):
         lines += [f"## {key.title()}", ""] + [f"- {s}" for s in (notes or {}).get(key, [])] + ([] if (notes or {}).get(key) else ["- Not recorded in this checkpoint; inspect earlier JSON checkpoints if present."]) + [""]
     if close:

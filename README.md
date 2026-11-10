@@ -150,7 +150,7 @@ Run `./reels --help` or see `.claude/skills/cycling-reels/SKILL.md`. The main on
 | `./reels sounds <id>` / `./reels library --sounds` / `./reels sfx list` | ride sounds in a clip / tagged sounds / the sound-effect library |
 | `./reels telemetry <id> --fast 5` | GoPro GPS: fastest stretches (`--at`, `--start/--end` too) |
 | `./reels progress` | Road to 5 W/kg entries for the progress bar (`progress set --ftp --weight --date`) |
-| `./reels stats import <file>` / `./reels stats` | import a Metricool analytics pull / per-reel performance → `out/PERFORMANCE.md` |
+| `./reels stats import <file>` / `./reels stats` | import a Metricool analytics pull (per-reel, or account numbers by day) / per-reel performance and account growth → `out/PERFORMANCE.md` |
 | `./reels review` / `review feedback` / `review experiment` / `review close` | weekly retrospective, lessons, user feedback, production issues and experiments |
 | `./reels check plans/x.json` / `./reels render plans/x.json` | validate (incl. the sound cue sheet and retention warnings; several plans at once) / render a reel |
 | `./reels project plans/x.json` | one reel as an editable Remotion project — open it in Remotion Studio or import it into Kino |

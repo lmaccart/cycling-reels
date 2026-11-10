@@ -24,7 +24,7 @@ from .mix import music_drops, music_levels, nat_windows, quiet_nat, volume_keys
 from .music import ensure_beats, parse_time, record_usage, release_usage, resolve_track
 from .punch import check_beats_punch, check_punch, ends_zoomed, punch_keys, resolve_punches, stage_scale
 from .queue import caption_block, carry_over, post_extras
-from .retention import caption_cuts, check_spine, retention_warnings, spine_warnings
+from .retention import caption_cuts, check_spine, opener_warnings, retention_warnings, spine_warnings
 from .sheets import build_sheet
 from .sphere import camera_filter, photo_view, plan_camera, source_graph
 from .util import ReelsError, clamp, even, fmt_ts, log, now_iso, quick_hash, read_json, slugify, warn, write_json
@@ -1192,8 +1192,14 @@ def build(project: Project, plan: dict) -> dict:
             hook_props["offsetTop"] = top
     beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes, bars)
     warnings += retention_warnings(segs, pages, beats, nat, hook_props, fps, total)
-    voice_share = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs, "props": {"segments": seg_props}, "music": music})["voiceShare"] if plan.get("spine") == "voice" else None
-    warnings += spine_warnings(plan, voice_share)
+    try:
+        lin = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs, "props": {"segments": seg_props}, "music": music})
+    except Exception:  # noqa: BLE001 — only the voice spine check needs it; the opener check is advice
+        if plan.get("spine") == "voice":
+            raise
+        lin = None
+    warnings += spine_warnings(plan, lin["voiceShare"] if lin and plan.get("spine") == "voice" else None)
+    warnings += opener_warnings(plan, lin)
 
     drops = music_drops(plan, total, fps, errors, warnings)
     post = plan.get("post") or {}

@@ -14,6 +14,23 @@ Reels around 10 s feel chopped when nobody talks and there's no real story. So p
 
 **Length:** voice-led reels may run 15–40 s. The 7–13 s lesson (aud-length-01) doesn't cap them: it came mostly from comparing against montages. It still applies to reels nobody talks in.
 
+## Series
+
+People follow an account to see what happens next, so the week is built around a few running series before any one-off. Each has the same title on screen every episode, the same day, and the same kind of opening shot, so a viewer who has seen one recognizes the next. It is the offseason (November 2026): Leif is building toward spring collegiate racing, which starts mid-February, so no series depends on a race ([character.md](character.md)).
+
+| Series | Title on screen | Day | An episode is | Thread |
+| --- | --- | --- | --- | --- |
+| **Road to 5 W/kg** | `road to 5 w/kg · ep N` | Friday | The week's key workout: the plan said to camera, the numbers said out loud as they happen, the honest result, the progress bar. 25–45 s, `spine: voice` | `road-to-5-epN` |
+| **Getting Trey on a bike** | `what my roommate wakes up to · ep N` | Wednesday | Opens the same way every time: Pokey's freehub coming down the hallway (a `nat` window; it's the series' theme tune). Then that morning's wake-up, the ask ("you riding today?") and Trey's real answer. The arc ends the day he says yes; the finale is his first ride. 8–20 s | `roommate-epN` |
+| **Before class** | `before class · ep N` | Monday | What got done before the first class of the day, with real clip times, ending back at school. 10–25 s | `before-class-epN` |
+
+- **An episode needs its footage.** If the week has no roommate reaction or no workout to camera, skip that episode and say so on the filming card; never stage or pad one.
+- **Trey's answers are never scripted or staged.** If he says no forty times, that's the series; if he says yes in week two, the series becomes his first rides.
+- **End on what's next only when it's true**: the next workout Leif named, or the question the episode left open. Not "follow for part 2".
+- **Count them like any other reel**: a series episode told in Leif's voice is one of the week's four voice-led reels.
+- **Tag as you go.** Moments that belong to an episode get its `thread` and a `beat` ([taxonomy.md](taxonomy.md#shelves)), so `./reels stories` shows what each next episode still needs.
+- **Evidence so far is thin.** Each series has one posted reel at most (the 2026-11-04 roommate reel, which counts as ep 1, has the best 3 s hold, 75.8%; ep 1 of Road to 5 posts 2026-11-13). Compare series by `thread` in `out/PERFORMANCE.md` once each has three episodes, and retire a series that keeps losing viewers; adding, renaming or retiring one needs Leif's OK.
+
 ## Every reel
 
 1. **The first frame already works.** Open on the best visual, the moment of tension, or the face — never on a slow roll-out. The hook text is up from frame 0.
@@ -109,7 +126,8 @@ Keep pans slow (2–3 s for a half turn) unless it's a deliberate whip — fast 
 
 - **Collab with the club.** A group-ride reel the club would happily share can go out as an Instagram Collab (`post.collaborators`, the club's or a teammate's handle — the user gives it and they accept in the app): it shows on both profiles and to both sets of followers. Ask the user once which accounts are open to it.
 - **Tag who's in it** (`post.peopleTags`) when they're clearly in the shot and fine with it — tagged riders get notified and often share it to their story.
-- **Trial Reels** (shown to non-followers first) suit experiments, but need 1,000+ followers and can't have collaborators ([publishing.md](publishing.md#trial-reels-later)).
+- **Trial Reels** (shown to non-followers first) suit hook tests, but the account has to be eligible, which it isn't yet, and a trial can't have collaborators ([publishing.md](publishing.md#trial-reels)).
+- **Pinned reels** are what a new visitor sees first: keep three pinned that say who this is ([publishing.md](publishing.md#pinned-reels)).
 
 ## Music
 
@@ -117,7 +135,7 @@ Songs come from this week's trending lists, mixed into the reel — see [music.m
 
 ## Picking for a week (7 reels)
 
-1. Start from the lines and the stories ([Start from the voice](#start-from-the-voice)), then `./reels library --unused --min-score 3` for the footage under them, then the trending lists.
+1. Place the [series](#series) episodes on their days first. Then start from the lines and the stories ([Start from the voice](#start-from-the-voice)), then `./reels library --unused --min-score 3` for the footage under them, then the trending lists.
 2. At least 4 of the 7 are voice-led (talking clip, tips, a story or a POV joke told by the rider) and at most 1 is a pure montage (ride montage or beat edit). Fill the rest from: 1–2 trend reels with this week's songs, 1 sound reel, 1 before/after or question. The footage decides — don't force a format it can't support, and if there aren't 4 usable lines, make fewer reels and say which lines to film ([SHOTLIST.md](../../../../SHOTLIST.md)).
 3. Give the strongest score-5 moment its own reel early in the week.
 4. Spread one ride across 2–3 reels with different angles rather than one long recap.

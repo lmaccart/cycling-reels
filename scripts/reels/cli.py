@@ -764,7 +764,13 @@ def cmd_stats(project: Project, args) -> int:
     if args.words and args.words[0] == "import":
         if len(args.words) != 2:
             raise ReelsError("usage: ./reels stats import <file.json>")
-        import_file(project, args.words[1])
+        from .account import import_file as import_account, is_account_pull
+
+        try:
+            account = is_account_pull(read_json(args.words[1]))
+        except (OSError, ValueError):
+            account = False  # import_file reports an unreadable file
+        (import_account if account else import_file)(project, args.words[1])
         return 0
     if args.words == ["backfill-lineage"]:
         from .lineage import backfill
@@ -1021,7 +1027,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_music_add_args(s)
     s.set_defaults(music_cmd="yt2mp3")
 
-    s = sub.add_parser("stats", help="reel performance: 'stats import <file>' a Metricool pull, 'stats' for the report")
+    s = sub.add_parser("stats", help="reel performance: 'stats import <file>' a Metricool pull (per-reel IGRE or account IGEV fields), 'stats' for the report")
     s.add_argument("words", nargs="*", help="'import <file.json>' to load a pull (default: print the report)")
     s.add_argument("--since", help="only reels posted on/after YYYY-MM-DD")
     s.set_defaults(fn=cmd_stats)

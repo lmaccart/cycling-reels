@@ -12,7 +12,7 @@ from reels.cli import build_parser, cmd_render, main
 from reels.config import Project
 from reels.queue import mark
 from reels.review import (
-    audience, auto_event, experiment_results, record_feedback, register_experiment,
+    audience, auto_event, experiment_results, question_results, record_feedback, register_experiment,
     review, week_start,
 )
 from reels.util import ReelsError, read_json, write_json
@@ -188,6 +188,55 @@ class ReviewTests(unittest.TestCase):
         evidence = audience(self.project)
         evidence["sevenDayWindow"] = evidence["sevenDayWindow"][:2]
         self.assertEqual(experiment_results(self.project, evidence)[0]["status"], "awaiting-data")
+
+    def weekly(self, n: int, **extra) -> dict:
+        return {**self.design(), "id": f"onscreen-w{n}", "question": "onscreen-question", "testSlugs": [f"t{n}"], "controlSlugs": [f"c{n}"], **extra}
+
+    def test_repeats_of_a_question_pool_until_three_per_group(self):
+        for n in (1, 2, 3):
+            register_experiment(self.project, self.weekly(n))
+            if n == 2:
+                pooled = question_results(experiment_results(self.project, audience(self.project)))
+                self.assertEqual((pooled[0]["runs"], pooled[0]["test"]["n"], pooled[0]["status"]), (2, 1, "awaiting-data"))
+            self.post(f"t{n}")
+            self.snapshot(f"t{n}", hold=60 + n)
+            self.post(f"c{n}")
+            self.snapshot(f"c{n}", hold=30)
+        results = experiment_results(self.project, audience(self.project))
+        self.assertTrue(all(r["status"] == "awaiting-data" for r in results))  # one reel a week settles nothing alone
+        pooled = question_results(results)
+        self.assertEqual(len(pooled), 1)
+        self.assertEqual(pooled[0]["experiments"], ["onscreen-w1", "onscreen-w2", "onscreen-w3"])
+        self.assertEqual((pooled[0]["status"], pooled[0]["test"]["median"], pooled[0]["control"]["n"]), ("ready-for-review", 62, 3))
+        self.assertNotIn("winner", pooled[0])
+
+    def test_a_reel_counts_once_per_question_and_standalone_experiments_keep_their_id(self):
+        register_experiment(self.project, self.weekly(1, controlSlugs=["shared"]))
+        register_experiment(self.project, self.weekly(2, controlSlugs=["shared"]))
+        register_experiment(self.project, self.design())
+        self.post("shared")
+        self.snapshot("shared")
+        pooled = {q["question"]: q for q in question_results(experiment_results(self.project, audience(self.project)))}
+        self.assertEqual(pooled["onscreen-question"]["control"]["n"], 1)
+        self.assertEqual(pooled["face-first"]["runs"], 1)
+
+    def test_a_repeat_keeps_the_metric_and_the_sides(self):
+        register_experiment(self.project, self.weekly(1))
+        for extra in ({"primaryMetric": "engagement"}, {"testSlugs": ["c1"], "controlSlugs": ["x"]}, {"question": "On Screen"}):
+            with self.subTest(extra=extra), self.assertRaises(ReelsError):
+                register_experiment(self.project, self.weekly(2, **extra))
+        register_experiment(self.project, self.weekly(1))  # identical registration is still a no-op
+        with self.assertRaises(ReelsError):
+            register_experiment(self.project, {**self.weekly(1), "question": "another"})
+
+    def test_review_lists_questions_and_says_when_too_many_are_open(self):
+        for i in range(3):
+            register_experiment(self.project, {**self.design(), "id": f"solo-{i}", "testSlugs": [f"st{i}"], "controlSlugs": [f"sc{i}"]})
+        checkpoint = review(self.project)
+        self.assertEqual(len(checkpoint["questions"]), 3)
+        md = next((self.project.root / "learning/reviews").glob("*.md")).read_text()
+        self.assertIn("### Questions (repeats pooled)", md)
+        self.assertIn("3 questions are still waiting for data; the working limit is 2", md)
 
     def test_closing_is_explicit_batch_scoped_and_does_not_change_status(self):
         first = self.post("one", status="scheduled", scheduledFor="2026-11-02T18:30:00", metricoolId="123")

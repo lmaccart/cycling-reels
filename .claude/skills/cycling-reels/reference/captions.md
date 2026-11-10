@@ -2,6 +2,8 @@
 
 Everything on screen should read like the rider typed it into the TikTok text tool on their phone after the ride — not like an ad, a highlight package or a motivational poster. The template renders text exactly as written (no uppercasing, no restyling), so the writing *is* the style.
 
+Who is typing matters as much as how: [character.md](character.md) describes Leif, with lines in their own words. Start from those. The formats below are shapes to fall back on, not the voice.
+
 ## Voice
 
 - **Lowercase by default.** Capitals only where a person would bother (names, "I" is optional).

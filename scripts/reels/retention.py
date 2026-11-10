@@ -21,6 +21,7 @@ MIN_VOICE_SHARE = 0.30  # spine: voice with less of the rider's voice than this 
 BATCH_SIZE = 7  # the weekly mix below is stated per seven reels
 MIN_VOICE_REELS = 4
 MAX_MONTAGE_REELS = 1
+PEOPLE_ROLES = ("voice", "reaction", "crew")  # taxonomy roles whose subject is a person or what they say
 MONTAGE_FORMATS = ("ride-montage", "beat-edit")  # the recipes (recipes.md) that are only shots on a song
 
 
@@ -120,6 +121,25 @@ def spine_warnings(plan: dict, voice_share: float | None) -> list[str]:
         return [f"spine: marked voice, but the rider's voice covers only {voice_share:.0%} of the reel (under {MIN_VOICE_SHARE:.0%}) — "
                 "let the talking clip run with cutaways over it, or change the spine"]  # fmt: skip
     return []
+
+
+def opener_warnings(plan: dict, lineage: dict | None) -> list[str]:
+    """The shot on screen at 0 s, from lineage: flag it when its tags say there's no face in it and
+    nobody is talking. Lesson aud-person-01 (tentative): openings with a person or a real voice held
+    63–76% past 3 s against 44–50% for scenery. Unknown is not scenery: an untagged span, a moment
+    without a `face` tag and a photo (flagged separately) say nothing. A `sound` reel opens on its sound,
+    and `crew` shots have people as their subject even from behind."""
+    if not lineage or plan.get("spine") == "sound":
+        return []
+    first = next((e for e in lineage.get("segments") or [] if e.get("position") == "first"), None)
+    if not first or first.get("match") != "moment":
+        return []
+    tags = first.get("tags") or {}
+    if tags.get("face") is not False or tags.get("role") in PEOPLE_ROLES or first.get("captions") == "transcript":
+        return []
+    role = f" (role: {tags['role']})" if tags.get("role") else ""
+    return [f"retention: the reel opens on a shot with no face and nobody talking{role} — openings with a person or a voice have "
+            "held better so far (aud-person-01, a tentative lesson); open on the face or the line, or keep it if the shot is exceptional"]  # fmt: skip
 
 
 def is_montage(fmt: Any) -> bool:
