@@ -7,6 +7,9 @@
     "endCard": false,
     "endCardCta": "follow for more rides"
   },
+  "prune": {
+    "minFreeGB": 100
+  },
   "schedule": {
     "timezone": "America/Chicago",
     "times": ["18:30"]

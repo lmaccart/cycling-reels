@@ -16,6 +16,7 @@ from .bleep import check_bleep, masked_words, mute_filter, resolve_bleeps, tone_
 from .config import Project
 from .images import open_image
 from .library import all_assets, load_asset, resolve_id, save_asset
+from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
@@ -23,7 +24,7 @@ from .mix import music_drops, music_levels, nat_windows, quiet_nat, volume_keys
 from .music import ensure_beats, parse_time, record_usage, release_usage, resolve_track
 from .punch import check_beats_punch, check_punch, ends_zoomed, punch_keys, resolve_punches, stage_scale
 from .queue import caption_block, carry_over, post_extras
-from .retention import caption_cuts, retention_warnings
+from .retention import caption_cuts, check_spine, retention_warnings, spine_warnings
 from .sheets import build_sheet
 from .sphere import camera_filter, photo_view, plan_camera, source_graph
 from .util import ReelsError, clamp, even, fmt_ts, log, now_iso, quick_hash, read_json, slugify, warn, write_json
@@ -109,7 +110,10 @@ def footage_problem(project: Project, asset: dict, cache: dict[str, str | None])
         return cache[asset["id"]]
     problem = None
     path = project.abs(asset["media"]).resolve()
-    if asset.get("kind") not in ("video", "photo"):
+    deleted = asset.get("deleted")
+    if deleted:
+        problem = f"{asset['id']}: its footage was deleted by ./reels prune on {deleted.get('at')} ({deleted.get('reason')}) — pick another clip"
+    elif asset.get("kind") not in ("video", "photo"):
         problem = f"{asset['id']} isn't a video or photo from your library"
     elif project.media_dir.resolve() not in path.parents:
         problem = f"{asset['id']} isn't in library/media — only footage ingested from inbox/ can be used"
@@ -1031,6 +1035,7 @@ def build(project: Project, plan: dict) -> dict:
     fps = int(project.cfg("render", "fps"))
     errors: list[str] = []
     loop, on_beats = check_loop(plan, errors), check_beats_punch(plan, errors)
+    check_spine(plan, errors)
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     segs, warnings = normalize(project, plan)
@@ -1188,6 +1193,8 @@ def build(project: Project, plan: dict) -> dict:
             hook_props["offsetTop"] = top
     beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes, bars)
     warnings += retention_warnings(segs, pages, beats, nat, hook_props, fps, total)
+    voice_share = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs})["voiceShare"] if plan.get("spine") == "voice" else None
+    warnings += spine_warnings(plan, voice_share)
 
     drops = music_drops(plan, total, fps, errors, warnings)
     post = plan.get("post") or {}
@@ -1637,6 +1644,7 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
         else:
             post["musicCredit"] = meta.get("credit")
     write_json(post_path, post)
+    record_lineage(project, slug, built)
     (out_dir / "caption.txt").write_text(caption_block(post).strip() + "\n", encoding="utf-8")
     mark_usage(project, slug, built["segs"])
     release_usage(project, slug)  # a re-render may have changed the song

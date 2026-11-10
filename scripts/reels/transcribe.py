@@ -36,6 +36,7 @@ def transcribe(
             and ((a.get("audio") or {}).get("speechSeconds") or 0) >= 1.5
             and a.get("status") != "skip"
         ]
+    targets = [a for a in targets if not a.get("deleted")]  # the media file is gone
     if not force:
         targets = [a for a in targets if not a.get("transcript")]
     targets = [a for a in targets if a["kind"] == "video" and (a.get("probe") or {}).get("hasAudio")]

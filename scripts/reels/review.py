@@ -279,7 +279,8 @@ def review(project: Project, *, week: str | None = None, close: bool = False,
              f"- Matched reels with stale latest samples: {sum(r['stale'] for r in evidence['latest'])}.",
              f"- Seven-day-window samples: {len(evidence['sevenDayWindow'])} (collected at 7–14 d, actual ages retained in JSON).",
              "- Missing metrics are unknown, not zero. No automatic winners or causal claims.",
-             f"- Unmatched reels: {len(evidence['unmatchedReelIds'])}; skipped snapshots: {len(evidence['skippedSnapshots'])}.", ""]
+             f"- Unmatched reels: {len(evidence['unmatchedReelIds'])}; skipped snapshots: {len(evidence['skippedSnapshots'])}.",
+             f"- Footage: {sum((project.out_dir / r['slug'] / 'lineage.json').exists() for r in evidence['latest'])} of {len(evidence['latest'])} matched reels have lineage; see the Footage section of out/PERFORMANCE.md (descriptive; groups under 5 reels are too small to act on).", ""]
     for category, title in (("preference", "Your preferences"), ("production", "Production quality")):
         events = [e for e in checkpoint["feedback"] if e["category"] == category]
         lines += [f"## {title}", ""] + [f"- {e['kind']} · {e.get('slug') or 'project'}: {e['note']} ({e['source']})" for e in events] + (["- No recorded evidence this week."] if not events else []) + [""]

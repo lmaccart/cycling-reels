@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import unittest
+from types import SimpleNamespace
 
 from helpers import TempProject, words
+from reels import cli
+from reels.lineage import from_built
 from reels.render import Seg, build, load_plan
-from reels.retention import caption_cuts, fades, opening, still_stretches
+from reels.retention import batch_warnings, caption_cuts, fades, opening, spine_warnings, still_stretches
+from reels.util import ReelsError
 
 FPS = 30
 
@@ -93,6 +99,101 @@ class BuildWarnsTests(unittest.TestCase):
         warnings = build(self.t.project, load_plan(self.t.project, plan))["warnings"]
         self.assertTrue(any("cuts into 'left'" in w for w in warnings), warnings)
         self.assertTrue(any("opens on a photo" in w for w in warnings), warnings)
+
+
+def spined(n: int, spine: str | None, fmt: str | None = None) -> list[dict]:
+    return [{"slug": f"{spine}-{fmt}-{i}", **({"spine": spine} if spine else {}), **({"format": fmt} if fmt else {})} for i in range(n)]
+
+
+class SpineWarningTests(unittest.TestCase):
+    def test_missing_warns_and_set_does_not(self):
+        self.assertIn("not set", spine_warnings({}, None)[0])
+        self.assertIn("not set", spine_warnings({"spine": None}, None)[0])
+        for spine in ("story", "sound", "trend"):
+            self.assertEqual(spine_warnings({"spine": spine}, None), [])
+
+    def test_voice_share_floor(self):
+        self.assertIn("29%", spine_warnings({"spine": "voice"}, 0.29)[0])
+        self.assertEqual(spine_warnings({"spine": "voice"}, 0.30), [])
+
+    def test_other_spines_ignore_voice_share(self):
+        self.assertEqual(spine_warnings({"spine": "sound"}, 0.0), [])
+
+
+class BatchWarningTests(unittest.TestCase):
+    def test_a_good_week_is_quiet(self):
+        week = spined(4, "voice") + spined(1, "trend", "beat-edit") + spined(1, "story") + spined(1, "sound", "just-the-bike")
+        self.assertEqual(batch_warnings(week), [])
+
+    def test_too_few_voice_reels(self):
+        got = batch_warnings(spined(3, "voice") + spined(4, "story"))
+        self.assertEqual(len(got), 1)
+        self.assertIn("3 of 7", got[0])
+
+    def test_more_than_one_reel_without_a_spine(self):
+        got = batch_warnings(spined(4, "voice") + spined(1, "story") + spined(2, None))
+        self.assertEqual(len(got), 1)
+        self.assertIn("2 of 7", got[0])
+
+    def test_more_than_one_montage_however_it_is_written(self):
+        got = batch_warnings(spined(4, "voice") + spined(1, "story") + spined(1, "trend", "Beat Edit") + spined(1, "trend", "ride_montage"))
+        self.assertEqual(len(got), 1)
+        self.assertIn("pure montage", got[0])
+
+    def test_a_missing_spine_and_a_montage_add_up(self):
+        self.assertEqual(len(batch_warnings(spined(4, "voice") + spined(1, "story") + spined(1, None) + spined(1, "trend", "ride-montage"))), 1)
+
+    def test_only_a_batch_of_seven(self):
+        for n in (1, 6, 8):
+            self.assertEqual(batch_warnings(spined(n, None)), [])
+
+
+class SpineInPlanTests(unittest.TestCase):
+    def setUp(self):
+        self.t = TempProject(self)
+        self.t.asset("talk", words=words(("hello", 1.1, 1.5), ("there", 3.0, 3.4)))
+        self.t.asset("road")
+
+    def built(self, voice_out: float, **extra) -> dict:
+        plan = self.t.plan("reel", [{"asset": "talk", "in": 1.0, "out": voice_out, "captions": "transcript"}, {"asset": "road", "in": 0.0, "out": 8.0}], **extra)
+        return build(self.t.project, load_plan(self.t.project, plan))
+
+    def spine_lines(self, got: dict) -> list[str]:
+        return [w for w in got["warnings"] if w.startswith("spine:")]
+
+    def test_unknown_spine_is_an_error(self):
+        with self.assertRaises(ReelsError) as caught:
+            self.built(3.0, spine="vibes")
+        self.assertIn("spine must be one of", str(caught.exception))
+
+    def test_missing_spine_is_only_a_warning(self):
+        self.assertIn("not set", self.spine_lines(self.built(3.0))[0])
+
+    def test_low_voice_share_matches_lineage(self):
+        got = self.built(3.0, spine="voice")  # 2 s of voice in 10 s
+        self.assertEqual(from_built("reel", got)["voiceShare"], 0.2)
+        self.assertIn("20%", self.spine_lines(got)[0])
+
+    def test_enough_voice_is_quiet(self):
+        self.assertEqual(self.spine_lines(self.built(4.5, spine="voice")), [])  # 3.5 s of 11.5 s
+
+    def test_cutaways_keep_the_voice_going(self):
+        plan = self.t.plan("over", [{"asset": "talk", "in": 1.0, "out": 4.0, "captions": "transcript", "cutaways": [{"at": 0.5, "asset": "road", "in": 1.0, "out": 3.0}]}], spine="voice")
+        self.assertEqual(self.spine_lines(build(self.t.project, load_plan(self.t.project, plan))), [])
+
+    def test_check_warns_about_a_seven_reel_batch(self):
+        plans = [str(self.t.plan(f"reel-{i}", [{"asset": "road", "in": 0.0, "out": 5.0}], spine="story")) for i in range(7)]
+        err = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            self.assertEqual(cli.cmd_check(self.t.project, SimpleNamespace(plans=plans)), 0)
+        self.assertIn("batch: 0 of 7 reels are spine: voice", err.getvalue())
+
+    def test_check_says_nothing_about_a_smaller_batch(self):
+        plans = [str(self.t.plan(f"reel-{i}", [{"asset": "road", "in": 0.0, "out": 5.0}], spine="story")) for i in range(2)]
+        err = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            cli.cmd_check(self.t.project, SimpleNamespace(plans=plans))
+        self.assertNotIn("batch:", err.getvalue())
 
 
 if __name__ == "__main__":

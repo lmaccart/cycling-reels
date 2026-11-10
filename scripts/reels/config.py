@@ -75,6 +75,7 @@ DEFAULTS: dict[str, Any] = {
     "hashtags": {"always": [], "pool": []},
     "upload": {"endpoint": None, "bucket": None, "prefix": "reels/", "publicBaseUrl": None, "region": "auto"},
     "tools": {"ffmpeg": None, "ffprobe": None},
+    "prune": {"minFreeGB": 100},  # ./reels prune --apply refuses unless free disk is under this
     "units": "imperial",  # GPS numbers on screen: imperial (mph, ft) or metric (km/h, m)
 }
 

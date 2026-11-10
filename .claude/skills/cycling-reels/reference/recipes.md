@@ -2,6 +2,18 @@
 
 What gets reach on Instagram is watch time (people finish and rewatch), likes per view, and above all **sends** — someone DMing the reel to a friend. Cycling accounts that grow don't just post "me riding, nicely edited": what works is a person you can see, a little story with a payoff, something useful, or a joke a cyclist would forward to their riding group. Every recipe below is a shape, not a script — adapt it to what the footage actually has. Every clip and photo comes from the user's library; if a recipe needs a shot that doesn't exist, pick another one. [SHOTLIST.md](../../../../SHOTLIST.md) is what the user films each ride so these recipes have material.
 
+## Start from the voice
+
+Reels around 10 s feel chopped when nobody talks and there's no real story. So plan in this order:
+
+1. **The rider's line or a story comes first.** A spoken line (`./reels library --role voice --speaker me --unused`, `./reels search "<words>"`), or a story with a setup, a turn and a payoff that a stranger could retell in a sentence (`./reels stories`).
+2. **Then cut footage under it** with [cutaways](plan-schema.md#cutaways): the voice keeps going, the picture moves, and the face comes back for the punchline.
+3. **Only then** the text, the song and the sound effects. Don't pick the best moments and write text over them.
+
+**Weekly mix:** at least 4 of 7 reels voice-led (`"spine": "voice"`), at most 1 pure montage (`ride-montage` or `beat-edit`). `./reels check` on a 7-reel batch warns when it misses either ([spine](plan-schema.md#spine)).
+
+**Length:** voice-led reels may run 15–40 s. The 7–13 s lesson (aud-length-01) doesn't cap them: it came mostly from comparing against montages. It still applies to reels nobody talks in.
+
 ## Every reel
 
 1. **The first frame already works.** Open on the best visual, the moment of tension, or the face — never on a slow roll-out. The hook text is up from frame 0.
@@ -105,8 +117,8 @@ Songs come from this week's trending lists, mixed into the reel — see [music.m
 
 ## Picking for a week (7 reels)
 
-1. Start from `./reels library --unused --min-score 3`, then the trending lists.
-2. Aim for a mix: 1–2 trend reels with this week's songs, 1 story/series episode, 1 tips or talking reel, 1 relatable POV with a punchline, 1 beat edit or vlog-timestamps reel, 1 before/after or question. The footage decides — don't force a format it can't support.
+1. Start from the lines and the stories ([Start from the voice](#start-from-the-voice)), then `./reels library --unused --min-score 3` for the footage under them, then the trending lists.
+2. At least 4 of the 7 are voice-led (talking clip, tips, a story or a POV joke told by the rider) and at most 1 is a pure montage (ride montage or beat edit). Fill the rest from: 1–2 trend reels with this week's songs, 1 sound reel, 1 before/after or question. The footage decides — don't force a format it can't support, and if there aren't 4 usable lines, make fewer reels and say which lines to film ([SHOTLIST.md](../../../../SHOTLIST.md)).
 3. Give the strongest score-5 moment its own reel early in the week.
 4. Spread one ride across 2–3 reels with different angles rather than one long recap.
 5. Not enough material for 7? Make fewer and say so — and tell the user which SHOTLIST.md shots would have unlocked the formats you couldn't make. A weak filler reel hurts more than a skipped day, and nothing may be padded with clips from anywhere else.

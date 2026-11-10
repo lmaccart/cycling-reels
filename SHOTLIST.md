@@ -2,6 +2,10 @@
 
 The cycling reels that grow accounts show a person (not just the road), a payoff you can see, and something funny or useful. Batch 1 was almost all first-person road footage, so the jokes were told in text instead of shown. These shots fix that. The ★ ones take about 5 minutes in total, so get them every ride. Grab the rest when you get the chance.
 
+## The one that matters most
+
+★ **20–40 s to camera, every ride**: what you're about to do, why it's dumb, and how it went. Say the first two before you roll and the last one when you get back. Phone vertical, back to the wind, no script. If you only film one thing, film this. → the voice-led reels, which are now most of the week. Everything else on this list gets cut under it.
+
 ## Before you roll
 
 1. ★ **Kit-up in 4–5 quick clips** (2–3 s each, same framing): shoes, helmet buckle, glasses, bottle into the cage, wheeling out the door. → ride-vlog timestamps, "loading" trend openers, story setups.

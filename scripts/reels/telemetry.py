@@ -459,6 +459,10 @@ def run_telemetry(project: Project, ids: list[str] | None = None, *, force: bool
         assets = [a for a in all_assets(project) if a.get("kind") == "video" and (force or "gpsSummary" not in a)]
     done = []
     for a in assets:
+        if a.get("deleted"):  # the media file is gone
+            if ids:
+                warn(f"{a['id']}: its footage was deleted — no telemetry to read")
+            continue
         if a.get("kind") != "video":
             if ids:
                 warn(f"{a['id']}: not a video — no telemetry")
