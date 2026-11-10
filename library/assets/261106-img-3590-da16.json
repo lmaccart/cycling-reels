@@ -1,83 +1,96 @@
 {
- "id": "261106-img-3590-da16",
- "kind": "video",
- "media": "library/media/261106-img-3590-da16.mov",
- "originalName": "IMG_3590.mov",
- "hash": "da16d868ae87337fb4c1bf8edda578868a40a74c",
- "created": "2026-11-06T09:00:20",
- "ingestedAt": "2026-11-06T17:05:18+00:00",
- "probe": {
-  "duration": 6.083,
-  "width": 2160,
-  "height": 3840,
-  "fps": 60.0,
-  "rotation": 0,
-  "vcodec": "h264",
-  "pixFmt": "yuvj420p",
-  "hdr": false,
-  "colorTransfer": "bt709",
-  "hasAudio": true,
-  "acodec": "aac",
-  "created": "2026-11-06T09:00:20-06:00"
- },
- "status": "tagged",
- "tags": {
-  "type": "talking",
-  "shot": "selfie",
-  "quality": 2,
-  "issues": [
-   "shaky",
-   "blurry"
-  ],
-  "people": "me",
-  "summary": "Post-ride shirtless selfie at home, low angle under a wood ceiling, says ride is done, camera swings around mid-line",
-  "hooks": [
-   "ride is done, now what"
-  ],
-  "notes": "Middle of the line is unclear (medium.en: \"Tokyo is back up\", small.en: \"cookies back up\"); only \"ride is done\" (0.7-1.0) is reliable. Blurry swing 2.3-3.8. IMG_3591 is a cleaner take of the same idea. User (11-06) doesn't remember the unclear word: only caption 'ride is done'.",
-  "moments": [
-   {
-    "in": 0.0,
-    "out": 2.2,
-    "label": "ride is done, low-angle selfie at home",
-    "score": 2,
-    "focusX": 0.45,
-    "focusY": 0.45,
-    "speech": true
-   },
-   {
-    "in": 4.4,
-    "out": 6.08,
-    "label": "face back in frame after the swing",
-    "score": 2,
-    "focusX": 0.5,
-    "focusY": 0.45,
-    "speech": true
-   }
-  ],
-  "sounds": []
- },
- "transcript": "library/transcripts/261106-img-3590-da16.json",
- "used": [],
- "audio": {
-  "volume": {
-   "meanDb": -25.1,
-   "peakDb": -0.8
+  "id": "261106-img-3590-da16",
+  "kind": "video",
+  "media": "library/media/261106-img-3590-da16.mov",
+  "originalName": "IMG_3590.mov",
+  "hash": "da16d868ae87337fb4c1bf8edda578868a40a74c",
+  "created": "2026-11-06T09:00:20",
+  "ingestedAt": "2026-11-06T17:05:18+00:00",
+  "probe": {
+    "duration": 6.083,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-06T09:00:20-06:00"
   },
-  "speechSeconds": 4.47,
-  "speechRanges": [
-   [
-    0.0,
-    3.14
-   ],
-   [
-    3.96,
-    5.29
-   ]
-  ]
- },
- "sheets": [
-  "library/sheets/261106-img-3590-da16.jpg"
- ],
- "taggedAt": "2026-11-06T17:07:15+00:00"
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 2,
+    "issues": [
+      "shaky",
+      "blurry"
+    ],
+    "people": "me",
+    "summary": "Post-ride shirtless selfie at home, low angle under a wood ceiling, says ride is done, camera swings around mid-line",
+    "hooks": [
+      "ride is done, now what"
+    ],
+    "notes": "Middle of the line is unclear (medium.en: \"Tokyo is back up\", small.en: \"cookies back up\"); only \"ride is done\" (0.7-1.0) is reliable. Blurry swing 2.3-3.8. IMG_3591 is a cleaner take of the same idea. User (11-06) doesn't remember the unclear word: only caption 'ride is done'.",
+    "moments": [
+      {
+        "id": "m-d328d5",
+        "in": 0.0,
+        "out": 2.2,
+        "label": "ride is done, low-angle selfie at home",
+        "score": 2,
+        "focusX": 0.45,
+        "focusY": 0.45,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "result"
+      },
+      {
+        "id": "m-40331c",
+        "in": 4.4,
+        "out": 6.08,
+        "label": "face back in frame after the swing",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.45,
+        "speech": true,
+        "role": "reaction",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261106-img-3590-da16.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -25.1,
+      "peakDb": -0.8
+    },
+    "speechSeconds": 4.47,
+    "speechRanges": [
+      [
+        0.0,
+        3.14
+      ],
+      [
+        3.96,
+        5.29
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261106-img-3590-da16.jpg"
+  ],
+  "taggedAt": "2026-11-06T17:07:15+00:00"
 }

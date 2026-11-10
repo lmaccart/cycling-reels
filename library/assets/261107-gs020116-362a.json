@@ -69,6 +69,23 @@
     },
     "moments": [
       {
+        "id": "m-2502cc",
+        "in": 0.0,
+        "out": 5.5,
+        "label": "\"im trying to go into a lower gear but there is no lower gear\", rider in green and yellow by an orange bike, big sky",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-fc00a1",
         "in": 110.0,
         "out": 115.0,
         "label": "'alright we can roll'",
@@ -76,9 +93,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-ba1b57",
         "in": 195.0,
         "out": 201.0,
         "label": "paceline cruising on a wide road",
@@ -86,9 +109,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d7dff1",
         "in": 462.0,
         "out": 470.0,
         "label": "picking up speed with riders on my wheel",
@@ -96,10 +125,45 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 4.0,
+        "label": "start: stop, then rolls off past a RICE rider and big sky"
+      },
+      {
+        "at": 15.0,
+        "label": "power tower"
+      },
+      {
+        "at": 125.0,
+        "label": "paceline, teammate on an orange bike"
+      },
+      {
+        "at": 186.0,
+        "label": "red curb road, sign"
+      },
+      {
+        "at": 256.0,
+        "label": "stopped by a gas station"
+      },
+      {
+        "at": 366.0,
+        "label": "stop, RICE OWLS jersey close"
+      },
+      {
+        "at": 377.0,
+        "label": "traffic lights"
+      }
+    ]
   },
   "transcript": "library/transcripts/261107-gs020116-362a.json",
   "used": [

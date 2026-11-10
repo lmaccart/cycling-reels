@@ -35,22 +35,34 @@
     ],
     "moments": [
       {
+        "id": "m-d5749c",
         "in": 0.0,
         "out": 3.2,
         "label": "looking down at legs spinning on the trainer",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-2af4b9",
         "in": 6.6,
         "out": 9.8,
         "label": "selfie swing then back to zwift on the tv",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },

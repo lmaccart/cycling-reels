@@ -33,22 +33,34 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-47d2a5",
         "in": 2.5,
         "out": 5.6,
         "label": "road through dry golden hills",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-330ad9",
         "in": 7.4,
         "out": 10.0,
         "label": "swing out to the valley view",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       }
     ]
   },

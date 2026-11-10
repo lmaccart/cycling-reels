@@ -63,6 +63,7 @@
     },
     "moments": [
       {
+        "id": "m-454369",
         "in": 1.8,
         "out": 12.0,
         "label": "\"watch the car behind... lets go right through\"",
@@ -70,9 +71,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-bb8404",
         "in": 27.2,
         "out": 38.0,
         "label": "\"lets go guys right through, keep going all the way to the end\"",
@@ -80,9 +87,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-28f5f0",
         "in": 150.2,
         "out": 158.0,
         "label": "regroup: \"i took like a nice 300 watt pull and then i was like oh my god why did i do that\"",
@@ -90,9 +103,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-31e468",
         "in": 159.2,
         "out": 167.0,
         "label": "\"is everyone here, i need to eat my gel in like two seconds\"",
@@ -100,9 +119,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-51a5b3",
         "in": 167.0,
         "out": 181.3,
         "label": "ride leader: let the truck by, roll easy, then back up to speed",
@@ -110,7 +135,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

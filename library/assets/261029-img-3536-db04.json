@@ -35,22 +35,36 @@
     "notes": "User confirmed: sub T = sub-threshold; ends with one down",
     "moments": [
       {
+        "id": "m-58c72f",
         "in": 0.4,
         "out": 4.0,
         "label": "today were doing 3x12 sub T",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       },
       {
+        "id": "m-9dc472",
         "in": 0.4,
         "out": 6.65,
         "label": "3x12 sub T, one down",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       }
     ],
     "sounds": []

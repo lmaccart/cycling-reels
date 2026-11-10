@@ -37,6 +37,7 @@
     "notes": "transcript says 4 by 8 of team — workout name unclear (tempo?), confirm before putting it on screen",
     "moments": [
       {
+        "id": "m-1cd1fa",
         "in": 0.2,
         "out": 2.4,
         "label": "garmin screen on the bars in the elevator",
@@ -44,16 +45,32 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "type": "bike-check"
+        "type": "bike-check",
+        "role": "setup",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false,
+        "thread": "road-to-5-ep1",
+        "beat": "setup"
       },
       {
+        "id": "m-29f4d7",
         "in": 1.8,
         "out": 7.9,
         "label": "selfie in the elevator: today we have 4 by 8, lets go",
         "score": 4,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": false,
+        "line": "plan",
+        "thread": "road-to-5-ep1",
+        "beat": "setup"
       }
     ],
     "sounds": []

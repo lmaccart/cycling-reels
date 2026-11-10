@@ -72,6 +72,7 @@
     },
     "moments": [
       {
+        "id": "m-03918d",
         "in": 0.0,
         "out": 12.0,
         "label": "snack chat: the waffle or the honey bun",
@@ -79,9 +80,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-8554fa",
         "in": 73.0,
         "out": 80.0,
         "label": "rider tucked on my wheel at speed",
@@ -89,9 +96,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-569867",
         "in": 163.0,
         "out": 170.0,
         "label": "rider right on my wheel, close",
@@ -99,9 +112,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-6f21df",
         "in": 376.0,
         "out": 384.0,
         "label": "rolling into the stop, bikes everywhere",
@@ -109,9 +128,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-e05838",
         "in": 387.0,
         "out": 400.0,
         "label": "'a little flat, do you want to inflate it'",
@@ -119,7 +144,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [
@@ -136,6 +166,56 @@
         "kind": "car",
         "score": 3,
         "note": "car horn toot at the stop, clean"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "stopped, riders in yellow-black and red kits"
+      },
+      {
+        "at": 35.0,
+        "label": "lamp post, rolling off"
+      },
+      {
+        "at": 70.0,
+        "label": "wide road, white line, grass and red fence"
+      },
+      {
+        "at": 176.0,
+        "label": "brick paving pattern"
+      },
+      {
+        "at": 208.0,
+        "label": "tree canopy over the road"
+      },
+      {
+        "at": 246.0,
+        "label": "sun flare through the trees, bike shadow"
+      },
+      {
+        "at": 286.0,
+        "label": "brick crossing, then brick walls and grass"
+      },
+      {
+        "at": 377.0,
+        "label": "stop line painted red"
+      },
+      {
+        "at": 390.0,
+        "label": "parking lot stop, bikes everywhere"
+      },
+      {
+        "at": 430.0,
+        "label": "grey SUV very close"
+      },
+      {
+        "at": 467.0,
+        "label": "rack, pile of bikes, a red Specialized"
+      },
+      {
+        "at": 477.0,
+        "label": "under a canopy, rider standing"
       }
     ]
   },

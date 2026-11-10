@@ -1,0 +1,8 @@
+{
+  "decisions": [
+    "user decision, 2026-11-09 conversation: at least 4 of every 7 reels are voice-led and at most 1 is a pure montage, because short ~10 s reels feel chopped without the rider talking or a real story. Voice-led reels may run 15-40 s; aud-length-01 (7-13 s) doesn't cap them, since its evidence came mostly from comparing against montages (recipes.md 'Start from the voice')"
+  ],
+  "proposals": [
+    "Nov 16 batch, before rendering: register the length test with ./reels review experiment, using that batch's real slugs (none exist yet, so it can't be registered now). Hypothesis: voice-led reels of 15-40 s hold watch-through as well as 7-13 s reels. One change: length of a voice-led reel. Test slugs: voice-led reels of 15-40 s. Control slugs: comparable voice-led reels of 7-13 s. primaryMetric: watchThrough. Disclose confounders; don't call a winner from a few reels (learning.md)"
+  ]
+}

@@ -63,6 +63,7 @@
     },
     "moments": [
       {
+        "id": "m-fe562e",
         "in": 2.0,
         "out": 9.0,
         "label": "group rolling off next to a city bus",
@@ -70,9 +71,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-795507",
         "in": 81.0,
         "out": 88.0,
         "label": "group strung out ahead, legs spinning",
@@ -80,9 +87,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d2f3a6",
         "in": 252.0,
         "out": 260.0,
         "label": "teammate in grey cruising right beside me, side-on",
@@ -90,9 +103,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d47382",
         "in": 476.0,
         "out": 482.0,
         "label": "picking up speed behind the group",
@@ -100,7 +119,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       }
     ],
     "sounds": [
@@ -110,6 +134,28 @@
         "kind": "freehub",
         "score": 3,
         "note": "short freehub run while coasting in the group, wind 0.02, no speech"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "rider in RICE kit beside a city bus at the roll-off"
+      },
+      {
+        "at": 25.0,
+        "label": "tower on the skyline"
+      },
+      {
+        "at": 125.0,
+        "label": "orange curb along the road"
+      },
+      {
+        "at": 226.0,
+        "label": "banners on a fence"
+      },
+      {
+        "at": 366.0,
+        "label": "digital sign at the intersection, white road"
       }
     ]
   },

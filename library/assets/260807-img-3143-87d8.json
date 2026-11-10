@@ -33,13 +33,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-a3db44",
         "in": 3.8,
         "out": 5.0,
         "label": "finally finds the camera",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },

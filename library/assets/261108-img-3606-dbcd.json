@@ -39,22 +39,34 @@
     "notes": "Selfie itself is only ~7.6-8.2 s inside a fast whip (blur either side). Line is audible at 3.5-4.9 and 6.0-7.0; Whisper stretches its word timings (it's 4.53-6.21) and is low-confidence on little/gray, so check against the audio before usin",
     "moments": [
       {
+        "id": "m-5433d3",
         "in": 0.3,
         "out": 3.2,
         "label": "bars over the bike-lane marking, camera lifts up the street",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d1e9fa",
         "in": 3.3,
         "out": 9.2,
         "label": "says little gray today, it's beautiful, then whips round to a huge grin",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": []

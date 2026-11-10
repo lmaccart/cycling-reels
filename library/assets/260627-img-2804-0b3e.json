@@ -33,13 +33,19 @@
     ],
     "moments": [
       {
+        "id": "m-aa6852",
         "in": 2.2,
         "out": 5.9,
         "label": "buddy riding the ridge, hills behind",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

@@ -36,22 +36,36 @@
     "notes": "6.2–7.6 s the phone swings to the road/bars",
     "moments": [
       {
+        "id": "m-aada71",
         "in": 0.0,
         "out": 3.0,
         "label": "thats two done, feeling good",
         "score": 5,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "result"
       },
       {
+        "id": "m-243d70",
         "in": 7.8,
         "out": 11.58,
         "label": "one left, lets make it happen",
         "score": 5,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "plan"
       }
     ],
     "sounds": []

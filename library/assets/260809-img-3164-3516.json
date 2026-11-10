@@ -33,22 +33,34 @@
     ],
     "moments": [
       {
+        "id": "m-d017d9",
         "in": 2.0,
         "out": 5.6,
         "label": "bike lane toward the skyline at dusk",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       },
       {
+        "id": "m-b5409d",
         "in": 5.8,
         "out": 8.4,
         "label": "river and skyline at dusk",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

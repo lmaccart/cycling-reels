@@ -72,6 +72,7 @@
     },
     "moments": [
       {
+        "id": "m-541aca",
         "in": 52.0,
         "out": 60.0,
         "label": "bikes squeezed into the elevator",
@@ -79,9 +80,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-e64bdd",
         "in": 104.0,
         "out": 112.0,
         "label": "out the door into the morning",
@@ -89,9 +96,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-17ff18",
         "in": 140.0,
         "out": 148.0,
         "label": "rolling under the oaks across campus",
@@ -99,9 +112,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d4080b",
         "in": 232.0,
         "out": 240.0,
         "label": "pull up to the meetup",
@@ -109,7 +128,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [

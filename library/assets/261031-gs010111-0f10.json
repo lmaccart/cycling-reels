@@ -63,6 +63,7 @@
     },
     "moments": [
       {
+        "id": "m-38283c",
         "in": 286.0,
         "out": 294.0,
         "label": "group waiting at the light, riders glancing at the camera",
@@ -70,9 +71,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-37b471",
         "in": 329.0,
         "out": 337.0,
         "label": "group rolls off from the light",
@@ -80,9 +87,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d99aca",
         "in": 379.0,
         "out": 386.0,
         "label": "fast on the open road, sunny, yellow lines",
@@ -90,9 +103,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-b098e8",
         "in": 410.0,
         "out": 417.0,
         "label": "fastest stretch on a wheel, open road",
@@ -100,9 +119,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-6656de",
         "in": 443.0,
         "out": 450.0,
         "label": "riders swap around just ahead at speed",
@@ -110,10 +135,41 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 15.0,
+        "label": "stopped at an intersection with yellow barrels"
+      },
+      {
+        "at": 45.0,
+        "label": "passes under a brown overhang, rider in white"
+      },
+      {
+        "at": 75.0,
+        "label": "open sunny road, long shadows"
+      },
+      {
+        "at": 266.0,
+        "label": "big yellow crane on the skyline"
+      },
+      {
+        "at": 280.0,
+        "label": "stopped at a crosswalk, group waiting"
+      },
+      {
+        "at": 350.0,
+        "label": "back on the open road, yellow lines"
+      }
+    ]
   },
   "transcript": "library/transcripts/261031-gs010111-0f10.json",
   "used": [],

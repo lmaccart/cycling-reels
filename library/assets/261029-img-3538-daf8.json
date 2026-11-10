@@ -34,13 +34,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-5af97b",
         "in": 0.0,
         "out": 1.0,
         "label": "quick look at the face mid-effort",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "suffering",
+        "opener": false
       }
     ],
     "sounds": []

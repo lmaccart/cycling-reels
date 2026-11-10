@@ -37,22 +37,34 @@
     "notes": "User confirmed 2026-10-30 it is fine to feature the roommate",
     "moments": [
       {
+        "id": "m-959308",
         "in": 0.0,
         "out": 3.0,
         "label": "walks in, bike wheel and door",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-036c9d",
         "in": 7.5,
         "out": 12.07,
         "label": "wakes the roommate: how are you sleepyhead",
         "score": 4,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": [

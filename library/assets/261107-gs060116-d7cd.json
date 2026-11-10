@@ -72,6 +72,7 @@
     },
     "moments": [
       {
+        "id": "m-014188",
         "in": 255.0,
         "out": 262.0,
         "label": "our shadows on the road",
@@ -79,9 +80,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-f69847",
         "in": 366.0,
         "out": 373.0,
         "label": "yellow-kit rider right alongside at speed",
@@ -89,9 +96,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-8e6497",
         "in": 476.0,
         "out": 482.5,
         "label": "'snack time'",
@@ -99,7 +112,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": [
@@ -109,6 +127,44 @@
         "kind": "freehub",
         "score": 3,
         "note": "freehub ticking as we coast into the stop, no wind"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "neighbourhood streets, lawns"
+      },
+      {
+        "at": 35.0,
+        "label": "sun, long shadow beside the bike"
+      },
+      {
+        "at": 125.0,
+        "label": "painted white hump across the road"
+      },
+      {
+        "at": 165.0,
+        "label": "shadow over the painted road"
+      },
+      {
+        "at": 195.0,
+        "label": "tan wall along the road"
+      },
+      {
+        "at": 266.0,
+        "label": "flower garden with red flowers on the left"
+      },
+      {
+        "at": 310.0,
+        "label": "tree canopy and sun flare"
+      },
+      {
+        "at": 400.0,
+        "label": "grass levee road, big sky"
+      },
+      {
+        "at": 478.0,
+        "label": "stopping at the top"
       }
     ]
   },

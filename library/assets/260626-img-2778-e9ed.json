@@ -33,13 +33,19 @@
     ],
     "moments": [
       {
+        "id": "m-cd8282",
         "in": 0.0,
         "out": 2.47,
         "label": "wheeling the bike bag through the airport",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

@@ -36,40 +36,67 @@
     "notes": "13:03 into the 11-06 Morning Ride. Transcript (medium.en, watch->watts fixed): \"today we are back on the track ... an hour easy, really really easy, literally like [two] watts per kilo 2.2 ... little windy today so we have to keep shifting\" User confirmed 11-06: \"literally like two watts per kilo... 2.2\" is right, OK to caption (the user said it). A VO is coming later today.",
     "moments": [
       {
+        "id": "m-57dae5",
         "in": 0.2,
         "out": 3.0,
         "label": "we are back on the track, face to camera against blue sky",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.4,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       },
       {
+        "id": "m-75d6ef",
         "in": 3.4,
         "out": 10.0,
         "label": "an hour easy, really really easy, watts per kilo line",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.45,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       },
       {
+        "id": "m-2ae5a4",
         "in": 13.5,
         "out": 17.5,
         "label": "phone drops to the Garmin and front wheel over the lane line",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-7e32b2",
         "in": 20.2,
         "out": 24.5,
         "label": "little windy today, have to keep shifting, looking up at the sky",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.4,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "complaint"
       }
     ],
     "sounds": [

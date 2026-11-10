@@ -38,22 +38,36 @@
     "notes": "Transcript clear (medium.en) except \"hours\" at 1.1 (p 0.03) — probably \"ours\"/filler, drop it from captions. Blurry swing around 2.0-2.8. Fits the post-ride/off-bike story with the 11-05 bathroom routine clips.",
     "moments": [
       {
+        "id": "m-e14a6a",
         "in": 0.2,
         "out": 2.0,
         "label": "thumbs up, ride is done",
         "score": 3,
         "focusX": 0.4,
         "focusY": 0.4,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "result"
       },
       {
+        "id": "m-3b4f33",
         "in": 3.3,
         "out": 9.15,
         "label": "just got the laundry out of the washing machine, gonna be a beautiful day",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.45,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       }
     ],
     "sounds": []

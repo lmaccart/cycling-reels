@@ -31,13 +31,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-cc7f57",
         "in": 0.4,
         "out": 1.47,
         "label": "turns to camera",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

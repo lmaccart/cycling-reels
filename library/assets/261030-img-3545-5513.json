@@ -37,40 +37,64 @@
     ],
     "moments": [
       {
+        "id": "m-f2077c",
         "in": 0.0,
         "out": 38.0,
         "label": "whole kit-up, good for a speed ramp",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-31bcd5",
         "in": 2.5,
         "out": 8.0,
         "label": "bib straps over the shoulders",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-24eb4b",
         "in": 11.0,
         "out": 17.0,
         "label": "pulls the jersey on",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-5c01e2",
         "in": 33.5,
         "out": 38.0,
         "label": "zips the jersey up and reaches for the camera",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [

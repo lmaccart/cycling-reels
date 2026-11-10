@@ -60,6 +60,7 @@
     },
     "moments": [
       {
+        "id": "m-7e9f33",
         "in": 0.0,
         "out": 3.0,
         "label": "crew at the stop, someone waves",
@@ -67,7 +68,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

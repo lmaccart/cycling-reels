@@ -61,6 +61,7 @@
     },
     "moments": [
       {
+        "id": "m-9ca933",
         "in": 104.0,
         "out": 110.0,
         "label": "on a wheel under the oaks",
@@ -68,9 +69,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-2338dd",
         "in": 124.0,
         "out": 130.0,
         "label": "sitting in, line of riders ahead",
@@ -78,9 +85,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-96a3c0",
         "in": 144.0,
         "out": 150.0,
         "label": "two riders ahead under the trees",
@@ -88,9 +101,35 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-5400aa",
+        "in": 201.6,
+        "out": 207.6,
+        "label": "\"we didn't know if it was gonna rain or not so you can't make a plan\", my face against the sky",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "honest",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-167c52",
         "in": 244.0,
         "out": 250.0,
         "label": "riders come past on both sides",
@@ -98,9 +137,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": true
       },
       {
+        "id": "m-4fd68e",
         "in": 445.0,
         "out": 451.0,
         "label": "paceline under big pines",
@@ -108,9 +153,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-e76f9b",
         "in": 475.0,
         "out": 481.0,
         "label": "group ahead around the bend",
@@ -118,7 +169,38 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "park road under oaks, teammate in blue alongside at the start"
+      },
+      {
+        "at": 105.0,
+        "label": "rider comes past on the right under the oaks"
+      },
+      {
+        "at": 190.0,
+        "label": "chatting while riding, rider's face in the sky from the bar cam (3:10-3:40)"
+      },
+      {
+        "at": 246.0,
+        "label": "two riders pass on either side"
+      },
+      {
+        "at": 342.0,
+        "label": "rider alongside on the long park-road straight, big clouds"
+      },
+      {
+        "at": 470.0,
+        "label": "yellow warning signs at the junction, pines both sides"
       }
     ]
   },

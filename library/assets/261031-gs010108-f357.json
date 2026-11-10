@@ -61,6 +61,7 @@
     },
     "moments": [
       {
+        "id": "m-6d172b",
         "in": 45.0,
         "out": 52.0,
         "label": "taking the bike down in the elevator",
@@ -68,9 +69,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-7f45af",
         "in": 76.0,
         "out": 82.0,
         "label": "rolls out of the lobby, freehub ticking",
@@ -78,9 +85,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-b678f5",
         "in": 145.0,
         "out": 152.0,
         "label": "oak-lined campus road trailing away behind at dawn",
@@ -88,9 +101,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-bd4cf4",
         "in": 148.0,
         "out": 154.0,
         "label": "pedalling leg and teal frame, road ahead under the oaks",
@@ -98,9 +117,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-57da04",
         "in": 183.0,
         "out": 192.0,
         "label": "pulls up at the brick arch meetup spot",
@@ -108,9 +133,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-3f1f5e",
         "in": 228.0,
         "out": 236.0,
         "label": "club riders rolling in to the meetup",
@@ -118,7 +149,28 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-918ebc",
+        "in": 316.0,
+        "out": 320.5,
+        "label": "\"if it's raining you don't have to go and then it wasn't raining\" at the brick building meetup",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [
@@ -135,6 +187,44 @@
         "kind": "freehub",
         "score": 4,
         "note": "clean freehub ratchet coasting out of the lobby, no wind, indoor quiet"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 4.0,
+        "label": "dark apartment, bike wheeled out"
+      },
+      {
+        "at": 15.0,
+        "label": "hallway, rider in blue"
+      },
+      {
+        "at": 45.0,
+        "label": "steel elevator ride down"
+      },
+      {
+        "at": 70.0,
+        "label": "lobby"
+      },
+      {
+        "at": 90.0,
+        "label": "campus paths under oaks at dawn"
+      },
+      {
+        "at": 185.0,
+        "label": "brick arch meetup spot"
+      },
+      {
+        "at": 205.0,
+        "label": "standing at the meetup, riders arrive"
+      },
+      {
+        "at": 317.0,
+        "label": "meetup chat in front of the big brick building"
+      },
+      {
+        "at": 345.0,
+        "label": "rider leans over the bike at the meetup"
       }
     ]
   },

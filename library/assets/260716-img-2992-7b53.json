@@ -31,13 +31,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-70755d",
         "in": 3.6,
         "out": 8.6,
         "label": "across the bridge, shadow on the barrier",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

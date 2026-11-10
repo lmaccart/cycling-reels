@@ -31,13 +31,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-25da04",
         "in": 0.0,
         "out": 3.4,
         "label": "garmin close-up mid-ride",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "proof",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

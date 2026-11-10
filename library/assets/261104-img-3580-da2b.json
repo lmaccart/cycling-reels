@@ -35,31 +35,49 @@
     ],
     "moments": [
       {
+        "id": "m-7bb446",
         "in": 4.5,
         "out": 9.0,
         "label": "pulling on the first shoe",
         "score": 2,
         "focusX": 0.45,
         "focusY": 0.35,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-312b23",
         "in": 16.0,
         "out": 22.0,
         "label": "cranking the Boa dial tight",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.35,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c8eccf",
         "in": 27.5,
         "out": 31.0,
         "label": "second shoe on",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.35,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [

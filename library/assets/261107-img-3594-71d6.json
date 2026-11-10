@@ -36,40 +36,64 @@
     "notes": "Speech: 'I'm just taking a video, hopefully the angle is good' (0:07); breakfast invite at 1:02. End of the 11-07 ride.",
     "moments": [
       {
+        "id": "m-81ed68",
         "in": 6.9,
         "out": 13.0,
         "label": "riders roll in and one cruises right past the lens",
         "score": 4,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-814643",
         "in": 24.5,
         "out": 30.5,
         "label": "two riders cross close to the camera as everyone gathers",
         "score": 3,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c1bd83",
         "in": 38.5,
         "out": 46.0,
         "label": "whole group lined up in front of the arch",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-24ab53",
         "in": 64.5,
         "out": 71.0,
         "label": "my front wheel rolls into frame and I grab the phone",
         "score": 3,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

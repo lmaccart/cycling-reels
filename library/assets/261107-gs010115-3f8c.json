@@ -71,6 +71,7 @@
     },
     "moments": [
       {
+        "id": "m-769ac8",
         "in": 25.0,
         "out": 31.0,
         "label": "group rolling under the oaks",
@@ -78,9 +79,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-0bf13e",
         "in": 296.0,
         "out": 302.0,
         "label": "riders alongside on a quiet street",
@@ -88,9 +95,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-29f627",
         "in": 356.0,
         "out": 362.0,
         "label": "cruising past houses with the group",
@@ -98,7 +111,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [
@@ -115,6 +133,36 @@
         "kind": "freehub",
         "score": 3,
         "note": "freehub ticking coasting, light wind"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 10.0,
+        "label": "campus oaks, teammate on an orange bike on the right"
+      },
+      {
+        "at": 95.0,
+        "label": "dark green car passes close on the left"
+      },
+      {
+        "at": 125.0,
+        "label": "big white road arrow and double yellow"
+      },
+      {
+        "at": 180.0,
+        "label": "stopped at a crosswalk, group chatting"
+      },
+      {
+        "at": 300.0,
+        "label": "neighbourhood streets, rider in red"
+      },
+      {
+        "at": 357.0,
+        "label": "fresh black asphalt patch"
+      },
+      {
+        "at": 387.0,
+        "label": "black car on the right"
       }
     ]
   },

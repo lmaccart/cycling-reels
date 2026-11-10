@@ -36,40 +36,70 @@
     ],
     "moments": [
       {
+        "id": "m-46b665",
         "in": 0.9,
         "out": 7.7,
         "label": "says this video should show the whole workout",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       },
       {
+        "id": "m-b1c19f",
         "in": 8.5,
         "out": 10.5,
         "label": "hand on the bar top, road rushing past",
         "score": 2,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-344797",
         "in": 11.7,
         "out": 19.0,
         "label": "warm-up done, a little rest then intervals",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan",
+        "thread": "road-to-5-ep1",
+        "beat": "setup"
       },
       {
+        "id": "m-34155a",
         "in": 20.2,
         "out": 22.6,
         "label": "big grin: lets get it baby",
         "score": 5,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "reaction",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": false,
+        "thread": "road-to-5-ep1",
+        "beat": "setup"
       }
     ],
     "sounds": []

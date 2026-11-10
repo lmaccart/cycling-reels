@@ -1,124 +1,152 @@
 {
- "id": "261104-img-3577-adbd",
- "kind": "video",
- "media": "library/media/261104-img-3577-adbd.mov",
- "originalName": "IMG_3577.mov",
- "hash": "adbd632cff6fdc535f063a1e3d077de034db5899",
- "created": "2026-11-04T06:52:14",
- "ingestedAt": "2026-11-04T15:08:13+00:00",
- "probe": {
-  "duration": 22.752,
-  "width": 2160,
-  "height": 3840,
-  "fps": 59.996,
-  "rotation": 0,
-  "vcodec": "h264",
-  "pixFmt": "yuvj420p",
-  "hdr": false,
-  "colorTransfer": "bt709",
-  "hasAudio": true,
-  "acodec": "aac",
-  "created": "2026-11-04T06:52:14-06:00"
- },
- "status": "tagged",
- "tags": {
-  "type": "talking",
-  "shot": "selfie",
-  "quality": 4,
-  "issues": [],
-  "people": "me",
-  "summary": "Selfie to camera under blue morning sky before the ride: 6:52 a.m., two hours zone two, complaining about the cold",
-  "hooks": [
-   "6:52 a.m. and it is so cold",
-   "two hours of zone two. send help",
-   "it is so chilly"
-  ],
-  "notes": "Transcript (medium.en) fixed: 652->6:52, Rice->Ride, removed hallucinated 'subscribe' tail after 22.0. 17.6-18.6 'yeah today's gonna be a good day' is lower confidence (user confirmed no Spanish). Swear at 13.8-14.3: user OK'd bleeping it.",
-  "moments": [
-   {
-    "in": 0.3,
-    "out": 4.0,
-    "label": "bright and early 6:52 a.m.",
-    "score": 4,
-    "focusX": 0.5,
-    "focusY": 0.4,
-    "speech": true
-   },
-   {
-    "in": 10.3,
-    "out": 12.2,
-    "label": "we have got two hours zone two today",
-    "score": 4,
-    "focusX": 0.5,
-    "focusY": 0.4,
-    "speech": true
-   },
-   {
-    "in": 13.0,
-    "out": 16.4,
-    "label": "it is so cold, so chilly (swear at 13.7)",
-    "score": 4,
-    "focusX": 0.5,
-    "focusY": 0.4,
-    "speech": true
-   },
-   {
-    "in": 17.4,
-    "out": 22.1,
-    "label": "today's gonna be a good day, see y'all out there",
-    "score": 3,
-    "focusX": 0.5,
-    "focusY": 0.4,
-    "speech": true
-   }
-  ],
-  "sounds": []
- },
- "transcript": "library/transcripts/261104-img-3577-adbd.json",
- "used": [],
- "audio": {
-  "volume": {
-   "meanDb": -23.3,
-   "peakDb": -1.7
+  "id": "261104-img-3577-adbd",
+  "kind": "video",
+  "media": "library/media/261104-img-3577-adbd.mov",
+  "originalName": "IMG_3577.mov",
+  "hash": "adbd632cff6fdc535f063a1e3d077de034db5899",
+  "created": "2026-11-04T06:52:14",
+  "ingestedAt": "2026-11-04T15:08:13+00:00",
+  "probe": {
+    "duration": 22.752,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.996,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-04T06:52:14-06:00"
   },
-  "speechSeconds": 18.04,
-  "speechRanges": [
-   [
-    0.54,
-    3.66
-   ],
-   [
-    5.08,
-    7.82
-   ],
-   [
-    8.44,
-    9.83
-   ],
-   [
-    10.26,
-    12.33
-   ],
-   [
-    12.95,
-    16.55
-   ],
-   [
-    16.89,
-    18.98
-   ],
-   [
-    19.42,
-    21.1
-   ],
-   [
-    21.4,
-    22.75
-   ]
-  ]
- },
- "sheets": [
-  "library/sheets/261104-img-3577-adbd.jpg"
- ],
- "taggedAt": "2026-11-04T15:09:21+00:00"
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Selfie to camera under blue morning sky before the ride: 6:52 a.m., two hours zone two, complaining about the cold",
+    "hooks": [
+      "6:52 a.m. and it is so cold",
+      "two hours of zone two. send help",
+      "it is so chilly"
+    ],
+    "notes": "Transcript (medium.en) fixed: 652->6:52, Rice->Ride, removed hallucinated 'subscribe' tail after 22.0. 17.6-18.6 'yeah today's gonna be a good day' is lower confidence (user confirmed no Spanish). Swear at 13.8-14.3: user OK'd bleeping it.",
+    "moments": [
+      {
+        "id": "m-2848c1",
+        "in": 0.3,
+        "out": 4.0,
+        "label": "bright and early 6:52 a.m.",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.4,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      },
+      {
+        "id": "m-07242b",
+        "in": 10.3,
+        "out": 12.2,
+        "label": "we have got two hours zone two today",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.4,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      },
+      {
+        "id": "m-97dde6",
+        "in": 13.0,
+        "out": 16.4,
+        "label": "it is so cold, so chilly (swear at 13.7)",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.4,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": true,
+        "line": "complaint"
+      },
+      {
+        "id": "m-21d41d",
+        "in": 17.4,
+        "out": 22.1,
+        "label": "today's gonna be a good day, see y'all out there",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.4,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261104-img-3577-adbd.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -23.3,
+      "peakDb": -1.7
+    },
+    "speechSeconds": 18.04,
+    "speechRanges": [
+      [
+        0.54,
+        3.66
+      ],
+      [
+        5.08,
+        7.82
+      ],
+      [
+        8.44,
+        9.83
+      ],
+      [
+        10.26,
+        12.33
+      ],
+      [
+        12.95,
+        16.55
+      ],
+      [
+        16.89,
+        18.98
+      ],
+      [
+        19.42,
+        21.1
+      ],
+      [
+        21.4,
+        22.75
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261104-img-3577-adbd.jpg"
+  ],
+  "taggedAt": "2026-11-04T15:09:21+00:00"
 }

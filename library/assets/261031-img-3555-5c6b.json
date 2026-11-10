@@ -33,22 +33,34 @@
     ],
     "moments": [
       {
+        "id": "m-0f6f24",
         "in": 1.8,
         "out": 5.0,
         "label": "pan across the pile of bikes outside",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "texture",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-5e538d",
         "in": 5.0,
         "out": 9.3,
         "label": "team at the outdoor table eating, someone says \"thats so funny\"",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": []

@@ -36,6 +36,7 @@
     "notes": "Filmed 91:55 into the 2026-11-09 Strava ride. No clean ride sounds. Parked white SUV in frame at about 2-4 s, nobody identifiable.",
     "moments": [
       {
+        "id": "m-f7827e",
         "in": 2.4,
         "out": 5.6,
         "label": "camera lifts off the bars across the park and oaks under a moody sky",
@@ -43,16 +44,27 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "type": "scenery"
+        "type": "scenery",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-9cd6f6",
         "in": 5.8,
         "out": 7.7,
         "label": "rolls into a sweeping bend with posts and arrow signs",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

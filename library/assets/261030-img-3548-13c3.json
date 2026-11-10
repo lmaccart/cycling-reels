@@ -34,13 +34,20 @@
     ],
     "moments": [
       {
+        "id": "m-1f93bb",
         "in": 0.1,
         "out": 3.6,
         "label": "ride done, time to wake up my roommate",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": true,
+        "line": "plan"
       }
     ],
     "sounds": []

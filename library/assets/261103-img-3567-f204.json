@@ -35,13 +35,21 @@
     ],
     "moments": [
       {
+        "id": "m-3c6317",
         "in": 0.3,
         "out": 4.0,
         "label": "rolls across the intersection off the green lane",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false,
+        "thread": "road-to-5-ep1",
+        "beat": "effort"
       }
     ],
     "sounds": []

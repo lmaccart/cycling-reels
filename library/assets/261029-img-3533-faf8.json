@@ -36,40 +36,64 @@
     "notes": "Shirtless for the first ~8 s; no audio worth using",
     "moments": [
       {
+        "id": "m-c3e335",
         "in": 8.5,
         "out": 16.0,
         "label": "pulls the red jersey on",
         "score": 4,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-37c327",
         "in": 16.5,
         "out": 24.0,
         "label": "jersey settled, grabs the socks",
         "score": 3,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c39e20",
         "in": 26.0,
         "out": 35.5,
         "label": "socks on, standing up",
         "score": 3,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c85d94",
         "in": 37.0,
         "out": 41.0,
         "label": "leans into frame to stop the recording",
         "score": 3,
         "focusX": 0.75,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

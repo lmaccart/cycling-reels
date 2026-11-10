@@ -69,6 +69,7 @@
     },
     "moments": [
       {
+        "id": "m-db4661",
         "in": 78.0,
         "out": 85.0,
         "label": "group easing through a neighborhood",
@@ -76,7 +77,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [

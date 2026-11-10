@@ -72,6 +72,7 @@
     },
     "moments": [
       {
+        "id": "m-ef925b",
         "in": 10.0,
         "out": 17.0,
         "label": "flat out on an empty road, long shadow",
@@ -79,9 +80,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-a85242",
         "in": 17.0,
         "out": 24.0,
         "label": "legs spinning at full speed",
@@ -89,9 +96,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "legs"
+        "view": "legs",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-b934fc",
         "in": 96.0,
         "out": 103.0,
         "label": "riders come up on my right",
@@ -99,9 +112,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-56c072",
         "in": 115.0,
         "out": 121.0,
         "label": "rolling with the group in the sun",
@@ -109,10 +128,41 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 10.0,
+        "label": "alone on an empty road, low sun, long shadow"
+      },
+      {
+        "at": 96.0,
+        "label": "group comes into view and catches up"
+      },
+      {
+        "at": 135.0,
+        "label": "paceline along a green belt road"
+      },
+      {
+        "at": 196.0,
+        "label": "power tower and orange paint on the road"
+      },
+      {
+        "at": 296.0,
+        "label": "traffic lights at an intersection"
+      },
+      {
+        "at": 478.0,
+        "label": "stop, group around, rider in blue close"
+      }
+    ]
   },
   "transcript": "library/transcripts/261107-gs010116-3bc9.json",
   "used": [

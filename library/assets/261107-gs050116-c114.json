@@ -73,6 +73,7 @@
     },
     "moments": [
       {
+        "id": "m-9c651c",
         "in": 70.0,
         "out": 76.0,
         "label": "'do not s*** on my new england boys like that'",
@@ -80,9 +81,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-94d042",
         "in": 123.0,
         "out": 129.0,
         "label": "rider pulls past in perfect side profile",
@@ -90,9 +97,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": true
       },
       {
+        "id": "m-e9a3ad",
         "in": 161.0,
         "out": 168.0,
         "label": "fastest stretch of the clip",
@@ -100,9 +113,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-5771c5",
         "in": 233.0,
         "out": 240.0,
         "label": "group bunches up behind",
@@ -110,10 +129,49 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "sunny road with grass, teammates ahead"
+      },
+      {
+        "at": 60.0,
+        "label": "stop, silver car crossing, cars passing"
+      },
+      {
+        "at": 95.0,
+        "label": "fast wide road, white line, grass verge"
+      },
+      {
+        "at": 226.0,
+        "label": "dark car on the left"
+      },
+      {
+        "at": 245.0,
+        "label": "big long shadows on the road"
+      },
+      {
+        "at": 296.0,
+        "label": "tan brick apartment building"
+      },
+      {
+        "at": 367.0,
+        "label": "bike symbol painted on the road"
+      },
+      {
+        "at": 437.0,
+        "label": "white fence"
+      }
+    ]
   },
   "transcript": "library/transcripts/261107-gs050116-c114.json",
   "used": [

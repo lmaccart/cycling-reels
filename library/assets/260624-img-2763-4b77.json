@@ -34,31 +34,49 @@
     ],
     "moments": [
       {
+        "id": "m-1dbf51",
         "in": 0.3,
         "out": 4.3,
         "label": "shadow rider on an empty road, fields and blue sky",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-13679e",
         "in": 8.6,
         "out": 12.6,
         "label": "pov over the bars chasing my own shadow",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-6d7908",
         "in": 13.0,
         "out": 15.77,
         "label": "tilted selfie, big grin, sky behind",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "reaction",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },

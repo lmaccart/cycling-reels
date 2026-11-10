@@ -71,6 +71,7 @@
     },
     "moments": [
       {
+        "id": "m-75302d",
         "in": 45.0,
         "out": 56.0,
         "label": "a rider rolls in next to my bike",
@@ -78,9 +79,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-b158b6",
         "in": 420.0,
         "out": 428.0,
         "label": "grab the bike and roll out",
@@ -88,10 +95,41 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "bike leaning under an awning, red bollard, tree beyond"
+      },
+      {
+        "at": 50.0,
+        "label": "rider walks in"
+      },
+      {
+        "at": 300.0,
+        "label": "rider walks in again"
+      },
+      {
+        "at": 417.0,
+        "label": "hand on the saddle, RICE OWLS jersey, bike picked up"
+      },
+      {
+        "at": 427.0,
+        "label": "fire lane paint, bikes under cover"
+      },
+      {
+        "at": 470.0,
+        "label": "rider walking past the parked bikes"
+      }
+    ]
   },
   "transcript": null,
   "used": [],
@@ -133,5 +171,11 @@
   },
   "createdCamera": "2026-11-07T08:37:19",
   "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
-  "taggedAt": "2026-11-07T18:53:56+00:00"
+  "taggedAt": "2026-11-07T18:53:56+00:00",
+  "pruneReview": {
+    "verdict": "candidate",
+    "reason": "Static bike leaning under an awning for about 7 of its 8 minutes, then a brief pickup and roll-off. No speech detected, no usable moments above score 2, stop and arrival already covered in gs070116",
+    "at": "2026-11-09T22:57:23+00:00",
+    "waiting": "recent"
+  }
 }

@@ -31,22 +31,34 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-868aef",
         "in": 1.0,
         "out": 3.6,
         "label": "group up the road ahead",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-ec83aa",
         "in": 3.8,
         "out": 4.8,
         "label": "selfie with a buddy behind me",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },

@@ -37,15 +37,25 @@
     "notes": "contains a swear at ~1.1s; middle of transcript (gonna stress) unclear",
     "moments": [
       {
+        "id": "m-e0366c",
         "in": 0.0,
         "out": 3.9,
         "label": "that was 348 (swears) out of breath",
         "score": 4,
         "focusX": 0.75,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "suffering",
+        "opener": true,
+        "line": "result",
+        "thread": "road-to-5-ep1",
+        "beat": "effort"
       },
       {
+        "id": "m-ae3c9d",
         "in": 6.8,
         "out": 8.6,
         "label": "phone swings down, road blur",
@@ -53,18 +63,33 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "type": "solo-ride"
+        "type": "solo-ride",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-33226e",
         "in": 9.5,
         "out": 11.9,
         "label": "at least its pretty, im suffering",
         "score": 5,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "suffering",
+        "opener": true,
+        "line": "complaint",
+        "thread": "road-to-5-ep1",
+        "beat": "effort"
       },
       {
+        "id": "m-69ffb6",
         "in": 11.8,
         "out": 13.1,
         "label": "tree-lined park road ahead",
@@ -72,7 +97,12 @@
         "focusX": 0.6,
         "focusY": 0.5,
         "speech": false,
-        "type": "scenery"
+        "type": "scenery",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

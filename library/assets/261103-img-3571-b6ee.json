@@ -36,13 +36,19 @@
     "notes": "lens looks hazy/smudged",
     "moments": [
       {
+        "id": "m-3708d4",
         "in": 0.0,
         "out": 1.7,
         "label": "bike resting against the tree",
         "score": 3,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

@@ -37,33 +37,54 @@
     "notes": "Line at 10.8-11.7 s corrected by the user (\"20 minutes will be coming pretty soon\"). The first \"zone\" at 16.9 s was low confidence; confirm before captioning that part. Filmed 26:54 into the 2026-11-09 Strava ride.",
     "moments": [
       {
+        "id": "m-836fa9",
         "in": 3.6,
         "out": 8.0,
         "label": "warm-up done, we are doing 2x20 today, to camera",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       },
       {
+        "id": "m-c47a47",
         "in": 8.0,
         "out": 14.4,
         "label": "20 minutes will be coming pretty soon, then another 20, to camera under the trees",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       },
       {
+        "id": "m-94beb3",
         "in": 14.5,
         "out": 16.5,
         "label": "head back, eyes closed, breathing before the effort",
         "score": 4,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "suffering",
+        "opener": false
       },
       {
+        "id": "m-780aeb",
         "in": 16.7,
         "out": 21.0,
         "label": "phone drops to the Garmin and cockpit while calling out easy zones",
@@ -71,9 +92,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "type": "solo-ride"
+        "type": "solo-ride",
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-3a16cf",
         "in": 22.4,
         "out": 24.2,
         "label": "pulls wide over the bars, and we will be back at it",
@@ -81,7 +108,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "type": "solo-ride"
+        "type": "solo-ride",
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

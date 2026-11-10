@@ -69,6 +69,7 @@
     },
     "moments": [
       {
+        "id": "m-2f6bd9",
         "in": 0.4,
         "out": 8.0,
         "label": "chatting with the group at the stop",
@@ -76,9 +77,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-54cd10",
         "in": 44.0,
         "out": 52.0,
         "label": "riders milling around the bikes",
@@ -86,7 +93,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

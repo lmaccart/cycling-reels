@@ -33,22 +33,34 @@
     ],
     "moments": [
       {
+        "id": "m-2e22b5",
         "in": 0.3,
         "out": 2.6,
         "label": "teal bike against the wall, pan to the group",
         "score": 3,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-2fe22a",
         "in": 3.0,
         "out": 5.5,
         "label": "rider in teal kit refuelling at the stop",
         "score": 3,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

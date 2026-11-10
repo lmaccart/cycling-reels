@@ -60,6 +60,7 @@
     },
     "moments": [
       {
+        "id": "m-51de7f",
         "in": 5.0,
         "out": 11.0,
         "label": "road ahead past a crossroads sign",
@@ -67,9 +68,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-f3b000",
         "in": 36.0,
         "out": 44.0,
         "label": "under the oak canopy, rider up the road",
@@ -77,9 +84,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c90513",
         "in": 70.0,
         "out": 76.0,
         "label": "rolling up to the group",
@@ -87,7 +100,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

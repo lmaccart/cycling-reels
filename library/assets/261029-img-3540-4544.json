@@ -35,13 +35,19 @@
     "notes": "Talking: lets go lets go, no no not yet not yet",
     "moments": [
       {
+        "id": "m-aba174",
         "in": 15.0,
         "out": 17.4,
         "label": "bars, computer and wet road",
         "score": 2,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

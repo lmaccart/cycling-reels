@@ -36,31 +36,49 @@
     "notes": "Filmed 10:13, about an hour after the 11-05 Morning Ride ended. ~2s of sound at the start is toothbrush noise; the Whisper transcript is the fake keyterm list, do not use captions:transcript. Ride distance only via strava: stats.",
     "moments": [
       {
+        "id": "m-eb2ad6",
         "in": 0.5,
         "out": 7.5,
         "label": "brushing teeth, looking down at the camera",
         "score": 3,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-67f430",
         "in": 9.0,
         "out": 13.0,
         "label": "leans into the lens mid-brush",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-50e581",
         "in": 20.5,
         "out": 28.0,
         "label": "brushes hair back, fixes it by hand",
         "score": 3,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

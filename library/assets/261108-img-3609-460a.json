@@ -37,40 +37,64 @@
     "notes": "'Drake' at 0:21 is low confidence (Whisper); don't put the name on screen.",
     "moments": [
       {
+        "id": "m-4fce0e",
         "in": 1.9,
         "out": 7.0,
         "label": "swinging up close past the camera",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.55,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-53e257",
         "in": 20.5,
         "out": 25.9,
         "label": "getting higher right now, i'm too fast, ah sh**",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.55,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-e66630",
         "in": 27.4,
         "out": 33.0,
         "label": "he's still higher, how is he getting so high",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.55,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-ee4f59",
         "in": 39.9,
         "out": 44.7,
         "label": "i'm like all up in there, what, oh he is",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.55,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": []

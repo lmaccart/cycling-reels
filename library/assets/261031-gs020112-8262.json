@@ -64,6 +64,23 @@
     },
     "moments": [
       {
+        "id": "m-205d33",
+        "in": 18.4,
+        "out": 22.1,
+        "label": "\"i believe you're not, but i still need to verify this fact\", yellow bike under a huge sky at the stop",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-379bb0",
         "in": 45.4,
         "out": 51.0,
         "label": "\"alright lets roll\" - group clips in and rolls off",
@@ -71,9 +88,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c47b8f",
         "in": 58.9,
         "out": 70.5,
         "label": "someone singing shine bright like a diamond while we ride",
@@ -81,9 +104,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-f6cfc8",
         "in": 129.0,
         "out": 141.5,
         "label": "sprint recap: \"started from the back, saw him go and tried to get around... perfect\"",
@@ -91,9 +120,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-102869",
         "in": 304.0,
         "out": 311.0,
         "label": "group shadows stretched across the road in the sun",
@@ -101,9 +136,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-923eff",
         "in": 416.0,
         "out": 423.0,
         "label": "rolling back into the city under tall buildings",
@@ -111,7 +152,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [
@@ -121,6 +167,44 @@
         "kind": "freehub",
         "score": 3,
         "note": "freehub ticking in the pack, evenly spaced clicks, wind 0.03, no speech; group still pedalling so modest"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "stopped regroup under a huge sky"
+      },
+      {
+        "at": 55.0,
+        "label": "rolling again, sky and clouds"
+      },
+      {
+        "at": 125.0,
+        "label": "stopped at a light"
+      },
+      {
+        "at": 147.0,
+        "label": "under a dark overhead structure, concrete overpass after"
+      },
+      {
+        "at": 190.0,
+        "label": "shaded tree-lined roads begin"
+      },
+      {
+        "at": 366.0,
+        "label": "tall buildings ahead"
+      },
+      {
+        "at": 377.0,
+        "label": "RICE riders stopped at a corner"
+      },
+      {
+        "at": 407.0,
+        "label": "big glass building"
+      },
+      {
+        "at": 467.0,
+        "label": "crosswalk markings at the end"
       }
     ]
   },

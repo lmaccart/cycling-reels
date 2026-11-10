@@ -36,31 +36,52 @@
     "notes": "User confirmed: the 160 is heart rate (bpm) — OK to use as stated",
     "moments": [
       {
+        "id": "m-0ba47d",
         "in": 0.5,
         "out": 9.0,
         "label": "three by twelve feels pretty good, made it happen",
         "score": 5,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "result"
       },
       {
+        "id": "m-fa8339",
         "in": 9.8,
         "out": 14.2,
         "label": "dont think Im too high, felt like 160",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "result"
       },
       {
+        "id": "m-ee1283",
         "in": 17.2,
         "out": 20.4,
         "label": "time for some cool down and then back to school",
         "score": 5,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       }
     ],
     "sounds": []

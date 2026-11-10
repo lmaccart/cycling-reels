@@ -72,6 +72,7 @@
     },
     "moments": [
       {
+        "id": "m-030c5c",
         "in": 175.0,
         "out": 186.0,
         "label": "the group bunches up at the light",
@@ -79,9 +80,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-09ad06",
         "in": 266.0,
         "out": 273.0,
         "label": "riders sitting right on my wheel at speed",
@@ -89,9 +96,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-021633",
         "in": 301.0,
         "out": 307.0,
         "label": "fastest stretch of the clip",
@@ -99,9 +112,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-13964e",
         "in": 388.0,
         "out": 396.0,
         "label": "'every bridge up is a sprint zone' 'oh it's on'",
@@ -109,10 +128,53 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind"
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "white building, paceline with an orange bike"
+      },
+      {
+        "at": 85.0,
+        "label": "orange marker painted on the road"
+      },
+      {
+        "at": 125.0,
+        "label": "road with a guardrail"
+      },
+      {
+        "at": 175.0,
+        "label": "stopped at the crosswalk, group bunches up"
+      },
+      {
+        "at": 266.0,
+        "label": "wide road under clouds, riders in green and red alongside"
+      },
+      {
+        "at": 350.0,
+        "label": "stopping, red car, cars passing"
+      },
+      {
+        "at": 372.0,
+        "label": "\"it's a 360 too\" chat at the stop"
+      },
+      {
+        "at": 417.0,
+        "label": "under a white overpass arch"
+      },
+      {
+        "at": 437.0,
+        "label": "bike shadow on the road, tall grass"
+      }
+    ]
   },
   "transcript": "library/transcripts/261107-gs030116-789a.json",
   "used": [

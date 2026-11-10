@@ -36,13 +36,19 @@
     ],
     "moments": [
       {
+        "id": "m-5d3255",
         "in": 9.6,
         "out": 13.58,
         "label": "hands on the hoods, computer and path rolling by",
         "score": 3,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

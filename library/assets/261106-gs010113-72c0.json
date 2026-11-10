@@ -62,22 +62,34 @@
     },
     "moments": [
       {
+        "id": "m-be3431",
         "in": 0.4,
         "out": 6.5,
         "label": "here is what we were doing before the long ride",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-ebb8f0",
         "in": 14.0,
         "out": 17.5,
         "label": "good morning america",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": []
