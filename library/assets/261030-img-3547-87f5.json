@@ -37,13 +37,20 @@
     ],
     "moments": [
       {
+        "id": "m-8e022c",
         "in": 0.6,
         "out": 10.7,
         "label": "line to camera: out early before the sun, nothing better",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
       }
     ],
     "sounds": []

@@ -70,6 +70,7 @@
     },
     "moments": [
       {
+        "id": "m-7b1538",
         "in": 56.0,
         "out": 64.0,
         "label": "teammate in blue tucked on my wheel, face-on, fields behind",
@@ -77,9 +78,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "wheel"
+        "view": "wheel",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": true
       },
       {
+        "id": "m-179812",
         "in": 56.0,
         "out": 64.0,
         "label": "my shadow pedalling along the road beside me",
@@ -87,9 +94,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "shadow"
+        "view": "shadow",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-c4d43f",
         "in": 252.0,
         "out": 260.0,
         "label": "white-helmet teammate on my wheel, sunny open road",
@@ -97,9 +110,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "wheel"
+        "view": "wheel",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-c9f938",
         "in": 302.0,
         "out": 310.0,
         "label": "fastest stretch, wheel ahead, yellow lines flying",
@@ -107,9 +126,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-d0d07e",
         "in": 412.0,
         "out": 419.0,
         "label": "shadow riding along the yellow line",
@@ -117,10 +142,45 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "shadow"
+        "view": "shadow",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "sunny open road, double yellow"
+      },
+      {
+        "at": 95.0,
+        "label": "rider in blue passes on the left, long shadows"
+      },
+      {
+        "at": 150.0,
+        "label": "group close, rider in green on an orange bike on the right"
+      },
+      {
+        "at": 190.0,
+        "label": "tan road with double yellow"
+      },
+      {
+        "at": 250.0,
+        "label": "rider in blue close behind"
+      },
+      {
+        "at": 407.0,
+        "label": "orange bike rider again"
+      },
+      {
+        "at": 467.0,
+        "label": "riders in blue pass"
+      }
+    ]
   },
   "transcript": null,
   "used": [

@@ -35,13 +35,19 @@
     ],
     "moments": [
       {
+        "id": "m-6f1ced",
         "in": 0.3,
         "out": 3.4,
         "label": "carrying the wheel down the sidewalk",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

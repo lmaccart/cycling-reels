@@ -35,22 +35,34 @@
     ],
     "moments": [
       {
+        "id": "m-40bf5d",
         "in": 2.4,
         "out": 4.0,
         "label": "rider alongside in low golden sun through trees",
         "score": 4,
         "focusX": 0.35,
         "focusY": 0.6,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-7ba566",
         "in": 2.4,
         "out": 5.99,
         "label": "swing to rider then back to bars, says wait no way",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": []

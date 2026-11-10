@@ -10,6 +10,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | --- | --- | --- | --- |
 | `slug` | yes | file name | lowercase letters, digits, dashes; becomes the `out/` folder name |
 | `postDate` | no | – | `YYYY-MM-DD` the reel is meant for; `./reels queue` honours it when that slot is free |
+| `spine` | no (`check` warns) | – | What carries the reel: `voice`, `story`, `sound` or `trend`. See **Spine** below |
 | `format` | no | – | Free-text recipe name from [recipes.md](recipes.md), e.g. `"pov-joke"`, `"beat-edit"`; `./reels stats` groups performance by it (shown as "—" when missing) |
 | `hook` | no | – | `"text"` or `{"text", "style", "position", "seconds"}`. Upper third by default (`position: "center"` also works). Stays up ~0.28 s per word (2.6–4.5 s) unless `seconds` is set |
 | `segments` | yes | – | Played in order (see below) |
@@ -25,6 +26,23 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | `post` | for queueing | – | `{"caption": "...", "hashtags": ["#cycling", ...], "altText": "...", "firstComment": "...", "collaborators": ["@club"], "peopleTags": ["@friend"]}`; a music credit is appended automatically when the track has one. `collaborators` (≤ 5) = an Instagram Collab: the reel shows on their profile and to their followers too, once each accepts the invite in the app; `peopleTags` = people tagged on the reel (they're notified). Only handles the user gave you and only people who are in it or agreed — never guess a handle |
 
 **Text styles** (`style` on hook, text beats and end card): `light` = black text on a white box (TikTok's classic), `dark` = white text on a black box, `plain` = white text with an outline. Default comes from config `brand.textStyle`. Text appears exactly as written — write it in lowercase if that's how it should look. `*asterisks*` are ignored. One emoji is fine.
+
+## Spine
+
+Say what the reel is carried by. Decide this first: voice and story reels start from the line or the story, and the footage is cut under it ([recipes.md](recipes.md#start-from-the-voice)).
+
+| Value | Means |
+| --- | --- |
+| `voice` | Carried by a spoken line from the rider |
+| `story` | A setup, a turn and a payoff a stranger could retell in a sentence |
+| `sound` | A real sound event, like the train horn |
+| `trend` | A trend format |
+
+Any other value is an error. `./reels check` warns (old plans still render) when:
+
+- `spine` is missing;
+- `spine` is `voice` but the rider's voice share is under 30%. It's the same `voiceShare` as `lineage.json` ([analytics.md](analytics.md)): unmuted time on segments tagged `speaker: me` and either `role: voice` or `captions: "transcript"`, counted through their cutaways, over the reel's length. Teammates, unknown speakers, missing audio and audio disabled by speed or volume don't count;
+- a batch of exactly 7 plans passed to one `./reels check` has fewer than 4 `spine: voice` reels, or more than 1 reel that has no spine or is a pure montage (`format` `ride-montage` or `beat-edit`). The check only runs on 7, so pass the week's seven without a bonus reel.
 
 ## Music
 
@@ -49,7 +67,7 @@ A track added with `--instagram` (a trending song, see [music.md](music.md)) is 
 | Field | Default | Notes |
 | --- | --- | --- |
 | `asset` | – | Asset id (a unique prefix works, e.g. `"gx010042"`) |
-| `moment` | – | Index of a tagged moment — fills `in`, `out`, `focusX`, `focusY` |
+| `moment` | – | Stable moment id from `./reels show`, e.g. `"m-1a2b3c"` — fills `in`, `out`, `focusX`, `focusY`. Legacy numeric indexes still work, but use ids for new plans so reordering tags cannot change the shot |
 | `in`, `out` | from moment | Seconds in the source |
 | `speed` | 1 | 0.25–4. 0.5 = slow motion (best from 60 fps footage); 2 = sped up. Clip audio is dropped outside 0.5–2 |
 | `frame` | `crop` | `crop` = fill 9:16 around `focusX`; `blurfill` = whole landscape frame over a blurred copy of itself (wide scenery, group shots); `fit` = black bars |
@@ -279,11 +297,14 @@ Preview any framing before rendering: `./reels frames <id> --view rider --at 140
 - **mostly-fade edits** (more than half the cuts, at least two) — they read as a slideshow;
 - **5 s or more where nothing changes on screen** — no cut, cutaway, punch-in, 360 keyframe, caption page, text beat, hook exit or nat window (fine for a deliberate held view);
 - **speech captions cutting into a word**: an `in` inside a word shows a stray half-word caption, an `out` inside one clips it (with the time to move to), and **low-confidence transcript words** (often wind);
-- **footage another reel already shows** (rendered, not discarded) — followers notice repeats.
+- **footage another reel already shows** (rendered, not discarded) — followers notice repeats;
+- **a missing or under-voiced `spine`**, and a 7-reel batch that misses the weekly mix — see [Spine](#spine).
+
+A plan that uses footage deleted by `./reels prune` is an error, not a warning, in both `check` and `render`.
 
 ## Timing tips
 
-- Total length 7–30 s performs best; the CLI warns under 5 s and over 90 s.
+- Total length 7–30 s performs best; the CLI warns under 5 s and over 90 s. Voice-led reels may run 15–40 s ([recipes.md](recipes.md#start-from-the-voice)).
 - The first segment should already be moving while the hook is up.
 - Text beats need ~0.3 s per word to read; 2–3 s each.
 - With `cutOnBeat`, plan lengths in beats (`./reels music beats <track>`): 2–4 beats per montage shot, 4–8 for story shots.

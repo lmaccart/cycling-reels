@@ -35,13 +35,19 @@
     ],
     "moments": [
       {
+        "id": "m-9e9571",
         "in": 1.1,
         "out": 2.8,
         "label": "bike in the elevator, doors opening",
         "score": 3,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

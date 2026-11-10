@@ -1,0 +1,92 @@
+{
+  "id": "261109-img-3612-e6dd",
+  "kind": "video",
+  "media": "library/media/261109-img-3612-e6dd.mov",
+  "originalName": "IMG_3612.mov",
+  "hash": "e6ddbd23c1bb850a5fde46b71dc0eb4621c22c13",
+  "created": "2026-11-09T08:30:53",
+  "ingestedAt": "2026-11-09T17:07:33+00:00",
+  "probe": {
+    "duration": 7.76,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.923,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-09T08:30:53-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Handheld POV swinging from the road across a park lot and oak trees under grey sky, back to the cockpit into a bend lined with posts and arrow signs",
+    "hooks": [
+      "the only view on a 2x20"
+    ],
+    "notes": "Filmed 91:55 into the 2026-11-09 Strava ride. No clean ride sounds. Parked white SUV in frame at about 2-4 s, nobody identifiable.",
+    "moments": [
+      {
+        "id": "m-f7827e",
+        "in": 2.4,
+        "out": 5.6,
+        "label": "camera lifts off the bars across the park and oaks under a moody sky",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "type": "scenery",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-9cd6f6",
+        "in": 5.8,
+        "out": 7.7,
+        "label": "rolls into a sweeping bend with posts and arrow signs",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -39.1,
+      "peakDb": -22.7
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261109-img-3612-e6dd.jpg"
+  ],
+  "strava": {
+    "activity": "20920974269",
+    "offset": 5515.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-09T17:08:36+00:00"
+}

@@ -1,0 +1,53 @@
+{
+ "slug": "2026-11-11-easy-day-laundry",
+ "postDate": "2026-11-11",
+ "format": "talking-clip",
+ "hook": {
+  "text": "what an easy day actually looks like"
+ },
+ "autoSfx": false,
+ "segments": [
+  {
+   "asset": "261106-img-3589-f500",
+   "in": 2.68,
+   "out": 9.7,
+   "captions": "transcript",
+   "focusY": 0.45,
+   "cutaways": [
+    {
+     "at": 4.85,
+     "asset": "261106-img-3589-f500",
+     "in": 13.6,
+     "out": 15.4
+    }
+   ]
+  },
+  {
+   "asset": "261106-img-3591-0a7e",
+   "in": 3.35,
+   "out": 9.0,
+   "captions": "transcript",
+   "payoff": true,
+   "text": [
+    {
+     "text": "what watts do you call easy?",
+     "at": 3.4,
+     "for": 2.2,
+     "position": "top",
+     "style": "dark"
+    }
+   ]
+  }
+ ],
+ "post": {
+  "caption": "an hour really really easy, then laundry. nobody tells you this part of training is the glamorous part",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#recoveryride",
+   "#studentathlete"
+  ],
+  "altText": "A cyclist in sunglasses talks to the camera about an easy ride, then at home after the ride talks about doing laundry.",
+  "firstComment": "folding is the real threshold effort"
+ }
+}

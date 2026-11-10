@@ -1,0 +1,1865 @@
+{
+  "version": 1,
+  "week": "2026-11-09",
+  "checkpoints": [
+    {
+      "at": "2026-11-08T21:14:39.616409+00:00",
+      "phase": "planning",
+      "audience": {
+        "latestPull": "2026-11-08T21:07:02+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 12.899814814814814,
+            "reach": 184.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.2,
+            "watchThrough": 0.4708875739644971,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005434782608695652,
+            "commentsReach": 0.0,
+            "engagement": 0.005434782608695652,
+            "viewsReach": 1.184782608695652
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 9.899861111111111,
+            "reach": 513.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 63.0,
+            "watchThrough": 0.705083179297597,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005847953216374269,
+            "commentsReach": 0.0,
+            "engagement": 0.005847953216374269,
+            "viewsReach": 1.2943469785575048
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 10.89912037037037,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 43.6,
+            "watchThrough": 0.24232209737827717,
+            "sharesReach": 0.006289308176100629,
+            "savesReach": 0.0,
+            "likesReach": 0.012578616352201259,
+            "commentsReach": 0.0,
+            "engagement": 0.018867924528301886,
+            "viewsReach": 1.1383647798742138
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 11.898993055555556,
+            "reach": 165.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3370083816892328,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012121212121212121,
+            "commentsReach": 0.0,
+            "engagement": 0.012121212121212121,
+            "viewsReach": 1.121212121212121
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 8.898993055555556,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 56.9,
+            "watchThrough": 0.32439184746877053,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.10062893081761
+          },
+          {
+            "slug": "2026-10-31-bridges",
+            "reelId": "17981923476129380",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-31T23:32:17+00:00",
+            "ageDays": 7.899131944444444,
+            "reach": 130.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "summer was mostly bridges apparently"
+            },
+            "length": 11.4,
+            "music": {
+              "track": "good-day",
+              "title": "Chill Lo-fi Beats for Vlogs & Study Sessions ☕ (No Copyright) | Snoozy Beats - Good Day",
+              "url": "https://www.youtube.com/watch?v=Z3E1N7B7p-U"
+            },
+            "hold": 50.4,
+            "watchThrough": 0.40482456140350875,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.2076923076923076
+          },
+          {
+            "slug": "2026-11-06-elevator-loop",
+            "reelId": "18115184803843757",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-07T00:32:34+00:00",
+            "ageDays": 1.8572685185185185,
+            "reach": 185.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "me and this elevator before every ride"
+            },
+            "length": 7.25,
+            "music": {
+              "track": "housewife",
+              "title": "Tate McRae - Housewife (Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+            },
+            "hold": 63.6,
+            "watchThrough": 0.7579310344827587,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.4378378378378378
+          },
+          {
+            "slug": "2026-11-05-multitool-drain",
+            "reelId": "18182689477448735",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-06T00:32:22+00:00",
+            "ageDays": 2.8574074074074076,
+            "reach": 127.0,
+            "stale": false,
+            "format": "talking-clip",
+            "hook": {
+              "text": "my multitool vs a storm drain"
+            },
+            "length": 7.7,
+            "music": {
+              "track": "sunshine-instrumental",
+              "title": "Sunshine (Instrumental)",
+              "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+            },
+            "hold": 66.1,
+            "watchThrough": 0.8507792207792207,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.4409448818897639
+          },
+          {
+            "slug": "2026-11-04-wake-the-roommate",
+            "reelId": "18107832539111797",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-05T00:32:22+00:00",
+            "ageDays": 3.8574074074074076,
+            "reach": 298.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "what my roommate wakes up to"
+            },
+            "length": 11.5,
+            "music": {
+              "track": "sometimes",
+              "title": "Fleetwood Mac - Sometimes | Lyrics",
+              "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+            },
+            "hold": 75.8,
+            "watchThrough": 0.6609565217391304,
+            "sharesReach": 0.003355704697986577,
+            "savesReach": 0.003355704697986577,
+            "likesReach": 0.003355704697986577,
+            "commentsReach": 0.0,
+            "engagement": 0.010067114093959731,
+            "viewsReach": 1.4597315436241611
+          },
+          {
+            "slug": "2026-11-03-train-horn",
+            "reelId": "17995027452022287",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-04T00:32:34+00:00",
+            "ageDays": 4.857268518518518,
+            "reach": 116.0,
+            "stale": false,
+            "format": "just-the-bike",
+            "hook": {
+              "text": "sound on. the group ride finally met its match"
+            },
+            "length": 8.62,
+            "music": null,
+            "hold": 70.2,
+            "watchThrough": 0.5845707656612529,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.1896551724137931
+          },
+          {
+            "slug": "2026-11-02-intervals-before-class",
+            "reelId": "18200861737381333",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-03T00:31:18+00:00",
+            "ageDays": 5.858148148148148,
+            "reach": 121.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "intervals before class. let's see if i survive"
+            },
+            "length": 10.6,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 48.4,
+            "watchThrough": 0.4932075471698113,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.28099173553719
+          },
+          {
+            "slug": "2026-11-01-empty-roads",
+            "reelId": "18033917726906523",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-02T00:32:15+00:00",
+            "ageDays": 6.857488425925926,
+            "reach": 155.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the road was empty and so was my brain"
+            },
+            "length": 10.52,
+            "music": {
+              "track": "golden-hours",
+              "title": "Golden Hours – Uplifting Acoustic x Chill House",
+              "url": "https://www.youtube.com/watch?v=yVLSY3ffSfQ"
+            },
+            "hold": 45.9,
+            "watchThrough": 0.4177756653992395,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0064516129032258064,
+            "commentsReach": 0.0,
+            "engagement": 0.0064516129032258064,
+            "viewsReach": 1.1612903225806452
+          }
+        ],
+        "sevenDayWindow": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-03T00:08:43+00:00",
+            "snapshot": "analytics/2026-11-03T000843.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 7.0259837962962965,
+            "reach": 182.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4712426035502959,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005494505494505495,
+            "commentsReach": 0.0,
+            "engagement": 0.005494505494505495,
+            "viewsReach": 1.1868131868131868
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 9.899861111111111,
+            "reach": 513.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 63.0,
+            "watchThrough": 0.705083179297597,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005847953216374269,
+            "commentsReach": 0.0,
+            "engagement": 0.005847953216374269,
+            "viewsReach": 1.2943469785575048
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 10.89912037037037,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 43.6,
+            "watchThrough": 0.24232209737827717,
+            "sharesReach": 0.006289308176100629,
+            "savesReach": 0.0,
+            "likesReach": 0.012578616352201259,
+            "commentsReach": 0.0,
+            "engagement": 0.018867924528301886,
+            "viewsReach": 1.1383647798742138
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 11.898993055555556,
+            "reach": 165.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3370083816892328,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012121212121212121,
+            "commentsReach": 0.0,
+            "engagement": 0.012121212121212121,
+            "viewsReach": 1.121212121212121
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 8.898993055555556,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 56.9,
+            "watchThrough": 0.32439184746877053,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.10062893081761
+          },
+          {
+            "slug": "2026-10-31-bridges",
+            "reelId": "17981923476129380",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-31T23:32:17+00:00",
+            "ageDays": 7.899131944444444,
+            "reach": 130.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "summer was mostly bridges apparently"
+            },
+            "length": 11.4,
+            "music": {
+              "track": "good-day",
+              "title": "Chill Lo-fi Beats for Vlogs & Study Sessions ☕ (No Copyright) | Snoozy Beats - Good Day",
+              "url": "https://www.youtube.com/watch?v=Z3E1N7B7p-U"
+            },
+            "hold": 50.4,
+            "watchThrough": 0.40482456140350875,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.2076923076923076
+          }
+        ],
+        "under48Hours": 1,
+        "preliminary": 5,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": []
+      },
+      "feedback": [],
+      "experiments": [
+        {
+          "id": "2026-w45-no-music",
+          "hypothesis": "a ride-sound-only reel (no music, 'sound on' hook) may hold viewers as well as or better than music reels because it stands out in the feed",
+          "primaryMetric": "hold",
+          "successCriterion": "hold clearly above the week's music reels of similar length (≥5 pp); otherwise inconclusive — one reel can't settle it",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-loop",
+          "hypothesis": "a seamless swap-halves loop may raise watch-through because replays count as watch time",
+          "primaryMetric": "watchThrough",
+          "successCriterion": "watch-through materially above comparable short non-loop reels (≥15 pp); otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-voice-first",
+          "hypothesis": "opening on teammates' real dialogue with transcript captions (no setup shot) may hold better than text-led reels",
+          "primaryMetric": "hold",
+          "successCriterion": "hold repeatedly above text-led reels of similar length; otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-trending-songs",
+          "hypothesis": "mixing in this week's trending songs may lift likes per reach versus last week's free tracks (audio page discovery)",
+          "primaryMetric": "likesReach",
+          "successCriterion": "a repeated, large difference in likes/reach (and reach, noted separately) across ≥3 reels each; treat as observational",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 5,
+            "median": 0.005847953216374269,
+            "samples": [
+              {
+                "slug": "2026-10-26-golden-bridge",
+                "reelId": "17966167758207299",
+                "pulledAt": "2026-11-03T00:08:43+00:00",
+                "snapshot": "analytics/2026-11-03T000843.json",
+                "postedAt": "2026-10-26T23:31:18+00:00",
+                "ageDays": 7.0259837962962965,
+                "reach": 182.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "pov: you timed the bridge perfectly"
+                },
+                "length": 8.45,
+                "music": {
+                  "track": "journey-home",
+                  "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+                  "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+                },
+                "hold": 46.1,
+                "watchThrough": 0.4712426035502959,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.005494505494505495,
+                "commentsReach": 0.0,
+                "engagement": 0.005494505494505495,
+                "viewsReach": 1.1868131868131868
+              },
+              {
+                "slug": "2026-10-27-group-ride-chill",
+                "reelId": "18014500985762518",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-27T23:32:29+00:00",
+                "ageDays": 11.898993055555556,
+                "reach": 165.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "pov: the group ride was supposed to be chill"
+                },
+                "length": 15.51,
+                "music": {
+                  "track": "roa-highway",
+                  "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+                  "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+                },
+                "hold": 53.4,
+                "watchThrough": 0.3370083816892328,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.012121212121212121,
+                "commentsReach": 0.0,
+                "engagement": 0.012121212121212121,
+                "viewsReach": 1.121212121212121
+              },
+              {
+                "slug": "2026-10-28-bike-trip",
+                "reelId": "18361357399218194",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-28T23:32:18+00:00",
+                "ageDays": 10.89912037037037,
+                "reach": 159.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "packed the bike for this one"
+                },
+                "length": 16.02,
+                "music": {
+                  "track": "lesfm-in-the-forest",
+                  "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+                  "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+                },
+                "hold": 43.6,
+                "watchThrough": 0.24232209737827717,
+                "sharesReach": 0.006289308176100629,
+                "savesReach": 0.0,
+                "likesReach": 0.012578616352201259,
+                "commentsReach": 0.0,
+                "engagement": 0.018867924528301886,
+                "viewsReach": 1.1383647798742138
+              },
+              {
+                "slug": "2026-10-29-first-ride-back",
+                "reelId": "18399436315200807",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-29T23:31:14+00:00",
+                "ageDays": 9.899861111111111,
+                "reach": 513.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "the zwift era vs the first ride back"
+                },
+                "length": 10.82,
+                "music": {
+                  "track": "vacation-uke",
+                  "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+                  "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+                },
+                "hold": 63.0,
+                "watchThrough": 0.705083179297597,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.005847953216374269,
+                "commentsReach": 0.0,
+                "engagement": 0.005847953216374269,
+                "viewsReach": 1.2943469785575048
+              },
+              {
+                "slug": "2026-10-30-chasing-the-group",
+                "reelId": "17889408546622136",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-30T23:32:29+00:00",
+                "ageDays": 8.898993055555556,
+                "reach": 159.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "me chasing the group like it owes me money"
+                },
+                "length": 15.21,
+                "music": {
+                  "track": "jiglr-lapse",
+                  "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+                  "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+                },
+                "hold": 56.9,
+                "watchThrough": 0.32439184746877053,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0,
+                "commentsReach": 0.0,
+                "engagement": 0.0,
+                "viewsReach": 1.10062893081761
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w46-onscreen-question",
+          "hypothesis": "putting the question on screen as the last text beat may earn more comments than asking only in the caption, since most viewers never open the caption",
+          "primaryMetric": "commentsReach",
+          "successCriterion": "any repeated comments on test reels while controls stay at zero; with one or two reels each this is only suggestive, otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w46-trend-format",
+          "hypothesis": "doing a trend's actual on-screen format, not just using its song, may lift engagement per reach",
+          "primaryMetric": "engagement",
+          "successCriterion": "engagement/reach clearly above comparable group-ride reels using a trending song only, across both tests; otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        }
+      ],
+      "batch": [],
+      "notes": {
+        "strengths": [
+          "audience: reels with a person and a real moment lead on reach and 3 s hold: first-ride-back reach 513 / hold 63.0%, wake-the-roommate reach 298 / hold 75.8%, vs scenery reels golden-bridge 46.2%, bike-trip 43.6%, empty-roads 45.9% (analytics/2026-11-08T210702.json; several samples under 7 days, observational)",
+          "audience: short reels hold attention: multitool-drain 7.7 s 85.1% watch-through, elevator-loop 7.2 s 75.8% (under 48 h), wake-the-roommate 11.5 s 66.1%; 15-16 s montages 24.2-33.7% (same pull)",
+          "production: the Nov 2-8 batch was approved without edits (memory/batch-2026-11-02; learning/feedback.jsonl status events)"
+        ],
+        "weaknesses": [
+          "audience: still 0 comments on all 12 measured reels; likes 0-3, saves 1 in total, shares 2 in total (analytics/2026-11-08T210702.json)",
+          "audience: trending songs show no visible lift in likes yet: test reels 0-1 likes on 121-298 reach; most samples under 7 days and format/week are confounded",
+          "audience: 2026-11-07 and 2026-11-08 reels were not in the 2026-11-08 pull; unknown, not poor",
+          "production: Road to 5 W/kg ep 1 talking-to-camera clips were not in inbox/ or library at this batch, so the series did not start; 11-03 workout clips stay unused for it",
+          "footage: 360 clips from 11-07 are mostly stationary at stops when speech happens; a teammate-facing shot of the sprints would have helped (SHOTLIST)"
+        ],
+        "decisions": [
+          "2026-11-09-fortnite-before-the-long-ride: apply aud-person-01 and aud-length-01 (face + voice-first, 10 s)",
+          "2026-11-10-first-in-my-bloodline and 2026-11-13-not-every-angel: experiment 2026-w46-trend-format",
+          "2026-11-11-easy-day-laundry and 2026-11-12-overheard-group-ride: experiment 2026-w46-onscreen-question",
+          "2026-11-14-every-bridge-sprint-zone and 2026-11-15-little-gray: familiar voice-first/face formats, strava: stats only",
+          "w45 experiments stay awaiting-data; revisit at the next batch with 7-14 day samples"
+        ],
+        "proposals": [
+          "none this week that change skills or code"
+        ],
+        "lessons": [
+          {
+            "id": "aud-length-01",
+            "category": "audience",
+            "observation": "reels of about 7-12 s with a person and a visible payoff outperform 15-16 s montages on watch-through",
+            "evidence": [
+              "analytics/2026-11-08T210702.json: multitool-drain 85.1%, wake-the-roommate 66.1%, first-ride-back 70.5%; bike-trip 24.2%, chasing-the-group 32.4%, group-ride-chill 33.7%"
+            ],
+            "confidence": "medium",
+            "state": "active",
+            "nextAction": "keep reels 7-13 s; re-check once the Nov 2-8 reels reach 7 days",
+            "reviewDate": "2026-11-15"
+          },
+          {
+            "id": "aud-person-01",
+            "category": "audience",
+            "observation": "a person on screen or a real voice in the first shot holds viewers better than scenery openings",
+            "evidence": [
+              "analytics/2026-11-08T210702.json: first-ride-back, wake-the-roommate, multitool-drain, train-horn holds 63.0-75.8% vs 43.6-50.4% for bike-trip, golden-bridge, empty-roads, bridges"
+            ],
+            "confidence": "low",
+            "state": "tentative",
+            "nextAction": "open on a face or voice; don't make scenery-only reels unless the footage is exceptional",
+            "reviewDate": "2026-11-15"
+          },
+          {
+            "id": "aud-interaction-01",
+            "category": "audience",
+            "observation": "reels are watched but not answered: 0 comments on all 12 measured reels",
+            "evidence": [
+              "analytics/2026-11-08T210702.json: comments 0 on all 12 rows, likes 0-3, reach 116-513"
+            ],
+            "confidence": "medium",
+            "state": "active",
+            "nextAction": "test an on-screen question vs caption-only (2026-w46-onscreen-question); user replies to first comments",
+            "reviewDate": "2026-11-15"
+          }
+        ]
+      },
+      "schedulingComplete": false
+    },
+    {
+      "at": "2026-11-08T22:05:37.882238+00:00",
+      "phase": "scheduling",
+      "audience": {
+        "latestPull": "2026-11-08T21:07:02+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 12.899814814814814,
+            "reach": 184.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.2,
+            "watchThrough": 0.4708875739644971,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005434782608695652,
+            "commentsReach": 0.0,
+            "engagement": 0.005434782608695652,
+            "viewsReach": 1.184782608695652
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 9.899861111111111,
+            "reach": 513.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 63.0,
+            "watchThrough": 0.705083179297597,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005847953216374269,
+            "commentsReach": 0.0,
+            "engagement": 0.005847953216374269,
+            "viewsReach": 1.2943469785575048
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 10.89912037037037,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 43.6,
+            "watchThrough": 0.24232209737827717,
+            "sharesReach": 0.006289308176100629,
+            "savesReach": 0.0,
+            "likesReach": 0.012578616352201259,
+            "commentsReach": 0.0,
+            "engagement": 0.018867924528301886,
+            "viewsReach": 1.1383647798742138
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 11.898993055555556,
+            "reach": 165.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3370083816892328,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012121212121212121,
+            "commentsReach": 0.0,
+            "engagement": 0.012121212121212121,
+            "viewsReach": 1.121212121212121
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 8.898993055555556,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 56.9,
+            "watchThrough": 0.32439184746877053,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.10062893081761
+          },
+          {
+            "slug": "2026-10-31-bridges",
+            "reelId": "17981923476129380",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-31T23:32:17+00:00",
+            "ageDays": 7.899131944444444,
+            "reach": 130.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "summer was mostly bridges apparently"
+            },
+            "length": 11.4,
+            "music": {
+              "track": "good-day",
+              "title": "Chill Lo-fi Beats for Vlogs & Study Sessions ☕ (No Copyright) | Snoozy Beats - Good Day",
+              "url": "https://www.youtube.com/watch?v=Z3E1N7B7p-U"
+            },
+            "hold": 50.4,
+            "watchThrough": 0.40482456140350875,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.2076923076923076
+          },
+          {
+            "slug": "2026-11-06-elevator-loop",
+            "reelId": "18115184803843757",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-07T00:32:34+00:00",
+            "ageDays": 1.8572685185185185,
+            "reach": 185.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "me and this elevator before every ride"
+            },
+            "length": 7.25,
+            "music": {
+              "track": "housewife",
+              "title": "Tate McRae - Housewife (Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+            },
+            "hold": 63.6,
+            "watchThrough": 0.7579310344827587,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.4378378378378378
+          },
+          {
+            "slug": "2026-11-05-multitool-drain",
+            "reelId": "18182689477448735",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-06T00:32:22+00:00",
+            "ageDays": 2.8574074074074076,
+            "reach": 127.0,
+            "stale": false,
+            "format": "talking-clip",
+            "hook": {
+              "text": "my multitool vs a storm drain"
+            },
+            "length": 7.7,
+            "music": {
+              "track": "sunshine-instrumental",
+              "title": "Sunshine (Instrumental)",
+              "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+            },
+            "hold": 66.1,
+            "watchThrough": 0.8507792207792207,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.4409448818897639
+          },
+          {
+            "slug": "2026-11-04-wake-the-roommate",
+            "reelId": "18107832539111797",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-05T00:32:22+00:00",
+            "ageDays": 3.8574074074074076,
+            "reach": 298.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "what my roommate wakes up to"
+            },
+            "length": 11.5,
+            "music": {
+              "track": "sometimes",
+              "title": "Fleetwood Mac - Sometimes | Lyrics",
+              "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+            },
+            "hold": 75.8,
+            "watchThrough": 0.6609565217391304,
+            "sharesReach": 0.003355704697986577,
+            "savesReach": 0.003355704697986577,
+            "likesReach": 0.003355704697986577,
+            "commentsReach": 0.0,
+            "engagement": 0.010067114093959731,
+            "viewsReach": 1.4597315436241611
+          },
+          {
+            "slug": "2026-11-03-train-horn",
+            "reelId": "17995027452022287",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-04T00:32:34+00:00",
+            "ageDays": 4.857268518518518,
+            "reach": 116.0,
+            "stale": false,
+            "format": "just-the-bike",
+            "hook": {
+              "text": "sound on. the group ride finally met its match"
+            },
+            "length": 8.62,
+            "music": null,
+            "hold": 70.2,
+            "watchThrough": 0.5845707656612529,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.1896551724137931
+          },
+          {
+            "slug": "2026-11-02-intervals-before-class",
+            "reelId": "18200861737381333",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-03T00:31:18+00:00",
+            "ageDays": 5.858148148148148,
+            "reach": 121.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "intervals before class. let's see if i survive"
+            },
+            "length": 10.6,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 48.4,
+            "watchThrough": 0.4932075471698113,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.28099173553719
+          },
+          {
+            "slug": "2026-11-01-empty-roads",
+            "reelId": "18033917726906523",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-11-02T00:32:15+00:00",
+            "ageDays": 6.857488425925926,
+            "reach": 155.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the road was empty and so was my brain"
+            },
+            "length": 10.52,
+            "music": {
+              "track": "golden-hours",
+              "title": "Golden Hours – Uplifting Acoustic x Chill House",
+              "url": "https://www.youtube.com/watch?v=yVLSY3ffSfQ"
+            },
+            "hold": 45.9,
+            "watchThrough": 0.4177756653992395,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0064516129032258064,
+            "commentsReach": 0.0,
+            "engagement": 0.0064516129032258064,
+            "viewsReach": 1.1612903225806452
+          }
+        ],
+        "sevenDayWindow": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-03T00:08:43+00:00",
+            "snapshot": "analytics/2026-11-03T000843.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 7.0259837962962965,
+            "reach": 182.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4712426035502959,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005494505494505495,
+            "commentsReach": 0.0,
+            "engagement": 0.005494505494505495,
+            "viewsReach": 1.1868131868131868
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 9.899861111111111,
+            "reach": 513.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 63.0,
+            "watchThrough": 0.705083179297597,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005847953216374269,
+            "commentsReach": 0.0,
+            "engagement": 0.005847953216374269,
+            "viewsReach": 1.2943469785575048
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 10.89912037037037,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 43.6,
+            "watchThrough": 0.24232209737827717,
+            "sharesReach": 0.006289308176100629,
+            "savesReach": 0.0,
+            "likesReach": 0.012578616352201259,
+            "commentsReach": 0.0,
+            "engagement": 0.018867924528301886,
+            "viewsReach": 1.1383647798742138
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 11.898993055555556,
+            "reach": 165.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3370083816892328,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012121212121212121,
+            "commentsReach": 0.0,
+            "engagement": 0.012121212121212121,
+            "viewsReach": 1.121212121212121
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 8.898993055555556,
+            "reach": 159.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 56.9,
+            "watchThrough": 0.32439184746877053,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.10062893081761
+          },
+          {
+            "slug": "2026-10-31-bridges",
+            "reelId": "17981923476129380",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-31T23:32:17+00:00",
+            "ageDays": 7.899131944444444,
+            "reach": 130.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "summer was mostly bridges apparently"
+            },
+            "length": 11.4,
+            "music": {
+              "track": "good-day",
+              "title": "Chill Lo-fi Beats for Vlogs & Study Sessions ☕ (No Copyright) | Snoozy Beats - Good Day",
+              "url": "https://www.youtube.com/watch?v=Z3E1N7B7p-U"
+            },
+            "hold": 50.4,
+            "watchThrough": 0.40482456140350875,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.2076923076923076
+          }
+        ],
+        "under48Hours": 1,
+        "preliminary": 5,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": []
+      },
+      "feedback": [],
+      "experiments": [
+        {
+          "id": "2026-w45-no-music",
+          "hypothesis": "a ride-sound-only reel (no music, 'sound on' hook) may hold viewers as well as or better than music reels because it stands out in the feed",
+          "primaryMetric": "hold",
+          "successCriterion": "hold clearly above the week's music reels of similar length (≥5 pp); otherwise inconclusive — one reel can't settle it",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-loop",
+          "hypothesis": "a seamless swap-halves loop may raise watch-through because replays count as watch time",
+          "primaryMetric": "watchThrough",
+          "successCriterion": "watch-through materially above comparable short non-loop reels (≥15 pp); otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-voice-first",
+          "hypothesis": "opening on teammates' real dialogue with transcript captions (no setup shot) may hold better than text-led reels",
+          "primaryMetric": "hold",
+          "successCriterion": "hold repeatedly above text-led reels of similar length; otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-trending-songs",
+          "hypothesis": "mixing in this week's trending songs may lift likes per reach versus last week's free tracks (audio page discovery)",
+          "primaryMetric": "likesReach",
+          "successCriterion": "a repeated, large difference in likes/reach (and reach, noted separately) across ≥3 reels each; treat as observational",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 5,
+            "median": 0.005847953216374269,
+            "samples": [
+              {
+                "slug": "2026-10-26-golden-bridge",
+                "reelId": "17966167758207299",
+                "pulledAt": "2026-11-03T00:08:43+00:00",
+                "snapshot": "analytics/2026-11-03T000843.json",
+                "postedAt": "2026-10-26T23:31:18+00:00",
+                "ageDays": 7.0259837962962965,
+                "reach": 182.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "pov: you timed the bridge perfectly"
+                },
+                "length": 8.45,
+                "music": {
+                  "track": "journey-home",
+                  "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+                  "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+                },
+                "hold": 46.1,
+                "watchThrough": 0.4712426035502959,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.005494505494505495,
+                "commentsReach": 0.0,
+                "engagement": 0.005494505494505495,
+                "viewsReach": 1.1868131868131868
+              },
+              {
+                "slug": "2026-10-27-group-ride-chill",
+                "reelId": "18014500985762518",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-27T23:32:29+00:00",
+                "ageDays": 11.898993055555556,
+                "reach": 165.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "pov: the group ride was supposed to be chill"
+                },
+                "length": 15.51,
+                "music": {
+                  "track": "roa-highway",
+                  "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+                  "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+                },
+                "hold": 53.4,
+                "watchThrough": 0.3370083816892328,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.012121212121212121,
+                "commentsReach": 0.0,
+                "engagement": 0.012121212121212121,
+                "viewsReach": 1.121212121212121
+              },
+              {
+                "slug": "2026-10-28-bike-trip",
+                "reelId": "18361357399218194",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-28T23:32:18+00:00",
+                "ageDays": 10.89912037037037,
+                "reach": 159.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "packed the bike for this one"
+                },
+                "length": 16.02,
+                "music": {
+                  "track": "lesfm-in-the-forest",
+                  "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+                  "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+                },
+                "hold": 43.6,
+                "watchThrough": 0.24232209737827717,
+                "sharesReach": 0.006289308176100629,
+                "savesReach": 0.0,
+                "likesReach": 0.012578616352201259,
+                "commentsReach": 0.0,
+                "engagement": 0.018867924528301886,
+                "viewsReach": 1.1383647798742138
+              },
+              {
+                "slug": "2026-10-29-first-ride-back",
+                "reelId": "18399436315200807",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-29T23:31:14+00:00",
+                "ageDays": 9.899861111111111,
+                "reach": 513.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "the zwift era vs the first ride back"
+                },
+                "length": 10.82,
+                "music": {
+                  "track": "vacation-uke",
+                  "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+                  "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+                },
+                "hold": 63.0,
+                "watchThrough": 0.705083179297597,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.005847953216374269,
+                "commentsReach": 0.0,
+                "engagement": 0.005847953216374269,
+                "viewsReach": 1.2943469785575048
+              },
+              {
+                "slug": "2026-10-30-chasing-the-group",
+                "reelId": "17889408546622136",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-30T23:32:29+00:00",
+                "ageDays": 8.898993055555556,
+                "reach": 159.0,
+                "stale": false,
+                "format": null,
+                "hook": {
+                  "text": "me chasing the group like it owes me money"
+                },
+                "length": 15.21,
+                "music": {
+                  "track": "jiglr-lapse",
+                  "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+                  "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+                },
+                "hold": 56.9,
+                "watchThrough": 0.32439184746877053,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0,
+                "commentsReach": 0.0,
+                "engagement": 0.0,
+                "viewsReach": 1.10062893081761
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w46-onscreen-question",
+          "hypothesis": "putting the question on screen as the last text beat may earn more comments than asking only in the caption, since most viewers never open the caption",
+          "primaryMetric": "commentsReach",
+          "successCriterion": "any repeated comments on test reels while controls stay at zero; with one or two reels each this is only suggestive, otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w46-trend-format",
+          "hypothesis": "doing a trend's actual on-screen format, not just using its song, may lift engagement per reach",
+          "primaryMetric": "engagement",
+          "successCriterion": "engagement/reach clearly above comparable group-ride reels using a trending song only, across both tests; otherwise inconclusive",
+          "test": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "control": {
+            "n": 0,
+            "median": null,
+            "samples": []
+          },
+          "status": "awaiting-data"
+        }
+      ],
+      "batch": [
+        {
+          "slug": "2026-11-09-fortnite-before-the-long-ride",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-09T18:30:00",
+          "metricoolId": "421131492",
+          "reelId": null,
+          "format": "relatable-pov",
+          "plan": "out/2026-11-09-fortnite-before-the-long-ride/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-onscreen-question",
+              "group": "control"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:14:52+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:20:24+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:45+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        },
+        {
+          "slug": "2026-11-10-first-in-my-bloodline",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-10T18:30:00",
+          "metricoolId": "421131532",
+          "reelId": null,
+          "format": "this-weeks-trend",
+          "plan": "out/2026-11-10-first-in-my-bloodline/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-trend-format",
+              "group": "test"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:15:30+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:20:56+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:45+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        },
+        {
+          "slug": "2026-11-11-easy-day-laundry",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-11T18:30:00",
+          "metricoolId": "421131557",
+          "reelId": null,
+          "format": "talking-clip",
+          "plan": "out/2026-11-11-easy-day-laundry/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-onscreen-question",
+              "group": "test"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:16:03+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:21:30+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:26:51+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:45+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        },
+        {
+          "slug": "2026-11-12-overheard-group-ride",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-12T18:30:00",
+          "metricoolId": "421131597",
+          "reelId": null,
+          "format": "overheard",
+          "plan": "out/2026-11-12-overheard-group-ride/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-onscreen-question",
+              "group": "test"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:16:39+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:22:06+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:24:54+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:45+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        },
+        {
+          "slug": "2026-11-13-not-every-angel",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-13T18:30:00",
+          "metricoolId": "421131638",
+          "reelId": null,
+          "format": "this-weeks-trend",
+          "plan": "out/2026-11-13-not-every-angel/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-trend-format",
+              "group": "test"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:17:13+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:22:40+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:25:30+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:46+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        },
+        {
+          "slug": "2026-11-14-every-bridge-sprint-zone",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-14T18:30:00",
+          "metricoolId": "421131665",
+          "reelId": null,
+          "format": "story-with-stakes",
+          "plan": "out/2026-11-14-every-bridge-sprint-zone/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-onscreen-question",
+              "group": "control"
+            },
+            {
+              "id": "2026-w46-trend-format",
+              "group": "control"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:17:52+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:23:19+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:46+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        },
+        {
+          "slug": "2026-11-15-little-gray",
+          "status": "scheduled",
+          "scheduledFor": "2026-11-15T18:30:00",
+          "metricoolId": "421131687",
+          "reelId": null,
+          "format": "relatable-pov",
+          "plan": "out/2026-11-15-little-gray/plan.json",
+          "experiments": [
+            {
+              "id": "2026-w46-onscreen-question",
+              "group": "control"
+            }
+          ],
+          "history": [
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:18:14+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:23:43+00:00"
+            },
+            {
+              "status": "rendered",
+              "at": "2026-11-08T21:25:54+00:00"
+            },
+            {
+              "status": "approved",
+              "at": "2026-11-08T22:03:46+00:00"
+            },
+            {
+              "status": "scheduled",
+              "at": "2026-11-08T22:05:37+00:00"
+            }
+          ]
+        }
+      ],
+      "notes": {
+        "strengths": [
+          "production: all seven Nov 9-15 reels approved without edits and accepted by Metricool on the first attempt; user said captions and sprint zones look good"
+        ],
+        "weaknesses": [
+          "production: first render round used 360 'side' views that showed empty roadside; caught in preview review and replaced before showing the user",
+          "audience: Nov 7 and Nov 8 reels were not in Metricool analytics at close; user reports the Nov 7/8 reel did well, numbers still to confirm"
+        ],
+        "decisions": [
+          "aud-person-01 and aud-length-01 applied across the batch (face or voice first, 8.7-12.8 s)",
+          "experiments registered before render: 2026-w46-onscreen-question, 2026-w46-trend-format; evaluate from 7-14 day samples",
+          "Road to 5 W/kg ep 1 not filmed/ingested at this batch; 11-03 workout clips held for it"
+        ],
+        "proposals": [
+          "ideas raised with the user for engagement, no skill or code change proposed"
+        ]
+      },
+      "schedulingComplete": true
+    }
+  ]
+}

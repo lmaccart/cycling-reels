@@ -36,15 +36,25 @@
     ],
     "moments": [
       {
+        "id": "m-fb7d10",
         "in": 0.0,
         "out": 4.9,
         "label": "interval one done, 345 watts, two minutes rest",
         "score": 4,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "result",
+        "thread": "road-to-5-ep1",
+        "beat": "effort"
       },
       {
+        "id": "m-b2d16e",
         "in": 3.3,
         "out": 4.2,
         "label": "glance down at the bars and garmin",
@@ -52,22 +62,43 @@
         "focusX": 0.6,
         "focusY": 0.5,
         "speech": false,
-        "type": "solo-ride"
+        "type": "solo-ride",
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-fcdc00",
         "in": 4.4,
         "out": 6.2,
         "label": "back at it, lets go",
         "score": 3,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "fast",
+        "opener": false,
+        "line": "plan",
+        "thread": "road-to-5-ep1",
+        "beat": "effort"
       }
     ],
     "sounds": []
   },
   "transcript": "library/transcripts/261103-img-3569-0bb6.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 0.0,
+      "out": 2.65
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -19.5,

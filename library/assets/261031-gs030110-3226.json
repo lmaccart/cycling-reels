@@ -64,6 +64,7 @@
     },
     "moments": [
       {
+        "id": "m-d16eaf",
         "in": 4.0,
         "out": 11.0,
         "label": "rolling in the paceline, legs spinning",
@@ -71,9 +72,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-ab747b",
         "in": 105.0,
         "out": 114.0,
         "label": "\"your headset is loose\" ... \"roll slow, roll slow\"",
@@ -81,9 +88,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-972a6b",
         "in": 183.5,
         "out": 197.0,
         "label": "everyone panicking that my multitool is going down the drain: \"look familiar? except you are not getting it back this time\"",
@@ -91,9 +104,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-dac179",
         "in": 197.0,
         "out": 208.5,
         "label": "group standing over the drain grate trying to work out a rescue: \"guys what is your deadlift again\"",
@@ -101,7 +120,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": [

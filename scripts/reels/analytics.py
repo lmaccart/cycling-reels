@@ -6,6 +6,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from .config import Project
+from .library import asset_file, resolve_id
 from .queue import posts
 from .util import ReelsError, log, now_iso, read_json, warn, write_json
 
@@ -219,8 +220,11 @@ def build_report(project: Project, since: str | None = None) -> tuple[list[dict]
             song = f"{track} ({kind})"
         sphere = False
         for seg in post.get("segments") or plan.get("segments") or []:
-            ap = project.assets_dir / f"{seg.get('asset')}.json"
-            if ap.exists() and (read_json(ap).get("probe") or {}).get("sphere"):
+            try:  # older plans use short ids
+                ap = asset_file(project, resolve_id(project, str(seg.get("asset", ""))))
+            except ReelsError:
+                continue
+            if (read_json(ap).get("probe") or {}).get("sphere"):
                 sphere = True
         length = post.get("duration")
         age = (_parse_iso(pulled) - _parse_iso(row["postedAt"])).total_seconds() / 86400
@@ -374,6 +378,13 @@ def stats(project: Project, since: str | None = None) -> None:
         if rows:
             md += [f"## By {title} (reels older than 48 h)", "", f"| {title} | reels | 3s hold | watch-thru | shares/reach | saves/reach | eng/reach | avg reach |",
                    "|---|---|---|---|---|---|---|---|"] + rows + [""]  # fmt: skip
+    from .footage_report import section  # imports this module's formatters
+
+    footage = section(project, reels)
+    md += footage + [""]
+    log("")
+    for line in footage:
+        log(line)
     if unmatched:
         md += ["## Unmatched rows", ""] + [f"- reel {r['reelId']} {r['postedAt'][:16]}Z {r['url'] or ''} {r['content'][:60]!r}" for r in unmatched] + [""]
     out = project.out_dir / "PERFORMANCE.md"

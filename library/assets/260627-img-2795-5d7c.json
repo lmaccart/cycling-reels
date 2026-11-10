@@ -33,22 +33,34 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-aeeefc",
         "in": 0.0,
         "out": 1.8,
         "label": "close-up of an empty garmin mount",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-e21044",
         "in": 2.0,
         "out": 6.0,
         "label": "regroup at the roadside, buddy drinking",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

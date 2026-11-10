@@ -36,22 +36,34 @@
     ],
     "moments": [
       {
+        "id": "m-88afa0",
         "in": 0.3,
         "out": 2.3,
         "label": "whole bike on the curb",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-6f75ad",
         "in": 2.6,
         "out": 6.0,
         "label": "close pass along the frame and wheels",
         "score": 4,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

@@ -1,0 +1,186 @@
+{
+  "id": "261107-img-3594-71d6",
+  "kind": "video",
+  "media": "library/media/261107-img-3594-71d6.mov",
+  "originalName": "IMG_3594.mov",
+  "hash": "71d6f8d073ac7a4b8e2169e42fcbfc456c00456b",
+  "created": "2026-11-07T10:40:01",
+  "ingestedAt": "2026-11-07T18:39:12+00:00",
+  "probe": {
+    "duration": 73.255,
+    "width": 3840,
+    "height": 2160,
+    "fps": 59.914,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T10:40:01-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "static",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Phone propped on the ground in front of a big brick archway; the group rolls in, lines up for a team photo, then I ride up and grab the phone",
+    "hooks": [
+      "the group photo took longer than the ride",
+      "propped my phone on the ground and hoped",
+      "everyone pretending they know where to stand"
+    ],
+    "notes": "Speech: 'I'm just taking a video, hopefully the angle is good' (0:07); breakfast invite at 1:02. End of the 11-07 ride.",
+    "moments": [
+      {
+        "id": "m-81ed68",
+        "in": 6.9,
+        "out": 13.0,
+        "label": "riders roll in and one cruises right past the lens",
+        "score": 4,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-814643",
+        "in": 24.5,
+        "out": 30.5,
+        "label": "two riders cross close to the camera as everyone gathers",
+        "score": 3,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-c1bd83",
+        "in": 38.5,
+        "out": 46.0,
+        "label": "whole group lined up in front of the arch",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-24ab53",
+        "in": 64.5,
+        "out": 71.0,
+        "label": "my front wheel rolls into frame and I grab the phone",
+        "score": 3,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261107-img-3594-71d6.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -27.2,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 46.95,
+    "speechRanges": [
+      [
+        1.85,
+        5.06
+      ],
+      [
+        5.98,
+        7.24
+      ],
+      [
+        7.58,
+        10.57
+      ],
+      [
+        14.01,
+        19.43
+      ],
+      [
+        19.77,
+        20.97
+      ],
+      [
+        22.1,
+        23.56
+      ],
+      [
+        26.84,
+        28.94
+      ],
+      [
+        30.01,
+        33.38
+      ],
+      [
+        40.5,
+        45.74
+      ],
+      [
+        48.06,
+        48.74
+      ],
+      [
+        49.69,
+        51.46
+      ],
+      [
+        52.02,
+        52.87
+      ],
+      [
+        53.21,
+        59.82
+      ],
+      [
+        60.76,
+        62.15
+      ],
+      [
+        63.06,
+        71.27
+      ],
+      [
+        72.06,
+        73.25
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-img-3594-71d6.jpg"
+  ],
+  "strava": {
+    "activity": "20897870704",
+    "offset": 13132.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-07T18:53:19+00:00"
+}

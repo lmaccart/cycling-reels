@@ -35,22 +35,34 @@
     "notes": "Rice cycling & triathlon jerseys visible. Transcript (\"CJ how much can I get another job\") is likely misheard background chatter - do not caption it.",
     "moments": [
       {
+        "id": "m-24bdb8",
         "in": 0.5,
         "out": 2.8,
         "label": "rice krispie treat handed over",
         "score": 3,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-cf5dd4",
         "in": 2.8,
         "out": 9.5,
         "label": "aero-helmet rider takes a big bite, teammate laughing behind",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": []

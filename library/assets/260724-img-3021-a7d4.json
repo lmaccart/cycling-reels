@@ -31,13 +31,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-119fa6",
         "in": 2.0,
         "out": 8.6,
         "label": "two-lane road through the woods",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

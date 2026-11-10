@@ -1,0 +1,174 @@
+{
+  "id": "261109-img-3611-f1c4",
+  "kind": "video",
+  "media": "library/media/261109-img-3611-f1c4.mov",
+  "originalName": "IMG_3611.mov",
+  "hash": "f1c41b9128bb3ccdd29d068b3c724f7e9ccaf083",
+  "created": "2026-11-09T07:25:52",
+  "ingestedAt": "2026-11-09T17:07:31+00:00",
+  "probe": {
+    "duration": 26.588,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.913,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-09T07:25:52-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Mid-ride selfie under pines saying warm-up is done and today is 2x20, then the phone drops to the Garmin and cockpit while calling out zones",
+    "hooks": [
+      "warm up done. now the bad part",
+      "2x20 today, send help",
+      "20 minutes, then another 20",
+      "pov: this is the easy part"
+    ],
+    "notes": "Line at 10.8-11.7 s corrected by the user (\"20 minutes will be coming pretty soon\"). The first \"zone\" at 16.9 s was low confidence; confirm before captioning that part. Filmed 26:54 into the 2026-11-09 Strava ride.",
+    "moments": [
+      {
+        "id": "m-836fa9",
+        "in": 3.6,
+        "out": 8.0,
+        "label": "warm-up done, we are doing 2x20 today, to camera",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      },
+      {
+        "id": "m-c47a47",
+        "in": 8.0,
+        "out": 14.4,
+        "label": "20 minutes will be coming pretty soon, then another 20, to camera under the trees",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      },
+      {
+        "id": "m-94beb3",
+        "in": 14.5,
+        "out": 16.5,
+        "label": "head back, eyes closed, breathing before the effort",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "suffering",
+        "opener": false
+      },
+      {
+        "id": "m-780aeb",
+        "in": 16.7,
+        "out": 21.0,
+        "label": "phone drops to the Garmin and cockpit while calling out easy zones",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "type": "solo-ride",
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-3a16cf",
+        "in": 22.4,
+        "out": 24.2,
+        "label": "pulls wide over the bars, and we will be back at it",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "type": "solo-ride",
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261109-img-3611-f1c4.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -24.7,
+      "peakDb": -0.6
+    },
+    "speechSeconds": 10.84,
+    "speechRanges": [
+      [
+        3.74,
+        5.13
+      ],
+      [
+        5.72,
+        7.66
+      ],
+      [
+        8.47,
+        9.26
+      ],
+      [
+        10.23,
+        11.88
+      ],
+      [
+        12.47,
+        13.93
+      ],
+      [
+        16.66,
+        17.7
+      ],
+      [
+        19.38,
+        20.68
+      ],
+      [
+        22.9,
+        24.17
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261109-img-3611-f1c4.jpg"
+  ],
+  "strava": {
+    "activity": "20920974269",
+    "offset": 1614.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-09T17:17:19+00:00"
+}

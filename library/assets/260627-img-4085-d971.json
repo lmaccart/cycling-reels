@@ -34,22 +34,34 @@
     ],
     "moments": [
       {
+        "id": "m-7666a5",
         "in": 0.0,
         "out": 5.0,
         "label": "rolling through the redwoods",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       },
       {
+        "id": "m-4ee835",
         "in": 5.0,
         "out": 10.6,
         "label": "winding through the trees past a house",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

@@ -60,6 +60,7 @@
     },
     "moments": [
       {
+        "id": "m-621a55",
         "in": 8.0,
         "out": 14.0,
         "label": "group strung out down a tree-lined road",
@@ -67,9 +68,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-b4be3f",
         "in": 33.0,
         "out": 39.0,
         "label": "line of riders up the road",
@@ -77,9 +84,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-ef46e3",
         "in": 83.0,
         "out": 89.0,
         "label": "on a wheel past tall pines",
@@ -87,9 +100,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-2b5249",
         "in": 108.0,
         "out": 114.0,
         "label": "following a red tail light",
@@ -97,9 +116,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-8ede36",
         "in": 133.0,
         "out": 139.0,
         "label": "riders ahead under the trees",
@@ -107,9 +132,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-643123",
         "in": 183.0,
         "out": 189.0,
         "label": "chasing a rider through a curve",
@@ -117,9 +148,75 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-d38238",
+        "in": 345.6,
+        "out": 349.0,
+        "label": "\"the gopro's on, everyone wave\" at the regroup, rider looks down at the bar cam",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "me",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-780896",
+        "in": 351.2,
+        "out": 356.4,
+        "label": "\"great, we can watch a bunch of footage of people's butts\" at the regroup, huge sky",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-0e98d9",
+        "in": 375.8,
+        "out": 380.3,
+        "label": "\"i drank like 32 ounces in 5 minutes\" at the regroup, teammates around the bike",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-e7bcee",
         "in": 456.0,
         "out": 462.0,
         "label": "riders up the road on the last stretch",
@@ -127,7 +224,46 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 8.0,
+        "label": "group strung out down a tree-lined park road"
+      },
+      {
+        "at": 45.0,
+        "label": "riders ahead and alongside on the park road"
+      },
+      {
+        "at": 281.0,
+        "label": "chatting while rolling (\"still not here\", \"it's gonna be a big change\")"
+      },
+      {
+        "at": 305.0,
+        "label": "\"gonna pull in up here\" before the regroup"
+      },
+      {
+        "at": 330.0,
+        "label": "regroup begins on a path by the road, yellow bike and rider in light blue"
+      },
+      {
+        "at": 345.0,
+        "label": "regroup chat, rider facing the bar cam under a huge sky"
+      },
+      {
+        "at": 406.0,
+        "label": "\"gonna go catch that group\", rolling out of the regroup"
+      },
+      {
+        "at": 459.0,
+        "label": "riders up the road on the last stretch"
       }
     ]
   },

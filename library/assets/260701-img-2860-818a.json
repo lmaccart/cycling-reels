@@ -33,22 +33,34 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-9eb25f",
         "in": 6.4,
         "out": 9.6,
         "label": "bike lane through golden hills",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-3e4b54",
         "in": 12.4,
         "out": 15.6,
         "label": "view over the hills from the road",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       }
     ]
   },

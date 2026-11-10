@@ -74,6 +74,7 @@
     },
     "moments": [
       {
+        "id": "m-ac28a6",
         "in": 25.0,
         "out": 32.0,
         "label": "fastest stretch, legs spinning, road ahead",
@@ -81,9 +82,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-cd515b",
         "in": 32.0,
         "out": 39.0,
         "label": "fast stretch, empty road unspooling behind",
@@ -91,9 +98,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-8c3fc6",
         "in": 122.0,
         "out": 130.0,
         "label": "teammates sitting on my wheel in the paceline",
@@ -101,9 +114,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-cae769",
         "in": 196.0,
         "out": 204.0,
         "label": "paceline ahead past my legs and teal frame",
@@ -111,9 +130,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward2"
+        "view": "forward2",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-306dc9",
         "in": 296.0,
         "out": 304.0,
         "label": "riders strung out ahead along a grassy verge",
@@ -121,7 +146,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward2"
+        "view": "forward2",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": [
@@ -131,6 +161,36 @@
         "kind": "freehub",
         "score": 3,
         "note": "freehub ticking while coasting in the group, loudness drops, AudioSet Bicycle 0.82, no wind or speech; other riders' freehubs may be mixed in"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "group rolling on a wide road"
+      },
+      {
+        "at": 15.0,
+        "label": "rider in blue with a green helmet close alongside"
+      },
+      {
+        "at": 30.0,
+        "label": "long empty concrete road, fast"
+      },
+      {
+        "at": 125.0,
+        "label": "paceline on wide suburban road"
+      },
+      {
+        "at": 145.0,
+        "label": "hand comes up to the camera, mount slips after this"
+      },
+      {
+        "at": 306.0,
+        "label": "signalled intersection"
+      },
+      {
+        "at": 470.0,
+        "label": "stopped beside a pickup, rider in RICE kit close"
       }
     ]
   },

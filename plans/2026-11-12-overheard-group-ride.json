@@ -1,0 +1,70 @@
+{
+ "slug": "2026-11-12-overheard-group-ride",
+ "postDate": "2026-11-12",
+ "format": "overheard",
+ "hook": {
+  "text": "things overheard on saturday's group ride"
+ },
+ "segments": [
+  {
+   "asset": "261107-gs020116-362a",
+   "in": 0.02,
+   "out": 2.8,
+   "captions": "transcript",
+   "view": "side"
+  },
+  {
+   "asset": "261107-gs050116-c114",
+   "in": 74.72,
+   "out": 77.7,
+   "captions": "transcript",
+   "view": "behind",
+   "bleep": true
+  },
+  {
+   "asset": "261107-gs070116-6bc2",
+   "in": 394.5,
+   "out": 397.95,
+   "captions": "transcript",
+   "view": "side"
+  },
+  {
+   "asset": "261107-gs070116-6bc2",
+   "in": 7.94,
+   "out": 11.46,
+   "captions": "transcript",
+   "view": "behind",
+   "payoff": true,
+   "text": [
+    {
+     "text": "the honey bun review",
+     "at": 0.1,
+     "for": 1.8
+    }
+   ]
+  }
+ ],
+ "text": [
+  {
+   "text": "worst thing you've heard on a group ride?",
+   "at": 11.1,
+   "for": 1.65,
+   "position": "top",
+   "style": "dark"
+  }
+ ],
+ "music": {
+  "track": "go-go-juice"
+ },
+ "post": {
+  "caption": "zero context, all real. the 360 cam hears everything on a group ride",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#cyclinglife"
+  ],
+  "altText": "Group ride footage from a 360 camera with captions of funny things riders said, including a tire pressure answer and a honey bun review.",
+  "firstComment": "if you were on this ride, no one heard anything"
+ }
+}

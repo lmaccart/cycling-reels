@@ -48,6 +48,18 @@ def save_asset(project: Project, asset: dict) -> None:
     write_json(asset_file(project, asset["id"]), asset)
 
 
+def resolve_moment(asset: dict, reference: int | str) -> dict:
+    """Stable moment id, or a legacy numeric index for older plans."""
+    moments = (asset.get("tags") or {}).get("moments") or []
+    if type(reference) is int and 0 <= reference < len(moments):
+        return moments[reference]
+    if isinstance(reference, str):
+        hits = [m for m in moments if m.get("id") == reference]
+        if len(hits) == 1:
+            return hits[0]
+    raise ReelsError(f"moment {reference!r} doesn't uniquely identify a moment on {asset['id']} ({len(moments)} moments)")
+
+
 def update_asset(project: Project, asset: dict, **fields) -> None:
     """Set fields on the record as it is on disk now, so slow jobs don't overwrite tags saved meanwhile."""
     path = asset_file(project, asset["id"])

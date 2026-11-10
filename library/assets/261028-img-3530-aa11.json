@@ -37,22 +37,34 @@
     "notes": "Rider ahead seen only from behind (not identifiable). Last 2s is a blur pan — unusable except as a whip transition.",
     "moments": [
       {
+        "id": "m-c216f3",
         "in": 0.3,
         "out": 2.4,
         "label": "look down at the bars and Garmin, mint frame",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-994104",
         "in": 1.6,
         "out": 6.4,
         "label": "chasing the rider with the red tail light round the bend",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       }
     ],
     "sounds": []

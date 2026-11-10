@@ -36,22 +36,34 @@
     ],
     "moments": [
       {
+        "id": "m-e21413",
         "in": 0.0,
         "out": 1.6,
         "label": "bars and computer, brick walkway",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-d6aaf0",
         "in": 2.3,
         "out": 4.3,
         "label": "through the brick archway to the quad",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

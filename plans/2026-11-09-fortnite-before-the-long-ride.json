@@ -1,0 +1,76 @@
+{
+ "slug": "2026-11-09-fortnite-before-the-long-ride",
+ "postDate": "2026-11-09",
+ "format": "relatable-pov",
+ "hook": {
+  "text": "our pre long ride routine"
+ },
+ "segments": [
+  {
+   "asset": "261106-gs010113-72c0",
+   "in": 3.0,
+   "out": 6.22,
+   "captions": "transcript",
+   "view": "friend"
+  },
+  {
+   "asset": "261106-gs010113-72c0",
+   "in": 9.95,
+   "out": 11.9,
+   "yaw": 0,
+   "pitch": 30,
+   "fov": 85
+  },
+  {
+   "asset": "261106-gs010113-72c0",
+   "in": 16.45,
+   "out": 17.7,
+   "captions": "transcript",
+   "yaw": 110,
+   "pitch": 0,
+   "fov": 85
+  },
+  {
+   "asset": "261107-gs010114-e0e3",
+   "in": 104.0,
+   "out": 105.8,
+   "view": "road",
+   "text": [
+    {
+     "text": "next morning",
+     "at": 0.2,
+     "for": 1.5
+    }
+   ]
+  },
+  {
+   "asset": "261107-gs010116-3bc9",
+   "in": 115.5,
+   "out": 119.0,
+   "view": "road",
+   "payoff": true,
+   "stats": [
+    {
+     "value": "strava:distance"
+    },
+    {
+     "value": "strava:speed"
+    }
+   ]
+  }
+ ],
+ "music": {
+  "track": "luminary"
+ },
+ "post": {
+  "caption": "fortnite the night before the long ride. basically tapering. what's your night before ritual?",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#longride"
+  ],
+  "altText": "Two friends playing a video game on a laptop the night before a long ride, then the same rider out on the road the next morning with the group.",
+  "firstComment": "the game said ready. my legs did not"
+ }
+}

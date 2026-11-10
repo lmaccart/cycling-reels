@@ -1,0 +1,174 @@
+{
+  "id": "261106-img-3589-f500",
+  "kind": "video",
+  "media": "library/media/261106-img-3589-f500.mov",
+  "originalName": "IMG_3589.mov",
+  "hash": "f500d041c83173bd0bc4f82f503ad5c8b96110ca",
+  "created": "2026-11-06T08:05:10",
+  "ingestedAt": "2026-11-06T17:05:16+00:00",
+  "probe": {
+    "duration": 27.985,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.996,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-06T08:05:10-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Selfie against clear blue sky on the track loop, explaining today is an hour really easy, then the phone drops to the Garmin, front wheel and lane line, back up for a windy-today line",
+    "hooks": [
+      "easy day means actually easy",
+      "an hour of really really easy",
+      "recovery ride rules"
+    ],
+    "notes": "13:03 into the 11-06 Morning Ride. Transcript (medium.en, watch->watts fixed): \"today we are back on the track ... an hour easy, really really easy, literally like [two] watts per kilo 2.2 ... little windy today so we have to keep shifting\" User confirmed 11-06: \"literally like two watts per kilo... 2.2\" is right, OK to caption (the user said it). A VO is coming later today.",
+    "moments": [
+      {
+        "id": "m-57dae5",
+        "in": 0.2,
+        "out": 3.0,
+        "label": "we are back on the track, face to camera against blue sky",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.4,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      },
+      {
+        "id": "m-75d6ef",
+        "in": 3.4,
+        "out": 10.0,
+        "label": "an hour easy, really really easy, watts per kilo line",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.45,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "plan"
+      },
+      {
+        "id": "m-2ae5a4",
+        "in": 13.5,
+        "out": 17.5,
+        "label": "phone drops to the Garmin and front wheel over the lane line",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-7e32b2",
+        "in": 20.2,
+        "out": 24.5,
+        "label": "little windy today, have to keep shifting, looking up at the sky",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.4,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "calm",
+        "opener": false,
+        "line": "complaint"
+      }
+    ],
+    "sounds": [
+      {
+        "at": 14.2,
+        "for": 2.0,
+        "kind": "freehub",
+        "score": 2,
+        "note": "faint freehub ticking while the phone points at the wheel, quiet but no wind or speech; needs volume boost"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261106-img-3589-f500.json",
+  "used": [
+    {
+      "plan": "2026-11-11-easy-day-laundry",
+      "at": "2026-11-08T21:26:51+00:00",
+      "in": 2.68,
+      "out": 9.7
+    },
+    {
+      "plan": "2026-11-11-easy-day-laundry",
+      "at": "2026-11-08T21:26:51+00:00",
+      "in": 13.6,
+      "out": 15.4
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -24.4,
+      "peakDb": -0.8
+    },
+    "speechSeconds": 12.19,
+    "speechRanges": [
+      [
+        0.5,
+        2.92
+      ],
+      [
+        3.38,
+        7.24
+      ],
+      [
+        7.83,
+        9.9
+      ],
+      [
+        11.1,
+        12.01
+      ],
+      [
+        20.76,
+        21.9
+      ],
+      [
+        22.42,
+        23.75
+      ],
+      [
+        25.08,
+        25.54
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261106-img-3589-f500.jpg"
+  ],
+  "strava": {
+    "activity": "20883384709",
+    "offset": 783.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-06T17:07:15+00:00"
+}

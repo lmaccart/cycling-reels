@@ -1,0 +1,53 @@
+{
+ "slug": "2026-11-13-not-every-angel",
+ "postDate": "2026-11-13",
+ "format": "this-weeks-trend",
+ "hook": {
+  "text": "not every angel can walk vsfs, some of us pull the group",
+  "seconds": 4.2,
+  "position": "center"
+ },
+ "segments": [
+  {
+   "asset": "261107-gs040116-c34f",
+   "in": 437.5,
+   "out": 441.0,
+   "view": "road"
+  },
+  {
+   "asset": "261107-gs030116-789a",
+   "in": 266.0,
+   "out": 269.8,
+   "view": "road"
+  },
+  {
+   "asset": "261107-gs010116-3bc9",
+   "in": 10.5,
+   "out": 14.0,
+   "view": "road",
+   "payoff": true,
+   "text": [
+    {
+     "text": "and yes i did it for free",
+     "at": 0.3,
+     "for": 2.8
+    }
+   ]
+  }
+ ],
+ "music": {
+  "track": "angel-of-my-dreams",
+  "cutOnBeat": true
+ },
+ "post": {
+  "caption": "the runway is flat, houston, and everyone behind me is sitting on my wheel. who's the angel in your group?",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#groupride",
+   "#houstoncycling"
+  ],
+  "altText": "Riders sit right on the camera rider's wheel on a group ride, the whole bunch behind, then an empty road ahead.",
+  "firstComment": "invoice is in the mail"
+ }
+}

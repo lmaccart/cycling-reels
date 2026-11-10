@@ -37,22 +37,34 @@
     ],
     "moments": [
       {
+        "id": "m-5b3fc4",
         "in": 0.0,
         "out": 1.3,
         "label": "Garmin on the ROAD screen in the dark",
         "score": 3,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-42fb84",
         "in": 1.3,
         "out": 5.0,
         "label": "rolling out past the lit buildings, bike shadow",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

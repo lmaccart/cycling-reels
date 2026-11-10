@@ -1,0 +1,138 @@
+{
+  "id": "261107-gs020115-4b46",
+  "kind": "video",
+  "media": "library/media/261107-gs020115-4b46.360",
+  "originalName": "GS020115.360",
+  "hash": "4b466f3ef9891510511de00dd4800d5a8780bce1",
+  "created": "2026-11-07T07:16:41",
+  "ingestedAt": "2026-11-07T18:36:55+00:00",
+  "probe": {
+    "duration": 121.621,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:16:41.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "Continuation of the early group roll through neighborhood streets",
+    "hooks": [],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-db4661",
+        "in": 78.0,
+        "out": 85.0,
+        "label": "group easing through a neighborhood",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": [
+      {
+        "at": 83.0,
+        "for": 1.9,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub ticking coasting, quiet"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -20.8,
+      "peakDb": -3.7
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261107-gs020115-4b46-1.jpg",
+    "library/sheets/261107-gs020115-4b46-2.jpg"
+  ],
+  "strava": {
+    "activity": "20897870704",
+    "offset": 1165.9,
+    "clock": "gps",
+    "shift": -248.6,
+    "fitMetres": 6.0
+  },
+  "telemetry": "library/telemetry/261107-gs020115-4b46.json",
+  "gpsSummary": {
+    "goodSeconds": 121.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 121.4,
+    "maxSpeed": 8.51,
+    "movingAvgSpeed": 6.82,
+    "movingSeconds": 112.4,
+    "distance": 770.3,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 16.4,
+    "altMax": 47.7
+  },
+  "createdCamera": "2026-11-07T08:16:41",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:55+00:00"
+}

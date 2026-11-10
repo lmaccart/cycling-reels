@@ -65,6 +65,7 @@
     },
     "moments": [
       {
+        "id": "m-3bf130",
         "in": 40.0,
         "out": 48.0,
         "label": "rider in red slides past under a big blue sky",
@@ -72,9 +73,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-4bfb83",
         "in": 170.0,
         "out": 178.0,
         "label": "fastest stretch of the day on an empty concrete road",
@@ -82,9 +89,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
       },
       {
+        "id": "m-aaad28",
         "in": 293.4,
         "out": 304.0,
         "label": "regroup: \"i saw him behind me and lost all motivation... how long should i sit behind him\"",
@@ -92,9 +105,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-b567bc",
         "in": 355.5,
         "out": 367.0,
         "label": "stopped at a railroad crossing, train horn blasting, teammate in blue side-on under big clouds",
@@ -102,9 +121,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-feaf64",
         "in": 416.5,
         "out": 420.5,
         "label": "\"she went the wrong way. gaby went the wrong way\"",
@@ -112,9 +137,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       },
       {
+        "id": "m-40765e",
         "in": 420.9,
         "out": 436.0,
         "label": "\"i didnt realize, and when i realized its already happening... i need to stop being on the front\"",
@@ -122,9 +153,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "honest",
+        "opener": false
       },
       {
+        "id": "m-cff03d",
         "in": 439.4,
         "out": 461.0,
         "label": "\"youre going the wrong way\" ... \"i thought we were in europe\"",
@@ -132,7 +169,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
       }
     ],
     "sounds": [
@@ -149,6 +191,40 @@
         "kind": "other",
         "score": 3,
         "note": "second train horn blast at the crossing, clean but with short dips"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 8.0,
+        "label": "huge sky and clouds, open road"
+      },
+      {
+        "at": 75.0,
+        "label": "passes under a concrete structure"
+      },
+      {
+        "at": 105.0,
+        "label": "yellow barrels at the roadside"
+      },
+      {
+        "at": 165.0,
+        "label": "flag by the road, then the empty concrete stretch"
+      },
+      {
+        "at": 268.0,
+        "label": "rolling into the regroup"
+      },
+      {
+        "at": 306.0,
+        "label": "regroup, rider in RICE kit standing"
+      },
+      {
+        "at": 366.0,
+        "label": "railroad crossing, big clouds"
+      },
+      {
+        "at": 407.0,
+        "label": "group stopped together"
       }
     ]
   },

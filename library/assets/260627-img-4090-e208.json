@@ -33,22 +33,34 @@
     ],
     "moments": [
       {
+        "id": "m-f3c0b4",
         "in": 2.5,
         "out": 6.2,
         "label": "view opens over the forested hills",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       },
       {
+        "id": "m-abba24",
         "in": 6.2,
         "out": 8.9,
         "label": "pan back to the road on the ridge",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

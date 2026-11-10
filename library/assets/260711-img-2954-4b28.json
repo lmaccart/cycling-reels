@@ -34,31 +34,49 @@
     ],
     "moments": [
       {
+        "id": "m-c31a27",
         "in": 2.4,
         "out": 6.0,
         "label": "onto the bridge, golden light",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-864e96",
         "in": 9.4,
         "out": 11.8,
         "label": "sun sitting low over the water",
         "score": 5,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": true
       },
       {
+        "id": "m-c7bc73",
         "in": 11.8,
         "out": 14.5,
         "label": "waving selfie on the bridge",
         "score": 5,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },

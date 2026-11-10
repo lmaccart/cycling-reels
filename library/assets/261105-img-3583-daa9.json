@@ -1,0 +1,113 @@
+{
+  "id": "261105-img-3583-daa9",
+  "kind": "video",
+  "media": "library/media/261105-img-3583-daa9.mov",
+  "originalName": "IMG_3583.mov",
+  "hash": "daa9fa5fa8d18560c5cb04a0d2574fa77de5a34e",
+  "created": "2026-11-05T10:13:58",
+  "ingestedAt": "2026-11-05T16:45:15+00:00",
+  "probe": {
+    "duration": 31.868,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.997,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-05T10:13:58-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "static",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Post-ride bathroom routine, phone propped low: brushing teeth in a towel, leaning into the camera, brushing hair",
+    "hooks": [
+      "the post-ride routine nobody asked for",
+      "rode before most people woke up, now brushing my teeth",
+      "finally a person again after the morning ride"
+    ],
+    "notes": "Filmed 10:13, about an hour after the 11-05 Morning Ride ended. ~2s of sound at the start is toothbrush noise; the Whisper transcript is the fake keyterm list, do not use captions:transcript. Ride distance only via strava: stats.",
+    "moments": [
+      {
+        "id": "m-eb2ad6",
+        "in": 0.5,
+        "out": 7.5,
+        "label": "brushing teeth, looking down at the camera",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-67f430",
+        "in": 9.0,
+        "out": 13.0,
+        "label": "leans into the lens mid-brush",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-50e581",
+        "in": 20.5,
+        "out": 28.0,
+        "label": "brushes hair back, fixes it by hand",
+        "score": 3,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": true,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261105-img-3583-daa9.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -34.4,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 2.29,
+    "speechRanges": [
+      [
+        0.5,
+        1.29
+      ],
+      [
+        1.82,
+        2.28
+      ],
+      [
+        3.13,
+        4.17
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261105-img-3583-daa9.jpg"
+  ],
+  "taggedAt": "2026-11-05T16:46:34+00:00"
+}

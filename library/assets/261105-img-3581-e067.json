@@ -1,0 +1,85 @@
+{
+  "id": "261105-img-3581-e067",
+  "kind": "video",
+  "media": "library/media/261105-img-3581-e067.mov",
+  "originalName": "IMG_3581.mov",
+  "hash": "e067ddf13b64140972b0c8c6ba7aea7b19d4c3c9",
+  "created": "2026-11-05T07:04:41",
+  "ingestedAt": "2026-11-05T16:45:12+00:00",
+  "probe": {
+    "duration": 7.965,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.887,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-05T07:04:41-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Heading out before the ride: elevator doors close on the bike, then top-down view of the teal bike and my legs in the elevator",
+    "hooks": [
+      "7am and the bike gets the elevator too",
+      "the commute to the ride",
+      "leaving before the sun is fully up"
+    ],
+    "notes": "07:04, a minute before the 11-05 Morning Ride started; detector pass-by at 0:01 is the elevator, not a car",
+    "moments": [
+      {
+        "id": "m-8874d9",
+        "in": 0.3,
+        "out": 3.8,
+        "label": "elevator doors slide shut, saddle in frame",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-006ed6",
+        "in": 4.0,
+        "out": 7.96,
+        "label": "looks down at the bike and kit in the elevator",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -30.3,
+      "peakDb": -9.9
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261105-img-3581-e067.jpg"
+  ],
+  "taggedAt": "2026-11-05T16:46:28+00:00"
+}

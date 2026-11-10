@@ -37,31 +37,49 @@
     ],
     "moments": [
       {
+        "id": "m-416c11",
         "in": 0.5,
         "out": 3.0,
         "label": "rear wheel and shoes on the floor",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-e462fd",
         "in": 6.5,
         "out": 12.5,
         "label": "sweeps along the frame and drivetrain on the stand",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-37037f",
         "in": 13.0,
         "out": 16.5,
         "label": "close on the Black Inc rear wheel and dropout",
         "score": 3,
         "focusX": 0.45,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

@@ -58,6 +58,47 @@
     },
     "moments": [
       {
+        "id": "m-04bd5b",
+        "in": 126.5,
+        "out": 130.6,
+        "label": "\"my camera's on, wave!\" rolling through the neighbourhood, my face from the bar cam",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-0aaeb6",
+        "in": 133.8,
+        "out": 141.2,
+        "label": "\"really excited for the footage\", jokes about it being butts the whole time",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-26aa93",
         "in": 163.0,
         "out": 170.0,
         "label": "under an oak canopy",
@@ -65,9 +106,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-5b82b5",
         "in": 188.0,
         "out": 193.0,
         "label": "buddy rolls up alongside",
@@ -75,9 +122,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-78caed",
         "in": 208.0,
         "out": 215.0,
         "label": "tree-lined street",
@@ -85,7 +138,50 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "apartment blocks along the road, teammate on a yellow bike ahead"
+      },
+      {
+        "at": 40.0,
+        "label": "alongside a long concrete apartment building"
+      },
+      {
+        "at": 67.0,
+        "label": "car passes on the right, buildings behind"
+      },
+      {
+        "at": 85.0,
+        "label": "worn paint on the road"
+      },
+      {
+        "at": 134.0,
+        "label": "chatting about the footage"
+      },
+      {
+        "at": 188.0,
+        "label": "white car parked on the right, tree-lined neighbourhood"
+      },
+      {
+        "at": 290.0,
+        "label": "stopped at an intersection, rider's feet down"
+      },
+      {
+        "at": 346.0,
+        "label": "wide painted crossing at the light"
+      },
+      {
+        "at": 382.0,
+        "label": "bike shadow on the road, brick houses"
       }
     ]
   },

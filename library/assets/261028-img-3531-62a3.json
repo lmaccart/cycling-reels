@@ -37,22 +37,34 @@
     "notes": "Clutter in the background; tight 9:16 crop keeps it on the bike mostly.",
     "moments": [
       {
+        "id": "m-4cd6c7",
         "in": 0.0,
         "out": 3.5,
         "label": "drive side to head-on view of the Factor",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-6ca3ff",
         "in": 3.8,
         "out": 7.4,
         "label": "close sweep along the fork, down tube and bottles",
         "score": 3,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

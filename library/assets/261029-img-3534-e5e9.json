@@ -38,22 +38,36 @@
     "notes": "Contains a swear (5.7 s); the M floor display shows it stuck",
     "moments": [
       {
+        "id": "m-5f5981",
         "in": 1.5,
         "out": 10.07,
         "label": "elevator wont come: are you serious right now bro",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": true,
+        "line": "complaint"
       },
       {
+        "id": "m-1a952d",
         "in": 1.5,
         "out": 5.0,
         "label": "staring at the stuck M display with the bike",
         "score": 3,
         "focusX": 0.6,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "voice",
+        "speaker": "me",
+        "face": false,
+        "mood": "funny",
+        "opener": false,
+        "line": "complaint"
       }
     ],
     "sounds": []

@@ -33,22 +33,34 @@
     ],
     "moments": [
       {
+        "id": "m-2f4466",
         "in": 1.8,
         "out": 4.5,
         "label": "walking out with the red drink",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-87da90",
         "in": 4.5,
         "out": 8.4,
         "label": "bikes by the bin, team at the patio tables",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

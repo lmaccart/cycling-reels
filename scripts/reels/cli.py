@@ -14,7 +14,7 @@ from PIL import Image
 from . import __version__
 from .config import Project
 from .sheets import build_sheet
-from .util import ReelsError, fmt_ts, log, now_iso, read_json
+from .util import ReelsError, fmt_ts, log, now_iso, read_json, warn
 
 
 def _assets(project: Project):
@@ -44,7 +44,7 @@ def cmd_ingest(project: Project, args) -> int:
 def cmd_pending(project: Project, args) -> int:
     from .ingest import describe
 
-    items = [a for a in _assets(project) if a.get("status") == "needs_tags"]
+    items = [a for a in _assets(project) if a.get("status") == "needs_tags" and not a.get("deleted")]
     if args.json:
         print(
             json.dumps(
@@ -67,6 +67,7 @@ def cmd_pending(project: Project, args) -> int:
         log("nothing waiting to be tagged ✓")
         return 0
     log(f"{len(items)} asset(s) need tags — view each sheet, then ./reels tag <id> --json '{{…}}'")
+    log("  every moment needs role, speaker, face, mood and opener (line, thread and beat when they apply): reference/taxonomy.md")
     for a in items:
         log(f"  {a['id']}  {a['kind']}  {describe(a)}")
         for s in a.get("sheets") or []:
@@ -197,20 +198,31 @@ def _frames_360(project: Project, asset: dict, args) -> int:
     return 0
 
 
-def cmd_tag(project: Project, args) -> int:
-    from .library import load_asset, save_asset
-    from .tags import validate_tags
-
-    asset = load_asset(project, args.asset)
+def _tag_payload(args) -> Any:
     if args.json:
         try:
-            raw = json.loads(args.json)
+            return json.loads(args.json)
         except json.JSONDecodeError as e:
             raise ReelsError(f"--json isn't valid JSON: {e}") from e
-    elif args.file:
-        raw = read_json(args.file)
-    else:
-        raise ReelsError("pass the tags with --json '{...}' or --file tags.json")
+    if args.file:
+        return read_json(args.file)
+    raise ReelsError("pass the tags with --json '{...}' or --file tags.json")
+
+
+def cmd_tag(project: Project, args) -> int:
+    from .library import load_asset, save_asset
+    from .tags import merge_tags, validate_tags
+
+    asset = load_asset(project, args.asset)
+    raw = _tag_payload(args)
+    if args.merge:
+        # A correction, not a new classification: status and taggedAt stay as they are.
+        before = {m.get("id") for m in (asset.get("tags") or {}).get("moments") or []}
+        asset["tags"] = merge_tags(asset, raw)
+        save_asset(project, asset)
+        log(f"merged into {asset['id']}")
+        _warn_missing_shelves({"moments": [m for m in asset["tags"].get("moments") or [] if m["id"] not in before]})
+        return 0
     tags = validate_tags(asset, raw)
     asset["tags"] = tags
     asset["status"] = "skip" if tags.get("skip") else "tagged"
@@ -221,12 +233,65 @@ def cmd_tag(project: Project, args) -> int:
     else:
         n = len(tags.get("moments") or [])
         log(f"tagged {asset['id']}: {tags['type']} · quality {tags['quality']}" + (f" · {n} moment(s)" if asset["kind"] == "video" else ""))
+        _warn_missing_shelves(tags)
+    return 0
+
+
+def _warn_missing_shelves(tags: dict) -> None:
+    from .tags import missing_standard_fields
+
+    missing = missing_standard_fields(tags)
+    if missing:
+        warn(f"{len(missing)} moment(s) missing standard fields (reference/taxonomy.md):\n  " + "\n  ".join(missing))
+
+
+def cmd_tag_batch(project: Project, args) -> int:
+    from .library import load_asset, save_asset
+    from .tags import merge_tags
+
+    batch = read_json(args.file)
+    if not isinstance(batch, dict):
+        raise ReelsError("--file must be a JSON object mapping asset id to its merge payload")
+    merged, errors = [], []
+    seen: dict[str, str] = {}
+    for token, patch in batch.items():
+        try:
+            asset = load_asset(project, token)
+            if asset["id"] in seen:
+                raise ReelsError(f"same asset as {seen[asset['id']]!r}; combine its updates into one payload")
+            seen[asset["id"]] = token
+            before = {m.get("id") for m in (asset.get("tags") or {}).get("moments") or []}
+            asset["tags"] = merge_tags(asset, patch)
+            merged.append((asset, before))
+        except ReelsError as e:
+            errors.append(f"{token}: {e}")
+    if errors:
+        raise ReelsError(f"nothing saved, {len(errors)} of {len(batch)} asset(s) have problems:\n" + "\n".join(errors))
+    for asset, before in merged:
+        save_asset(project, asset)
+        _warn_missing_shelves({"moments": [m for m in asset["tags"].get("moments") or [] if m["id"] not in before]})
+    log(f"merged {len(merged)} asset(s)")
+    return 0
+
+
+def cmd_tag_backfill(project: Project, args) -> int:
+    from .library import all_assets, save_asset
+    from .tags import backfill_moment_ids
+
+    total = 0
+    for asset in all_assets(project):
+        added = backfill_moment_ids(asset.get("tags") or {})
+        if added:
+            save_asset(project, asset)
+            total += added
+    log(f"added {total} moment id(s)")
     return 0
 
 
 def cmd_skip(project: Project, args) -> int:
     args.json = json.dumps({"skip": True, "reason": args.reason or ""})
     args.file = None
+    args.merge = False
     return cmd_tag(project, args)
 
 
@@ -239,7 +304,7 @@ def cmd_show(project: Project, args) -> int:
     if args.json:
         print(json.dumps(a, indent=2))
         return 0
-    log(f"{a['id']}  ·  {a['kind']}  ·  {describe(a)}  ·  status: {a.get('status')}")
+    log(f"{a['id']}  ·  {a['kind']}  ·  {describe(a)}  ·  status: {a.get('status')}" + ("  ·  DELETED (media gone)" if a.get("deleted") else ""))
     log(f"  file: {a['media']}  (was {a.get('originalName')})")
     if a["kind"] == "video":
         log(f"  {audio_line(a)}")
@@ -256,7 +321,10 @@ def cmd_show(project: Project, args) -> int:
 
             used = " (used)" if moment_used(a, m) else ""
             where = f"view {m['view']}" if m.get("view") is not None else f"focusX {m['focusX']}"
-            log(f"    moment {i}: {fmt_ts(m['in'])}-{fmt_ts(m['out'])}  score {m['score']}  {where}  {m['label']}{used}")
+            shelves = " · ".join(str(m[k]) for k in ("role", "speaker", "mood", "line", "thread", "beat") if m.get(k))
+            shelves += "".join(f" · {k}" for k in ("face", "opener") if m.get(k))
+            mid = f" {m['id']}" if m.get("id") else ""
+            log(f"    moment {i}{mid}: {fmt_ts(m['in'])}-{fmt_ts(m['out'])}  score {m['score']}  {where}  {m['label']}{used}" + (f"  [{shelves}]" if shelves else ""))
         for h in t.get("hooks") or []:
             log(f"    hook idea: {h}")
     elif t.get("skip"):
@@ -328,7 +396,7 @@ def cmd_sounds(project: Project, args) -> int:
         todo = [
             a
             for a in _assets(project)
-            if a["kind"] == "video" and a["probe"].get("hasAudio") and a.get("status") != "skip"
+            if a["kind"] == "video" and a["probe"].get("hasAudio") and a.get("status") != "skip" and not a.get("deleted")
             and (args.force or not has_cache(project, a))
         ]  # fmt: skip
         if not todo:
@@ -375,6 +443,7 @@ def cmd_transcribe(project: Project, args) -> int:
 
 def _library_sounds(project: Project, assets: list[dict], args) -> int:
     from .library import moment_used
+    from .search import is_deleted, newest_first
 
     rows = []
     for a in assets:
@@ -383,7 +452,7 @@ def _library_sounds(project: Project, assets: list[dict], args) -> int:
             continue
         for i, s in enumerate(t.get("sounds") or []):
             rows.append({"asset": a["id"], "sound": i, **s, "used": moment_used(a, {"in": s["at"], "out": s["at"] + s["for"]}),
-                         "created": a.get("created")})  # fmt: skip
+                         "created": a.get("created"), "deleted": is_deleted(a)})  # fmt: skip
     if args.kind:
         rows = [r for r in rows if r["kind"] == args.kind]
     if args.unused:
@@ -391,6 +460,8 @@ def _library_sounds(project: Project, assets: list[dict], args) -> int:
     if args.min_score:
         rows = [r for r in rows if r["score"] >= args.min_score]
     rows.sort(key=lambda r: (-r["score"], r.get("created") or ""))
+    if args.recent:
+        newest_first(rows)
     if args.json:
         print(json.dumps(rows, indent=2))
         return 0
@@ -398,7 +469,7 @@ def _library_sounds(project: Project, assets: list[dict], args) -> int:
         log("no tagged sounds" + (" match" if args.kind or args.unused or args.min_score else " yet — see ./reels sounds"))
     for r in rows[: args.limit]:
         span = f"{fmt_ts(r['at'])} ({r['for']:.1f}s)"
-        log(f"  {r['score']}★ {r['kind']:<9} {r['asset']:<30} {span:<16} {r.get('note', '')}" + (" [used]" if r["used"] else ""))
+        log(f"  {r['score']}★ {r['kind']:<9} {r['asset']:<30} {span:<16} {r.get('note', '')}" + (" [used]" if r["used"] else "") + (" [deleted]" if r["deleted"] else ""))
     if len(rows) > args.limit:
         log(f"  … {len(rows) - args.limit} more (use --limit)")
     return 0
@@ -406,9 +477,12 @@ def _library_sounds(project: Project, assets: list[dict], args) -> int:
 
 def cmd_library(project: Project, args) -> int:
     from .library import moment_used
+    from .search import has_shelf_filter, is_deleted, newest_first, passes_shelves, shelf_fields, visible_assets
 
-    assets = _assets(project)
+    assets = visible_assets(_assets(project), args.include_deleted)
     if args.sounds:
+        if has_shelf_filter(args):
+            raise ReelsError("shelf filters (--role, --mood, …) apply to moments, not --sounds")
         return _library_sounds(project, assets, args)
     status: dict[str, int] = {}
     for a in assets:
@@ -433,6 +507,8 @@ def cmd_library(project: Project, args) -> int:
                         "speech": m.get("speech", False),
                         "used": moment_used(a, m),
                         "created": a.get("created"),
+                        "deleted": is_deleted(a),
+                        **shelf_fields(m),
                     }
                 )
         else:
@@ -446,6 +522,7 @@ def cmd_library(project: Project, args) -> int:
                     "label": t.get("summary", ""),
                     "used": bool(a.get("used")),
                     "created": a.get("created"),
+                    "deleted": is_deleted(a),
                 }
             )
     if args.unused:
@@ -454,7 +531,11 @@ def cmd_library(project: Project, args) -> int:
         rows = [r for r in rows if r["score"] >= args.min_score]
     if args.type:
         rows = [r for r in rows if r["type"] == args.type]
+    if has_shelf_filter(args):
+        rows = [r for r in rows if passes_shelves(r, args)]
     rows.sort(key=lambda r: (-r["score"], r.get("created") or ""), reverse=False)
+    if args.recent:
+        newest_first(rows)
     if args.json:
         print(json.dumps(rows, indent=2))
         return 0
@@ -462,18 +543,19 @@ def cmd_library(project: Project, args) -> int:
     for r in rows[: args.limit]:
         ref = f"{r['asset']}#{r['moment']}" if r["moment"] is not None else r["asset"]
         span = f"{fmt_ts(r['in'])}-{fmt_ts(r['out'])} ({r['out'] - r['in']:.1f}s)" if r["kind"] == "video" else "photo"
-        flags = (" [speech]" if r.get("speech") else "") + (" [used]" if r["used"] else "")
+        flags = (" [speech]" if r.get("speech") else "") + (" [used]" if r["used"] else "") + (" [deleted]" if r["deleted"] else "")
         log(f"  {r['score']}★ {r['type']:<11} {ref:<40} {span:<22} {r['label']}{flags}")
     if len(rows) > args.limit:
         log(f"  … {len(rows) - args.limit} more (use --limit)")
-    good = sum(1 for r in rows if not r["used"] and r["score"] >= 3)
+    good = sum(1 for r in rows if not r["used"] and not r["deleted"] and r["score"] >= 3)
     log(f"\n{good} unused moments scoring 3+ ≈ {good // 3} reels of material at ~3 moments per reel")
     return 0
 
 
 def cmd_check(project: Project, args) -> int:
     """Checks every plan given (a batch: plans/2026-11-*.json) and reports all the problems, not just the first plan's."""
-    from .render import check_plan
+    from .render import check_plan, load_plan
+    from .retention import batch_warnings
     from .review import auto_event
 
     failed = []
@@ -485,6 +567,14 @@ def cmd_check(project: Project, args) -> int:
         except ReelsError as e:
             failed.append(p)
             print(f"error: {p}: {e}", file=sys.stderr)
+    plans = []
+    for p in args.plans:
+        try:
+            plans.append(load_plan(project, p))
+        except ReelsError:
+            pass  # already reported above
+    for w in batch_warnings(plans):
+        warn(w)
     if failed:
         auto_event(project, "command-failed", f"check failed for {len(failed)} of {len(args.plans)} plan(s); record a sanitized cause and fix with review feedback")
         if len(args.plans) > 1:
@@ -676,8 +766,13 @@ def cmd_stats(project: Project, args) -> int:
             raise ReelsError("usage: ./reels stats import <file.json>")
         import_file(project, args.words[1])
         return 0
+    if args.words == ["backfill-lineage"]:
+        from .lineage import backfill
+
+        backfill(project)
+        return 0
     if args.words:
-        raise ReelsError("usage: ./reels stats [--since YYYY-MM-DD]  |  ./reels stats import <file.json>")
+        raise ReelsError("usage: ./reels stats [--since YYYY-MM-DD]  |  ./reels stats import <file.json>  |  ./reels stats backfill-lineage")
     stats(project, since=args.since)
     return 0
 
@@ -735,6 +830,10 @@ def cmd_selftest(project: Project, args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from .prune import add_commands as add_prune_commands
+    from .search import add_commands as add_search_commands
+    from .search import add_deleted_arg, add_shelf_args
+
     p = argparse.ArgumentParser(prog="reels", description="Turn ride footage into captioned Instagram Reels.")
     p.add_argument("--version", action="version", version=f"cycling-reels {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -767,7 +866,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("asset")
     s.add_argument("--json")
     s.add_argument("--file")
+    s.add_argument("--merge", action="store_true", help="partial update: change only what's given; moments are addressed by id, addMoments adds new ones")
     s.set_defaults(fn=cmd_tag)
+
+    s = sub.add_parser("tag-batch", help="apply many --merge updates at once; saves nothing unless all are valid")
+    s.add_argument("--file", required=True, help='JSON object: {"<asset id>": {<merge payload>}, ...}')
+    s.set_defaults(fn=cmd_tag_batch)
+
+    s = sub.add_parser("tag-backfill", help="give an id to every moment that doesn't have one yet")
+    s.set_defaults(fn=cmd_tag_backfill)
 
     s = sub.add_parser("skip", help="mark an asset as unusable")
     s.add_argument("asset")
@@ -812,11 +919,17 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--unused", action="store_true")
     s.add_argument("--min-score", type=int)
     s.add_argument("--type")
+    add_shelf_args(s)
+    add_deleted_arg(s)
+    s.add_argument("--recent", action="store_true", help="newest footage first instead of best first")
     s.add_argument("--sounds", action="store_true", help="tagged sounds instead of moments")
     s.add_argument("--kind", help="with --sounds: only this kind")
     s.add_argument("--limit", type=int, default=40)
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_library)
+
+    add_search_commands(sub)
+    add_prune_commands(sub)
 
     s = sub.add_parser("check", help="validate plan files and print their timelines (no rendering)")
     s.add_argument("plans", nargs="+")

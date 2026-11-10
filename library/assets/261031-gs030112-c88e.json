@@ -64,6 +64,7 @@
     },
     "moments": [
       {
+        "id": "m-40390a",
         "in": 64.0,
         "out": 72.0,
         "label": "club riding behind me between glass towers",
@@ -71,9 +72,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "skyline"
+        "view": "skyline",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": true
       },
       {
+        "id": "m-b3cecf",
         "in": 96.0,
         "out": 104.0,
         "label": "group fanned out across a downtown street, skyscrapers above",
@@ -81,9 +88,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "skyline"
+        "view": "skyline",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": true
       },
       {
+        "id": "m-ac8938",
         "in": 96.0,
         "out": 103.0,
         "label": "wheels ahead through a wet downtown street",
@@ -91,9 +104,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-862b74",
         "in": 121.0,
         "out": 129.0,
         "label": "teammate in blue under a white tower, blue sky",
@@ -101,7 +120,12 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "skyline"
+        "view": "skyline",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       }
     ],
     "sounds": []

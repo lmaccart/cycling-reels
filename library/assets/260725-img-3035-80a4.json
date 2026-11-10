@@ -31,31 +31,49 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-3299d1",
         "in": 1.6,
         "out": 4.4,
         "label": "bridge into the low sun",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "awe",
+        "opener": false
       },
       {
+        "id": "m-67ef8a",
         "in": 4.4,
         "out": 8.0,
         "label": "railing and water rushing by",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-6f9eb7",
         "in": 9.4,
         "out": 11.27,
         "label": "quick selfie on the bridge",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "reaction",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },

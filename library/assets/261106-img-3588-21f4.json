@@ -1,0 +1,109 @@
+{
+  "id": "261106-img-3588-21f4",
+  "kind": "video",
+  "media": "library/media/261106-img-3588-21f4.mov",
+  "originalName": "IMG_3588.mov",
+  "hash": "21f4e92ba3620eed1b1c3f48419662496f5848fa",
+  "created": "2026-11-06T07:53:17",
+  "ingestedAt": "2026-11-06T17:05:14+00:00",
+  "probe": {
+    "duration": 9.313,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.914,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-06T07:53:17-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "Handheld POV rolling out under the oaks on campus: Garmin, bars and legs, then a quick flip to my face in the white jersey, sunny tree-shadow road",
+    "hooks": [
+      "7:52am, campus is still asleep",
+      "easy day means easy day",
+      "the only time campus is this empty"
+    ],
+    "location": "Rice campus",
+    "notes": "1:10 into the 11-06 Morning Ride (Strava, phone clock). Location from the Strava ride (Rice Track Loop segments) and the Rice buildings on screen. Freehub candidate at 6.2 is weak (+1 dB rise), not tagged.",
+    "moments": [
+      {
+        "id": "m-e6b1f2",
+        "in": 2.8,
+        "out": 6.5,
+        "label": "rolling down the oak-lined campus road, bars in frame",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.55,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-838efa",
+        "in": 6.5,
+        "out": 8.2,
+        "label": "quick flip to the selfie view, mid-ride",
+        "score": 2,
+        "focusX": 0.6,
+        "focusY": 0.4,
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-71b94c",
+        "in": 7.9,
+        "out": 9.3,
+        "label": "low-sun shadows across the road, bars centered",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.6,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -36.1,
+      "peakDb": -15.1
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261106-img-3588-21f4.jpg"
+  ],
+  "strava": {
+    "activity": "20883384709",
+    "offset": 70.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-06T17:07:15+00:00"
+}

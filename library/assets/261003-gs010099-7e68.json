@@ -61,6 +61,7 @@
     },
     "moments": [
       {
+        "id": "m-ee7b47",
         "in": 305.0,
         "out": 313.0,
         "label": "skyline in the distance",
@@ -68,9 +69,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-7cc2d5",
         "in": 405.0,
         "out": 413.0,
         "label": "under the oaks on a quiet street",
@@ -78,7 +85,90 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "road"
+        "view": "road",
+        "role": "texture",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-a6569a",
+        "in": 423.8,
+        "out": 431.6,
+        "label": "\"we want to turn left but it's like not really possible\" at a city intersection, my face from the bar cam",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-54531b",
+        "in": 458.5,
+        "out": 463.5,
+        "label": "arm up at the traffic light while someone says \"say thank you to the tesla\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": {
+          "yaw": 180,
+          "pitch": -55,
+          "fov": 95
+        },
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "city streets, water droplet on the lens"
+      },
+      {
+        "at": 75.0,
+        "label": "parked red car, teammate in blue RICE kit close by"
+      },
+      {
+        "at": 85.0,
+        "label": "under traffic lights at an intersection"
+      },
+      {
+        "at": 165.0,
+        "label": "condo tower appears behind"
+      },
+      {
+        "at": 216.0,
+        "label": "high-rises overhead"
+      },
+      {
+        "at": 276.0,
+        "label": "blue sign on the left"
+      },
+      {
+        "at": 397.0,
+        "label": "tower behind, tree-lined street"
+      },
+      {
+        "at": 427.0,
+        "label": "stopped at the intersection, big white SUV close by"
+      },
+      {
+        "at": 467.0,
+        "label": "big apartment building ahead"
       }
     ]
   },

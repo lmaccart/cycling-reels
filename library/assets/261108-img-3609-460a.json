@@ -1,0 +1,157 @@
+{
+  "id": "261108-img-3609-460a",
+  "kind": "video",
+  "media": "library/media/261108-img-3609-460a.mov",
+  "originalName": "IMG_3609.mov",
+  "hash": "460a5f5961cdd58495e256e41bef8c9466daf4ef",
+  "created": "2026-11-08T16:57:23",
+  "ingestedAt": "2026-11-09T02:58:28+00:00",
+  "probe": {
+    "duration": 46.788,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.972,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-08T16:57:23-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "others",
+    "summary": "Two friends on a swing set outside a brick building, racing to see who gets higher, one in a cap and green fleece",
+    "hooks": [
+      "recovery day",
+      "how is he getting so high"
+    ],
+    "notes": "'Drake' at 0:21 is low confidence (Whisper); don't put the name on screen.",
+    "moments": [
+      {
+        "id": "m-4fce0e",
+        "in": 1.9,
+        "out": 7.0,
+        "label": "swinging up close past the camera",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.55,
+        "speech": false,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-53e257",
+        "in": 20.5,
+        "out": 25.9,
+        "label": "getting higher right now, i'm too fast, ah sh**",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.55,
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-e66630",
+        "in": 27.4,
+        "out": 33.0,
+        "label": "he's still higher, how is he getting so high",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.55,
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-ee4f59",
+        "in": 39.9,
+        "out": 44.7,
+        "label": "i'm like all up in there, what, oh he is",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.55,
+        "speech": true,
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261108-img-3609-460a.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -31.0,
+      "peakDb": -0.4
+    },
+    "speechSeconds": 19.6,
+    "speechRanges": [
+      [
+        4.95,
+        7.24
+      ],
+      [
+        7.61,
+        8.74
+      ],
+      [
+        16.06,
+        17.29
+      ],
+      [
+        20.6,
+        22.76
+      ],
+      [
+        23.19,
+        26.47
+      ],
+      [
+        27.86,
+        28.94
+      ],
+      [
+        29.4,
+        30.41
+      ],
+      [
+        31.83,
+        33.16
+      ],
+      [
+        39.86,
+        44.52
+      ],
+      [
+        44.79,
+        46.22
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261108-img-3609-460a.jpg"
+  ],
+  "taggedAt": "2026-11-09T03:00:00+00:00"
+}

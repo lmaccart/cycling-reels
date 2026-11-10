@@ -69,6 +69,7 @@
     },
     "moments": [
       {
+        "id": "m-1adcc9",
         "in": 86.0,
         "out": 94.0,
         "label": "teammate on my wheel, oaks overhead",
@@ -76,9 +77,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-f9137a",
         "in": 86.0,
         "out": 94.0,
         "label": "club strung out behind under the oaks",
@@ -86,9 +93,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "back"
+        "view": "back",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-2b191e",
         "in": 160.0,
         "out": 167.0,
         "label": "rolling over the double yellow lines, legs and frame",
@@ -96,9 +109,15 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "forward"
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-696c56",
         "in": 345.0,
         "out": 352.0,
         "label": "teammate riding alongside on a quiet street",
@@ -106,10 +125,41 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": false,
-        "view": "side"
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
-    "sounds": []
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 8.0,
+        "label": "club rolls out under the oaks"
+      },
+      {
+        "at": 90.0,
+        "label": "teammates strung out behind under the oak canopy"
+      },
+      {
+        "at": 160.0,
+        "label": "over the double yellow lines"
+      },
+      {
+        "at": 210.0,
+        "label": "rider in red alongside at the double yellow"
+      },
+      {
+        "at": 350.0,
+        "label": "teammate alongside on a quiet street"
+      },
+      {
+        "at": 380.0,
+        "label": "picture freezes from about here; audio only"
+      }
+    ]
   },
   "transcript": "library/transcripts/261031-gs010109-e573.json",
   "used": [],

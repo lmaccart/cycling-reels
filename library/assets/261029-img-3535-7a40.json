@@ -37,13 +37,19 @@
     "notes": "43 fps, dim pre-sunrise light; speech is off-camera narration",
     "moments": [
       {
+        "id": "m-31abde",
         "in": 1.5,
         "out": 5.5,
         "label": "dawn intersection, red lights and a pink sky",
         "score": 2,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "me",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

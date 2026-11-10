@@ -1,0 +1,239 @@
+{
+  "id": "261107-gs040116-c34f",
+  "kind": "video",
+  "media": "library/media/261107-gs040116-c34f.360",
+  "originalName": "GS040116.360",
+  "hash": "c34f1336e3b3af75cf756f730c64eccf5008a75b",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:37:36+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Paceline through suburbs with a red-kitted rider glued to my wheel, faster stretch near 6:00 and a big bunch near the end",
+    "hooks": [
+      "how are we doing back there",
+      "checking on the group like a tour guide"
+    ],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-deff10",
+        "in": 176.0,
+        "out": 183.0,
+        "label": "rider glued to my wheel",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
+      },
+      {
+        "id": "m-63512b",
+        "in": 340.0,
+        "out": 347.0,
+        "label": "fast stretch, rider right alongside",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
+      },
+      {
+        "id": "m-f7c739",
+        "in": 437.0,
+        "out": 445.0,
+        "label": "the whole bunch behind me",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-4317ba",
+        "in": 448.0,
+        "out": 452.0,
+        "label": "'that cannot be safe' 'how are we doing back there' 'good'",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "wood fence along the road"
+      },
+      {
+        "at": 35.0,
+        "label": "long shadow on a tan road"
+      },
+      {
+        "at": 50.0,
+        "label": "white sidewalk crossing, dark suburban road after"
+      },
+      {
+        "at": 206.0,
+        "label": "rider in red alongside"
+      },
+      {
+        "at": 306.0,
+        "label": "traffic lights"
+      },
+      {
+        "at": 400.0,
+        "label": "long brick wall"
+      },
+      {
+        "at": 447.0,
+        "label": "stopped, hand at the camera, bikes around"
+      },
+      {
+        "at": 467.0,
+        "label": "crosswalk"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261107-gs040116-c34f.json",
+  "used": [
+    {
+      "plan": "2026-11-14-every-bridge-sprint-zone",
+      "at": "2026-11-08T21:23:19+00:00",
+      "in": 355.0,
+      "out": 358.4
+    },
+    {
+      "plan": "2026-11-13-not-every-angel",
+      "at": "2026-11-08T21:25:30+00:00",
+      "in": 437.5,
+      "out": 440.8
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -20.1,
+      "peakDb": -3.6
+    },
+    "speechSeconds": 2.4,
+    "speechRanges": [
+      [
+        448.38,
+        450.22
+      ],
+      [
+        450.65,
+        451.21
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs040116-c34f-1.jpg",
+    "library/sheets/261107-gs040116-c34f-2.jpg",
+    "library/sheets/261107-gs040116-c34f-3.jpg",
+    "library/sheets/261107-gs040116-c34f-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261107-gs040116-c34f.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 11.1,
+    "movingAvgSpeed": 9.36,
+    "movingSeconds": 457.6,
+    "distance": 4286.7,
+    "altitudeOk": true,
+    "elevationGain": 6.1,
+    "elevationLoss": 6.1,
+    "altMin": 21.2,
+    "altMax": 29.6
+  },
+  "strava": {
+    "activity": "20897870704",
+    "offset": 3370.9,
+    "clock": "gps",
+    "shift": -246.6,
+    "fitMetres": 1.6
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:55+00:00"
+}

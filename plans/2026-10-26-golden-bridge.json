@@ -3,7 +3,7 @@
   "postDate": "2026-10-26",
   "hook": {"text": "pov: you timed the bridge perfectly"},
   "segments": [
-    {"asset": "260711-img-2954-4b28", "moment": 0},
+    {"asset": "260711-img-2954-4b28", "moment": "m-c31a27"},
     {"asset": "260711-img-2954-4b28", "in": 9.4, "out": 14.5, "transition": "fade",
      "text": [{"text": "okay that was fun", "at": 2.8, "for": 2.2}]}
   ],

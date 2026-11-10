@@ -35,13 +35,19 @@
     ],
     "moments": [
       {
+        "id": "m-34c4bd",
         "in": 1.5,
         "out": 5.5,
         "label": "pan from the bars up to zwift on the tv",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

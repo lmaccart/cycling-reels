@@ -16,6 +16,13 @@ LOW_CONFIDENCE = 0.35  # Whisper word probability under which captions are worth
 WORD_EDGE = 0.05  # s: a word has to start this far before an in-point (or end after an out-point) to count as cut
 CAPTION_EDGE = 0.02  # s: the same tolerance caption_pages_for uses to decide a word is on screen
 
+SPINES = ("voice", "story", "sound", "trend")  # what carries a reel (plan-schema.md)
+MIN_VOICE_SHARE = 0.30  # spine: voice with less of the rider's voice than this isn't carried by it
+BATCH_SIZE = 7  # the weekly mix below is stated per seven reels
+MIN_VOICE_REELS = 4
+MAX_MONTAGE_REELS = 1
+MONTAGE_FORMATS = ("ride-montage", "beat-edit")  # the recipes (recipes.md) that are only shots on a song
+
 
 def opening(segs: list[Any], fps: int) -> list[str]:
     """The first seconds decide the 3 s hold: open on motion, cut hard."""
@@ -95,6 +102,41 @@ def caption_cuts(sg: Any, words: list[dict]) -> list[str]:
     if shaky:
         shown = ", ".join(f"'{str(w['w']).strip()}' ({w['p']:.2f})" for w in shaky[:3]) + (" …" if len(shaky) > 3 else "")
         out.append(f"{where}: low-confidence transcript words {shown} — check them in the transcript (wind often turns into words)")
+    return out
+
+
+def check_spine(plan: dict, errors: list[str]) -> None:
+    spine = plan.get("spine")
+    if spine is not None and spine not in SPINES:
+        errors.append(f"spine must be one of {', '.join(SPINES)} (got {spine!r})")
+
+
+def spine_warnings(plan: dict, voice_share: float | None) -> list[str]:
+    """voice_share is lineage's voiceShare, needed only when the plan says spine: voice."""
+    spine = plan.get("spine")
+    if spine is None:
+        return [f"spine: not set — say what carries this reel ({', '.join(SPINES)}); voice and story reels start from the line or the story, not the best clips"]
+    if spine == "voice" and voice_share is not None and voice_share < MIN_VOICE_SHARE:
+        return [f"spine: marked voice, but the rider's voice covers only {voice_share:.0%} of the reel (under {MIN_VOICE_SHARE:.0%}) — "
+                "let the talking clip run with cutaways over it, or change the spine"]  # fmt: skip
+    return []
+
+
+def is_montage(fmt: Any) -> bool:
+    return str(fmt or "").strip().lower().replace(" ", "-").replace("_", "-") in MONTAGE_FORMATS
+
+
+def batch_warnings(plans: list[dict]) -> list[str]:
+    """The weekly mix, for a seven-reel batch: at least 4 voice-led, at most 1 pure montage."""
+    if len(plans) != BATCH_SIZE:
+        return []
+    out = []
+    voice = sum(1 for p in plans if p.get("spine") == "voice")
+    if voice < MIN_VOICE_REELS:
+        out.append(f"batch: {voice} of {BATCH_SIZE} reels are spine: voice — at least {MIN_VOICE_REELS} should be carried by the rider's voice")
+    filler = [str(p.get("slug")) for p in plans if p.get("spine") is None or is_montage(p.get("format"))]
+    if len(filler) > MAX_MONTAGE_REELS:
+        out.append(f"batch: {len(filler)} of {BATCH_SIZE} reels have no spine or are a pure montage — at most {MAX_MONTAGE_REELS}: {', '.join(filler)}")
     return out
 
 

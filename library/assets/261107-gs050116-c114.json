@@ -1,0 +1,276 @@
+{
+  "id": "261107-gs050116-c114",
+  "kind": "video",
+  "media": "library/media/261107-gs050116-c114.360",
+  "originalName": "GS050116.360",
+  "hash": "c114174f910bac5c94d216a7a7200556e2588a6d",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:37:54+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Busy intersection with cars, then a rider in red and black overtakes in perfect side profile; fast stretch on an open road",
+    "hooks": [
+      "the overtake was rude but the camera angle was perfect",
+      "pov: getting passed on a group ride"
+    ],
+    "notes": "1:10-1:16 has a swear - bleep it if used",
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-9c651c",
+        "in": 70.0,
+        "out": 76.0,
+        "label": "'do not s*** on my new england boys like that'",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-94d042",
+        "in": 123.0,
+        "out": 129.0,
+        "label": "rider pulls past in perfect side profile",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": true
+      },
+      {
+        "id": "m-e9a3ad",
+        "in": 161.0,
+        "out": 168.0,
+        "label": "fastest stretch of the clip",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "effort",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
+      },
+      {
+        "id": "m-5771c5",
+        "in": 233.0,
+        "out": 240.0,
+        "label": "group bunches up behind",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "sunny road with grass, teammates ahead"
+      },
+      {
+        "at": 60.0,
+        "label": "stop, silver car crossing, cars passing"
+      },
+      {
+        "at": 95.0,
+        "label": "fast wide road, white line, grass verge"
+      },
+      {
+        "at": 226.0,
+        "label": "dark car on the left"
+      },
+      {
+        "at": 245.0,
+        "label": "big long shadows on the road"
+      },
+      {
+        "at": 296.0,
+        "label": "tan brick apartment building"
+      },
+      {
+        "at": 367.0,
+        "label": "bike symbol painted on the road"
+      },
+      {
+        "at": 437.0,
+        "label": "white fence"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261107-gs050116-c114.json",
+  "used": [
+    {
+      "plan": "2026-11-14-every-bridge-sprint-zone",
+      "at": "2026-11-08T21:23:19+00:00",
+      "in": 161.5,
+      "out": 165.0
+    },
+    {
+      "plan": "2026-11-12-overheard-group-ride",
+      "at": "2026-11-08T21:24:54+00:00",
+      "in": 74.72,
+      "out": 77.7
+    },
+    {
+      "plan": "2026-11-10-first-in-my-bloodline",
+      "at": "2026-11-09T22:03:58+00:00",
+      "in": 123.0,
+      "out": 126.267
+    },
+    {
+      "plan": "2026-11-10-first-in-my-bloodline",
+      "at": "2026-11-09T22:03:58+00:00",
+      "in": 233.0,
+      "out": 236.633
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -21.2,
+      "peakDb": -0.9
+    },
+    "speechSeconds": 10.09,
+    "speechRanges": [
+      [
+        0.57,
+        1.19
+      ],
+      [
+        1.5,
+        1.99
+      ],
+      [
+        54.46,
+        55.43
+      ],
+      [
+        61.05,
+        61.77
+      ],
+      [
+        66.74,
+        67.46
+      ],
+      [
+        72.57,
+        77.7
+      ],
+      [
+        87.67,
+        88.39
+      ],
+      [
+        97.34,
+        98.06
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs050116-c114-1.jpg",
+    "library/sheets/261107-gs050116-c114-2.jpg",
+    "library/sheets/261107-gs050116-c114-3.jpg",
+    "library/sheets/261107-gs050116-c114-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261107-gs050116-c114.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 10.68,
+    "movingAvgSpeed": 8.75,
+    "movingSeconds": 448.2,
+    "distance": 3924.6,
+    "altitudeOk": true,
+    "elevationGain": 12.1,
+    "elevationLoss": 8.0,
+    "altMin": 23.9,
+    "altMax": 33.1
+  },
+  "strava": {
+    "activity": "20897870704",
+    "offset": 3853.3,
+    "clock": "gps",
+    "shift": -246.7,
+    "fitMetres": 1.7
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:54:06+00:00"
+}

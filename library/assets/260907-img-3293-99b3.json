@@ -33,13 +33,19 @@
     ],
     "moments": [
       {
+        "id": "m-7b3585",
         "in": 2.8,
         "out": 8.57,
         "label": "chasing the group down a wide road",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

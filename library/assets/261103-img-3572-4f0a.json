@@ -36,55 +36,107 @@
     "notes": "transcript around 6.7-8.3 (third in our rod / you can record it) unclear",
     "moments": [
       {
+        "id": "m-a021e5",
         "in": 0.3,
         "out": 3.8,
         "label": "dont know if im dehydrated or the heat got the best of me",
         "score": 4,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "suffering",
+        "opener": false,
+        "line": "confession",
+        "thread": "road-to-5-ep1",
+        "beat": "result"
       },
       {
+        "id": "m-96ff22",
         "in": 6.6,
         "out": 10.3,
         "label": "third interval, says 325 I think",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "result",
+        "thread": "road-to-5-ep1",
+        "beat": "result"
       },
       {
+        "id": "m-c45f06",
         "in": 11.0,
         "out": 17.2,
         "label": "went too hard at the start of the second one, 400 then last one 305",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "honest",
+        "opener": false,
+        "line": "confession",
+        "thread": "road-to-5-ep1",
+        "beat": "result"
       },
       {
+        "id": "m-868207",
         "in": 18.0,
         "out": 23.0,
         "label": "tried my best not to throw up, gonna lay down for a bit",
         "score": 5,
         "focusX": 0.55,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "suffering",
+        "opener": true,
+        "line": "confession",
+        "thread": "road-to-5-ep1",
+        "beat": "result"
       },
       {
+        "id": "m-b97f2c",
         "in": 24.2,
         "out": 27.97,
         "label": "at least look how pretty the bike is, pans to the bike",
         "score": 5,
         "focusX": 0.4,
         "focusY": 0.5,
-        "speech": true
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "face": true,
+        "mood": "funny",
+        "opener": false,
+        "line": "joke",
+        "thread": "road-to-5-ep1",
+        "beat": "result"
       }
     ],
     "sounds": []
   },
   "transcript": "library/transcripts/261103-img-3572-4f0a.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-13-road-to-5-ep1",
+      "at": "2026-11-09T03:19:27+00:00",
+      "in": 20.15,
+      "out": 23.46
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -28.1,

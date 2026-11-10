@@ -1,0 +1,166 @@
+{
+  "id": "261107-gs090116-3671",
+  "kind": "video",
+  "media": "library/media/261107-gs090116-3671.360",
+  "originalName": "GS090116.360",
+  "hash": "36715706d8fb3c53974c2e60002d692d49daa9ac",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:39:07+00:00",
+  "probe": {
+    "duration": 70.059,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "cafe",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "Hanging out with the group at the stop, chatting, then getting ready to roll",
+    "hooks": [],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-2f6bd9",
+        "in": 0.4,
+        "out": 8.0,
+        "label": "chatting with the group at the stop",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "side",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-54cd10",
+        "in": 44.0,
+        "out": 52.0,
+        "label": "riders milling around the bikes",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261107-gs090116-3671.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -23.4,
+      "peakDb": -3.0
+    },
+    "speechSeconds": 67.16,
+    "speechRanges": [
+      [
+        0.57,
+        2.15
+      ],
+      [
+        2.55,
+        3.66
+      ],
+      [
+        3.96,
+        5.86
+      ],
+      [
+        6.9,
+        7.56
+      ],
+      [
+        8.02,
+        69.93
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs090116-3671-1.jpg",
+    "library/sheets/261107-gs090116-3671-2.jpg"
+  ],
+  "telemetry": "library/telemetry/261107-gs090116-3671.json",
+  "gpsSummary": {
+    "goodSeconds": 70.0,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 69.8,
+    "maxSpeed": 1.35,
+    "movingAvgSpeed": 1.17,
+    "movingSeconds": 0.4,
+    "distance": 11.2,
+    "altitudeOk": true,
+    "elevationGain": 0.0,
+    "elevationLoss": 10.2,
+    "altMin": 16.4,
+    "altMax": 28.1
+  },
+  "strava": {
+    "activity": "20897870704",
+    "offset": 5783.2,
+    "clock": "gps-same-camera",
+    "shift": -246.7
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:56+00:00"
+}

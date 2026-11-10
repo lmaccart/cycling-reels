@@ -1,0 +1,145 @@
+{
+ "slug": "2026-11-13-road-to-5-ep1",
+ "postDate": "2026-11-13",
+ "format": "story-with-stakes",
+ "hook": {
+  "text": "road to 5 w/kg · ep 1",
+  "seconds": 3.5
+ },
+ "segments": [
+  {
+   "asset": "261108-img-3610-59ba",
+   "in": 44.82,
+   "out": 53.15,
+   "captions": "transcript",
+   "zoom": 1.7,
+   "focusX": 0.58,
+   "focusY": 0.62,
+   "progress": {
+    "asOf": "2026-11-07"
+   },
+   "punch": {
+    "words": [
+     "failing"
+    ],
+    "scale": 1.15
+   }
+  },
+  {
+   "asset": "261103-img-3566-0dfe",
+   "in": 4.55,
+   "out": 7.7,
+   "captions": "transcript",
+   "focusX": 0.4
+  },
+  {
+   "asset": "261103-img-3568-db3d",
+   "in": 20.2,
+   "out": 22.0,
+   "captions": "transcript",
+   "focusX": 0.6
+  },
+  {
+   "asset": "261103-img-3569-0bb6",
+   "in": 0.0,
+   "out": 2.65,
+   "captions": "transcript",
+   "focusX": 0.45
+  },
+  {
+   "asset": "261103-img-3570-087a",
+   "in": 0.05,
+   "out": 2.33,
+   "captions": "transcript",
+   "focusX": 0.75,
+   "bleep": true
+  },
+  {
+   "asset": "261108-img-3610-59ba",
+   "in": 110.75,
+   "out": 117.6,
+   "captions": "transcript",
+   "zoom": 1.7,
+   "focusX": 0.58,
+   "focusY": 0.62,
+   "text": [
+    {
+     "text": "interval two",
+     "at": 0.2,
+     "for": 2.0,
+     "position": "top"
+    }
+   ],
+   "cutaways": [
+    {
+     "at": 0.2,
+     "asset": "261103-img-3567-f204",
+     "in": 0.3,
+     "out": 2.7
+    }
+   ]
+  },
+  {
+   "asset": "261108-img-3610-59ba",
+   "in": 145.72,
+   "out": 147.96,
+   "captions": "transcript",
+   "zoom": 1.7,
+   "focusX": 0.58,
+   "focusY": 0.62
+  },
+  {
+   "asset": "261108-img-3610-59ba",
+   "in": 149.68,
+   "out": 150.22,
+   "captions": "transcript",
+   "zoom": 1.9,
+   "focusX": 0.58,
+   "focusY": 0.6,
+   "payoff": true
+  },
+  {
+   "asset": "261103-img-3572-4f0a",
+   "in": 20.15,
+   "out": 23.46,
+   "captions": "transcript",
+   "focusX": 0.55
+  },
+  {
+   "asset": "261108-img-3610-59ba",
+   "in": 256.55,
+   "out": 260.85,
+   "captions": "transcript",
+   "zoom": 1.7,
+   "focusX": 0.58,
+   "focusY": 0.62
+  },
+  {
+   "asset": "261108-img-3610-59ba",
+   "in": 282.55,
+   "out": 287.05,
+   "captions": "transcript",
+   "zoom": 1.7,
+   "focusX": 0.58,
+   "focusY": 0.62,
+   "progress": {
+    "asOf": "2026-11-07"
+   }
+  }
+ ],
+ "music": {
+  "track": "what-you-waiting-for"
+ },
+ "post": {
+  "caption": "episode one. went out at 400 watts and found out. what's your w/kg goal?",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#ftp",
+   "#wattsperkilo",
+   "#roadto5"
+  ],
+  "altText": "A cyclist explains the goal of reaching 5 watts per kilo, then selfie clips from a failed interval workout show the effort and the aftermath.",
+  "firstComment": "the bike did nothing wrong"
+ }
+}

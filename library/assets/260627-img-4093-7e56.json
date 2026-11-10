@@ -31,13 +31,19 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-c7aa8a",
         "in": 0.0,
         "out": 2.0,
         "label": "golden hills road, empty",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ]
   },

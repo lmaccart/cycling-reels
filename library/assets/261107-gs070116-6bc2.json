@@ -1,0 +1,370 @@
+{
+  "id": "261107-gs070116-6bc2",
+  "kind": "video",
+  "media": "library/media/261107-gs070116-6bc2.360",
+  "originalName": "GS070116.360",
+  "hash": "6bc2a9cf26f1e41a3fd09a32563d536a2d27077d",
+  "created": "2026-11-07T07:37:19",
+  "ingestedAt": "2026-11-07T18:38:31+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-07T08:37:19.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Rolling out after a stop, honey bun talk, fast paceline with a rider tucked on my wheel, then arriving at a gas station packed with bikes and a pump stop",
+    "hooks": [
+      "the honey bun was a mistake",
+      "we stop for snacks every time"
+    ],
+    "angles": {
+      "road": {
+        "yaw": 90.0,
+        "pitch": 55.0,
+        "fov": 90.0,
+        "roll": 0.0
+      },
+      "side": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "behind": {
+        "yaw": 180.0,
+        "pitch": 10.0,
+        "fov": 90.0,
+        "roll": 90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 10.0,
+        "fov": 110.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-03918d",
+        "in": 0.0,
+        "out": 12.0,
+        "label": "snack chat: the waffle or the honey bun",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-8554fa",
+        "in": 73.0,
+        "out": 80.0,
+        "label": "rider tucked on my wheel at speed",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
+      },
+      {
+        "id": "m-569867",
+        "in": 163.0,
+        "out": 170.0,
+        "label": "rider right on my wheel, close",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "fast",
+        "opener": false
+      },
+      {
+        "id": "m-6f21df",
+        "in": 376.0,
+        "out": 384.0,
+        "label": "rolling into the stop, bikes everywhere",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-e05838",
+        "in": 387.0,
+        "out": 400.0,
+        "label": "'a little flat, do you want to inflate it'",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "teammate",
+        "face": false,
+        "mood": "calm",
+        "opener": false
+      }
+    ],
+    "sounds": [
+      {
+        "at": 410.4,
+        "for": 1.0,
+        "kind": "freehub",
+        "score": 3,
+        "note": "freehub click-run at the stop, no wind"
+      },
+      {
+        "at": 433.4,
+        "for": 1.9,
+        "kind": "car",
+        "score": 3,
+        "note": "car horn toot at the stop, clean"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "stopped, riders in yellow-black and red kits"
+      },
+      {
+        "at": 35.0,
+        "label": "lamp post, rolling off"
+      },
+      {
+        "at": 70.0,
+        "label": "wide road, white line, grass and red fence"
+      },
+      {
+        "at": 176.0,
+        "label": "brick paving pattern"
+      },
+      {
+        "at": 208.0,
+        "label": "tree canopy over the road"
+      },
+      {
+        "at": 246.0,
+        "label": "sun flare through the trees, bike shadow"
+      },
+      {
+        "at": 286.0,
+        "label": "brick crossing, then brick walls and grass"
+      },
+      {
+        "at": 377.0,
+        "label": "stop line painted red"
+      },
+      {
+        "at": 390.0,
+        "label": "parking lot stop, bikes everywhere"
+      },
+      {
+        "at": 430.0,
+        "label": "grey SUV very close"
+      },
+      {
+        "at": 467.0,
+        "label": "rack, pile of bikes, a red Specialized"
+      },
+      {
+        "at": 477.0,
+        "label": "under a canopy, rider standing"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261107-gs070116-6bc2.json",
+  "used": [
+    {
+      "plan": "2026-11-12-overheard-group-ride",
+      "at": "2026-11-08T21:24:54+00:00",
+      "in": 394.5,
+      "out": 397.95
+    },
+    {
+      "plan": "2026-11-12-overheard-group-ride",
+      "at": "2026-11-08T21:24:54+00:00",
+      "in": 7.94,
+      "out": 11.46
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -20.7,
+      "peakDb": -3.2
+    },
+    "speechSeconds": 82.42,
+    "speechRanges": [
+      [
+        0.0,
+        0.81
+      ],
+      [
+        1.27,
+        18.95
+      ],
+      [
+        19.32,
+        22.12
+      ],
+      [
+        22.58,
+        30.89
+      ],
+      [
+        32.22,
+        39.91
+      ],
+      [
+        40.6,
+        44.81
+      ],
+      [
+        281.21,
+        282.06
+      ],
+      [
+        387.99,
+        392.26
+      ],
+      [
+        393.27,
+        393.74
+      ],
+      [
+        394.9,
+        395.98
+      ],
+      [
+        396.63,
+        399.43
+      ],
+      [
+        399.74,
+        401.96
+      ],
+      [
+        411.93,
+        415.08
+      ],
+      [
+        440.38,
+        442.86
+      ],
+      [
+        443.96,
+        446.34
+      ],
+      [
+        449.5,
+        455.21
+      ],
+      [
+        455.99,
+        457.77
+      ],
+      [
+        458.62,
+        463.4
+      ],
+      [
+        463.8,
+        467.34
+      ],
+      [
+        468.66,
+        469.96
+      ],
+      [
+        470.71,
+        472.42
+      ],
+      [
+        477.46,
+        478.95
+      ],
+      [
+        479.61,
+        480.52
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261107-gs070116-6bc2-1.jpg",
+    "library/sheets/261107-gs070116-6bc2-2.jpg",
+    "library/sheets/261107-gs070116-6bc2-3.jpg",
+    "library/sheets/261107-gs070116-6bc2-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261107-gs070116-6bc2.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 10.49,
+    "movingAvgSpeed": 8.47,
+    "movingSeconds": 355.6,
+    "distance": 3032.4,
+    "altitudeOk": true,
+    "elevationGain": 10.1,
+    "elevationLoss": 10.0,
+    "altMin": 13.8,
+    "altMax": 28.0
+  },
+  "strava": {
+    "activity": "20897870704",
+    "offset": 4818.4,
+    "clock": "gps",
+    "shift": -246.5,
+    "fitMetres": 2.0
+  },
+  "createdCamera": "2026-11-07T08:37:19",
+  "createdNote": "GoPro clock still on CDT after DST ended 2026-11-01; -1h applied, residual from GPS fit",
+  "taggedAt": "2026-11-07T18:53:56+00:00"
+}

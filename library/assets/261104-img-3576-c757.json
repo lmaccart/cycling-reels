@@ -36,13 +36,19 @@
     ],
     "moments": [
       {
+        "id": "m-d63b51",
         "in": 1.0,
         "out": 4.5,
         "label": "bike standing in the elevator",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.6,
-        "speech": false
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       }
     ],
     "sounds": []

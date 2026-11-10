@@ -31,22 +31,34 @@
     "hooks": [],
     "moments": [
       {
+        "id": "m-00a1ac",
         "in": 2.0,
         "out": 5.6,
         "label": "rural road past houses and big trees",
         "score": 3,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "face": false,
+        "mood": "calm",
+        "opener": false
       },
       {
+        "id": "m-37141f",
         "in": 9.95,
         "out": 11.05,
         "label": "grinning selfie while riding",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
-        "speech": false
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "face": true,
+        "mood": "funny",
+        "opener": false
       }
     ]
   },
