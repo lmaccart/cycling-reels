@@ -15,7 +15,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from .bleep import check_bleep, masked_words, mute_filter, resolve_bleeps, tone_graph, unbleeped_swears
 from .config import Project
 from .images import open_image
-from .library import all_assets, load_asset, resolve_id, save_asset
+from .library import all_assets, load_asset, resolve_id, resolve_moment, save_asset
 from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
@@ -151,12 +151,11 @@ def _visual(
     if asset["kind"] == "video":
         dur = float(asset["probe"]["duration"])
         if "moment" in spec:
-            moments = tags.get("moments") or []
-            mi = spec["moment"]
-            if not isinstance(mi, int) or not 0 <= mi < len(moments):
-                errors.append(f"{where}: moment {mi!r} doesn't exist on {asset['id']} ({len(moments)} moments)")
+            try:
+                m = resolve_moment(asset, spec["moment"])
+            except ReelsError as e:
+                errors.append(f"{where}: {e}")
                 return None
-            m = moments[mi]
             spec.setdefault("in", m["in"])
             spec.setdefault("out", m["out"])
             moment_view = m.get("view")
@@ -164,7 +163,7 @@ def _visual(
                 spec.setdefault("focusX", m.get("focusX", 0.5))
                 spec.setdefault("focusY", m.get("focusY", 0.5))
         if "in" not in spec or "out" not in spec:
-            errors.append(f"{where}: video clips need in/out seconds (or a moment index)")
+            errors.append(f"{where}: video clips need in/out seconds (or a moment id)")
             return None
         spec["in"] = _num(spec, "in", 0, 0, dur, errors, where)
         spec["out"] = min(_num(spec, "out", dur, 0, dur + 0.05, errors, where), dur)
@@ -1193,7 +1192,7 @@ def build(project: Project, plan: dict) -> dict:
             hook_props["offsetTop"] = top
     beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes, bars)
     warnings += retention_warnings(segs, pages, beats, nat, hook_props, fps, total)
-    voice_share = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs})["voiceShare"] if plan.get("spine") == "voice" else None
+    voice_share = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs, "props": {"segments": seg_props}, "music": music})["voiceShare"] if plan.get("spine") == "voice" else None
     warnings += spine_warnings(plan, voice_share)
 
     drops = music_drops(plan, total, fps, errors, warnings)

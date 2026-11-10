@@ -63,12 +63,28 @@ class ProtectionTests(PruneTestCase):
         self.assertEqual(self.reasons(aid="261107-gs080116-7dc8"), ["planned"])
 
     def test_named_only_as_a_cutaway(self):
+        self.make("other")
         self.write_plan("p", json.dumps({"segments": [{"asset": "other", "cutaways": [{"asset": "clip", "in": 1, "out": 2}]}]}))
         self.assertEqual(self.reasons(), ["planned"])
 
     def test_a_longer_id_sharing_a_prefix_is_not_a_match(self):
+        self.make("clip-two")
         self.write_plan("p", json.dumps({"segments": [{"asset": "clip-two", "in": 1, "out": 2}]}))
         self.assertEqual(self.reasons(), [])
+
+    def test_renderer_prefixes_and_substrings_protect_the_asset(self):
+        asset = self.make("clip-aaaa")
+        for reference in ("cli", "aaaa", " clip-aa ", "../assets/clip-aaaa"):
+            self.write_plan("p", json.dumps({"segments": [{"asset": reference}]}))
+            self.assertIn("planned", protections(self.project, asset, NOW))
+
+    def test_unresolvable_plan_references_stop_pruning(self):
+        asset = self.make("clip-aaaa")
+        self.make("clip-bbbb")
+        for reference in ("clip", "missing"):
+            self.write_plan("p", json.dumps({"segments": [{"asset": reference}]}))
+            with self.assertRaises(ReelsError):
+                protections(self.project, asset, NOW)
 
     def test_an_unreadable_plan_stops_the_check(self):
         self.write_plan("broken", "{not json")
@@ -397,6 +413,58 @@ class ApplyTests(RoundTestCase):
         asset = load_asset(self.project, "clip")
         asset["media"] = media
         save_asset(self.project, asset)
+
+    def test_retargeting_cannot_delete_an_unapproved_protected_original(self):
+        self.candidate()
+        protected = self.make("precious", used=[{"slug": "keep", "in": 1, "out": 3}])
+        result = self.listed()
+        self.retarget(protected["media"])
+        self.assertEqual(self.apply(result)[0]["why"], "approved-media-changed")
+        self.assertTrue(self.media("precious").exists())
+        self.assertTrue(self.media().exists())
+
+    def test_changed_content_at_the_approved_path_is_not_deleted(self):
+        self.candidate()
+        result = self.listed()
+        media = self.media()
+        original = media.stat()
+        media.write_bytes(b"x" * original.st_size)
+        os.utime(media, ns=(original.st_atime_ns, original.st_mtime_ns))
+        self.assertEqual(self.apply(result)[0]["why"], "approved-file-changed")
+        self.assertTrue(media.exists())
+
+    def test_replaced_file_with_same_size_and_mtime_is_not_deleted(self):
+        self.candidate()
+        result = self.listed()
+        media = self.media()
+        original = media.stat()
+        replacement = self.temp.root / "replacement.mp4"
+        replacement.write_bytes(b"x" * original.st_size)
+        os.utime(replacement, ns=(original.st_atime_ns, original.st_mtime_ns))
+        replacement.replace(media)
+        self.assertEqual(self.apply(result)[0]["why"], "approved-file-changed")
+        self.assertTrue(media.exists())
+
+    def test_legacy_round_requires_a_new_dry_run_and_approval(self):
+        self.candidate()
+        result = self.listed()
+        path = self.temp.root / result["round"]
+        doc = read_json(path)
+        doc["version"] = 1
+        write_json(path, doc)
+        with self.assertRaisesRegex(ReelsError, "approve a new round"):
+            self.apply(result)
+        self.assertTrue(self.media().exists())
+
+    def test_missing_file_identity_cannot_authorize_deletion(self):
+        self.candidate()
+        result = self.listed()
+        path = self.temp.root / result["round"]
+        doc = read_json(path)
+        del doc["assets"][0]["identity"]
+        write_json(path, doc)
+        self.assertEqual(self.apply(result)[0]["why"], "approved-file-changed")
+        self.assertTrue(self.media().exists())
 
     def test_path_traversal_is_refused(self):
         self.candidate()

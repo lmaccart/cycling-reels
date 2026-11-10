@@ -82,7 +82,7 @@ Nobody is there to approve, so do steps 0–5 only, then stop: don't approve, qu
 | `./reels sfx add <file-or-url> --name <slug> --category C --license CC0-1.0 --source <page-url> --author "<name>" [--trim A,B]` | Add a CC0 / Pixabay-licence sound (trimmed, 48 kHz WAV, normalized); refuses without license + source |
 | `./reels sfx add --from <asset-id> --at <s> --for <s> --name <slug> [--clean]` | Cut a sound out of the user's own footage (category `nat`); `--clean` = highpass + denoise for wind |
 | `./reels stats import <file.json>` / `./reels stats [--since YYYY-MM-DD]` | Store a Metricool analytics pull and match it to reels / per-reel performance table and Footage section (opening shot, mix, score calibration), writes `out/PERFORMANCE.md` |
-| `./reels stats backfill-lineage` | Write `out/<slug>/lineage.json` (what went into the reel) for rendered reels that lack one; renders write it themselves. Idempotent |
+| `./reels stats backfill-lineage` | Write missing `out/<slug>/lineage.json` and upgrade old voice metrics while preserving tag snapshots; current v2 files stay untouched. Renders write it themselves |
 | `./reels review [--week YYYY-MM-DD] [--file notes.json]` | Weekly evidence/lessons before planning; append a checkpoint to learning/reviews/ |
 | `./reels review feedback --category preference\|production --kind <kind> --note "…" [--slug <slug>]` | Record actual feedback or a sanitized production issue/fix |
 | `./reels review experiment --file experiment.json` | Register hypothesis/metric/test-control design before rendering tests |
@@ -100,6 +100,8 @@ Nobody is there to approve, so do steps 0–5 only, then stop: don't approve, qu
 | `./reels export --to <folder> [slugs…]` | Copy approved/queued reels + caption `.txt` files (e.g. to iCloud Drive for posting from a phone) |
 | `./reels upload <slug…>` / `--queued` | Optional: push to S3/R2 for a public media URL |
 | `./reels selftest` | End-to-end test on throwaway clips in a temp folder |
+
+Prune rounds bind each listed asset to its media path and file identity (resolved path, device, inode, size and modification/change timestamps). A changed or replaced file is skipped. Older rounds require a fresh dry run and approval. Plan protections use the renderer's exact ID resolver, including prefixes and substrings; unreadable or unresolved plans stop pruning.
 
 Track records live in `music/<slug>.json`; you may fix a wrong `credit` there, or set `"rightsOk": true` when the user confirms they have the rights.
 

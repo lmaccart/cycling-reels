@@ -41,7 +41,7 @@ Say what the reel is carried by. Decide this first: voice and story reels start 
 Any other value is an error. `./reels check` warns (old plans still render) when:
 
 - `spine` is missing;
-- `spine` is `voice` but the voice share is under 30%. It's the same `voiceShare` as `lineage.json` ([analytics.md](analytics.md)): the time on segments with `captions: "transcript"` or tagged `role: voice` + `speaker: me`, counted through their cutaways, over the reel's length;
+- `spine` is `voice` but the rider's voice share is under 30%. It's the same `voiceShare` as `lineage.json` ([analytics.md](analytics.md)): unmuted time on segments tagged `speaker: me` and either `role: voice` or `captions: "transcript"`, counted through their cutaways, over the reel's length. Teammates, unknown speakers, missing audio and audio disabled by speed or volume don't count;
 - a batch of exactly 7 plans passed to one `./reels check` has fewer than 4 `spine: voice` reels, or more than 1 reel that has no spine or is a pure montage (`format` `ride-montage` or `beat-edit`). The check only runs on 7, so pass the week's seven without a bonus reel.
 
 ## Music
@@ -67,7 +67,7 @@ A track added with `--instagram` (a trending song, see [music.md](music.md)) is 
 | Field | Default | Notes |
 | --- | --- | --- |
 | `asset` | – | Asset id (a unique prefix works, e.g. `"gx010042"`) |
-| `moment` | – | Index of a tagged moment — fills `in`, `out`, `focusX`, `focusY` |
+| `moment` | – | Stable moment id from `./reels show`, e.g. `"m-1a2b3c"` — fills `in`, `out`, `focusX`, `focusY`. Legacy numeric indexes still work, but use ids for new plans so reordering tags cannot change the shot |
 | `in`, `out` | from moment | Seconds in the source |
 | `speed` | 1 | 0.25–4. 0.5 = slow motion (best from 60 fps footage); 2 = sped up. Clip audio is dropped outside 0.5–2 |
 | `frame` | `crop` | `crop` = fill 9:16 around `focusX`; `blurfill` = whole landscape frame over a blurred copy of itself (wide scenery, group shots); `fit` = black bars |

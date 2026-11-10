@@ -6,6 +6,8 @@ To change part of a saved record, use merge mode instead: `./reels tag <id> --me
 
 ## Fields
 
+Merge updates preserve existing moment order, and `addMoments` appends rather than sorting, so legacy numeric plan references don't shift. New plans should use the stable moment id instead of an index. A batch may name each resolved asset only once; aliases for the same asset are rejected before any changes are saved.
+
 | Field | Values | Notes |
 | --- | --- | --- |
 | `type` | `race`, `climb`, `descent`, `sprint`, `group-ride`, `solo-ride`, `scenery`, `bike-check`, `gear`, `indoor`, `talking`, `cafe`, `travel`, `other` | The clip's main content |
@@ -49,6 +51,8 @@ A 2-hour GoPro file gets several contact sheets. Skim them for change (corners, 
 ### Moment IDs
 
 Later steps reference moments by id, so ids have to last. `./reels tag` gives each new moment an id and keeps the old one when a moment's span matches a saved moment (exactly, or overlapping by 75%+ so a tweaked trim counts as the same moment). To keep an id through a bigger re-trim, include it: `{"id": "m-1a2b3c", "in": …}`. Ids of dropped moments are never reused.
+
+Plans reference these with `"moment": "m-1a2b3c"`, including cutaways. Full re-tagging can reorder moments; numeric indexes are legacy references and aren't stable across a full re-tag.
 
 ### Shelves
 

@@ -151,7 +151,9 @@ class BatchWarningTests(unittest.TestCase):
 class SpineInPlanTests(unittest.TestCase):
     def setUp(self):
         self.t = TempProject(self)
-        self.t.asset("talk", words=words(("hello", 1.1, 1.5), ("there", 3.0, 3.4)))
+        self.t.asset("talk", words=words(("hello", 1.1, 1.5), ("there", 3.0, 3.4)),
+                     tags={"type": "talking", "shot": "selfie", "quality": 4, "summary": "the rider speaking",
+                           "moments": [{"id": "m-aaaaaa", "in": 0, "out": 10, "label": "talk", "score": 4, "role": "voice", "speaker": "me"}]})
         self.t.asset("road")
 
     def built(self, voice_out: float, **extra) -> dict:

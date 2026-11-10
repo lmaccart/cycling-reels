@@ -292,8 +292,7 @@ def merge_tags(asset: dict, patch: dict) -> dict:
             _set_or_clear(moment, key, checked_by_id[moment["id"]].get(key))
     if added:
         result.setdefault("moments", []).extend(added)
-    if added or any("in" in fields for fields in named.values()):
-        result["moments"].sort(key=lambda m: m["in"])
+    # Preserve legacy plan indexes: new moments append, even when their source times are earlier.
     return result
 
 

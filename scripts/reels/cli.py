@@ -253,9 +253,13 @@ def cmd_tag_batch(project: Project, args) -> int:
     if not isinstance(batch, dict):
         raise ReelsError("--file must be a JSON object mapping asset id to its merge payload")
     merged, errors = [], []
+    seen: dict[str, str] = {}
     for token, patch in batch.items():
         try:
             asset = load_asset(project, token)
+            if asset["id"] in seen:
+                raise ReelsError(f"same asset as {seen[asset['id']]!r}; combine its updates into one payload")
+            seen[asset["id"]] = token
             before = {m.get("id") for m in (asset.get("tags") or {}).get("moments") or []}
             asset["tags"] = merge_tags(asset, patch)
             merged.append((asset, before))

@@ -64,6 +64,8 @@ def rows(project: Project, reels: list[dict]) -> tuple[list[dict], dict]:
         path = project.out_dir / r["slug"] / "lineage.json"
         try:
             lineage = read_json(path)
+            if lineage.get("version", 1) < 2:
+                raise ValueError("legacy voice metric; run ./reels stats backfill-lineage")
             entries = lineage["segments"]
         except (OSError, ValueError, KeyError, TypeError) as e:
             if path.exists():

@@ -7,9 +7,10 @@ from helpers import TempProject, words
 from reels.analytics import DEFAULT_FIELDS, build_report, stats
 from reels.footage_report import length_band, rows, section
 from reels.lineage import backfill, best_moment, from_built, from_plan, record
+from reels.library import load_asset, save_asset
 from reels.render import build
 from reels.review import review
-from reels.util import read_json, write_json
+from reels.util import ReelsError, read_json, write_json
 
 
 def moment(mid: str, start: float, end: float, **tags) -> dict:
@@ -59,10 +60,52 @@ class LineageTests(unittest.TestCase):
         self.assertEqual(read_json(self.project.out_dir / "r" / "lineage.json")["segments"][0]["moment"], "m-a")
         record(self.project, "r", {})  # malformed: warns, doesn't raise
 
-    def test_transcript_captions_count_as_voice_without_a_voice_moment(self):
+    def test_teammate_captions_do_not_count_as_the_riders_voice(self):
         self.t.asset("talk-aaaa", tags=tags(moment("m-t", 0, 4, role="crew", speaker="teammate")), words=words(("hello", 0.5, 1.0)))
         path = self.t.plan("r", [{"asset": "talk-aaaa", "in": 0, "out": 4, "captions": "transcript"}])
-        self.assertAlmostEqual(from_built("r", build(self.project, read_json(path)))["voiceShare"], 1.0)
+        built = build(self.project, {**read_json(path), "spine": "voice"})
+        self.assertEqual(from_built("r", built)["voiceShare"], 0.0)
+        self.assertTrue(any("spine: marked voice" in w for w in built["warnings"]))
+
+    def test_muted_missing_and_speed_disabled_audio_do_not_count_as_voice(self):
+        self.t.asset("talk", tags=tags(moment("m-aaaaaa", 0, 9, role="voice", speaker="me")))
+        for spec in ({"volume": 0}, {"speed": 4}):
+            with self.subTest(spec=spec):
+                plan = {"slug": "r", "spine": "voice", "autoSfx": False,
+                        "segments": [{"asset": "talk", "in": 0, "out": 8, **spec}]}
+                built = build(self.project, plan)
+                self.assertEqual(from_built("r", built)["voiceShare"], 0)
+                self.assertEqual(from_plan(self.project, plan, {})["voiceShare"], 0)
+                self.assertTrue(any("spine: marked voice" in w for w in built["warnings"]))
+        asset = load_asset(self.project, "talk")
+        asset["probe"]["hasAudio"] = False
+        save_asset(self.project, asset)
+        plan["segments"][0] = {"asset": "talk", "in": 0, "out": 8}
+        self.assertEqual(from_built("r", build(self.project, plan))["voiceShare"], 0)
+        self.assertEqual(from_plan(self.project, plan, {})["voiceShare"], 0)
+
+    def test_nat_volume_curve_counts_only_unmuted_time_in_render_and_backfill(self):
+        self.t.asset("talk", tags=tags(moment("m-aaaaaa", 0, 9, role="voice", speaker="me")))
+        plan = {"slug": "r", "autoSfx": False, "segments": [{"asset": "talk", "in": 0, "out": 8, "volume": 0,
+                "nat": {"at": 2, "for": 2, "volume": 1}}]}
+        self.assertAlmostEqual(from_built("r", build(self.project, plan))["voiceShare"], 0.3)  # 2 s + two .2 s ramps
+        self.assertAlmostEqual(from_plan(self.project, plan, {})["voiceShare"], 0.3)
+        plan["segments"][0].update(volume=1, nat={"volume": 0})
+        self.assertEqual(from_built("r", build(self.project, plan))["voiceShare"], 0)
+        self.assertEqual(from_plan(self.project, plan, {})["voiceShare"], 0)
+
+    def test_config_and_instagram_muting_are_respected(self):
+        self.t.asset("talk", tags=tags(moment("m-aaaaaa", 0, 9, role="voice", speaker="me")), words=words(("hello", 1, 2)))
+        plan = {"slug": "r", "autoSfx": False, "segments": [{"asset": "talk", "in": 0, "out": 8, "captions": "transcript"}]}
+        self.project.config["audio"]["speechVolume"] = 0
+        self.assertEqual(from_built("r", build(self.project, plan))["voiceShare"], 0)
+        self.assertEqual(from_plan(self.project, plan, {})["voiceShare"], 0)
+        self.project.config["audio"]["speechVolume"] = 1
+        built = build(self.project, plan)
+        self.assertEqual(from_built("r", built)["voiceShare"], 1)
+        built["music"] = {"instagram": {"videoVolume": 0}}
+        self.assertEqual(from_built("r", built)["voiceShare"], 0)
+        self.assertEqual(from_plan(self.project, plan, {"instagramAudio": {"videoVolume": 0}})["voiceShare"], 0)
 
     def test_cutaway_at_zero_is_the_opening_shot(self):
         self.t.asset("a-aaaa", tags=tags(moment("m-a", 0, 8)))
@@ -100,6 +143,49 @@ class LineageTests(unittest.TestCase):
         doc = read_json(self.project.out_dir / "r" / "lineage.json")
         self.assertEqual(doc["segments"][0]["moment"], "m-y")
         self.assertAlmostEqual(doc["runtimeSeconds"], 2.0)
+
+    def test_backfill_resolves_stable_moment_ids(self):
+        self.t.asset("clip", tags=tags(moment("m-aaaaaa", 0, 4), moment("m-bbbbbb", 5, 9)))
+        self.rendered("r", [{"asset": "clip", "moment": "m-bbbbbb"}])
+        backfill(self.project)
+        entry = read_json(self.project.out_dir / "r" / "lineage.json")["segments"][0]
+        self.assertEqual((entry["moment"], entry["in"], entry["out"]), ("m-bbbbbb", 5, 9))
+
+    def test_backfill_upgrades_legacy_voice_without_replacing_snapshots(self):
+        self.t.asset("talk", tags=tags(moment("m-aaaaaa", 0, 9, role="crew", speaker="teammate", score=2)), words=words(("hello", 1, 2)))
+        segments = [{"asset": "talk", "in": 0, "out": 8, "captions": "transcript"}]
+        self.rendered("r", segments, length=8)
+        plan = read_json(self.project.out_dir / "r" / "plan.json")
+        old = from_plan(self.project, plan, {})
+        old.update(version=1, voiceShare=1, backfilled=False)
+        del old["segments"][0]["audioSeconds"]
+        write_json(self.project.out_dir / "r" / "lineage.json", old)
+        asset = load_asset(self.project, "talk")
+        asset["tags"]["moments"][0].update(role="voice", speaker="me", score=5)
+        save_asset(self.project, asset)
+        self.assertEqual(backfill(self.project)["upgraded"], ["r"])
+        upgraded = read_json(self.project.out_dir / "r" / "lineage.json")
+        self.assertEqual(upgraded["voiceShare"], 0)
+        self.assertEqual(upgraded["segments"][0]["tags"], old["segments"][0]["tags"])
+        self.assertEqual(upgraded["createdAt"], old["createdAt"])
+        self.assertFalse(upgraded["backfilled"])
+        before = (self.project.out_dir / "r" / "lineage.json").read_bytes()
+        self.assertEqual(backfill(self.project)["alreadyHad"], 1)
+        self.assertEqual((self.project.out_dir / "r" / "lineage.json").read_bytes(), before)
+
+    def test_legacy_upgrade_refuses_a_changed_timeline_without_overwriting(self):
+        self.t.asset("talk", tags=tags(moment("m-aaaaaa", 0, 9, role="voice", speaker="me")))
+        self.rendered("r", [{"asset": "talk", "in": 0, "out": 8}], length=8)
+        backfill(self.project)
+        path = self.project.out_dir / "r" / "lineage.json"
+        doc = read_json(path)
+        doc["version"] = 1
+        write_json(path, doc)
+        before = path.read_bytes()
+        write_json(self.project.out_dir / "r" / "plan.json", {"slug": "r", "segments": [{"asset": "talk", "in": 3, "out": 8}]})
+        with self.assertRaisesRegex(ReelsError, "no longer matches"):
+            backfill(self.project)
+        self.assertEqual(path.read_bytes(), before)
 
     def test_backfill_reports_a_segment_that_matches_nothing(self):
         self.t.asset("clip-aaaa", tags=tags(moment("m-x", 0, 2)))
@@ -148,7 +234,7 @@ class FootageReportTests(unittest.TestCase):
     def reel(self, slug: str, *, score=4, role="effort", opener=False, face=False, speaker="none", length=10.0, voice=0.0, thread=None) -> dict:
         entry = {"asset": "a", "moment": "m", "cutaway": False, "position": "first", "share": 1.0,
                  "tags": {"score": score, "role": role, "speaker": speaker, "face": face, "mood": "calm", "opener": opener, "line": None, "thread": thread, "beat": None}}  # fmt: skip
-        write_json(self.project.out_dir / slug / "lineage.json", {"slug": slug, "backfilled": False, "voiceShare": voice, "faceShare": 0.0,
+        write_json(self.project.out_dir / slug / "lineage.json", {"version": 2, "slug": slug, "backfilled": False, "voiceShare": voice, "faceShare": 0.0,
                                                                   "avgShotSeconds": 4.0, "thread": thread, "segments": [entry]})  # fmt: skip
         return {"slug": slug, "early": False, "length": length, "hold": 50.0, "watchThrough": 0.5, "sharesReach": 0.01, "commentsReach": 0.0, "format": "pov-joke"}
 
@@ -200,6 +286,16 @@ class FootageReportTests(unittest.TestCase):
     def test_reports_reels_without_lineage(self):
         text = self.text([{"slug": "no-lineage", "early": False, "length": 10, "hold": 50.0, "watchThrough": 0.5}])
         self.assertIn("1 without lineage (no-lineage)", text)
+
+    def test_legacy_voice_metrics_are_not_mixed_with_corrected_metrics(self):
+        reel = self.reel("old")
+        path = self.project.out_dir / "old" / "lineage.json"
+        doc = read_json(path)
+        doc["version"] = 1
+        write_json(path, doc)
+        data, counts = rows(self.project, [reel])
+        self.assertEqual(data, [])
+        self.assertEqual(counts["noLineage"], ["old"])
 
     def _posted(self, slug: str, segments: list[dict]) -> None:
         write_json(self.project.out_dir / slug / "post.json", {"slug": slug, "status": "posted", "caption": slug, "duration": 10, "reelId": slug,

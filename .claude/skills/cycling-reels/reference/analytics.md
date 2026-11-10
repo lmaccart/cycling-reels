@@ -47,13 +47,15 @@ Instagram's head, Adam Mosseri, names watch time, likes per reach and sends (sha
 
 - **Moment match:** the moment sharing the most seconds with the clip (ties: closest fit, then earliest). `momentCoverage` is the share of the clip it covers. No overlap means `moment: null`, `match: "none"`. Photos have no moments, so `moment` is null, `match` is `"photo"` and `score` is the photo's own.
 - **Share and position** follow the picture. A segment ends where the next one starts (a fade counts toward the outgoing shot), and a cutaway takes its seconds out of the segment under it. `first` is the shot on screen at 0 s, including a cutaway placed at 0 s; `last` is the shot on screen at the end.
-- **`voiceShare`:** seconds of segments that are voice, over runtime. A segment is voice when it has `captions: "transcript"` or its matched moment is `role: voice` with `speaker: me`. The whole segment counts, including the seconds under its cutaways (the voice carries on) and the pauses between words. Cutaways are silent, so they never count on their own.
+- **`voiceShare` (lineage v2):** unmuted seconds of the rider's voice, over runtime. The matched moment must have `speaker: me` and either `role: voice` or the segment must have `captions: "transcript"`. Teammates and unknown speakers don't count. The renderer's effective volume curve (including nat ramps), audio-track availability, speed limits and Instagram ride-volume setting determine unmuted time, saved as `audioSeconds` on each main segment. Time under cutaways still counts; cutaways themselves are silent. This is a segment-level estimate that includes pauses, not a word-by-word speech or intelligibility measurement.
 - **`faceShare`:** seconds on screen of entries whose snapshot has `face: true`, over runtime. A cutaway covering a face segment is not face time. A missing `face` (photos have none) counts as no face.
 - **`avgShotSeconds`:** runtime divided by picture shots. A cutaway in the middle of a segment makes three shots.
 - **`thread`:** the most common `thread` among segments, not cutaways (ties: more seconds, then name), or null.
 - **Mean moment score:** the score of each entry weighted by its share of runtime; entries with no score don't count.
 
 The Footage section of `./reels stats` and `out/PERFORMANCE.md` is descriptive. No code changes scores or tags from it; a change to a tag is a judgment made and saved with `./reels tag`. It leaves out reels under 48 h old and reels without lineage, and says how many.
+
+`./reels stats backfill-lineage` also upgrades v1 voice metrics to v2, preserving the original tag snapshots and their timestamps, and recording `voiceUpdatedAt`. Audio is reconstructed from the saved plan/post and current audio defaults, so historical audio estimates may differ if defaults changed. If the saved plan no longer matches the recorded timeline, the upgrade refuses that reel rather than rewriting its history. Existing v2 files are left alone. Stats excludes legacy metrics until upgraded, so old and corrected definitions aren't mixed.
 
 - **3 s hold** is credited to the opening shot only: its score, role, opener, face and speaker.
 - **Watch-through** is credited to the reel's mix: voice share (0%, under 50%, 50% or more), face share (same bands), average shot (under 3 s, 3–5 s, over 5 s) and thread.

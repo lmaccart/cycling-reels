@@ -9,10 +9,12 @@ Definitions of the reel-level numbers: .claude/skills/cycling-reels/reference/an
 from __future__ import annotations
 
 from collections import Counter
+from types import SimpleNamespace
 from typing import Any
 
 from .config import Project
-from .library import load_asset, resolve_id
+from .library import load_asset, resolve_id, resolve_moment
+from .mix import check_segment, nat_windows, volume_keys
 from .util import ReelsError, log, now_iso, read_json, warn, write_json
 
 TAG_FIELDS = ("score", "role", "speaker", "face", "mood", "opener", "line", "thread", "beat")
@@ -22,7 +24,7 @@ def best_moment(asset: dict, start: float, end: float) -> tuple[dict | None, flo
     """The moment sharing the most seconds with [start, end] (ties: the closest fit, then the
     earliest), and the share of the span it covers. (None, 0.0) when nothing overlaps."""
     best, best_key = None, (0.0, 0.0)
-    for m in (asset.get("tags") or {}).get("moments") or []:
+    for m in sorted((asset.get("tags") or {}).get("moments") or [], key=lambda m: m["in"]):
         overlap = min(end, m["out"]) - max(start, m["in"])
         if overlap <= 0:
             continue
@@ -77,6 +79,24 @@ def _picture_spans(segments: list[dict]) -> list[tuple[int, float, float]]:
     return spans
 
 
+def _rider_voice(entry: dict) -> bool:
+    tags = entry["tags"]
+    return tags.get("speaker") == "me" and (tags.get("role") == "voice" or entry.get("captions") == "transcript")
+
+
+def _audible_seconds(seg: dict) -> float:
+    """Unmuted time, from the renderer's nonnegative, linearly interpolated volume curve."""
+    length = seg["end"] - seg["start"]
+    audio = seg["audio"]
+    keys = audio.get("volumeKeys")
+    if not keys:
+        return length if audio.get("volume", 0) > 0 else 0.0
+    points = [(frame / seg["fps"], volume) for frame, volume in keys]
+    points = [(0.0, points[0][1]), *points, (length, points[-1][1])]
+    return sum(max(0.0, min(b, length) - max(a, 0.0))
+               for (a, va), (b, vb) in zip(points, points[1:]) if max(va, vb) > 0)
+
+
 def _lineage(slug: str, segments: list[dict], *, backfilled: bool) -> dict:
     """The lineage document for a timeline of segments, each {"asset", "in", "out", "captions",
     "start", "seconds", "cutaway": False, "cutaways": [{"asset", "in", "out", "start", "seconds",
@@ -100,15 +120,16 @@ def _lineage(slug: str, segments: list[dict], *, backfilled: bool) -> dict:
     thread_seconds: Counter[str] = Counter()
     for seg, entry in ((v, e) for v, e in zip(visuals, entries) if not e["cutaway"]):
         tags = entry["tags"]
-        if entry["captions"] == "transcript" or (tags["role"] == "voice" and tags["speaker"] == "me"):
-            voice += seg["end"] - seg["start"]
+        entry["audioSeconds"] = round(_audible_seconds(seg), 3)
+        if _rider_voice(entry):
+            voice += entry["audioSeconds"]
         if tags["thread"]:
             threads[tags["thread"]] += 1
             thread_seconds[tags["thread"]] += seg["end"] - seg["start"]
     face = sum(on_screen[i] for i, e in enumerate(entries) if e["tags"]["face"] is True)
     thread = max(threads, key=lambda t: (threads[t], thread_seconds[t], t)) if threads else None
     return {
-        "version": 1, "slug": slug, "createdAt": now_iso(), "backfilled": backfilled, "runtimeSeconds": round(runtime, 3),
+        "version": 2, "slug": slug, "createdAt": now_iso(), "backfilled": backfilled, "runtimeSeconds": round(runtime, 3),
         "voiceShare": round(voice / runtime, 4) if runtime else 0.0, "faceShare": round(face / runtime, 4) if runtime else 0.0,
         "avgShotSeconds": round(runtime / len(spans), 3) if spans else None, "thread": thread, "segments": entries,
     }  # fmt: skip
@@ -118,11 +139,15 @@ def from_built(slug: str, built: dict) -> dict:
     """Lineage for a plan as render.build() laid it out (retimed and beat-snapped)."""
     fps = built["fps"]
     segments = []
-    for sg in built["segs"]:
+    instagram = (built.get("music") or {}).get("instagram") or {}
+    for sg, audio in zip(built["segs"], built["props"]["segments"]):
+        if not sg.asset.get("probe", {}).get("hasAudio") or not 0.5 <= sg.spec.get("speed", 1) <= 2 or instagram.get("videoVolume", 100) <= 0:
+            audio = {"volume": 0}
         cutaways = [{"asset": c["seg"].asset, "in": c["seg"].spec.get("in"), "out": c["seg"].spec.get("out"), "start": (sg.start + c["start"]) / fps,
                      "seconds": c["seg"].frames / fps, "cutaway": True} for c in sg.spec.get("_cutaways") or []]  # fmt: skip
         segments.append({"asset": sg.asset, "in": sg.spec.get("in"), "out": sg.spec.get("out"), "captions": sg.spec.get("captions"),
-                         "start": sg.start / fps, "seconds": sg.frames / fps, "cutaway": False, "cutaways": cutaways})  # fmt: skip
+                          "start": sg.start / fps, "seconds": sg.frames / fps, "cutaway": False, "cutaways": cutaways,
+                          "audio": audio, "fps": fps})  # fmt: skip
     return _lineage(slug, segments, backfilled=False)
 
 
@@ -145,14 +170,16 @@ def _load(project: Project, token: Any) -> dict | None:
 
 
 def _span(spec: dict, rendered: dict | None, asset: dict) -> tuple[float | None, float | None]:
-    """In/out in the source: as rendered (post.json), else the plan, else the plan's moment index."""
+    """In/out in the source: as rendered (post.json), else the plan, else its moment reference."""
     for source in (rendered or {}, spec):
         if source.get("in") is not None and source.get("out") is not None:
             return float(source["in"]), float(source["out"])
-    moments = (asset.get("tags") or {}).get("moments") or []
-    i = spec.get("moment")
-    if isinstance(i, int) and 0 <= i < len(moments):
-        return float(moments[i]["in"]), float(moments[i]["out"])
+    if "moment" in spec:
+        try:
+            moment = resolve_moment(asset, spec["moment"])
+            return float(moment["in"]), float(moment["out"])
+        except ReelsError:
+            pass
     return None, None
 
 
@@ -168,7 +195,7 @@ def _visual_from_plan(project: Project, spec: dict, rendered: dict | None, cutaw
 def from_plan(project: Project, plan: dict, post: dict) -> dict:
     """Lineage rebuilt from a rendered reel's plan and post.json, without re-validating the plan
     (older plans needn't pass today's checks). post.json's in/out are preferred: beat snapping
-    moved them, and plans may give only a moment index."""
+    moved them, and plans may give only a moment reference."""
     fps = int(project.cfg("render", "fps"))
     fade = int(project.cfg("render", "transitionFrames"))
     rendered = list(post.get("segments") or [])
@@ -192,6 +219,8 @@ def from_plan(project: Project, plan: dict, post: dict) -> dict:
             trans = max(0, min(fade, prev_frames - 1, frames - 1)) if raw.get("transition") == "fade" else 0
             start += (prev_frames - trans) / fps
         seg["start"] = start
+        seg["fps"] = fps
+        seg["audio"] = _plan_audio(project, raw, seg, frames, post, plan)
         seg["cutaways"] = []
         for c in sorted(raw.get("cutaways") or [], key=lambda c: c.get("at", 0)):
             visual = _visual_from_plan(project, c, next_rendered(c), True)
@@ -202,12 +231,48 @@ def from_plan(project: Project, plan: dict, post: dict) -> dict:
     return _lineage(str(post.get("slug") or plan.get("slug")), segments, backfilled=True)
 
 
+def _plan_audio(project: Project, raw: dict, seg: dict, frames: int, post: dict, plan: dict) -> dict:
+    """Backfill estimate using the saved mix settings and current defaults, without rendering."""
+    asset = seg["asset"]
+    instagram = post.get("instagramAudio") or {}
+    if not asset.get("probe", {}).get("hasAudio") or not 0.5 <= float(raw.get("speed", 1)) <= 2 or instagram.get("videoVolume", 100) <= 0:
+        return {"volume": 0}
+    acfg = project.config["audio"]
+    default = acfg["speechVolume"] if raw.get("captions") == "transcript" else acfg["ambientVolume" if plan.get("music") and not instagram else "ambientVolumeNoMusic"]
+    base = round(float(raw["volume"] if raw.get("volume") is not None else default), 3)
+    spec, errors = dict(raw), []
+    check_segment(spec, asset, errors, "lineage backfill")
+    if errors:
+        raise ReelsError("; ".join(errors))
+    sg = SimpleNamespace(index=0, spec=spec, start=round(seg["start"] * seg["fps"]), frames=frames)
+    sg.end = sg.start + frames
+    return {"volume": base, "volumeKeys": volume_keys(sg, base, nat_windows(project, [sg], seg["fps"]))}
+
+
+def _upgrade_voice(old: dict, fresh: dict) -> dict:
+    """Correct v1's voice metric without replacing its original tag snapshots."""
+    keys = ("asset", "in", "out", "cutaway")
+    old_entries, new_entries = old["segments"], fresh["segments"]
+    if len(old_entries) != len(new_entries) or any(
+        any(a.get(k) != b.get(k) for k in keys) for a, b in zip(old_entries, new_entries)
+    ) or abs(old["runtimeSeconds"] - fresh["runtimeSeconds"]) > 0.05:
+        raise ReelsError(f"{old['slug']}: saved plan no longer matches lineage; restore its render-time plan before upgrading")
+    for entry, new in zip(old_entries, new_entries):
+        if not entry["cutaway"]:
+            entry["audioSeconds"] = new["audioSeconds"]
+    voice = sum(e.get("audioSeconds", 0) for e in old_entries if not e["cutaway"] and _rider_voice(e))
+    old.update(version=2, voiceShare=round(voice / old["runtimeSeconds"], 4) if old["runtimeSeconds"] else 0.0,
+               voiceUpdatedAt=now_iso())
+    return old
+
+
 def backfill(project: Project) -> dict:
-    """Writes lineage.json for every rendered reel that lacks one; reels that have one are left alone."""
-    result: dict[str, Any] = {"written": [], "alreadyHad": 0, "noPlan": [], "momentMatched": 0, "photos": 0, "unmatched": []}
+    """Writes missing lineage and upgrades v1 voice metrics; current snapshots are left alone."""
+    result: dict[str, Any] = {"written": [], "upgraded": [], "alreadyHad": 0, "noPlan": [], "momentMatched": 0, "photos": 0, "unmatched": []}
     for post_path in sorted(project.out_dir.glob("*/post.json")):
         out = post_path.parent
-        if (out / "lineage.json").exists():
+        existing = read_json(out / "lineage.json") if (out / "lineage.json").exists() else None
+        if existing is not None and existing.get("version", 1) >= 2:
             result["alreadyHad"] += 1
             continue
         plan_path = next((p for p in (out / "plan.json", project.plans_dir / f"{out.name}.json") if p.exists()), None)
@@ -215,6 +280,10 @@ def backfill(project: Project) -> dict:
             result["noPlan"].append(out.name)
             continue
         doc = from_plan(project, read_json(plan_path), read_json(post_path))
+        if existing is not None:
+            write_json(out / "lineage.json", _upgrade_voice(existing, doc))
+            result["upgraded"].append(out.name)
+            continue
         write_json(out / "lineage.json", doc)
         result["written"].append(out.name)
         for e in doc["segments"]:
@@ -225,6 +294,7 @@ def backfill(project: Project) -> dict:
             else:
                 result["unmatched"].append({"slug": out.name, "asset": e["asset"], "in": e.get("in"), "out": e.get("out"), "cutaway": e["cutaway"]})
     log(f"lineage backfilled for {len(result['written'])} reel(s) ({result['alreadyHad']} already had one)")
+    log(f"  upgraded voice metric for {len(result['upgraded'])} reel(s); original tag snapshots kept")
     log(f"  segments: {result['momentMatched']} matched a moment, {result['photos']} photo(s) use the photo score, {len(result['unmatched'])} unmatched")
     for u in result["unmatched"]:
         log(f"  UNMATCHED {u['slug']}: {u['asset']} {u['in']}-{u['out']}" + (" (cutaway)" if u["cutaway"] else ""))

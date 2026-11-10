@@ -54,16 +54,21 @@ def _assets_named_in(node: Any) -> set[str]:
 
 
 def _in_a_plan(project: Project, asset: dict) -> bool:
-    """A written plan may not be rendered yet, so `used` can't see it. Older plans name assets without
-    the hash suffix. A plan that can't be read stops the check rather than counting as no plan."""
+    """A written plan may not be rendered yet, so `used` can't see it. Resolve its references exactly
+    as the renderer does; unreadable plans and unresolved references stop pruning."""
     aid = asset["id"]
     for plan in project.plans_dir.glob("*.json"):
         try:
             named = _assets_named_in(read_json(plan))
         except (OSError, json.JSONDecodeError) as e:
             raise ReelsError(f"can't check {plan.name} for footage in use ({type(e).__name__}); fix it before pruning") from e
-        if any(aid == name or aid.startswith(f"{name}-") for name in named):
-            return True
+        for name in named:
+            try:
+                resolved = load_asset(project, name)["id"]
+            except (ReelsError, OSError, ValueError, KeyError, TypeError) as e:
+                raise ReelsError(f"can't resolve {name!r} in {plan.name}; fix it before pruning: {e}") from e
+            if resolved == aid:
+                return True
     return False
 
 
@@ -167,10 +172,19 @@ def survey(project: Project, now: datetime | None = None) -> tuple[list[dict], l
         if found:
             protected.append({**row, "protections": found})
         else:
-            eligible.append({**row, "bytes": project.abs(asset["media"]).resolve().stat().st_size})
+            identity = _media_identity(project, asset)
+            eligible.append({**row, "bytes": identity["bytes"], "identity": identity})
     # Being eligible means `created` parsed: an unreadable date counts as recent.
     eligible.sort(key=lambda r: (_wall_clock(datetime.fromisoformat(r["created"])), r["id"]))
     return eligible, protected
+
+
+def _media_identity(project: Project, asset: dict) -> dict:
+    """Bind approval to the resolved file, including replacement and in-place edit detection."""
+    path = project.abs(asset["media"]).resolve()
+    stat = path.stat()
+    return {"path": str(path), "device": stat.st_dev, "inode": stat.st_ino, "bytes": stat.st_size,
+            "mtimeNs": stat.st_mtime_ns, "ctimeNs": stat.st_ctime_ns}
 
 
 def _write_round(project: Project, listed: list[dict], free: float, threshold: float) -> str:
@@ -180,9 +194,9 @@ def _write_round(project: Project, listed: list[dict], free: float, threshold: f
     while path.exists():
         n += 1
         path = folder / f"{stamp}-{n}.json"
-    write_json(path, {"version": 1, "createdAt": now_iso(), "freeGB": round(free, 1), "minFreeGB": threshold, "triggered": free < threshold,
+    write_json(path, {"version": 2, "createdAt": now_iso(), "freeGB": round(free, 1), "minFreeGB": threshold, "triggered": free < threshold,
                       "totalBytes": sum(r["bytes"] for r in listed),
-                      "assets": [{"id": r["id"], "media": r["media"], "bytes": r["bytes"], "reason": r["reason"]} for r in listed]})  # fmt: skip
+                       "assets": [{k: r[k] for k in ("id", "media", "bytes", "reason", "identity")} for r in listed]})  # fmt: skip
     return project.rel(path)
 
 
@@ -225,21 +239,29 @@ def _load_round(project: Project, round_path: str) -> tuple[Any, dict]:
         raise ReelsError(f"{path.name} can't be read as a round ({type(e).__name__})") from e
     if not isinstance(doc, dict) or not isinstance(doc.get("assets"), list):
         raise ReelsError(f"{path.name} isn't a round: it has no asset list")
+    if doc.get("version") != 2:
+        raise ReelsError(f"{path.name} has no supported file-identity snapshot; run --dry-run and approve a new round")
     if doc.get("appliedAt"):
         raise ReelsError(f"{path.name} was already applied at {doc['appliedAt']}; run --dry-run for a new list")
     return path, doc
 
 
-def _delete_one(project: Project, aid: Any, known: set[str], now: datetime | None) -> dict:
+def _delete_one(project: Project, entry: Any, known: set[str], now: datetime | None) -> dict:
     """Re-checks one listed asset as it is on disk now, then removes its media file."""
+    aid = entry.get("id") if isinstance(entry, dict) else None
     if not isinstance(aid, str) or aid not in known:
         return {"status": "skipped", "why": "unknown-asset"}
     asset = read_json(asset_file(project, aid))
     found = blockers(project, asset, now)
     if found:
         return {"status": "skipped", "why": ", ".join(found)}
-    path = project.abs(asset["media"]).resolve()
-    size = path.stat().st_size
+    if asset.get("id") != aid or asset.get("media") != entry.get("media"):
+        return {"status": "skipped", "why": "approved-media-changed"}
+    if _media_identity(project, asset) != entry.get("identity"):
+        return {"status": "skipped", "why": "approved-file-changed"}
+    # Use the identity just checked, not another resolution of a possibly redirected media path.
+    path = project.abs(entry["identity"]["path"])
+    size = entry["identity"]["bytes"]
     try:
         path.unlink()
     except OSError as e:
@@ -264,7 +286,7 @@ def apply_round(project: Project, round_path: str | None, *, yes: bool = False, 
     results = []
     for entry in doc["assets"]:
         aid = entry.get("id") if isinstance(entry, dict) else None
-        result = _delete_one(project, aid, known, now)
+        result = _delete_one(project, entry, known, now)
         results.append({"id": aid, **result})
         if isinstance(entry, dict):
             entry["result"] = result

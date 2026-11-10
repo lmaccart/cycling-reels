@@ -179,9 +179,9 @@ class MergeTests(unittest.TestCase):
             with self.assertRaises(ReelsError):
                 merge_tags({**ASSET, "tags": tags}, {"summary": "x"})
 
-    def test_moment_order_only_changes_when_a_start_moves(self):
+    def test_moving_a_start_preserves_legacy_plan_indexes(self):
         patch = {"moments": [{"id": self.ids[0], "in": 20.0, "out": 24.0}]}
-        self.assertEqual([m["id"] for m in merge_tags(self.asset, patch)["moments"]], [self.ids[1], self.ids[0]])
+        self.assertEqual([m["id"] for m in merge_tags(self.asset, patch)["moments"]], self.ids)
 
 
 class AddMomentsTests(unittest.TestCase):
@@ -197,10 +197,10 @@ class AddMomentsTests(unittest.TestCase):
             merge_tags(asset or self.asset, patch)
         return str(caught.exception)
 
-    def test_adds_a_validated_moment_with_a_new_id_in_order(self):
+    def test_appends_a_validated_moment_without_shifting_legacy_indexes(self):
         merged = merge_tags(self.asset, {"addMoments": [self.full(15, 18)]})
-        self.assertEqual([m["in"] for m in merged["moments"]], [10, 15, 20])
-        new = merged["moments"][1]
+        self.assertEqual([m["in"] for m in merged["moments"]], [10, 20, 15])
+        new = merged["moments"][2]
         self.assertRegex(new["id"], r"^m-[0-9a-f]{6}$")
         self.assertNotIn(new["id"], [m["id"] for m in self.tags["moments"]])
         self.assertEqual((new["role"], new["focusX"], new["speech"]), ("proof", 0.4, False))
@@ -305,7 +305,7 @@ class TagCommandTests(unittest.TestCase):
         new = {"in": 5.0, "out": 5.9, "label": "new", "score": 3, "role": "texture", "speaker": "none", "face": False, "mood": "calm", "opener": False}
         cli.cmd_tag(self.project, self.args(merge=True, json=json.dumps({"addMoments": [new]})))
         saved = load_asset(self.project, "clip")
-        self.assertEqual([m["in"] for m in saved["tags"]["moments"]], [1, 5.0, 6])
+        self.assertEqual([m["in"] for m in saved["tags"]["moments"]], [1, 6, 5.0])
         self.assertEqual((saved["status"], saved["taggedAt"]), ("tagged", "2026-01-01T00:00:00"))
 
     def test_batch_adds_moments_and_saves_nothing_when_one_overlaps(self):
@@ -329,6 +329,14 @@ class TagCommandTests(unittest.TestCase):
         self.assertEqual(load_asset(self.project, "clip")["tags"]["summary"], "one")
         self.assertEqual(load_asset(self.project, "other")["tags"]["summary"], "two")
         self.assertEqual(len(load_asset(self.project, "other")["tags"]["sounds"]), 1)
+
+    def test_batch_rejects_aliases_of_one_asset_before_saving_anything(self):
+        path = self.temp.root / "batch.json"
+        before = {p: p.read_bytes() for p in self.project.assets_dir.glob("*.json")}
+        write_json(path, {"other": {"summary": "changed"}, "clip": {"summary": "first"}, "cli": {"quality": 2}})
+        with self.assertRaisesRegex(ReelsError, "same asset as"):
+            cli.cmd_tag_batch(self.project, SimpleNamespace(file=str(path)))
+        self.assertEqual({p: p.read_bytes() for p in before}, before)
 
 
 if __name__ == "__main__":

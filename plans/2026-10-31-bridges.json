@@ -4,9 +4,9 @@
   "hook": {"text": "summer was mostly bridges apparently"},
   "segments": [
     {"asset": "260716-img-2992-7b53", "in": 4.0, "out": 7.6},
-    {"asset": "260725-img-3035-80a4", "moment": 0, "transition": "fade"},
+    {"asset": "260725-img-3035-80a4", "moment": "m-3299d1", "transition": "fade"},
     {"asset": "260725-img-3035-80a4", "in": 7.6, "out": 9.5, "captions": "transcript"},
-    {"asset": "260809-img-3164-3516", "moment": 0, "transition": "fade",
+    {"asset": "260809-img-3164-3516", "moment": "m-d017d9", "transition": "fade",
      "text": [{"text": "and one more at dusk", "at": 0.4, "for": 2.4}]}
   ],
   "music": "good-day",

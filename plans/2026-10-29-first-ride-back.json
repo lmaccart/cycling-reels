@@ -4,7 +4,7 @@
   "hook": {"text": "the zwift era vs the first ride back"},
   "segments": [
     {"asset": "260611-img-2638-52ae", "in": 1.5, "out": 4.6},
-    {"asset": "260615-img-2653-b599", "moment": 1,
+    {"asset": "260615-img-2653-b599", "moment": "m-2af4b9",
      "text": [{"text": "zwift. again.", "at": 0.3, "for": 2.4}]},
     {"asset": "260624-img-2762-ed2c", "in": 1.0, "out": 5.5, "captions": "transcript"}
   ],
