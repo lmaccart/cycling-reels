@@ -9,7 +9,7 @@ from helpers import TempProject, words
 from reels import cli
 from reels.lineage import from_built
 from reels.render import Seg, build, load_plan
-from reels.retention import batch_warnings, caption_cuts, fades, opening, spine_warnings, still_stretches
+from reels.retention import batch_warnings, caption_cuts, fades, opener_warnings, opening, spine_warnings, still_stretches
 from reels.util import ReelsError
 
 FPS = 30
@@ -146,6 +146,51 @@ class BatchWarningTests(unittest.TestCase):
     def test_only_a_batch_of_seven(self):
         for n in (1, 6, 8):
             self.assertEqual(batch_warnings(spined(n, None)), [])
+
+
+def first_shot(*, face=None, role=None, match="moment", captions="none") -> dict:
+    return {"segments": [{"position": "first", "match": match, "captions": captions, "tags": {"face": face, "role": role}},
+                         {"position": "last", "match": "moment", "captions": "none", "tags": {"face": False, "role": "texture"}}]}  # fmt: skip
+
+
+class OpenerTests(unittest.TestCase):
+    def test_scenery_first_is_flagged_with_its_role(self):
+        got = opener_warnings({"spine": "story"}, first_shot(face=False, role="texture"))
+        self.assertEqual(len(got), 1)
+        self.assertIn("no face and nobody talking (role: texture)", got[0])
+        self.assertIn("aud-person-01", got[0])
+
+    def test_a_face_or_a_voice_first_is_quiet(self):
+        self.assertEqual(opener_warnings({}, first_shot(face=True, role="reaction")), [])
+        self.assertEqual(opener_warnings({}, first_shot(face=False, role="voice")), [])  # a teammate talking counts
+        self.assertEqual(opener_warnings({}, first_shot(face=False, role="crew")), [])  # the group is the subject, even from behind
+        self.assertEqual(opener_warnings({}, first_shot(face=False, role="effort", captions="transcript")), [])
+
+    def test_unknown_is_not_scenery(self):
+        self.assertEqual(opener_warnings({}, first_shot(face=None, role="texture")), [])  # moment never got a face tag
+        self.assertEqual(opener_warnings({}, first_shot(face=False, match="none")), [])  # untagged span
+        self.assertEqual(opener_warnings({}, first_shot(face=False, match="photo")), [])  # photo openings have their own warning
+        self.assertEqual(opener_warnings({}, None), [])
+
+    def test_a_sound_reel_opens_on_its_sound(self):
+        self.assertEqual(opener_warnings({"spine": "sound"}, first_shot(face=False, role="texture")), [])
+
+
+class OpenerInPlanTests(unittest.TestCase):
+    def setUp(self):
+        self.t = TempProject(self)
+        moment = {"id": "m-bbbbbb", "in": 0, "out": 10, "label": "empty road", "score": 4, "role": "texture", "face": False}
+        self.t.asset("road", tags={"type": "solo-ride", "shot": "pov", "quality": 4, "summary": "road", "moments": [moment]})
+        self.t.asset("selfie", tags={"type": "solo-ride", "shot": "selfie", "quality": 4, "summary": "grin",
+                                     "moments": [{**moment, "id": "m-cccccc", "label": "grin", "role": "reaction", "face": True}]})  # fmt: skip
+
+    def lines(self, order: list[str]) -> list[str]:
+        plan = self.t.plan("reel", [{"asset": a, "in": 0.0, "out": 4.0} for a in order], spine="story")
+        return [w for w in build(self.t.project, load_plan(self.t.project, plan))["warnings"] if "opens on a shot" in w]
+
+    def test_check_flags_a_road_opening_and_not_a_face_opening(self):
+        self.assertEqual(len(self.lines(["road", "selfie"])), 1)
+        self.assertEqual(self.lines(["selfie", "road"]), [])
 
 
 class SpineInPlanTests(unittest.TestCase):

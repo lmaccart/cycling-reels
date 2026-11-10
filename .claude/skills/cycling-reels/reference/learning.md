@@ -15,7 +15,9 @@ Performance never overrides approval, footage ownership, rights, privacy or fact
    the previous week's review if present. Markdown shows the latest checkpoint only;
    JSON retains all checkpoints and original notes.
 4. Identify evidence-backed strengths, weaknesses and next actions across all three
-   areas. Record missing footage and unresolved failures, not just successes. Save the
+   areas. Read the follower line in the review and the Account section of
+   `out/PERFORMANCE.md` ([analytics.md](analytics.md#account-numbers)): watched reels that
+   add no followers is a weakness to name, not a success. Record missing footage and unresolved failures, not just successes. Save the
    interpretation with `./reels review --file <notes.json>`; the CLI gathers evidence,
    but the planner interprets it without inventing observations or causes.
 5. Aim for five familiar approaches and two experimental reels in a seven-reel batch.
@@ -39,6 +41,15 @@ Performance never overrides approval, footage ownership, rights, privacy or fact
   Review the predeclared success criterion, medians and individual samples; record
   supported/unsupported/inconclusive and the next decision in review notes.
 
+## Few questions, each repeated
+
+A reel here reaches roughly 120–500 accounts, so one or two reels a side can't settle anything: six one-week tests end as six "inconclusive". Ask fewer things and ask them again.
+
+- **At most two questions open at a time.** Before registering a third, close one in the review notes: supported, unsupported, inconclusive, or dropped.
+- **Repeat a question every week until each side has at least three measured reels**, which means three weeks or more. Each week's run is its own registration with a new `id`, that week's slugs, and the same `question` slug, change and primary metric. Registration refuses a repeat that switches metric or puts a reel on the other side.
+- `./reels review` lists each question with its runs pooled (a reel counts once per side) under "Questions (repeats pooled)", marks it `ready-for-review` at three per side, and says when more than two are still waiting for data. Pooled medians across weeks are still observational: read the individual samples, the reach and the weeks they came from.
+- An experiment without a `question` is its own question.
+
 ## Register experiments before rendering
 
 Write an object, then run `./reels review experiment --file <experiment.json>`:
@@ -46,6 +57,7 @@ Write an object, then run `./reels review experiment --file <experiment.json>`:
 ```json
 {
   "id": "2026-w45-face-first",
+  "question": "face-first",
   "hypothesis": "opening on the rider's face may improve first-three-second hold",
   "change": "first shot only: rider's face instead of road POV",
   "primaryMetric": "hold",
@@ -70,7 +82,7 @@ register enough future test slugs for replications rather than rewriting an old 
 ./reels review feedback --category production --kind scheduling-error --slug <slug> --note "audio rejected; awaiting user's choice"
 ```
 
-Record actual user edits, approvals/rejections and reasons, not inferred tastes. Before
+Record actual user edits, approvals/rejections and reasons, not inferred tastes. A text rewrite is a voice sample: use `--kind text-edit` and put both versions in the note, in the user's words; a pattern that shows up twice is a proposal for [character.md](character.md). Before
 discarding rejected reels, record feedback so the reason survives deletion. `mark` records
 a production status event automatically; this isn't a preference or proof of user approval.
 Add actual preference/reason explicitly when supplied. CLI renders record attempts,

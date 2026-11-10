@@ -23,6 +23,20 @@ At the start of every weekly batch, before planning. Metrics keep growing for da
    lifetime metrics as exact day-seven results. This stricter learning policy does not
    change the existing stats report's descriptive 48-hour tables.
 
+## Account numbers
+
+The per-reel pull says whether a reel was watched. Whether the account is growing comes from Metricool's Instagram "evolution" metrics, pulled in the same sitting:
+
+1. Call `getAnalyticsDataByMetrics` with the same `brandId` and dates and `metrics` = `["IGEV01","IGEV43","IGEV44","IGEV06","IGEV42"]`: followers, followers gained, followers lost, account reach, accounts engaged. Each row is those values in order and then the day as `YYYYMMDD`; days come back unordered.
+2. Save it as `{"pulledAt": "<ISO time now>", "fields": [<that list>], "rows": [<rows as returned>]}` and run `./reels stats import <file>`. A pull whose fields are all `IGEV…` is stored in `analytics/account/`, apart from the reel snapshots. A later pull replaces a day's values, but an unknown never erases a known one.
+3. `./reels stats` adds an **Account** section to `out/PERFORMANCE.md`: the latest follower count, and each day's account reach, accounts engaged and follower change beside the reel posted that day. `./reels review` records the count and its change over the last two weeks.
+
+Reading it:
+
+- **Follows per reel don't exist here.** Metricool has no profile-visits or follows-from-this-reel number (its profile-views metric is deprecated). A day's follower change beside a reel is a description; several reels are live at once, so don't credit one reel with it. Look for the same kind of reel sitting beside gains more than once.
+- **The follower series is patchy, and only refreshes when the user opens Metricool.** Ask them to open it before the pull. As of the 2026-11-10 pulls Metricool returned a count on 10 of 22 days (0 through 2026-10-31, 1 on 11-06, 14 on 11-08, 19 on 11-09) and nothing for gained/lost. Unknown is shown as —, never as zero, and the count is labelled as Metricool's. If it disagrees with the number on the profile, say so and trust the profile.
+- **Accounts engaged** per day is the closest thing to "people who did something"; set it against account reach rather than reading it alone.
+
 ## Plans carry a `format`
 
 Set `"format"` (the recipe name from [recipes.md](recipes.md), e.g. `"pov-joke"`) in each plan so the report can group by format. Plans without it show "—".

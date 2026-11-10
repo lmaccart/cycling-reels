@@ -1,5 +1,7 @@
 # Shot list: every ride
 
+**Short on time? `FILM-THIS-WEEK.md` is this week's short version**: the handful of shots next week's reels are actually missing. This page is the full reference.
+
 The cycling reels that grow accounts show a person (not just the road), a payoff you can see, and something funny or useful. Batch 1 was almost all first-person road footage, so the jokes were told in text instead of shown. These shots fix that. The ★ ones take about 5 minutes in total, so get them every ride. Grab the rest when you get the chance.
 
 ## The one that matters most

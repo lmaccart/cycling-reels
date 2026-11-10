@@ -92,7 +92,7 @@ True only if the first second is instantly legible with no context and would sto
 
 **`line`: only with `role: voice`, and optional.** What kind of line it is: `confession` (admits something unflattering) · `plan` (what's about to happen) · `complaint` (grumbling about the world or the wind) · `joke` · `result` (what happened or the numbers) · `tip` (advice someone could use). Leave it out if none fit.
 
-**`thread` / `beat`: only for genuine stories or series across days, or threads go stale.** `thread` is a kebab-case slug (known series: `road-to-5-ep1`, the failed 2026-11-03 4x8). Tag a moment only if it could appear in that story; don't add a thread to a one-off. `beat` needs a thread: `setup` (the plan, the stakes) · `effort` (the work itself) · `turn` (where it goes right or wrong) · `result` (how it ended, what it meant).
+**`thread` / `beat`: only for genuine stories or series across days, or threads go stale.** `thread` is a kebab-case slug, `<series>-ep<N>` for the running series in [recipes.md](recipes.md#series): `road-to-5-ep1` (the failed 2026-11-03 4x8), `roommate-epN`, `before-class-epN`. Tag a moment only if it could appear in that story; don't add a thread to a one-off. `beat` needs a thread: `setup` (the plan, the stakes) · `effort` (the work itself) · `turn` (where it goes right or wrong) · `result` (how it ended, what it meant).
 
 ## Sounds (video)
 

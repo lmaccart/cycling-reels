@@ -385,6 +385,13 @@ def stats(project: Project, since: str | None = None) -> None:
     log("")
     for line in footage:
         log(line)
+    from .account import section as account_section
+
+    account = account_section(project)
+    md += account
+    log("")
+    for line in account[:4]:
+        log(line)
     if unmatched:
         md += ["## Unmatched rows", ""] + [f"- reel {r['reelId']} {r['postedAt'][:16]}Z {r['url'] or ''} {r['content'][:60]!r}" for r in unmatched] + [""]
     out = project.out_dir / "PERFORMANCE.md"

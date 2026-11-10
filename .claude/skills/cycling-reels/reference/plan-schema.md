@@ -294,6 +294,7 @@ Preview any framing before rendering: `./reels frames <id> --view rider --at 140
 `./reels check` (and `render`) also flag, as warnings — advice, not errors:
 
 - **a photo as the first shot** (a still first frame is the easiest to scroll past), and **a crossfade in the first 2 s**;
+- **an opening with no face and nobody talking**: the first shot's moment is tagged `face: false`, its role isn't `voice`, `reaction` or `crew`, and it has no speech captions. It follows the tentative lesson aud-person-01, so it is advice: an exceptional shot can stay. An untagged span, a moment with no `face` tag and a `spine: sound` reel are left alone;
 - **mostly-fade edits** (more than half the cuts, at least two) — they read as a slideshow;
 - **5 s or more where nothing changes on screen** — no cut, cutaway, punch-in, 360 keyframe, caption page, text beat, hook exit or nat window (fine for a deliberate held view);
 - **speech captions cutting into a word**: an `in` inside a word shows a stray half-word caption, an `out` inside one clips it (with the time to move to), and **low-confidence transcript words** (often wind);
