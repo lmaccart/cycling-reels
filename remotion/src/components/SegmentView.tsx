@@ -10,7 +10,7 @@ const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 // Punch-in: a snappy zoom that settles (no overshoot).
 const punchEase = Easing.bezier(0.25, 0.9, 0.3, 1);
 
-const punchAt = (keys: [number, number, number, number][], f: number): [number, number, number] => {
+export const punchAt = (keys: [number, number, number, number][], f: number): [number, number, number] => {
   if (f <= keys[0][0]) {
     return [keys[0][1], keys[0][2], keys[0][3]];
   }

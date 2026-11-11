@@ -65,7 +65,13 @@ export type Segment = {
 };
 
 export type CaptionWord = { text: string; startFrame: number; endFrame: number };
-export type CaptionPage = { startFrame: number; endFrame: number; words: CaptionWord[] };
+export type CaptionPage = {
+  startFrame: number;
+  endFrame: number;
+  words: CaptionWord[];
+  /** Pixels from the bottom edge to the text's bottom (the CLI moves captions clear of an exhibit); default 560. */
+  offsetBottom?: number;
+};
 
 export type TextBeat = {
   text: string;
@@ -73,7 +79,7 @@ export type TextBeat = {
   endFrame: number;
   position: 'top' | 'center' | 'lower';
   style: TextStyle;
-  /** 'top' only: pixels from the top edge (the CLI pushes text below stat pills). */
+  /** 'top' only: pixels from the top edge (the CLI pushes text below stat pills and clear of exhibits). */
   offsetTop?: number;
 };
 
@@ -115,6 +121,72 @@ export type ProgressBar = {
   /** 0 = no fill animation (first entry). */
   fillFrames: number;
   asOf: string;
+};
+
+/** A chart drawn by the template. Numbers are the user's own (typed in the plan) or from their Strava ride. */
+export type Chart = {
+  type: 'line' | 'bar';
+  theme: 'light' | 'dark';
+  title: string;
+  unit: string;
+  xLabel: string;
+  /** 'typed' or 'strava'. Not shown. */
+  source: string;
+  xs: number[];
+  ys: number[];
+  yMin: number;
+  yMax: number;
+  xTicks: { v: number; label: string }[];
+  yTicks: { v: number; label: string }[];
+  /** One labelled point (line) or bar. */
+  mark?: { x: number; y: number; label: string };
+  /** Line draws itself on / bars grow. */
+  draw: boolean;
+  /** Series colour; default per theme (dark uses the brand accent). */
+  color?: string;
+};
+
+/** A study screenshot, diagram or chart shown over the footage for the rider to point at. Images come
+ * only from the user's exhibits/ folder; the CLI sizes and places them (typed, or from the fingertip). */
+export type Exhibit = {
+  startFrame: number;
+  endFrame: number;
+  kind: 'image' | 'chart';
+  /** Image: path relative to the render's public dir (PNG, alpha kept). */
+  src?: string;
+  chart?: Chart;
+  /** Centre and size in frame pixels. */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Optional: the centre follows the hand: [frame from startFrame, x, y], linear between, held after. */
+  path?: [number, number, number][];
+  /** Degrees. */
+  tilt: number;
+  /** card = rectangle with a soft shadow (and a backing colour for see-through images); cutout = the image's own shape. */
+  style: 'card' | 'cutout';
+  background?: string | null;
+  padding: number;
+  shadow: boolean;
+  /** behind = drawn under the rider's cut-out (a Foreground covers the same frames). */
+  depth: 'front' | 'behind';
+  enter: 'pop' | 'fade' | 'slide' | 'none';
+  exit: 'pop' | 'fade' | 'slide' | 'none';
+};
+
+/** The rider cut out of a segment's own staged clip (video with alpha), laid over 'behind' exhibits. */
+export type Foreground = {
+  src: string;
+  /** Absolute reel frame. */
+  startFrame: number;
+  durationInFrames: number;
+  /** Frames into the segment where this stretch starts (for the punch keys). */
+  offset: number;
+  /** Segment index. */
+  seg: number;
+  /** The segment's punch-in keys, so the cut-out zooms with the footage. */
+  punch?: [number, number, number, number][];
 };
 
 export type Hook = {
@@ -174,6 +246,10 @@ export type ReelProps = {
   routes?: RouteMap[];
   /** Optional; absent in reels without a progress bar. */
   progress?: ProgressBar[];
+  /** Optional; absent in reels without exhibits. */
+  exhibits?: Exhibit[];
+  /** Optional; the rider in front of 'behind' exhibits. */
+  foregrounds?: Foreground[];
   music: Music | null;
   /** Optional; absent in reels without sound effects. */
   sfx?: SfxCue[];

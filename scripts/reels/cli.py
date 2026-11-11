@@ -796,6 +796,31 @@ def cmd_strava(project: Project, args) -> int:
     return 0
 
 
+def cmd_look(project: Project, args) -> int:
+    """Dense frame strips and a sound report for rendered reels; exit code 1 when any reel has a flag."""
+    from .look import look
+
+    flagged = 0
+    for i, t in enumerate(args.reels):
+        if i:
+            log("")
+        flagged += bool(look(project, t, every=args.every, audio=not args.no_audio, frames=not args.no_frames)["flags"])
+    return 1 if flagged else 0
+
+
+def cmd_exhibits(project: Project, args) -> int:
+    from .exhibits import add, preview, print_list
+
+    if args.exhibits_cmd == "add":
+        dest = add(project, args.file, args.name)
+        log(f"✓ {project.rel(dest)} — use it in a plan as \"image\": \"{dest.name}\"")
+    elif args.exhibits_cmd == "preview":
+        preview(project, args.plan, args.at)
+    else:
+        print_list(project)
+    return 0
+
+
 def cmd_progress(project: Project, args) -> int:
     from .progress import print_progress, set_entry
 
@@ -1041,6 +1066,24 @@ def build_parser() -> argparse.ArgumentParser:
     r = ssub.add_parser("link", help="re-link library clips to the imported rides (e.g. after ingesting more footage)")
     r.add_argument("activities", nargs="*", help="ride ids (default: all)")
     ssub.add_parser("list", help="imported rides, their numbers and linked clips")
+
+    s = sub.add_parser("look", help="review rendered reels without watching: frame strips every 0.5 s (+ every cut/text/exhibit) and a sound report")
+    s.add_argument("reels", nargs="+", help="slug, plan file or out/<slug>/reel.mp4")
+    s.add_argument("--every", type=float, default=0.5, help="seconds between frames (default 0.5)")
+    s.add_argument("--no-audio", action="store_true", help="frames only")
+    s.add_argument("--no-frames", action="store_true", help="sound report only")
+    s.set_defaults(fn=cmd_look)
+
+    s = sub.add_parser("exhibits", help="study screenshots, diagrams and charts shown over a talking clip: list exhibits/, add an image, preview frames")
+    s.set_defaults(fn=cmd_exhibits, exhibits_cmd="list")
+    esub = s.add_subparsers(dest="exhibits_cmd")
+    esub.add_parser("list", help="images in exhibits/ and the plans that use them")
+    r = esub.add_parser("add", help="copy an image the user has (a screenshot, a diagram, a cut-out PNG) into exhibits/")
+    r.add_argument("file")
+    r.add_argument("--name", help="file name to give it (default: its own, tidied)")
+    r = esub.add_parser("preview", help="render still frames of a plan with its exhibits up, to check placement before a full render")
+    r.add_argument("plan")
+    r.add_argument("--at", type=float, help="reel seconds (default: one frame per exhibit)")
 
     s = sub.add_parser("progress", help="series progress bar (road to 5 W/kg): the FTP and weight the user gave, by date")
     s.set_defaults(fn=cmd_progress, progress_cmd="show")

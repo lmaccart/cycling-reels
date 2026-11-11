@@ -161,6 +161,11 @@ class Project:
         return self.root / "music"
 
     @property
+    def exhibits_dir(self) -> Path:
+        """Study screenshots and diagrams the user dropped in, shown only as overlays (exhibits.py)."""
+        return self.root / "exhibits"
+
+    @property
     def remotion_dir(self) -> Path:
         return self.root / "remotion"
 
@@ -179,6 +184,7 @@ class Project:
             self.plans_dir,
             self.out_dir,
             self.music_dir,
+            self.exhibits_dir,
         ):
             d.mkdir(parents=True, exist_ok=True)
 

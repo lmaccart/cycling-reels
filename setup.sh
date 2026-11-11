@@ -78,7 +78,7 @@ then
 fi
 
 chmod +x reels
-mkdir -p inbox library plans out music
+mkdir -p inbox library plans out music exhibits
 if [ ! -f config.json ]; then
   cp config.example.json config.json
   echo "Created config.json — put your Instagram handle in it."

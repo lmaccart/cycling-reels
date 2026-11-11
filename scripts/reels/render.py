@@ -14,6 +14,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from .bleep import check_bleep, masked_words, mute_filter, resolve_bleeps, tone_graph, unbleeped_swears
 from .config import Project
+from .exhibits import build_exhibits, check_lines as exhibit_lines, foregrounds, make_room, stage as stage_exhibits
 from .images import open_image
 from .library import all_assets, load_asset, resolve_id, resolve_moment, save_asset
 from .lineage import from_built as lineage_from_built, record as record_lineage
@@ -204,6 +205,7 @@ def _visual(
 # fields belong on it, not on a cutaway.
 CUTAWAY_SEGMENT_ONLY = ("captions", "text", "stats", "route", "nat", "bleep", "punch", "sfx", "transition", "payoff",
                         "cutaways", "volume", "clean", "progress")  # fmt: skip
+MIN_EXHIBIT_FRAMES = 15
 CUTAWAY_MIN_FRAMES = 12  # 0.4 s at 30 fps: anything shorter reads as a glitch
 
 
@@ -1092,6 +1094,10 @@ def build(project: Project, plan: dict) -> dict:
     resolve_punches(segs, words, pages, on_beats, (music or {}).get("beats"), fps, warnings)
     if loop and ends_zoomed(segs[-1]) > 1:
         warnings.append(f"loop: segment {len(segs)} ends punched in ({ends_zoomed(segs[-1]):g}×) and the replay starts at 1× — give that punch a \"for\"")
+    # after the punches: a hand-anchored exhibit moves with the punched-in picture
+    shown = build_exhibits(project, plan, segs, total, fps, errors, warnings)
+    if errors:
+        raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
 
     nat = nat_windows(project, segs, fps)
     seg_props = []
@@ -1191,7 +1197,13 @@ def build(project: Project, plan: dict) -> dict:
         if top:
             hook_props["offsetTop"] = top
     beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes, bars)
-    warnings += retention_warnings(segs, pages, beats, nat, hook_props, fps, total)
+    shown = [e for e in shown if e["props"]["startFrame"] < limit - MIN_EXHIBIT_FRAMES]  # the end card takes over
+    for e in shown:
+        e["props"]["endFrame"] = min(e["props"]["endFrame"], limit)
+    make_room(shown, hook_props, beats, pages, warnings, fps)
+    exhibit_props = [e["props"] for e in shown]
+    fg_props = foregrounds(shown, segs, fps)
+    warnings += retention_warnings(segs, pages, beats + exhibit_props, nat, hook_props, fps, total)
     try:
         lin = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs, "props": {"segments": seg_props}, "music": music})
     except Exception:  # noqa: BLE001 — only the voice spine check needs it; the opener check is advice
@@ -1259,6 +1271,8 @@ def build(project: Project, plan: dict) -> dict:
         "stats": stats,
         **({"routes": routes} if routes else {}),
         **({"progress": bars} if bars else {}),
+        **({"exhibits": exhibit_props} if exhibit_props else {}),
+        **({"foregrounds": fg_props} if fg_props else {}),
         "music": music_props,
         **({"sfx": cue_props(cues)} if cues else {}),
         "endCard": end_props,
@@ -1267,7 +1281,7 @@ def build(project: Project, plan: dict) -> dict:
     sound = {"nat": nat, "drops": drops, "cues": cues, "cleanNat": bool(acfg["cleanNat"]), "music": bool(music_props)}
     loop_info = {"swap": swap_halves(segs, fps), "bars": (music or {}).get("loop")} if loop else None  # as retimed
     return {"segs": segs, "props": props, "warnings": warnings, "music": music, "sound": sound, "total": int(total), "fps": fps,
-            "loop": loop_info, "post": extras}  # fmt: skip
+            "loop": loop_info, "post": extras, "exhibits": shown}  # fmt: skip
 
 
 # --------------------------------------------------------------------------
@@ -1405,6 +1419,7 @@ def stage(project: Project, built: dict, staging: Path) -> None:
                 stage_photo_pan(project, cs, staging / f"{name}.mp4", built["fps"])
             else:
                 stage_photo(project, cs, staging / f"{name}.jpg")
+    stage_exhibits(project, built, staging)  # images, and the rider cut out of the staged clips for depth
     if built["props"]["music"]:
         mp: Path = built["music"]["path"]
         shutil.copy2(mp, staging / f"music{mp.suffix.lower()}")
@@ -1637,6 +1652,8 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
             for _, v, is_cut in visuals(built["segs"])
         ],  # fmt: skip
     }
+    if built.get("exhibits"):
+        post["exhibits"] = [e["label"] for e in built["exhibits"]]
     carry_over(prev, post)  # history, the Metricool post id and the live reel's id survive a re-render
     if built["loop"]:
         post["loop"] = {"swapHalves": built["loop"]["swap"][0], **({"seamSsim": seam["seam"], "stepSsim": seam["step"]} if seam else {})}
@@ -1726,6 +1743,8 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
     for b in props.get("progress") or []:
         log(f"  progress: \"{b['label']}\" {b['value']:.2f} {b['unit']} (entry {b['asOf']}), {b['goalText']}, {b['note'] or 'no to-go note'}  "
             f"{b['startFrame'] / fps:.1f}-{b['endFrame'] / fps:.1f}s")
+    for line in exhibit_lines(built):
+        log(line)
     for r in props.get("routes") or []:
         log(f"  route map {r['startFrame'] / fps:.1f}-{r['endFrame'] / fps:.1f}s ({len(r['paths'])} line(s))")
     for sg in built["segs"]:

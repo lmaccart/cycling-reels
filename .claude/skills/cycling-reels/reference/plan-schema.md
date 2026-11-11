@@ -2,7 +2,7 @@
 
 One JSON file per reel in `plans/`, named `<YYYY-MM-DD>-<slug>.json`. Validate with `./reels check <file>` (several at once: `./reels check plans/2026-11-*.json` checks them all and lists every problem), render with `./reels render <file>`. Output goes to `out/<slug>/` (reel.mp4, cover.jpg, preview.jpg, caption.txt, post.json — plus preview.mp4 when the song is attached by Instagram). `reel.mp4` is always exactly what gets uploaded. `./reels project <file>` writes the same reel as an editable Remotion project for Kino or Remotion Studio ([kino.md](kino.md)).
 
-Every segment must be a clip or photo from `library/` — footage the user recorded and ingested. The renderer checks each file's fingerprint against the original it ingested and refuses anything else; there is no way to add generated, stock or downloaded visuals.
+Every segment must be a clip or photo from `library/` — footage the user recorded and ingested. The renderer checks each file's fingerprint against the original it ingested and refuses anything else; there is no way to add generated, stock or downloaded visuals. The one thing that isn't footage is an **exhibit**: an image from the user's `exhibits/` folder or a chart of their numbers, laid over a segment ([Exhibits](#exhibits)).
 
 ## Top level
 
@@ -114,6 +114,10 @@ Not on a cutaway (they belong to the segment): `captions`, `text`, `stats`, `rou
    {"at": 5.0, "asset": "261029-img-3533", "moment": 0, "speed": 0.5},
    {"at": 7.4, "asset": "261031-img-3418", "duration": 1.2, "motion": "zoom-in"}]}
 ```
+
+## Exhibits
+
+A study screenshot, diagram or chart over the footage, for the rider to point at: `"exhibits": [{"image": "<file in exhibits/>", "at": 1.2, "for": 4.5, "x": 0.66, "y": 0.34, "width": 0.55}]` on a segment (or at the top level, in reel seconds). `"anchor": "hand"` places it from the pointing fingertip, `"depth": "behind"` puts the rider in front of it, `"chart": {…}` draws one from the user's numbers or Strava ride. Captions, hook and text beats move clear of it. Every field, the three placement modes and the rules for what may be shown: [exhibits.md](exhibits.md).
 
 ## Sound design
 
