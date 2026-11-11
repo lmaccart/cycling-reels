@@ -130,3 +130,22 @@
 {"at": "2026-11-09T22:42:54+00:00", "category": "production", "kind": "command-failed", "note": "selftest failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
 {"at": "2026-11-09T22:57:23+00:00", "category": "production", "kind": "command-failed", "note": "prune failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
 {"at": "2026-11-10T01:57:36+00:00", "category": "preference", "kind": "tagging", "note": "User confirmed they're the speaker of 'the gopro's on, everyone wave' (m-d38238); the other uncertain speaker tags are fine as they are.", "slug": null, "source": "user"}
+{"at": "2026-11-10T15:27:58+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:28:46+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine.json in 48.6s", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T15:29:06+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:29:54+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine.json in 48.3s", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T15:32:30+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:33:19+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine.json in 49.4s", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T15:33:19+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine-b.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:34:07+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine-b.json in 47.7s", "slug": "2026-11-10-how-is-it-in-maine-b", "source": "cli"}
+{"at": "2026-11-10T15:51:55+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:52:52+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine.json in 56.9s", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T15:52:52+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine-b.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:53:37+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine-b.json in 45.3s", "slug": "2026-11-10-how-is-it-in-maine-b", "source": "cli"}
+{"at": "2026-11-10T15:58:34+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine-c.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T15:59:21+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine-c.json in 47.1s", "slug": "2026-11-10-how-is-it-in-maine-c", "source": "cli"}
+{"at": "2026-11-10T16:01:48+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-10-how-is-it-in-maine.json", "slug": null, "source": "cli"}
+{"at": "2026-11-10T16:02:36+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-10-how-is-it-in-maine.json in 48.8s", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T16:02:47+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T16:03:20+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
+{"at": "2026-11-10T00:00:00+00:00", "category": "preference", "kind": "engagement", "note": "User rule: no first comment on posts and no reminders to reply to comments. Supersedes the 2026-11-08 first-comment request. Reels from 11-10 on have no self-comment, so commentsReach needs no subtraction for them once removed.", "slug": null, "source": "user"}

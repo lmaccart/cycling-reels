@@ -1,0 +1,86 @@
+{
+  "slug": "2026-11-10-how-is-it-in-maine",
+  "postDate": "2026-11-10",
+  "format": "overheard",
+  "spine": "story",
+  "hook": {
+    "text": "how is it in maine right now",
+    "seconds": 3.6
+  },
+  "segments": [
+    {
+      "asset": "261107-gs070116-6bc2",
+      "in": 21.85,
+      "out": 29.45,
+      "captions": "transcript",
+      "view": "behind",
+      "bleep": true,
+      "punch": {
+        "words": [
+          "Maine"
+        ]
+      },
+      "volume": 1.5,
+      "clean": true,
+      "nat": {
+        "at": 0,
+        "volume": 3,
+        "music": 0.18
+      }
+    },
+    {
+      "asset": "261107-gs070116-6bc2",
+      "in": 34.6,
+      "out": 38.3,
+      "captions": "transcript",
+      "view": "behind",
+      "volume": 1.5,
+      "clean": true,
+      "nat": {
+        "at": 0,
+        "volume": 3,
+        "music": 0.18
+      }
+    },
+    {
+      "asset": "261107-gs070116-6bc2",
+      "in": 42.55,
+      "out": 44.1,
+      "captions": "transcript",
+      "view": "behind",
+      "volume": 1.5,
+      "clean": true,
+      "nat": {
+        "at": 0,
+        "volume": 3,
+        "music": 0.18
+      }
+    },
+    {
+      "asset": "260907-img-3293-99b3",
+      "in": 5.0,
+      "out": 8.4,
+      "payoff": true,
+      "text": [
+        {
+          "text": "meanwhile, november in houston",
+          "at": 0.3,
+          "for": 2.8
+        }
+      ]
+    }
+  ],
+  "music": {
+    "track": "sunshine-instrumental"
+  },
+  "post": {
+    "caption": "saturday group ride in houston, in november, in short sleeves. maine could never. what's the coldest you'll still ride in?",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#groupride",
+      "#houstoncycling"
+    ],
+    "altText": "Riders in short sleeves roll away from a stop on a sunny road, with captions of them talking about how cold it is in Maine, then a rider chasing the group down a wide sunny boulevard under a clear blue sky."
+  }
+}
