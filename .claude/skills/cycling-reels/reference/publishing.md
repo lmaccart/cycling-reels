@@ -20,7 +20,7 @@ Metricool can't take a file from this computer directly — the video must be re
    - date/time = `scheduledFor` from post.json, timezone = `timezone` from post.json
    - provider/network `instagram`, Instagram type `REEL`, show on feed `true`
    - text = the contents of `out/<slug>/caption.txt`
-   - media = the reel's link; first comment = `firstComment` if set
+   - media = the reel's link; no first comment
    - **cover** = the frame in `cover.jpg`: `videoCoverMilliseconds` = post.json `coverMs` (or `videoThumbnailUrl` = `coverUrl` when `./reels upload` set one). Otherwise Instagram picks a frame for the grid itself.
    - **collaborators** (post.json `collaborators`) → `instagramData.collaborators: [{"username": "<handle>", "deleted": false}]`; **people tags** (`peopleTags`) → `instagramData.carouselTags: {"0": [{"username": "<handle>"}]}`. Tell the user each collaborator gets an invite to accept in the Instagram app (private accounts can't be collaborators).
    - `isAiGenerated: false` — every frame is the user's own footage.

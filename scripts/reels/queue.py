@@ -126,9 +126,6 @@ def write_queue_md(project: Project) -> Path:
         f"_Updated {now:%a %b} {now.day}, {now:%I:%M %p} ({tz.key}). "
         "queued = ready to schedule · scheduled = waiting in Metricool/Instagram · posted = live._",
         "",
-        "_When one goes live: answer the first comments within the hour and pin a good one — replies count as "
-        "comments too, and a thread that answers back gets more of them._",
-        "",
     ]
     if not items:
         lines.append("Nothing queued yet.")
@@ -154,8 +151,6 @@ def write_queue_md(project: Project) -> Path:
         lines += ["", "```", caption_block(p), "```", ""]
         if p.get("altText"):
             lines += [f"Alt text: {p['altText']}", ""]
-        if p.get("firstComment"):
-            lines += [f"First comment: {p['firstComment']}", ""]
     path = project.out_dir / "QUEUE.md"
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path

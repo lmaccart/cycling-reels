@@ -1639,7 +1639,6 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
         "caption": str(p.get("caption", "")).strip(),
         "hashtags": hashtags,
         "altText": str(p.get("altText", "")).strip(),
-        "firstComment": str(p.get("firstComment", "")).strip(),
         **{k: v for k, v in (built.get("post") or {}).items() if v},  # collaborators, peopleTags
         "postDate": plan.get("postDate"),
         "scheduledFor": prev.get("scheduledFor"),
