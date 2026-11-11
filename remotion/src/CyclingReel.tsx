@@ -5,6 +5,7 @@ import { fade } from '@remotion/transitions/fade';
 import './fonts';
 import { Captions } from './components/Captions';
 import { EndCardView } from './components/EndCard';
+import { ExhibitView, ForegroundView } from './components/Exhibit';
 import { HookTitle } from './components/HookTitle';
 import { MusicTrack } from './components/MusicTrack';
 import { ProgressBarView } from './components/ProgressBar';
@@ -17,6 +18,14 @@ import { TextBeatView } from './components/TextBeat';
 import type { ReelProps } from './types';
 
 export const CyclingReel: React.FC<ReelProps> = (p) => {
+  const exhibits = (depth: 'front' | 'behind') =>
+    (p.exhibits ?? [])
+      .filter((e) => e.depth === depth)
+      .map((e, i) => (
+        <Sequence key={`exhibit-${depth}-${i}`} from={e.startFrame} durationInFrames={e.endFrame - e.startFrame}>
+          <ExhibitView exhibit={e} accent={p.brand.accent} />
+        </Sequence>
+      ));
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       <TransitionSeries>
@@ -35,7 +44,15 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
         ))}
       </TransitionSeries>
 
+      {/* Exhibits: 'behind' ones sit under the rider's cut-out; all of them under the text. */}
+      {exhibits('behind')}
+      {(p.foregrounds ?? []).map((fg, i) => (
+        <Sequence key={`fg-${i}`} from={fg.startFrame} durationInFrames={fg.durationInFrames}>
+          <ForegroundView fg={fg} />
+        </Sequence>
+      ))}
       <Vignette />
+      {exhibits('front')}
       <StatChips stats={p.stats} />
       {(p.routes ?? []).map((r, i) => (
         <Sequence key={`route-${i}`} from={r.startFrame} durationInFrames={r.endFrame - r.startFrame}>

@@ -9,6 +9,8 @@ inbox/  ──ingest──▶  library/  ──Claude tags moments──▶  pla
 ```
 
 - **Only your footage.** Every clip and photo in a reel comes from what you recorded and dropped in `inbox/`. Nothing is generated, and no stock or downloaded visuals are used: the renderer checks each file against the original it ingested and refuses anything else.
+- **Exhibits:** drop a study screenshot or diagram into `exhibits/` and it can go up on screen while you talk and point at it — placed by hand, snapped to your fingertip, or behind you so your hand passes in front. Charts can be drawn from your own numbers or Strava.
+- **Self-review:** after rendering, `./reels look <slug>` gives Claude a frame every half second (plus every cut and text change) and a sound report — the voice against the music under it, quiet holes, clipping — so problems are caught before you watch.
 - **Classify:** Claude looks at a contact sheet of each clip and tags it (climb, descent, race, scenery…), scores it, and marks the best moments and where the rider is in frame.
 - **360 video:** GoPro MAX / MAX 2 `.360` files go straight in. Claude picks the angles (road ahead, you, the group) and each reel shot is a reframed 9:16 view, a camera move or a tiny planet.
 - **Subtitles:** clips where you talk get word-level transcripts (Whisper, on your Mac, free) shown as TikTok-style captions, and talking reels can cut away to the ride while your voice keeps going (`cutaways`). Wordless ride footage gets a hook and short on-screen lines instead.

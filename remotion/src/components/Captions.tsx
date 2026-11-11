@@ -19,7 +19,7 @@ export const Captions: React.FC<{ pages: CaptionPage[]; brand: Brand }> = ({ pag
   const fontSize = 58;
 
   return (
-    <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 560 }}>
+    <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: page.offsetBottom ?? 560 }}>
       <div style={{ opacity }}>
         {brand.captionStyle === 'highlight' ? (
           <div
