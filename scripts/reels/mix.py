@@ -102,7 +102,7 @@ def quiet_nat(project: Project, segs: list, nat: list[dict], fps: int, warnings:
         a = sg.spec["in"] + (w["startFrame"] - sg.start) / fps * sg.spec["speed"]
         t = (w["endFrame"] - w["startFrame"]) / fps * sg.spec["speed"]
         proc = run(["ffmpeg", "-nostdin", "-hide_banner", "-ss", f"{a:.3f}", "-t", f"{t:.3f}", "-i", project.abs(sg.asset["media"]),
-                    "-vn", "-af", f"{CLEAN_AF},volumedetect", "-f", "null", "-"], check=False)  # fmt: skip
+                    "-map", "0:a:0", "-vn", "-sn", "-dn", "-af", f"{CLEAN_AF},volumedetect", "-f", "null", "-"], check=False)  # fmt: skip  (the stream the reel uses)
         m = re.search(r"mean_volume:\s*(-?[0-9.]+) dB", proc.stderr or "")
         if not m or w["volume"] <= 0:
             continue
