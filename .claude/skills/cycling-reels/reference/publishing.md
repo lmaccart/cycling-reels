@@ -19,6 +19,7 @@ Metricool can't take a file from this computer directly — the video must be re
 3. For each queued reel, call the connector's schedule-post tool with:
    - date/time = `scheduledFor` from post.json, timezone = `timezone` from post.json
    - provider/network `instagram`, Instagram type `REEL`, show on feed `true`
+   - **and `tiktok` on the same post** (since 2026-11-11, see "TikTok" below): providers `[{"network":"instagram"},{"network":"tiktok"}]` plus `tiktokData`
    - text = the contents of `out/<slug>/caption.txt`
    - media = the reel's link; no first comment
    - **cover** = the frame in `cover.jpg`: `videoCoverMilliseconds` = post.json `coverMs` (or `videoThumbnailUrl` = `coverUrl` when `./reels upload` set one). Otherwise Instagram picks a frame for the grid itself.
@@ -47,6 +48,17 @@ Notes:
 - Mixed-in music goes out inside the video: trending songs are usually recognized and credited by Instagram, though a reel with a major-label song is occasionally muted; no-copyright tracks carry their credit line in the caption.
 - Audio must be AAC ≤128 kbps and video ≤25 Mbps — the renderer already outputs that.
 - Changing a reel after it's scheduled: re-render, re-upload, then update the scheduled post (or delete and recreate it) with the connector, and confirm with the user.
+
+### TikTok
+
+Every reel also goes to TikTok (Metricool account `leif`, connected 2026-11-11, user's call). It rides on the same Metricool post as the Instagram reel, so one post covers both networks, the approval is the same one, and it doesn't use a second slot of the plan's post limit.
+
+- `tiktokData`: `{"title": "<first line of the caption, no hashtags>", "privacyOption": "PUBLIC_TO_EVERYONE", "disableComment": false, "disableDuet": false, "disableStitch": false, "commercialContentThirdParty": false, "commercialContentOwnBrand": false, "autoAddMusic": false, "isAigc": false}`. `title` is required: Metricool rejects the post without it ("TikTok title is required"). Use words from the approved caption, nothing new.
+- Same caption text, same video file. `autoAddMusic` stays off: the song is already in the file, and TikTok picking one would be music nobody chose.
+- Not carried over: the custom cover (ignored on personal TikTok accounts, TikTok picks a frame), alt text, collaborators and people tags (Instagram only).
+- Mixed-in trending songs are the open risk: TikTok checks uploaded audio and can mute a video or limit its reach, and the song lists are Instagram's. Check the first music reels after they post.
+- Adding TikTok to an already scheduled post is an update: the id changes, so re-record it with `./reels mark <slug> scheduled --metricool-id <new id>`.
+- Analytics: network `tiktok`, connector `posts` (`TKPO…`) and `evolution` (`TKEV…`). `./reels stats import` doesn't read these yet.
 
 ### Trial reels
 

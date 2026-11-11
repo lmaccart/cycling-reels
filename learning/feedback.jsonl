@@ -149,3 +149,9 @@
 {"at": "2026-11-10T16:02:47+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
 {"at": "2026-11-10T16:03:20+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-10-how-is-it-in-maine", "source": "cli"}
 {"at": "2026-11-10T00:00:00+00:00", "category": "preference", "kind": "engagement", "note": "User rule: no first comment on posts and no reminders to reply to comments. Supersedes the 2026-11-08 first-comment request. Reels from 11-10 on have no self-comment, so commentsReach needs no subtraction for them once removed.", "slug": null, "source": "user"}
+{"at": "2026-11-11T21:07:01+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-11-easy-day-laundry", "source": "cli"}
+{"at": "2026-11-11T21:07:01+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-12-overheard-group-ride", "source": "cli"}
+{"at": "2026-11-11T21:07:01+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-13-road-to-5-ep1", "source": "cli"}
+{"at": "2026-11-11T21:07:01+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-13-not-every-angel", "source": "cli"}
+{"at": "2026-11-11T21:07:01+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-14-every-bridge-sprint-zone", "source": "cli"}
+{"at": "2026-11-11T21:07:01+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-15-little-gray", "source": "cli"}
