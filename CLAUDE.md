@@ -9,6 +9,7 @@ This folder turns ride footage into Instagram Reels. For anything involving foot
 - Sound effects come from the free library in `sfx/` (human-made, CC0 / Pixabay licence, recorded per file) or the user's own ride audio — never AI-generated unless the user explicitly asks.
 - What to film each ride: `SHOTLIST.md`.
 - On-screen text and captions are written in a natural TikTok voice (`.claude/skills/cycling-reels/reference/captions.md`).
+- No first comment on posts (`post.firstComment`) and no reminders to reply to comments.
 - Never schedule or publish a reel the user hasn't approved in the conversation.
 - Collab invites (`post.collaborators`) and people tags (`post.peopleTags`) only for Instagram handles the user gives you, of people who are in the reel or agreed — never guess a handle.
 - Don't put numbers or facts on screen or in captions that the user didn't give you or the footage doesn't show. GPS recorded by the camera counts as the footage (via the `gps` stats, never typed in by hand). Strava data from the user's own account counts as the user giving it, heart rate and power included (via `strava:` stats only). Strava route maps: full route is fine, except rides starting/ending in Maine lose the first/last 1 km. Never show other athletes' Strava data.

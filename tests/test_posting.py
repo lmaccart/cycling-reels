@@ -115,7 +115,7 @@ class QueueSlotTests(unittest.TestCase):
         self.assertIn("- Collab with: @club (each accepts the invite in the Instagram app)", md)
         self.assertIn("- Tag: @friend", md)
         self.assertIn("(frame at 2.5 s)", md)
-        self.assertIn("answer the first comments within the hour", md)  # the reminder
+        self.assertNotIn("first comment", md.lower())
         self.assertEqual(read_json(self.t.project.out_dir / "collab/post.json")["status"], "queued")
 
 

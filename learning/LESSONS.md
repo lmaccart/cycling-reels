@@ -17,7 +17,7 @@ reels of about 7-12 s with a person and a visible payoff outperform 15-16 s mont
 reels are watched but not answered: 0 comments on all 12 measured reels
 
 - Evidence: analytics/2026-11-08T210702.json: comments 0 on all 12 rows, likes 0-3, reach 116-513
-- Next action: test an on-screen question vs caption-only (2026-w46-onscreen-question); user replies to first comments
+- Next action: test an on-screen question vs caption-only (2026-w46-onscreen-question)
 - Review by: 2026-11-15
 
 ## prod-captions-01 (production, active, medium confidence)

@@ -78,9 +78,8 @@ All six reels measured so far (posted Oct 26–31, last pull Nov 3) got 0 commen
 | A pick | caption | "left loop or right loop?" | "like for left, comment for right" |
 
 - Meta demotes engagement bait ("comment YES", "like if…", "tag 3 friends"). Ask something a person would genuinely answer.
-- `post.firstComment` can start the thread with a follow-up question or a detail ("the coffee was $7, for the record") — not a repeat of the caption.
+- No first comment: never set `post.firstComment` (user rule, 2026-11-10).
 - When someone besides the rider is in it and the user OKs it: `post.peopleTags` notifies them, and a Collab (`post.collaborators`, e.g. the club's account) puts the reel in front of their followers too. Only handles the user gives you.
-- The other half is the user answering the first comments within the hour (QUEUE.md reminds them): replies count as comments too, and people keep talking under a reel that answers back.
 
 ## Hashtags (`post.hashtags`)
 
