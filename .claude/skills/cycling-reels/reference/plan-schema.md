@@ -77,6 +77,7 @@ A track added with `--instagram` (a trending song, see [music.md](music.md)) is 
 | `captions` | `none` | `transcript` = speech captions from the clip's transcript (and clip audio at full volume) |
 | `volume` | auto | 0–1.5 clip audio. Auto: 1.0 when captioned, 0.15 under music, 0.8 with no music |
 | `nat` | – | Ride-sound moment: `true` (whole segment) or `{"at": 1.2, "for": 1.5, "volume": 2, "music": 0.15}` (or a list of them). See **Sound design** |
+| `blur` | – | Blur patches over the footage: hide an object until its reveal — see **Blur patches** |
 | `bleep` | – | Censor swearing in the clip's own audio: `true` (every swear word in the transcript), `{"words": ["fucking"]}`, or `[{"at": 1.4, "for": 0.5}]` (seconds from the segment start). Optional `"sound": "mute"` instead of the default 1 kHz tone, `"pad"` seconds. Bleeped words show masked in captions (`f******`) — see **Bleeps** |
 | `clean` | `false` | `true` = gentle highpass (~90 Hz) + light denoise on the clip's audio (wind, rumble). Segments with a `nat` window get it automatically (config `audio.cleanNat`) |
 | `payoff` | `false` | `true` marks the payoff shot: the automatic sound effects put a hit at its start (and a riser into it) |
@@ -162,6 +163,24 @@ Config (`config.json`): `audio.natVolume` 1.0, `audio.natMusicVolume` 0.2, `audi
 The user is fine with swearing being **bleeped** (2026-11-04) rather than cut. On a talking/selfie segment with `captions: "transcript"`, add `"bleep": true`: every swear word in the transcript inside the segment's in/out is silenced (40 ms padding each side) and covered by a 1 kHz censor tone at about speech level, and the caption shows it masked (`f******`). Use `{"words": [...]}` for a specific word, or `[{"at": s, "for": s}]` when the transcript missed it (check the word timings first). `"sound": "mute"` drops the audio without a tone.
 
 `./reels check` lists each segment's bleep windows in the timeline (`bleep(tone): 13.78-14.44s`, source seconds) and warns `swearing not bleeped` for any swear word left audible. Fix the transcript word timings first if a bleep lands late or early.
+
+## Blur patches
+
+Hide one thing in a talking clip until its reveal (the tub before "it's called creatine"). On a video segment:
+
+```json
+"blur": [{"keys": [{"at": 0.0, "x": 0.26, "y": 0.52, "w": 0.25, "h": 0.17}, {"at": 0.4, "x": 0.3, "y": 0.6, "w": 0.34, "h": 0.2}], "strength": 28}]
+```
+
+| Field | Default | Notes |
+| --- | --- | --- |
+| `keys` | – | `at` = seconds from the segment start; `x`, `y` = centre and `w`, `h` = size of a soft-edged ellipse, as fractions of the segment's framed 9:16 picture (after `zoom`/`focusX`/`focusY`, before punch-ins). Straight-line moves between keys; shown from the first key to the last. A single key holds to the end of the segment |
+| `strength` | 28 | Blur radius in px (4–80) |
+
+- It blurs only the segment's own footage: cutaways, exhibits, captions and text sit on top, and it follows punch-ins. Not allowed on a cutaway.
+- End it by ending the keys: for a reveal, put the last key just before the word (`./reels show <id>` for word times).
+- A moving object needs a key about every 0.1 s while it moves, and a patch about 1.5× the object, since the soft edge eats the outer fifth. Keep it off the rider's face when the object is held beside it.
+- Find the positions from frames (`./reels frames <id> --at …`), then check `./reels look` strips and a few exact frames of the render: the strips can sit a frame or two off during fast moves.
 
 ## Punch-ins
 

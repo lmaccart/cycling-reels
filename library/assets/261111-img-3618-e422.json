@@ -1,0 +1,121 @@
+{
+  "id": "261111-img-3618-e422",
+  "kind": "video",
+  "media": "library/media/261111-img-3618-e422.mov",
+  "originalName": "IMG_3618.mov",
+  "hash": "e42200ee47428ecb23ddea168ab36413f62cc51e",
+  "created": "2026-11-11T19:10:00",
+  "ingestedAt": "2026-11-12T04:15:46+00:00",
+  "probe": {
+    "duration": 36.25,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.972,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-11T19:10:00-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "other",
+    "shot": "static",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Leif standing by the teal bike in his room throwing the white creatine tub lid frisbee-style at the phone; second throw hits it and knocks the camera over",
+    "hooks": [
+      "i threw the lid at my phone for this"
+    ],
+    "notes": "Two throws: 0:24 (underhand, laughs after) and 0:30.5 (hits the phone, camera falls onto the desk). Another person talks off camera, and there is swearing at 0:09 and 0:26.",
+    "moments": [
+      {
+        "id": "m-825d4d",
+        "in": 23.6,
+        "out": 25.9,
+        "label": "first lid throw, underhand toward the camera, then walks at the lens laughing",
+        "score": 3,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-a838a3",
+        "in": 30.3,
+        "out": 31.22,
+        "label": "second lid throw: white lid flies straight at the lens, hits the phone and the camera falls to the desk",
+        "score": 5,
+        "focusX": 0.4,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261111-img-3618-e422.json",
+  "used": [
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 30.8,
+      "out": 31.22
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 31.22,
+      "out": 31.95
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -28.5,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 25.93,
+    "speechRanges": [
+      [
+        1.18,
+        3.94
+      ],
+      [
+        5.11,
+        6.28
+      ],
+      [
+        8.02,
+        22.09
+      ],
+      [
+        25.88,
+        31.4
+      ],
+      [
+        33.37,
+        34.5
+      ],
+      [
+        34.97,
+        36.25
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261111-img-3618-e422.jpg"
+  ],
+  "taggedAt": "2026-11-12T04:16:39+00:00"
+}

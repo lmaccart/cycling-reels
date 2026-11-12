@@ -57,6 +57,9 @@ export type Segment = {
   punch?: [number, number, number, number][];
   /** Optional B-roll over this segment (video segments only); its audio keeps playing. */
   cutaways?: Cutaway[];
+  /** Optional blur patches over the footage (video only): keys are [frame from the segment start, centreX, centreY,
+   * width, height] as fractions of the picture, linear between; shown from the first key to the last. */
+  blur?: { strength: number; keys: [number, number, number, number, number][] }[];
   /** Photo only: slow move and framing. */
   motion?: Motion;
   fit?: 'cover' | 'blurfill';
