@@ -75,7 +75,34 @@ const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
       style.transformOrigin = `${x * 100}% ${y * 100}%`;
     }
   }
-  return <OffthreadVideo src={staticFile(seg.src)} volume={volume} muted={!audible} style={style} />;
+  const main = <OffthreadVideo src={staticFile(seg.src)} volume={volume} muted={!audible} style={style} />;
+  const patches = (seg.blur ?? []).filter((b) => frame >= b.keys[0][0] && frame <= b.keys[b.keys.length - 1][0]);
+  if (!patches.length) {
+    return main;
+  }
+  // Blur patches: a blurred copy of the same clip, clipped to a soft-edged ellipse that moves along the keys.
+  // It gets the same transform as the footage, so it follows punch-ins.
+  return (
+    <AbsoluteFill>
+      {main}
+      {patches.map((b, i) => {
+        const at = (n: number) => interpolate(frame, b.keys.map((k) => k[0]), b.keys.map((k) => k[n]), clamp);
+        const [x, y, w, h] = [at(1), at(2), at(3), at(4)];
+        const mask = `radial-gradient(ellipse ${w * 50}% ${h * 50}% at ${x * 100}% ${y * 100}%, #000 78%, transparent 100%)`;
+        return (
+          <AbsoluteFill key={`blur-${i}`} style={{ transform: style.transform, transformOrigin: style.transformOrigin }}>
+            <AbsoluteFill style={{ maskImage: mask, WebkitMaskImage: mask }}>
+              <OffthreadVideo
+                src={staticFile(seg.src)}
+                muted
+                style={{ width: '100%', height: '100%', objectFit: 'cover', filter: `blur(${b.strength}px)` }}
+              />
+            </AbsoluteFill>
+          </AbsoluteFill>
+        );
+      })}
+    </AbsoluteFill>
+  );
 };
 
 const PhotoView: React.FC<{ seg: Still }> = ({ seg }) => {

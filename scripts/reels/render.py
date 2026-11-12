@@ -23,6 +23,7 @@ from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
 from .mix import music_drops, music_levels, nat_windows, quiet_nat, volume_keys
 from .music import ensure_beats, parse_time, record_usage, release_usage, resolve_track
+from .blur import blur_props
 from .punch import check_beats_punch, check_punch, ends_zoomed, punch_keys, resolve_punches, stage_scale
 from .queue import caption_block, carry_over, post_extras
 from .retention import caption_cuts, check_spine, opener_warnings, retention_warnings, spine_warnings
@@ -204,7 +205,7 @@ def _visual(
 # voice), captions and text carry on. The segment owns everything but the picture, so these
 # fields belong on it, not on a cutaway.
 CUTAWAY_SEGMENT_ONLY = ("captions", "text", "stats", "route", "nat", "bleep", "punch", "sfx", "transition", "payoff",
-                        "cutaways", "volume", "clean", "progress")  # fmt: skip
+                        "cutaways", "volume", "clean", "progress", "blur")  # fmt: skip
 MIN_EXHIBIT_FRAMES = 15
 CUTAWAY_MIN_FRAMES = 12  # 0.4 s at 30 fps: anything shorter reads as a glitch
 
@@ -1123,6 +1124,9 @@ def build(project: Project, plan: dict) -> dict:
             cuts = cutaway_props(sg)
             if cuts:
                 seg_props[-1]["cutaways"] = cuts
+            patches = blur_props(sg.spec.get("blur"), sg.frames, fps, f"segment {sg.index + 1}")
+            if patches:
+                seg_props[-1]["blur"] = patches
         elif (sg.spec.get("sphere") or {}).get("path"):
             # 360 photo with a camera move: staged as a short silent clip
             seg_props.append({"kind": "video", "src": f"seg{sg.index}.mp4", "durationInFrames": sg.frames, "transitionInFrames": sg.trans, "volume": 0})
