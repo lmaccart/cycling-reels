@@ -1,0 +1,346 @@
+{
+  "id": "261111-img-3621-9307",
+  "kind": "video",
+  "media": "library/media/261111-img-3621-9307.mov",
+  "originalName": "IMG_3621.mov",
+  "hash": "9307b3481a091e1d03987dcdb5141d6c1d0e239a",
+  "created": "2026-11-11T21:48:03",
+  "ingestedAt": "2026-11-12T04:04:35+00:00",
+  "probe": {
+    "duration": 268.973,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.972,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-11T21:48:03-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "static",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Leif at his dorm desk in a cap doing repeated takes of a creatine script to camera, holding up a white creatine tub and pointing at empty wall for overlays",
+    "hooks": [
+      "you will die stupid and slow if you dont take this",
+      "five pounds of water weight and id do it again"
+    ],
+    "notes": "Many retakes per line; later takes are usually the keepers. Hook takes at 0:35, 0:40, 0:46, 0:52. Whisper small.en missed the first 75 s; transcript redone with large-v3-turbo.",
+    "moments": [
+      {
+        "id": "m-f7f4bf",
+        "in": 52.55,
+        "out": 57.15,
+        "label": "hook, last take: you will die stupid and slow if you dont take this every day, raises the white tub beside his head",
+        "score": 5,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "joke",
+        "face": true,
+        "opener": true
+      },
+      {
+        "id": "m-538ea0",
+        "in": 70.95,
+        "out": 78.65,
+        "label": "taking this daily did this to my 5 second, 15 and 30 second power, points up left three times, thumbs down on F tier pro",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "result",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-1845e0",
+        "in": 119.6,
+        "out": 125.6,
+        "label": "acts as energy for the brain, improves focus, improves performance when sleep deprived, tub in right hand",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "tip",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-067fbd",
+        "in": 154.0,
+        "out": 161.85,
+        "label": "most famous neuroscientist says take it too and double the dose, points up left at this study this study and this study",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "tip",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-ef2e78",
+        "in": 219.85,
+        "out": 223.1,
+        "label": "reveal: magical substance no one is talking about is called creatine, pushes the tub label at the camera",
+        "score": 5,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "result",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-db25ea",
+        "in": 231.0,
+        "out": 237.88,
+        "label": "put on five pounds of water weight but the mental and performance benefits are unmatched, and this is why",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "confession",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-d61a58",
+        "in": 257.9,
+        "out": 261.5,
+        "label": "closing take: and that is why you will die stupid and slow if you dont take this every day",
+        "score": 4,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "joke",
+        "face": true,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261111-img-3621-9307.json",
+  "used": [
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 53.34,
+      "out": 57.15
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 71.28,
+      "out": 75.58
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 75.58,
+      "out": 78.65
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 154.2,
+      "out": 160.26
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 160.26,
+      "out": 162.15
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 119.6,
+      "out": 125.5
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 219.85,
+      "out": 223.04
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 231.0,
+      "out": 232.71
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 233.19,
+      "out": 235.73
+    },
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 236.93,
+      "out": 237.93
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -35.8,
+      "peakDb": -3.1
+    },
+    "speechSeconds": 124.83,
+    "speechRanges": [
+      [
+        16.54,
+        18.38
+      ],
+      [
+        23.9,
+        27.08
+      ],
+      [
+        35.45,
+        38.7
+      ],
+      [
+        40.54,
+        44.33
+      ],
+      [
+        46.81,
+        50.15
+      ],
+      [
+        53.27,
+        57.32
+      ],
+      [
+        59.99,
+        67.02
+      ],
+      [
+        71.22,
+        78.98
+      ],
+      [
+        86.68,
+        89.61
+      ],
+      [
+        96.63,
+        101.77
+      ],
+      [
+        103.9,
+        108.9
+      ],
+      [
+        109.62,
+        110.66
+      ],
+      [
+        114.04,
+        116.04
+      ],
+      [
+        119.48,
+        125.96
+      ],
+      [
+        154.1,
+        161.99
+      ],
+      [
+        162.62,
+        168.42
+      ],
+      [
+        173.34,
+        179.14
+      ],
+      [
+        180.28,
+        180.74
+      ],
+      [
+        184.82,
+        191.53
+      ],
+      [
+        193.72,
+        199.08
+      ],
+      [
+        202.81,
+        206.02
+      ],
+      [
+        208.38,
+        214.34
+      ],
+      [
+        214.78,
+        216.39
+      ],
+      [
+        220.18,
+        223.14
+      ],
+      [
+        223.45,
+        227.62
+      ],
+      [
+        230.87,
+        238.22
+      ],
+      [
+        242.3,
+        248.55
+      ],
+      [
+        257.82,
+        261.7
+      ],
+      [
+        266.46,
+        267.05
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261111-img-3621-9307-1.jpg",
+    "library/sheets/261111-img-3621-9307-2.jpg",
+    "library/sheets/261111-img-3621-9307-3.jpg"
+  ],
+  "taggedAt": "2026-11-12T04:09:28+00:00"
+}

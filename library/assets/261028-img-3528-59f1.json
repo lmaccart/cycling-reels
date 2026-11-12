@@ -70,7 +70,14 @@
     "sounds": []
   },
   "transcript": null,
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-16-creatine",
+      "at": "2026-11-12T16:34:38+00:00",
+      "in": 0.0,
+      "out": 1.2
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -37.4,
