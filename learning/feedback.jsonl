@@ -205,3 +205,14 @@
 {"at": "2026-11-13T05:01:03+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 23 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
 {"at": "2026-11-13T05:01:05+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 23 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
 {"at": "2026-11-13T05:01:11+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-13T21:16:46+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering zz-titlecard-test.json", "slug": null, "source": "cli"}
+{"at": "2026-11-13T21:17:06+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-titlecard-test.json in 20.0s", "slug": "zz-titlecard-test", "source": "cli"}
+{"at": "2026-11-13T21:17:34+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering zz-titlecard-test.json", "slug": null, "source": "cli"}
+{"at": "2026-11-13T21:17:52+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-titlecard-test.json in 17.9s", "slug": "zz-titlecard-test", "source": "cli"}
+{"at": "2026-11-13T21:19:00+00:00", "category": "preference", "kind": "generated-visual", "note": "2026-11-13: user OK'd a generated wooden title board (nail flies in, board swings) for The Down Week series, reusable for other series only with a fresh yes per series. Board over the first shot with no dimming/blur, fades after a few seconds; theme sting for the first 2-3 s plus a nail-hit sound.", "slug": null, "source": "user"}
+{"at": "2026-11-13T21:23:19+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering zz-board-slide-down.json", "slug": null, "source": "cli"}
+{"at": "2026-11-13T21:23:36+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-board-slide-down.json in 17.2s", "slug": "zz-board-slide-down", "source": "cli"}
+{"at": "2026-11-13T21:23:37+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering zz-board-showdown.json", "slug": null, "source": "cli"}
+{"at": "2026-11-13T21:23:54+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-board-showdown.json in 17.0s", "slug": "zz-board-showdown", "source": "cli"}
+{"at": "2026-11-13T21:25:46+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering zz-board-final.json", "slug": null, "source": "cli"}
+{"at": "2026-11-13T21:26:05+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-board-final.json in 18.4s", "slug": "zz-board-final", "source": "cli"}

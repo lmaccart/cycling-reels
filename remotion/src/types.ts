@@ -234,6 +234,21 @@ export type SfxCue = {
   trimBefore?: number;
 };
 
+/** Series title board (generated; only for series the user OK'd), hung over the first shot. */
+export type TitleCard = {
+  title: string;
+  /** "Ep 1." or "" */
+  episode: string;
+  subtitle: string;
+  startFrame: number;
+  endFrame: number;
+  /** Frame the nail leaves, hits the board, and the board starts swinging (relative to startFrame). */
+  nailFrame: number;
+  hitFrame: number;
+  swingFrame: number;
+  fadeFrames: number;
+};
+
 export type ReelProps = {
   width: number;
   height: number;
@@ -249,6 +264,8 @@ export type ReelProps = {
   routes?: RouteMap[];
   /** Optional; absent in reels without a progress bar. */
   progress?: ProgressBar[];
+  /** Optional; absent in reels without a series title board. */
+  titleCard?: TitleCard;
   /** Optional; absent in reels without exhibits. */
   exhibits?: Exhibit[];
   /** Optional; the rider in front of 'behind' exhibits. */

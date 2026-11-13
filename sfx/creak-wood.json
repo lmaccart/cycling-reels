@@ -1,0 +1,20 @@
+{
+  "slug": "creak-wood",
+  "name": "creak-wood",
+  "category": "other",
+  "file": "sfx/creak-wood.wav",
+  "duration": 0.831,
+  "channels": 2,
+  "loudness": -20.0,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/506665/",
+  "author": "Rudmer_Rotteveel",
+  "license": "CC0-1.0",
+  "addedAt": "2026-11-13T21:13:57+00:00",
+  "tags": [
+    "creak",
+    "wood",
+    "swing"
+  ]
+}

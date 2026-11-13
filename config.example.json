@@ -64,6 +64,10 @@
       "punchIn": "swish-whip"
     }
   },
+  "titleCards": {
+    "_note": "Generated wooden-board series title cards. List only series titles the user has said yes to.",
+    "allowed": []
+  },
   "captions": {
     "maxWordsPerPage": 6,
     "maxCharsPerPage": 32
