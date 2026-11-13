@@ -57,6 +57,12 @@
         "pitch": 0.0,
         "fov": 95.0,
         "roll": -90.0
+      },
+      "meetup-arch": {
+        "yaw": 180.0,
+        "pitch": 25.0,
+        "fov": 100.0,
+        "roll": 90.0
       }
     },
     "moments": [
@@ -169,6 +175,22 @@
         "role": "crew",
         "speaker": "teammate",
         "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-425dde",
+        "in": 342.0,
+        "out": 347.0,
+        "label": "meetup at the brick arch: rider in green and yellow on an orange bike facing the camera, group lined up behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "meetup-arch",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
         "face": false,
         "opener": false
       }

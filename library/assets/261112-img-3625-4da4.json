@@ -1,0 +1,118 @@
+{
+  "id": "261112-img-3625-4da4",
+  "kind": "video",
+  "media": "library/media/261112-img-3625-4da4.mov",
+  "originalName": "IMG_3625.mov",
+  "hash": "4da4bca0bf6b36dadabd5f7e66c341664513a928",
+  "created": "2026-11-12T08:37:26",
+  "ingestedAt": "2026-11-13T01:23:45+00:00",
+  "probe": {
+    "duration": 15.705,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.854,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-12T08:37:26-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "chase",
+    "quality": 4,
+    "issues": [
+      "overexposed"
+    ],
+    "people": "others",
+    "summary": "Filmed from the bike alongside a teammate in a teal-sleeved team jersey on a black bike, riding past a big grey dome in low morning sun; he is told to accelerate and rides away up the lot toward the skyline",
+    "hooks": [
+      "look at him go",
+      "the 6x6 that was supposed to be tempo"
+    ],
+    "location": "Houston, Texas",
+    "notes": "User, 11-12: use in next week's Road to 5 W/kg episode when talking about the 6x6 tempo session. Filmed on the 2026-11-12 ride (Strava 20960764650), 95 min in. The rider is a teammate (black bike; the user rides the teal one) - no name give",
+    "moments": [
+      {
+        "id": "m-3be441",
+        "in": 0.3,
+        "out": 5.6,
+        "label": "teammate in teal-sleeved team jersey on a black bike rides alongside past the grey dome, low sun flaring, long bike shad",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "effort"
+      },
+      {
+        "id": "m-266ced",
+        "in": 5.8,
+        "out": 14.9,
+        "label": "\"do you want to accelerate\" - teammate on the black bike stands on it and rides away across the lot toward the skyline, ",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "crew",
+        "speaker": "me",
+        "mood": "fast",
+        "face": false,
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "effort"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261112-img-3625-4da4.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -22.4,
+      "peakDb": -0.7
+    },
+    "speechSeconds": 6.12,
+    "speechRanges": [
+      [
+        6.07,
+        7.37
+      ],
+      [
+        7.93,
+        9.83
+      ],
+      [
+        11.22,
+        12.49
+      ],
+      [
+        12.89,
+        14.12
+      ],
+      [
+        15.29,
+        15.71
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261112-img-3625-4da4.jpg"
+  ],
+  "strava": {
+    "activity": "20960764650",
+    "offset": 5701.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-13T01:24:57+00:00"
+}

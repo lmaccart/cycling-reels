@@ -152,6 +152,38 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-60d5ee",
+        "in": 14.0,
+        "out": 22.0,
+        "label": "rider in blue with a green helmet overtakes close behind the camera, then rides straight at the lens",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-ee832b",
+        "in": 133.0,
+        "out": 141.0,
+        "label": "smiling riders in blue right behind the camera, the whole group strung out down the road, a hand reaches into frame",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [

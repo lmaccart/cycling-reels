@@ -125,6 +125,38 @@
         "face": false,
         "mood": "fast",
         "opener": false
+      },
+      {
+        "id": "m-964063",
+        "in": 184.0,
+        "out": 194.0,
+        "label": "rider in black with a teal helmet crosses the intersection side-on, close to the camera",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-d8c3eb",
+        "in": 364.0,
+        "out": 371.0,
+        "label": "rider in a blue Rice kit passes close side-on at an intersection",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [

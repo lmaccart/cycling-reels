@@ -68,6 +68,12 @@
         "pitch": 10.0,
         "fov": 110.0,
         "roll": 0.0
+      },
+      "chase-wide": {
+        "yaw": 100.0,
+        "pitch": 62.0,
+        "fov": 105.0,
+        "roll": 0.0
       }
     },
     "moments": [
@@ -112,11 +118,43 @@
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": "behind",
+        "view": "chase-wide",
         "role": "crew",
         "speaker": "teammate",
         "face": false,
         "mood": "funny",
+        "opener": false
+      },
+      {
+        "id": "m-ba5448",
+        "in": 87.0,
+        "out": 93.0,
+        "label": "rider in yellow and navy and a rider in pink side by side right behind, faces to the camera",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-f421a4",
+        "in": 147.0,
+        "out": 154.0,
+        "label": "rider in pink close on the right, rider in yellow and navy behind, oak-lined street",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
         "opener": false
       }
     ],
