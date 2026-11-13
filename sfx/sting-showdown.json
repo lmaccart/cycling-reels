@@ -1,0 +1,20 @@
+{
+  "slug": "sting-showdown",
+  "name": "sting-showdown",
+  "category": "other",
+  "file": "sfx/sting-showdown.wav",
+  "duration": 2.892,
+  "channels": 1,
+  "loudness": -20.0,
+  "peak": -3.2,
+  "normalized": "-20 LUFS / -1.5 dBTP ceiling",
+  "source": "https://freesound.org/s/447580/",
+  "author": "Banzai_Bonsai",
+  "license": "CC0-1.0",
+  "addedAt": "2026-11-13T21:13:57+00:00",
+  "tags": [
+    "western",
+    "sting",
+    "down-week"
+  ]
+}

@@ -296,6 +296,9 @@ def build_cues(
             if cue:
                 manual.append(cue)
 
+    from .titlecard import card_sfx
+
+    add_manual(card_sfx(plan), 0, "titleCard sound", "title card")
     add_manual(plan.get("sfx"), 0, "sfx", "plan")
     for sg in segs:
         add_manual(sg.spec.get("sfx"), sg.start, f"segment {sg.index + 1} sfx", f"segment {sg.index + 1}")

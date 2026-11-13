@@ -1,0 +1,20 @@
+{
+  "slug": "hit-nail",
+  "name": "hit-nail",
+  "category": "hit",
+  "file": "sfx/hit-nail.wav",
+  "duration": 0.34,
+  "channels": 2,
+  "loudness": null,
+  "peak": -6.0,
+  "normalized": "peak -6 dBFS",
+  "source": "https://freesound.org/s/540139/",
+  "author": "aidansamuel",
+  "license": "CC0-1.0",
+  "addedAt": "2026-11-13T21:13:56+00:00",
+  "tags": [
+    "hammer",
+    "nail",
+    "wood"
+  ]
+}

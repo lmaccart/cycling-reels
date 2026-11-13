@@ -304,6 +304,19 @@ A series bar for the Road to 5 W/kg episodes. The numbers are the FTP and weight
 
 It takes the top of the frame, so it can't share the screen with stat pills or a route map (`./reels check` fails); top text and a top hook move below it automatically. Put it on the segment where the numbers are said, or on the hook segment. Don't show the user's weight on its own; W/kg and watts are the numbers for the series.
 
+## Title card (series board)
+
+A generated visual: a drawn wooden board with the series title in old-timey wood type, the episode and a two-to-three-word subtitle. It is fully up in frame 0, a nail flies into its top-left corner (~0.62 s, on the second hit of the showdown sting), it swings and hangs crooked on the nail, and fades out over the first shot (no dimming or blur under it).
+
+```json
+"titleCard": {"title": "The Down Week", "episode": 1, "subtitle": "rusty legs", "for": 3.0}
+```
+
+- Renders only for titles in config.json `titleCards.allowed`. Add a series there only after the user says yes to a board for it in the conversation (generated-visual rule); The Down Week was OK'd 2026-11-13.
+- `for`: 1.5–6 s on screen (default 3). `subtitle`: the day's theme, two or three words, lowercase.
+- Sounds come with it as cues on the board's frames: `theme` (default `sting-showdown`, picked by the user 2026-11-13, at 0 s), `nail` (`hit-nail`, on the hit) and `creak` (`creak-wood`, as it swings). Swap any for another `./reels sfx list` slug (`"theme": "sting-slide-down"`) or switch it off with `false`.
+- A top `hook` would sit on the board, so it starts when the board is gone (check warns). Usually leave the hook out and let the board be the opening text.
+
 ## Photo segments
 
 | Field | Default | Notes |

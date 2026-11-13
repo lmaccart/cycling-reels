@@ -15,6 +15,7 @@ import { SegmentView } from './components/SegmentView';
 import { SfxTrack } from './components/SfxTrack';
 import { StatChips } from './components/StatChips';
 import { TextBeatView } from './components/TextBeat';
+import { TitleCardView } from './components/TitleCard';
 import type { ReelProps } from './types';
 
 export const CyclingReel: React.FC<ReelProps> = (p) => {
@@ -65,6 +66,12 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
           <ProgressBarView bar={b} accent={p.brand.accent} />
         </Sequence>
       ))}
+
+      {p.titleCard ? (
+        <Sequence from={p.titleCard.startFrame} durationInFrames={p.titleCard.endFrame - p.titleCard.startFrame}>
+          <TitleCardView card={p.titleCard} />
+        </Sequence>
+      ) : null}
 
       {p.beats.map((b, i) => (
         <Sequence key={`beat-${i}`} from={b.startFrame} durationInFrames={b.endFrame - b.startFrame}>

@@ -1167,6 +1167,14 @@ def build(project: Project, plan: dict) -> dict:
         if words > 12:
             warnings.append("hook is over 12 words — trim it so it reads in a couple of seconds")
 
+    from .titlecard import push_hook, title_card
+
+    card_props = title_card(project, plan, int(total), fps, errors, warnings)
+    push_hook(hook_props, card_props, int(total), warnings)
+    if hook_props and hook_props["endFrame"] - hook_props["startFrame"] < 12:
+        warnings.append("hook: no room left after the title card — dropped")
+        hook_props = None
+
     end_props = None
     ec = plan.get("endCard", bool(brand.get("endCard", False)))
     if loop and ec:
@@ -1275,6 +1283,7 @@ def build(project: Project, plan: dict) -> dict:
         "stats": stats,
         **({"routes": routes} if routes else {}),
         **({"progress": bars} if bars else {}),
+        **({"titleCard": card_props} if card_props else {}),
         **({"exhibits": exhibit_props} if exhibit_props else {}),
         **({"foregrounds": fg_props} if fg_props else {}),
         "music": music_props,

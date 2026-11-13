@@ -1,0 +1,22 @@
+{
+  "slug": "sting-slide-down",
+  "name": "sting-slide-down",
+  "category": "other",
+  "file": "sfx/sting-slide-down.wav",
+  "duration": 3.0,
+  "channels": 2,
+  "loudness": -20.0,
+  "peak": -9.3,
+  "normalized": "-20 LUFS / -1.5 dBTP ceiling",
+  "source": "https://freesound.org/s/175166/",
+  "author": "MinigunFiend",
+  "license": "CC0-1.0",
+  "addedAt": "2026-11-13T21:13:57+00:00",
+  "tags": [
+    "western",
+    "slide",
+    "guitar",
+    "sting",
+    "down-week"
+  ]
+}
