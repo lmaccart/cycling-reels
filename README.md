@@ -148,6 +148,7 @@ Run `./reels --help` or see `.claude/skills/cycling-reels/SKILL.md`. The main on
 | `./reels ingest` | inbox → library, contact sheets, speech detection |
 | `./reels pending` / `./reels tag <id> --json …` | tagging (Claude does this) |
 | `./reels library --unused` | available moments, best first |
+| `./reels takes <id>` | cut list for a long talking take: phrases with tight in/out, retakes grouped, filler flagged (`--pick 2,5-7` prints plan segments) |
 | `./reels music search "…" --free` / `./reels yt2mp3 <url>` / `./reels music list` | find, download and list tracks |
 | `./reels sounds <id>` / `./reels library --sounds` / `./reels sfx list` | ride sounds in a clip / tagged sounds / the sound-effect library |
 | `./reels telemetry <id> --fast 5` | GoPro GPS: fastest stretches (`--at`, `--start/--end` too) |

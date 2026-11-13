@@ -864,6 +864,7 @@ def build_parser() -> argparse.ArgumentParser:
     from .prune import add_commands as add_prune_commands
     from .search import add_commands as add_search_commands
     from .search import add_deleted_arg, add_shelf_args
+    from .takes import add_commands as add_takes_commands
 
     p = argparse.ArgumentParser(prog="reels", description="Turn ride footage into captioned Instagram Reels.")
     p.add_argument("--version", action="version", version=f"cycling-reels {__version__}")
@@ -960,6 +961,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_library)
 
     add_search_commands(sub)
+    add_takes_commands(sub)
     add_prune_commands(sub)
 
     s = sub.add_parser("check", help="validate plan files and print their timelines (no rendering)")

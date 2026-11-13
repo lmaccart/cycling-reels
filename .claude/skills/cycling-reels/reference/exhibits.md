@@ -23,7 +23,7 @@ On a segment (`at` = seconds from the segment start) or at the top level of the 
 | `image` *or* `chart` | – | File in `exhibits/` (name, name without extension, or a unique prefix) / a chart spec (below) |
 | `at`, `for` | 0.3 s, to the end of its segment | At least 0.5 s on screen |
 | `width` | 0.6 | Fraction of the frame width; height follows the image. Tall images are shrunk to fit |
-| `x`, `y` | 0.5, 0.36 | Centre, as fractions of the frame. Kept inside the safe area (under Instagram's top bar, above its caption) |
+| `x`, `y` | 0.5, 0.36 | Centre, as fractions of the frame. Kept inside the safe area (under Instagram's top bar, above its caption; one that reaches the lower half also stays 130 px from the right edge, clear of the like/comment/share buttons on Instagram and TikTok) |
 | `style` | `card` | `card` = plain rectangle with a soft shadow (a see-through PNG gets a white backing; `background` changes it, `padding` px adds a border). `cutout` = the PNG's own shape, shadow follows it |
 | `shadow` | true | |
 | `tilt` | 0 | Degrees, −20…20 |

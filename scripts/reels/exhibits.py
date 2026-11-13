@@ -41,6 +41,9 @@ KEYS = {"at", "for", "image", "chart", "style", "width", "x", "y", "tilt", "crop
 # Where an exhibit may sit on the 1080x1920 frame (px): under Instagram's top bar, above its
 # caption/buttons. Text keeps PAD clear of it.
 SAFE_LEFT, SAFE_RIGHT, SAFE_TOP, SAFE_BOTTOM = 40, 1040, 230, 1500
+# The like/comment/share column on the right (Instagram and TikTok): an exhibit reaching below
+# BUTTONS_TOP stays left of it. Same numbers as the Studio guide in Overlays.tsx.
+BUTTONS_TOP, BUTTONS_LEFT = 1000, 950
 PAD = 28
 MIN_FRAMES = 15
 TRACK_SCALE = 0.5  # the clip is looked at at half size: plenty for a hand, and quick
@@ -420,8 +423,9 @@ def _centre(tip: dict, w: float, h: float, side: str, gap: float, point: list[fl
 
 
 def _inside(cx: float, cy: float, w: float, h: float) -> tuple[float, float]:
-    cx = clamp(cx, SAFE_LEFT + w / 2, SAFE_RIGHT - w / 2) if w <= SAFE_RIGHT - SAFE_LEFT else (SAFE_LEFT + SAFE_RIGHT) / 2
     cy = clamp(cy, SAFE_TOP + h / 2, SAFE_BOTTOM - h / 2) if h <= SAFE_BOTTOM - SAFE_TOP else (SAFE_TOP + SAFE_BOTTOM) / 2
+    right = BUTTONS_LEFT if cy + h / 2 > BUTTONS_TOP else SAFE_RIGHT
+    cx = clamp(cx, SAFE_LEFT + w / 2, right - w / 2) if w <= right - SAFE_LEFT else (SAFE_LEFT + right) / 2
     return cx, cy
 
 
