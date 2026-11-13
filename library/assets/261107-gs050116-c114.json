@@ -135,6 +135,38 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-317906",
+        "in": 87.0,
+        "out": 94.0,
+        "label": "rider in a blue Rice kit overtakes close on the right, others behind at the lights",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-c7f42a",
+        "in": 105.0,
+        "out": 114.0,
+        "label": "rider in blue with a yellow helmet and orange glasses comes straight at the camera, white line",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [],

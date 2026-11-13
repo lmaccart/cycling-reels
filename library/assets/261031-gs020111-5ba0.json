@@ -148,6 +148,38 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-12cec1",
+        "in": 155.0,
+        "out": 162.0,
+        "label": "rider in green and gold on an orange bike sweeps past on the right, then sits on our wheel",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "wheel",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-82ae98",
+        "in": 264.0,
+        "out": 276.0,
+        "label": "rider in a blue Rice kit right on our wheel, mouth open, others strung out behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "wheel",
+        "role": "effort",
+        "speaker": "none",
+        "mood": "suffering",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [],

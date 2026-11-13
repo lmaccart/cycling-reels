@@ -56,6 +56,12 @@
         "pitch": -35.0,
         "fov": 110.0,
         "roll": 180.0
+      },
+      "regroup": {
+        "yaw": 180.0,
+        "pitch": 12.0,
+        "fov": 95.0,
+        "roll": 180.0
       }
     },
     "moments": [
@@ -179,20 +185,16 @@
         "id": "m-780896",
         "in": 351.2,
         "out": 356.4,
-        "label": "\"great, we can watch a bunch of footage of people's butts\" at the regroup, huge sky",
+        "label": "\"great, we can watch a bunch of footage of people's butts\" at the regroup; rider in navy reaches a hand to the lens, hug",
         "score": 4,
         "focusX": 0.5,
         "focusY": 0.5,
         "speech": true,
-        "view": {
-          "yaw": 180,
-          "pitch": -55,
-          "fov": 95
-        },
+        "view": "regroup",
         "role": "crew",
         "speaker": "teammate",
         "mood": "funny",
-        "face": true,
+        "face": false,
         "opener": false
       },
       {
@@ -229,6 +231,22 @@
         "speaker": "none",
         "face": false,
         "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-b651c3",
+        "in": 336.0,
+        "out": 345.0,
+        "label": "regroup in the car park: rider in light blue on a yellow bike smiling down at the camera, second rider beside her, huge ",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "regroup",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
         "opener": false
       }
     ],

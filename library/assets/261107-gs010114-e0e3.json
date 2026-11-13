@@ -134,6 +134,22 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-590355",
+        "in": 86.0,
+        "out": 93.0,
+        "label": "teammate in a blue Rice kit with his bike in the steel elevator, stands up and faces the camera",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [

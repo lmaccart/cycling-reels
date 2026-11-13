@@ -131,6 +131,38 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-cbe774",
+        "in": 198.0,
+        "out": 210.0,
+        "label": "group stopped under the oaks, rider in a red jersey on a white bike looks back over his shoulder",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-14fbb0",
+        "in": 380.0,
+        "out": 385.0,
+        "label": "teammate in grey and sunglasses pulls up beside the camera at dawn, red-jersey rider behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [],

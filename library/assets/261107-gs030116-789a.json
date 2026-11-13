@@ -134,6 +134,22 @@
         "face": false,
         "mood": "funny",
         "opener": false
+      },
+      {
+        "id": "m-e0d748",
+        "in": 413.0,
+        "out": 418.0,
+        "label": "rider in a blue Rice jersey grinning right behind under the overpass (water drops on the lens)",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
+        "opener": true
       }
     ],
     "sounds": [],

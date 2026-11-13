@@ -134,6 +134,38 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-f59e10",
+        "in": 138.0,
+        "out": 148.0,
+        "label": "rider in green and yellow on an orange bike side-on, low sun flare and long shadows",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-9a5375",
+        "in": 190.0,
+        "out": 198.0,
+        "label": "grinning rider in a blue Rice jersey and green helmet right on my wheel, another beside him",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
+        "opener": true
       }
     ],
     "sounds": [],

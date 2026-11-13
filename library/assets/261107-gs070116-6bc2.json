@@ -68,6 +68,12 @@
         "pitch": 10.0,
         "fov": 110.0,
         "roll": 0.0
+      },
+      "chase-wide": {
+        "yaw": 100.0,
+        "pitch": 62.0,
+        "fov": 105.0,
+        "roll": 0.0
       }
     },
     "moments": [
@@ -149,6 +155,22 @@
         "speaker": "teammate",
         "face": false,
         "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-c42a54",
+        "in": 268.0,
+        "out": 274.0,
+        "label": "rider in yellow and navy behind throws an arm out, rider in black close on the right",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
         "opener": false
       }
     ],

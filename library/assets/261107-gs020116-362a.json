@@ -131,6 +131,38 @@
         "face": false,
         "mood": "fast",
         "opener": false
+      },
+      {
+        "id": "m-f6d98e",
+        "in": 66.0,
+        "out": 72.0,
+        "label": "rider in a blue Rice jersey close behind with his mouth wide open, line of riders following",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "road",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-7e8230",
+        "in": 160.0,
+        "out": 170.0,
+        "label": "rider in green and yellow on an orange bike side-on, backlit by the sun through the trees",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": [],

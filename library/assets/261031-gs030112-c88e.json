@@ -126,6 +126,38 @@
         "face": false,
         "mood": "awe",
         "opener": false
+      },
+      {
+        "id": "m-2935e2",
+        "in": 8.0,
+        "out": 16.0,
+        "label": "rider in white alongside under a tall tower with a UTHealth Houston sign, blue sky",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "skyline",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-958663",
+        "in": 136.0,
+        "out": 144.0,
+        "label": "rider in a blue Rice kit close to the camera between white towers",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "skyline",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
       }
     ],
     "sounds": []

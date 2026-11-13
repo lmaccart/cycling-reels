@@ -60,6 +60,12 @@
         "pitch": 25.0,
         "fov": 100.0,
         "roll": 90.0
+      },
+      "behind": {
+        "yaw": -158.0,
+        "pitch": 60.0,
+        "fov": 90.0,
+        "roll": 90.0
       }
     },
     "moments": [
@@ -157,6 +163,22 @@
         "speaker": "none",
         "face": false,
         "mood": "calm",
+        "opener": false
+      },
+      {
+        "id": "m-42d627",
+        "in": 404.0,
+        "out": 414.0,
+        "label": "rider on a Pinarello alongside, glass towers and big clouds behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
         "opener": false
       }
     ],

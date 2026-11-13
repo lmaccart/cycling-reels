@@ -59,6 +59,12 @@
         "pitch": 25.0,
         "fov": 100.0,
         "roll": 90.0
+      },
+      "behind": {
+        "yaw": -158.0,
+        "pitch": 60.0,
+        "fov": 90.0,
+        "roll": 90.0
       }
     },
     "moments": [
@@ -140,6 +146,54 @@
         "speaker": "none",
         "face": false,
         "mood": "fast",
+        "opener": false
+      },
+      {
+        "id": "m-6172b6",
+        "in": 122.0,
+        "out": 129.0,
+        "label": "two riders tight on our wheel, grey jersey and blue Rice jersey, faces to the camera",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-6c1070",
+        "in": 365.0,
+        "out": 372.0,
+        "label": "rider with teal sleeves and a white helmet right on our wheel, face-on, double yellow line",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "behind",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-1e2199",
+        "in": 454.0,
+        "out": 461.0,
+        "label": "rider in a blue Rice Owls jersey on a green bike swings past side-on, another rider behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
         "opener": false
       }
     ],
