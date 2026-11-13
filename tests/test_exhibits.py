@@ -65,6 +65,18 @@ class ExhibitTests(unittest.TestCase):
         self.assertNotIn("foregrounds", b["props"])
         self.assertNotIn("exhibits", build(self.p, load_plan(self.p, self.t.plan("plain", [{"asset": "broll", "in": 0, "out": 3}])))["props"])
 
+    def test_exhibits_reaching_the_lower_half_stay_left_of_the_button_column(self):
+        # Upper half: may run to the right safe edge. Reaching below the buttons' top: kept left of them.
+        cx, cy = exhibits._inside(1080, 500, 400, 300)
+        self.assertEqual((cx + 200, cy), (exhibits.SAFE_RIGHT, 500))
+        cx, cy = exhibits._inside(1080, 1200, 400, 300)
+        self.assertEqual((cx + 200, cy), (exhibits.BUTTONS_LEFT, 1200))
+        cx, _ = exhibits._inside(1080, 900, 400, 300)  # bottom edge at 1050 dips into the column
+        self.assertEqual(cx + 200, exhibits.BUTTONS_LEFT)
+        self.assertEqual(exhibits._inside(600, 1200, 400, 300), (600, 1200))  # already clear: untouched
+        cx, _ = exhibits._inside(900, 1200, 1000, 300)  # too wide to fit beside the column: centred in what's left
+        self.assertEqual(cx, (exhibits.SAFE_LEFT + exhibits.BUTTONS_LEFT) / 2)
+
     def test_defaults_run_to_the_end_of_the_segment_and_stay_in_the_safe_area(self):
         b = self.built([{"image": "zones.jpg", "x": 0.95, "y": 0.05, "width": 0.5}])
         e = b["props"]["exhibits"][0]
