@@ -116,6 +116,30 @@ Not on a cutaway (they belong to the segment): `captions`, `text`, `stats`, `rou
    {"at": 7.4, "asset": "261031-img-3418", "duration": 1.2, "motion": "zoom-in"}]}
 ```
 
+## Cutting a long take
+
+A talking reel is cut from one long recording where each line is said several times. `./reels takes <id>` proposes the cuts:
+
+```
+#5     46.48 → 50.21     3.7s  [line A: take 5 of 6]
+      you will die stupid and slow if you don't take this every day
+#6     53.36 → 57.35     4.0s  [line A: ★ last take]
+      you will die stupid and slow if you don't take this every day.
+#13    96.70 → 101.83    5.1s  [line C: take 2 of 4]
+      most famous neuroscientist says you should take it too and double the dose most recommend and
+      · says 'double the dose most recommend' again in #14: to drop it here, out 99.68
+      · trails off on 'and': to end before it, out 101.50
+```
+
+- **Phrases** end at a pause of 0.5 s or more (`--pause 0.3` splits finer). `in` is 60 ms before the first word and `out` 150 ms after the last, never into the neighbouring phrase.
+- **Edges on the audio level:** when the talking is clearly louder than the room, in/out move onto where the sound starts and stops, and a word Whisper stretched over a pause is pulled back (which can split a phrase the transcript ran together). In wind the header says `word times only`. `--no-audio` forces that.
+- **`transcript ends '<word>' at …, the sound stops at …`:** the proposed `out` is before the transcript's end of that word, so `./reels check` would call it clipped. Set that word's `e` in `library/transcripts/<id>.json` to the time given (the rule for fixing timings, as with bleeps), or keep the transcript's end as `out`.
+- **Takes:** phrases that repeat most of each other within eight phrases are one line; the last is marked, since later takes are usually the keeper. A line the transcript split differently between takes shows up as separate lines, so read the text.
+- **Notes** offer an alternative `out`: before words that are said again in a later phrase, or before a trailing "the / and / so / because". `fragment` is a false start of one or two words; `filler` lists um / uh / "you know" with their times.
+- `./reels takes <id> --pick 6,13,17` prints those phrases as segments (`captions: "transcript"`) in the order given, for pasting into the plan. Then add cutaways, exhibits and bleeps as usual.
+
+It only reads the transcript and the audio level: it can't tell which take was delivered best. Fix misheard words first, pick by reading, and let the user choose between takes when it matters.
+
 ## Exhibits
 
 A study screenshot, diagram or chart over the footage, for the rider to point at: `"exhibits": [{"image": "<file in exhibits/>", "at": 1.2, "for": 4.5, "x": 0.66, "y": 0.34, "width": 0.55}]` on a segment (or at the top level, in reel seconds). `"anchor": "hand"` places it from the pointing fingertip, `"depth": "behind"` puts the rider in front of it, `"chart": {…}` draws one from the user's numbers or Strava ride. Captions, hook and text beats move clear of it. Every field, the three placement modes and the rules for what may be shown: [exhibits.md](exhibits.md).
