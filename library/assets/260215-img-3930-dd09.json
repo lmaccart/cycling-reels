@@ -1,0 +1,80 @@
+{
+  "id": "260215-img-3930-dd09",
+  "kind": "video",
+  "media": "library/media/260215-img-3930-dd09.mov",
+  "originalName": "IMG_3930.mov",
+  "hash": "dd097b6725b951cf9a4f548079bc101f1e0af6b8",
+  "created": "2026-02-15T10:23:15",
+  "ingestedAt": "2026-11-14T21:13:52+00:00",
+  "probe": {
+    "duration": 5.9,
+    "width": 720,
+    "height": 1280,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-15T10:23:15-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "race",
+    "shot": "roadside",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Filmed by someone else from the inside of a race corner on 2026-02-15: riders come from far down a wide road, #137 in black and white leans through, then me (#132, old mint bike, Rice kit) leaned over through the corner and away with a ride",
+    "hooks": [
+      "the plans"
+    ],
+    "notes": "User 11-14: the clip of me cornering. I am in frame from about 4.8 s. Spectator voices on the audio.",
+    "moments": [
+      {
+        "id": "m-975e38",
+        "in": 4.75,
+        "out": 5.9,
+        "label": "me (#132, mint bike, Rice kit) leaned over through a race corner, filmed from the roadside on the inside",
+        "score": 5,
+        "focusX": 0.4,
+        "focusY": 0.6,
+        "speech": false,
+        "role": "proof",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-15-i-have-plans",
+      "at": "2026-11-14T21:26:35+00:00",
+      "in": 4.75,
+      "out": 5.683
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -18.6,
+      "peakDb": -0.6
+    },
+    "speechSeconds": 4.92,
+    "speechRanges": [
+      [
+        0.98,
+        5.9
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260215-img-3930-dd09.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:14:29+00:00"
+}

@@ -117,6 +117,22 @@
         "face": false,
         "mood": "calm",
         "opener": false
+      },
+      {
+        "id": "m-cd2aee",
+        "in": 90.5,
+        "out": 96.0,
+        "label": "squeezing past a white box truck at arm's length, its wheel then cab slide by, then a parked white van and a Sprinter",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "side",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": true
       }
     ],
     "sounds": [

@@ -72,26 +72,7 @@
     "sounds": []
   },
   "transcript": "library/transcripts/261108-img-3606-dbcd.json",
-  "used": [
-    {
-      "plan": "2026-11-15-little-gray",
-      "at": "2026-11-08T21:25:54+00:00",
-      "in": 0.6,
-      "out": 3.2
-    },
-    {
-      "plan": "2026-11-15-little-gray",
-      "at": "2026-11-08T21:25:54+00:00",
-      "in": 3.3,
-      "out": 7.3
-    },
-    {
-      "plan": "2026-11-15-little-gray",
-      "at": "2026-11-08T21:25:54+00:00",
-      "in": 7.3,
-      "out": 8.2
-    }
-  ],
+  "used": [],
   "audio": {
     "volume": {
       "meanDb": -26.8,

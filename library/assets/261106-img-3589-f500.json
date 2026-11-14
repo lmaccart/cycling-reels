@@ -110,20 +110,7 @@
     ]
   },
   "transcript": "library/transcripts/261106-img-3589-f500.json",
-  "used": [
-    {
-      "plan": "2026-11-11-easy-day-laundry",
-      "at": "2026-11-08T21:26:51+00:00",
-      "in": 2.68,
-      "out": 9.7
-    },
-    {
-      "plan": "2026-11-11-easy-day-laundry",
-      "at": "2026-11-08T21:26:51+00:00",
-      "in": 13.6,
-      "out": 15.4
-    }
-  ],
+  "used": [],
   "audio": {
     "volume": {
       "meanDb": -24.4,

@@ -1,0 +1,47 @@
+{
+  "id": "260215-img-3930-1-e22f",
+  "kind": "video",
+  "media": "library/media/260215-img-3930-1-e22f.mov",
+  "originalName": "IMG_3930 (1).mov",
+  "hash": "e22f8b472335466035c6b738c2aeef27f6855b78",
+  "created": "2026-02-15T10:23:15",
+  "ingestedAt": "2026-11-14T21:13:51+00:00",
+  "probe": {
+    "duration": 5.9,
+    "width": 720,
+    "height": 1280,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-15T10:23:15-06:00"
+  },
+  "status": "skip",
+  "tags": {
+    "skip": true,
+    "reason": "duplicate of 260215-img-3930-dd09 (IMG_3930 (1).mov)"
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -18.6,
+      "peakDb": -0.6
+    },
+    "speechSeconds": 4.92,
+    "speechRanges": [
+      [
+        0.98,
+        5.9
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260215-img-3930-1-e22f.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:14:29+00:00"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "260207-3562baf2b5825ec24d791ba9-051d",
+  "kind": "video",
+  "media": "library/media/260207-3562baf2b5825ec24d791ba9-051d.mov",
+  "originalName": "3562baf2b5825ec24d791ba9a6345814.mov",
+  "hash": "051d3dba9424ee43e94ad4237b40392fc8e3bac7",
+  "created": "2026-02-07T11:42:59",
+  "ingestedAt": "2026-11-14T17:43:32+00:00",
+  "probe": {
+    "duration": 11.533,
+    "width": 720,
+    "height": 1280,
+    "fps": 29.741,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-07T11:42:59-06:00"
+  },
+  "status": "needs_tags",
+  "tags": null,
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -16.5,
+      "peakDb": -0.5
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260207-3562baf2b5825ec24d791ba9-051d.jpg"
+  ]
+}

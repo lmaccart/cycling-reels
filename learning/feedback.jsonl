@@ -216,3 +216,27 @@
 {"at": "2026-11-13T21:23:54+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-board-showdown.json in 17.0s", "slug": "zz-board-showdown", "source": "cli"}
 {"at": "2026-11-13T21:25:46+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering zz-board-final.json", "slug": null, "source": "cli"}
 {"at": "2026-11-13T21:26:05+00:00", "category": "production", "kind": "render-success", "note": "Rendered zz-board-final.json in 18.4s", "slug": "zz-board-final", "source": "cli"}
+{"at": "2026-11-14T17:43:54+00:00", "category": "preference", "kind": "rejection", "note": "user cancelled after scheduling (11-14): drop the reel altogether", "slug": "2026-11-15-little-gray", "source": "user"}
+{"at": "2026-11-14T17:43:54+00:00", "category": "preference", "kind": "rejection", "note": "user cancelled after scheduling (11-14): drop the reel altogether", "slug": "2026-11-11-easy-day-laundry", "source": "user"}
+{"at": "2026-11-14T21:06:59+00:00", "category": "production", "kind": "command-failed", "note": "tag failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:07:28+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-15-i-have-plans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:07:56+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-15-i-have-plans.json in 28.0s", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:10:36+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-15-i-have-plans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:11:01+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-15-i-have-plans.json in 25.1s", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:14:37+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-15-i-have-plans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:15:04+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-15-i-have-plans.json in 26.4s", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:23:42+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-15-i-have-plans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:24:16+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-15-i-have-plans.json in 34.9s", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:26:01+00:00", "category": "preference", "kind": "text-edit", "note": "caption: 'the plans were always this. what's your go-to excuse for getting out of stuff?' -> user: 'a&m throwback'", "slug": "2026-11-15-i-have-plans", "source": "user"}
+{"at": "2026-11-14T21:26:01+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-15-i-have-plans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:26:35+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-15-i-have-plans.json in 33.6s", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:26:41+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:26:59+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-15-i-have-plans", "source": "cli"}
+{"at": "2026-11-14T21:29:02+00:00", "category": "production", "kind": "command-failed", "note": "tag failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:29:12+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-14-crit-shenanigans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:30:15+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-14-crit-shenanigans.json in 63.2s", "slug": "2026-11-14-crit-shenanigans", "source": "cli"}
+{"at": "2026-11-14T21:33:04+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-14-crit-shenanigans.json", "slug": null, "source": "cli"}
+{"at": "2026-11-14T21:34:02+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-14-crit-shenanigans.json in 57.2s", "slug": "2026-11-14-crit-shenanigans", "source": "cli"}
+{"at": "2026-11-14T21:34:09+00:00", "category": "production", "kind": "transcript-fix", "note": "Dark whispered selfie: Whisper (small + large-v3-turbo) misheard the name (Sean -> John), 7am, and the whole ending; user supplied the lines. Don't trim uncertain lines off talking clips — ask the user what was said instead.", "slug": "2026-11-14-crit-shenanigans", "source": "user"}
+{"at": "2026-11-14T21:35:21+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-14-crit-shenanigans", "source": "cli"}
+{"at": "2026-11-14T21:35:44+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-14-crit-shenanigans", "source": "cli"}
