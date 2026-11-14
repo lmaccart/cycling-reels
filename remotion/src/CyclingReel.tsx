@@ -3,18 +3,15 @@ import { AbsoluteFill, Sequence } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
 import './fonts';
-import { Captions } from './components/Captions';
-import { EndCardView } from './components/EndCard';
 import { ExhibitView, ForegroundView } from './components/Exhibit';
-import { HookTitle } from './components/HookTitle';
 import { MusicTrack } from './components/MusicTrack';
 import { ProgressBarView } from './components/ProgressBar';
 import { RouteMapView } from './components/RouteMap';
 import { SafeArea, Vignette } from './components/Overlays';
-import { SegmentView } from './components/SegmentView';
+import { SegmentAudio, SegmentView } from './components/SegmentView';
 import { SfxTrack } from './components/SfxTrack';
 import { StatChips } from './components/StatChips';
-import { TextBeatView } from './components/TextBeat';
+import { TextLayers } from './components/TextLayers';
 import { TitleCardView } from './components/TitleCard';
 import type { ReelProps } from './types';
 
@@ -73,25 +70,7 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
         </Sequence>
       ) : null}
 
-      {p.beats.map((b, i) => (
-        <Sequence key={`beat-${i}`} from={b.startFrame} durationInFrames={b.endFrame - b.startFrame}>
-          <TextBeatView beat={b} />
-        </Sequence>
-      ))}
-
-      <Captions pages={p.captions} brand={p.brand} />
-
-      {p.hook ? (
-        <Sequence from={p.hook.startFrame} durationInFrames={p.hook.endFrame - p.hook.startFrame}>
-          <HookTitle hook={p.hook} />
-        </Sequence>
-      ) : null}
-
-      {p.endCard ? (
-        <Sequence from={p.endCard.startFrame} durationInFrames={p.endCard.endFrame - p.endCard.startFrame}>
-          <EndCardView card={p.endCard} />
-        </Sequence>
-      ) : null}
+      <TextLayers {...p} />
 
       {p.music ? <MusicTrack music={p.music} totalFrames={p.totalFrames} /> : null}
       {p.sfx?.length ? <SfxTrack cues={p.sfx} /> : null}
@@ -99,3 +78,37 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
     </AbsoluteFill>
   );
 };
+
+// The text and the vignette only, on a transparent background: the reels CLI renders stills of this
+// for reels whose picture is plain footage (cuts and cutaways) and lays them over the clips with ffmpeg,
+// instead of screenshotting every frame. Same components as above, so the text looks identical.
+export const ReelOverlay: React.FC<ReelProps> = (p) => (
+  <AbsoluteFill>
+    <Vignette />
+    <TextLayers {...p} />
+  </AbsoluteFill>
+);
+
+// The reel's sound only: each clip's own audio at the same volumes and times as the full reel, the music and the
+// sound effects, with no pictures, so an audio-only render doesn't decode every video frame.
+export const ReelAudio: React.FC<ReelProps> = (p) => (
+  <AbsoluteFill>
+    <TransitionSeries>
+      {p.segments.map((seg, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && seg.transitionInFrames > 0 ? (
+            <TransitionSeries.Transition
+              presentation={fade()}
+              timing={linearTiming({ durationInFrames: seg.transitionInFrames })}
+            />
+          ) : null}
+          <TransitionSeries.Sequence durationInFrames={seg.durationInFrames}>
+            <SegmentAudio seg={seg} />
+          </TransitionSeries.Sequence>
+        </React.Fragment>
+      ))}
+    </TransitionSeries>
+    {p.music ? <MusicTrack music={p.music} totalFrames={p.totalFrames} /> : null}
+    {p.sfx?.length ? <SfxTrack cues={p.sfx} /> : null}
+  </AbsoluteFill>
+);
