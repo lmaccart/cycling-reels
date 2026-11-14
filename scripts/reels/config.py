@@ -23,6 +23,9 @@ DEFAULTS: dict[str, Any] = {
         "width": 1080,
         "height": 1920,
         "crf": 20,
+        "preset": "medium",  # x264 preset for the final upload; "slow" took ~45% longer for the same size and picture (2026-11-14 test)
+        "remotionPreset": "veryfast",
+        "fastPath": True,  # plain-footage reels: text stills + ffmpeg instead of a Chrome screenshot per frame (overlay.py)  # Remotion's intermediate file is re-encoded by the final encode, so encode it fast
         "maxBitrate": "20M",
         "audioBitrate": "128k",
         "loudness": -14,

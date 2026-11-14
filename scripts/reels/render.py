@@ -19,6 +19,7 @@ from .images import open_image
 from .library import all_assets, load_asset, resolve_id, resolve_moment, save_asset
 from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
+from . import overlay
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
 from .mix import music_drops, music_levels, nat_windows, quiet_nat, volume_keys
@@ -1454,6 +1455,8 @@ def run_remotion(project: Project, props_path: Path, public_dir: Path, out_tmp: 
         "--codec=h264", "--crf=16", "--audio-bitrate=192k", "--pixel-format=yuv420p",
         "--color-space=bt709", "--enforce-audio-track", "--log=info",
     ]  # fmt: skip
+    if project.cfg("render", "remotionPreset"):
+        cmd.append(f"--x264-preset={project.cfg('render', 'remotionPreset')}")
     if project.cfg("render", "concurrency"):
         cmd.append(f"--concurrency={project.cfg('render', 'concurrency')}")
     browser = os.environ.get("REELS_BROWSER") or project.cfg("render", "browserExecutable")
@@ -1528,7 +1531,7 @@ def final_encode(project: Project, src: Path, out: Path, max_boost: float | None
     af = ride_only_args(project, src, max_boost) if max_boost is not None else loudnorm_args(project, src)
     cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-i", src, *af]
     cmd += [
-        "-c:v", "libx264", "-preset", "slow", "-crf", str(rc["crf"]),
+        "-c:v", "libx264", "-preset", str(rc.get("preset") or "medium"), "-crf", str(rc["crf"]),
         "-maxrate", rc["maxBitrate"], "-bufsize", _double_rate(rc["maxBitrate"]),
         "-profile:v", "high", "-pix_fmt", "yuv420p", "-g", "60",
         "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-color_range", "tv",
@@ -1604,7 +1607,17 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
     props_path = staging / "props.json"
     write_json(props_path, built["props"])
     tmp = staging / "render.mp4"
-    run_remotion(project, props_path, staging, tmp, out_dir / "render.log")
+    why = "turned off (render.fastPath)" if project.cfg("render", "fastPath") is False else overlay.why_not(built["props"])
+    if why is None:
+        log("  fast path: plain footage + text — text drawn once per change, footage joined by ffmpeg")
+        try:
+            overlay.render(project, built["props"], props_path, staging, tmp, out_dir / "render.log")
+        except ReelsError as e:
+            warn(f"fast path failed, doing the full render instead: {str(e).splitlines()[0]}")
+            why = "fast path failed"
+    if why is not None:
+        log(f"  full render: {why}")
+        run_remotion(project, props_path, staging, tmp, out_dir / "render.log")
     seam = None
     if built["loop"]:
         seam = seam_score(staged_seam(staging, built["segs"]))

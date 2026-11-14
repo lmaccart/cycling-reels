@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Easing, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import type { Cutaway, Segment } from '../types';
 
 /** What a still needs to be shown: a photo segment, or a photo cutaway. */
@@ -57,15 +57,31 @@ const CutawayView: React.FC<{ cut: Cutaway }> = ({ cut }) => {
   return <PhotoView seg={cut} />;
 };
 
+/** A video segment's own sound: whether it plays, and its volume (ride-sound "nat" moments follow keyframes,
+ * frame from the segment start). Shared with the audio-only render (SegmentAudio) so both mix the same. */
+export const clipVolume = (seg: Segment): { audible: boolean; volume: number | ((f: number) => number) } => {
+  const keys = seg.volumeKeys;
+  if (keys && keys.length > 1) {
+    return {
+      audible: keys.some(([, v]) => v > 0),
+      volume: (f: number) => interpolate(f, keys.map(([k]) => k), keys.map(([, v]) => v), clamp),
+    };
+  }
+  return { audible: seg.volume > 0, volume: seg.volume };
+};
+
+/** The segment's sound without its picture, for the audio-only render. */
+export const SegmentAudio: React.FC<{ seg: Segment }> = ({ seg }) => {
+  if (seg.kind !== 'video') {
+    return null;
+  }
+  const { audible, volume } = clipVolume(seg);
+  return audible ? <Audio src={staticFile(seg.src)} volume={volume} /> : null;
+};
+
 const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
   const frame = useCurrentFrame();
-  const keys = seg.volumeKeys;
-  const audible = keys && keys.length > 1 ? keys.some(([, v]) => v > 0) : seg.volume > 0;
-  // Ride-sound moments: the clip's volume follows keyframes (frame from the segment start).
-  const volume =
-    keys && keys.length > 1
-      ? (f: number) => interpolate(f, keys.map(([k]) => k), keys.map(([, v]) => v), clamp)
-      : seg.volume;
+  const { audible, volume } = clipVolume(seg);
   const style: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover' };
   if (seg.punch && seg.punch.length) {
     // Punch-ins zoom only the footage; text, captions and pills sit on top, unscaled.
