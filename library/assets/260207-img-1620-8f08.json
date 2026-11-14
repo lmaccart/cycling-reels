@@ -1,0 +1,47 @@
+{
+  "id": "260207-img-1620-8f08",
+  "kind": "video",
+  "media": "library/media/260207-img-1620-8f08.mov",
+  "originalName": "IMG_1620.mov",
+  "hash": "8f08cc8375cd9d51d85ae92f71f4664d36040e01",
+  "created": "2026-02-07T11:49:31",
+  "ingestedAt": "2026-11-14T17:43:38+00:00",
+  "probe": {
+    "duration": 7.723,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.56,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-07T11:49:31-06:00"
+  },
+  "status": "needs_tags",
+  "tags": null,
+  "transcript": "library/transcripts/260207-img-1620-8f08.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -28.0,
+      "peakDb": -6.8
+    },
+    "speechSeconds": 5.28,
+    "speechRanges": [
+      [
+        1.85,
+        5.13
+      ],
+      [
+        5.72,
+        7.72
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260207-img-1620-8f08.jpg"
+  ]
+}

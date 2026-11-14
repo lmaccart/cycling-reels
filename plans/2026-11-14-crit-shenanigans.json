@@ -1,0 +1,14 @@
+{
+ "slug": "2026-11-14-crit-shenanigans",
+ "spine": "voice",
+ "format": "talking-selfie",
+ "autoSfx": false,
+ "segments": [
+  {"asset": "260215-img-1657-b2b8", "in": 0.0, "out": 22.8, "captions": "transcript", "focusX": 0.5}
+ ],
+ "post": {
+  "caption": "crit shenanigans",
+  "hashtags": ["#cycling", "#roadcycling", "#crit", "#bikeracing", "#cyclinglife"],
+  "altText": "Dark early-morning selfie in a bedroom: the rider whispers that they have a crit today and their roommate John's alarm has been going off for two minutes, then points the camera at the roommate still asleep under the blanket."
+ }
+}

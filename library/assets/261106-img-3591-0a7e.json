@@ -73,14 +73,7 @@
     "sounds": []
   },
   "transcript": "library/transcripts/261106-img-3591-0a7e.json",
-  "used": [
-    {
-      "plan": "2026-11-11-easy-day-laundry",
-      "at": "2026-11-08T21:26:51+00:00",
-      "in": 3.35,
-      "out": 9.0
-    }
-  ],
+  "used": [],
   "audio": {
     "volume": {
       "meanDb": -25.5,

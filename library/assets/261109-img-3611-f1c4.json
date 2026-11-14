@@ -50,7 +50,9 @@
         "face": true,
         "mood": "calm",
         "opener": false,
-        "line": "plan"
+        "line": "plan",
+        "thread": "road-to-5-ep2",
+        "beat": "setup"
       },
       {
         "id": "m-c47a47",
@@ -66,7 +68,9 @@
         "face": true,
         "mood": "calm",
         "opener": false,
-        "line": "plan"
+        "line": "plan",
+        "thread": "road-to-5-ep2",
+        "beat": "setup"
       },
       {
         "id": "m-94beb3",
@@ -97,7 +101,9 @@
         "speaker": "me",
         "face": false,
         "mood": "calm",
-        "opener": false
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "setup"
       },
       {
         "id": "m-3a16cf",
@@ -113,7 +119,9 @@
         "speaker": "me",
         "face": false,
         "mood": "calm",
-        "opener": false
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "effort"
       }
     ],
     "sounds": []

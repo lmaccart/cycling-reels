@@ -1,0 +1,75 @@
+{
+  "id": "260215-img-3918-8621",
+  "kind": "video",
+  "media": "library/media/260215-img-3918-8621.mov",
+  "originalName": "IMG_3918.mov",
+  "hash": "862142f30bebc68d51c04dbc5cd53b534de47e63",
+  "created": "2026-02-15T09:43:45",
+  "ingestedAt": "2026-11-14T17:43:39+00:00",
+  "probe": {
+    "duration": 7.8,
+    "width": 720,
+    "height": 1280,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-15T09:43:45-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "race",
+    "shot": "roadside",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Filmed by someone else from behind on race day 2026-02-15: me (#132, old mint-green bike) and two Rice teammates ride away down a wide new concrete road under big puffy clouds, getting smaller",
+    "hooks": [
+      "sorry i cant i have plans"
+    ],
+    "notes": "User 11-14: #132 on the mint bike is me (old bike). Filmed by someone else. Race numbers small in frame; reads like a normal ride from a distance.",
+    "moments": [
+      {
+        "id": "m-729890",
+        "in": 0.0,
+        "out": 4.6,
+        "label": "me (#132, mint bike, left) and two teammates ride away from the camera down a wide road under big clouds, small in frame",
+        "score": 4,
+        "focusX": 0.35,
+        "focusY": 0.55,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-15-i-have-plans",
+      "at": "2026-11-14T21:26:35+00:00",
+      "in": 0.0,
+      "out": 4.5
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -24.6,
+      "peakDb": -5.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260215-img-3918-8621.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:07:06+00:00"
+}

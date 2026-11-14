@@ -1,0 +1,111 @@
+{
+  "id": "260214-img-1643-f03b",
+  "kind": "video",
+  "media": "library/media/260214-img-1643-f03b.mov",
+  "originalName": "IMG_1643.mov",
+  "hash": "f03bb37a1ec276f0d083eb9280b6789faebddf85",
+  "created": "2026-02-14T10:04:18",
+  "ingestedAt": "2026-11-14T21:23:09+00:00",
+  "probe": {
+    "duration": 11.043,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.946,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-14T10:04:18-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Team ride on 2026-02-14 on a rural two-lane road: my bars and computer, a teammate in Rice kit on a red bike rides alongside, then I spin the phone around to a grinning selfie with the team strung out behind, then back to the road and the t",
+    "hooks": [],
+    "notes": "User 11-14: the spin around and the clip of the team. Transcript is Whisper keyterm gibberish: never caption it.",
+    "moments": [
+      {
+        "id": "m-7ef64b",
+        "in": 5.6,
+        "out": 7.4,
+        "label": "I spin the phone around to a grinning selfie with the team in Rice kits strung out behind on a two-lane road",
+        "score": 5,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": true
+      },
+      {
+        "id": "m-982613",
+        "in": 9.3,
+        "out": 10.4,
+        "label": "teammate in Rice kit and an aero helmet on a red bike rides alongside",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/260214-img-1643-f03b.json",
+  "used": [
+    {
+      "plan": "2026-11-15-i-have-plans",
+      "at": "2026-11-14T21:26:35+00:00",
+      "in": 5.9,
+      "out": 7.2
+    },
+    {
+      "plan": "2026-11-15-i-have-plans",
+      "at": "2026-11-14T21:26:35+00:00",
+      "in": 9.3,
+      "out": 10.167
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -23.0,
+      "peakDb": -0.0
+    },
+    "speechSeconds": 6.12,
+    "speechRanges": [
+      [
+        1.78,
+        2.41
+      ],
+      [
+        3.86,
+        6.15
+      ],
+      [
+        7.0,
+        8.78
+      ],
+      [
+        9.62,
+        11.04
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260214-img-1643-f03b.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:23:41+00:00"
+}

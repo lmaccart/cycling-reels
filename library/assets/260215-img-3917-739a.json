@@ -1,0 +1,73 @@
+{
+  "id": "260215-img-3917-739a",
+  "kind": "video",
+  "media": "library/media/260215-img-3917-739a.mov",
+  "originalName": "IMG_3917.mov",
+  "hash": "739a474f10acb2ebc10f001b3c16e5ac731c9305",
+  "created": "2026-02-15T09:43:33",
+  "ingestedAt": "2026-11-14T17:43:39+00:00",
+  "probe": {
+    "duration": 8.933,
+    "width": 1280,
+    "height": 720,
+    "fps": 29.778,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-15T09:43:33-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "race",
+    "shot": "roadside",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Filmed by someone else from the roadside on race day 2026-02-15: me (#132, old mint-green bike) leads two Rice teammates past a construction site and a grey warehouse, side-on, race numbers visible",
+    "hooks": [
+      "the plans"
+    ],
+    "notes": "User 11-14: #132 on the mint bike is me. I sit at the left edge of the landscape frame (x about 0.1-0.2).",
+    "moments": [
+      {
+        "id": "m-a542aa",
+        "in": 0.3,
+        "out": 3.9,
+        "label": "me (#132, mint bike) side-on at the left with two teammates in Rice kit rolling past orange fencing and a grey warehouse",
+        "score": 4,
+        "focusX": 0.13,
+        "focusY": 0.6,
+        "speech": false,
+        "role": "proof",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -22.1,
+      "peakDb": -3.4
+    },
+    "speechSeconds": 0.43,
+    "speechRanges": [
+      [
+        0.86,
+        1.29
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/260215-img-3917-739a.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:07:07+00:00"
+}

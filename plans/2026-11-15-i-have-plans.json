@@ -1,0 +1,75 @@
+{
+ "slug": "2026-11-15-i-have-plans",
+ "postDate": "2026-11-15",
+ "format": "this-weeks-trend",
+ "spine": "trend",
+ "autoSfx": false,
+ "hook": {
+  "text": "sorry i can't, i have plans",
+  "seconds": 4.4,
+  "position": "center"
+ },
+ "segments": [
+  {
+   "asset": "260215-img-3918",
+   "in": 0.0,
+   "out": 4.5,
+   "focusX": 0.4,
+   "volume": 0
+  },
+  {
+   "asset": "260215-img-3930-dd09",
+   "in": 4.75,
+   "out": 5.85,
+   "focusX": 0.4,
+   "volume": 0,
+   "payoff": true,
+   "text": [
+    {
+     "text": "the plans:",
+     "at": 0.1,
+     "for": 7.0
+    }
+   ]
+  },
+  {
+   "asset": "260215-img-3929",
+   "in": 0.1,
+   "out": 1.0,
+   "volume": 0
+  },
+  {
+   "asset": "260214-img-1643-f03b",
+   "in": 5.9,
+   "out": 7.3,
+   "volume": 0
+  },
+  {
+   "asset": "260214-img-1643-f03b",
+   "in": 9.3,
+   "out": 10.2,
+   "volume": 0
+  },
+  {
+   "asset": "260214-img-0684",
+   "in": 3.4,
+   "out": 7.0,
+   "volume": 0
+  }
+ ],
+ "music": {
+  "track": "time-pink-floyd",
+  "start": 297.9,
+  "cutOnBeat": true
+ },
+ "post": {
+  "caption": "a&m throwback",
+  "hashtags": [
+   "#cycling",
+   "#bikeracing",
+   "#collegecycling",
+   "#roadcycling"
+  ],
+  "altText": "Three riders in blue Rice kits roll away down a wide road under big clouds, then the rider leans through a race corner, other racers lean through the same corner, a grinning selfie with the team behind, a teammate alongside, then a tight race bunch seen from inside it."
+ }
+}

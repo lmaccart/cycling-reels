@@ -1,0 +1,73 @@
+{
+  "id": "260215-img-3929-7511",
+  "kind": "video",
+  "media": "library/media/260215-img-3929-7511.mov",
+  "originalName": "IMG_3929.mov",
+  "hash": "75110df5e6053524877d9e333603f534e9d78236",
+  "created": "2026-02-15T10:21:25",
+  "ingestedAt": "2026-11-14T21:13:50+00:00",
+  "probe": {
+    "duration": 1.9,
+    "width": 1440,
+    "height": 1920,
+    "fps": 30.0,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "pcm_s16le",
+    "created": "2026-02-15T10:21:25-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "race",
+    "shot": "roadside",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Race corner on 2026-02-15 filmed from the inside: riders in red/orange, purple and Rice blue lean hard through, close to the camera",
+    "hooks": [],
+    "notes": "Not me; other racers (incl. Rice teammates) through the same corner.",
+    "moments": [
+      {
+        "id": "m-b3194f",
+        "in": 0.1,
+        "out": 1.8,
+        "label": "racers lean hard through a corner close to the camera, #34 in red and orange, #81 in purple, Rice riders behind",
+        "score": 4,
+        "focusX": 0.55,
+        "focusY": 0.6,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-15-i-have-plans",
+      "at": "2026-11-14T21:26:35+00:00",
+      "in": 0.1,
+      "out": 0.967
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -19.5,
+      "peakDb": -0.7
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260215-img-3929-7511.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:14:29+00:00"
+}

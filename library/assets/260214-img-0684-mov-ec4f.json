@@ -1,0 +1,75 @@
+{
+  "id": "260214-img-0684-mov-ec4f",
+  "kind": "video",
+  "media": "library/media/260214-img-0684-mov-ec4f.mov",
+  "originalName": "IMG_0684.MOV.mov",
+  "hash": "ec4f886139348dc684791db0b2d117bb2ac96bd0",
+  "created": "2026-02-14T09:56:19",
+  "ingestedAt": "2026-11-14T17:43:35+00:00",
+  "probe": {
+    "duration": 7.035,
+    "width": 1080,
+    "height": 1920,
+    "fps": 29.993,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-14T09:56:19-06:00"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "race",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Phone POV in a race bunch on 2026-02-14: my bars and computer, then Rice riders #83 and #82 ahead, then up close in a tight pack with #135, #149 in red and others on a wide highway under grey sky",
+    "hooks": [
+      "the plans"
+    ],
+    "notes": "Race day. My bars in the first second.",
+    "moments": [
+      {
+        "id": "m-807868",
+        "in": 3.6,
+        "out": 7.0,
+        "label": "tight race bunch up close: Rice #83 and #135, a rider in red #149, numbers everywhere, wide highway",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "proof",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-15-i-have-plans",
+      "at": "2026-11-14T21:26:35+00:00",
+      "in": 3.4,
+      "out": 7.0
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -28.7,
+      "peakDb": -10.5
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260214-img-0684-mov-ec4f.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:07:07+00:00"
+}

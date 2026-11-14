@@ -1,0 +1,42 @@
+{
+  "id": "260214-img-0691-cd65",
+  "kind": "video",
+  "media": "library/media/260214-img-0691-cd65.mov",
+  "originalName": "IMG_0691.mov",
+  "hash": "cd6533b186b8d6b18822810590b01c15cf40f998",
+  "created": "2026-02-14T09:57:51",
+  "ingestedAt": "2026-11-14T17:43:36+00:00",
+  "probe": {
+    "duration": 21.6,
+    "width": 176,
+    "height": 144,
+    "fps": 9.954,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": null,
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-02-14T09:57:51-06:00"
+  },
+  "status": "skip",
+  "tags": {
+    "skip": true,
+    "reason": "176x144 pixelated with baked-in black bars; user 11-14: remove from library"
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -17.7,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/260214-img-0691-cd65.jpg"
+  ],
+  "taggedAt": "2026-11-14T21:13:48+00:00"
+}
