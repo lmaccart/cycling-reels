@@ -99,7 +99,14 @@
     "sounds": []
   },
   "transcript": "library/transcripts/261107-img-3594-71d6.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "this-is-my-art",
+      "at": "2026-11-15T01:55:45+00:00",
+      "in": 51.0,
+      "out": 64.533
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -27.2,
