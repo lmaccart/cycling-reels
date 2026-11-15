@@ -301,4 +301,43 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(TimelineLaneClassifier.category(for: voice), "Audio")
         XCTAssertEqual(TimelineLaneClassifier.category(for: cutaway), "B-roll")
     }
+    @MainActor
+    func testTimelineScrubSeeksBeforeReleaseAndIgnoresPreviewFeedback() throws {
+        let store = EditorStore()
+        store.snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("ride"),
+            "revisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "plan": .object([:]), "nodes": .array([]),
+            "fps": .number(30), "durationFrames": .number(90),
+            "warnings": .array([]), "preview": .object([:])
+        ])))
+        let initialGeneration = store.seekGeneration
+
+        store.setPlayhead(20, final: false)
+        XCTAssertEqual(store.playheadFrame, 20)
+        XCTAssertEqual(store.seekGeneration, initialGeneration + 1)
+        store.setPlayhead(60, final: false)
+        XCTAssertEqual(store.playheadFrame, 60)
+        XCTAssertEqual(store.seekGeneration, initialGeneration + 2)
+
+        // A slower decoder must not pull the playhead away from the pointer.
+        store.updatePlayheadFromPreview(20, revision: "d1")
+        XCTAssertEqual(store.playheadFrame, 60)
+        store.setPlayhead(30, final: false)
+        XCTAssertEqual(store.playheadFrame, 30)
+        XCTAssertEqual(store.seekGeneration, initialGeneration + 3)
+        store.setPlayhead(-10, final: false)
+        XCTAssertEqual(store.playheadFrame, 0)
+        store.setPlayhead(100, final: false)
+        XCTAssertEqual(store.playheadFrame, 90)
+
+        store.setPlayhead(45)
+        XCTAssertEqual(store.playheadFrame, 45)
+        XCTAssertEqual(store.seekGeneration, initialGeneration + 6)
+        store.updatePlayheadFromPreview(46, revision: "d1")
+        XCTAssertEqual(store.playheadFrame, 46, "Playback resumes driving the playhead after release")
+        XCTAssertEqual(store.seekGeneration, initialGeneration + 6, "Playback feedback must not trigger a seek loop")
+    }
 }

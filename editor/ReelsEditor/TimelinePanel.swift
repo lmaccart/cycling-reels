@@ -125,8 +125,7 @@ struct TimelinePanel: View {
                         onSelect: { id, additive in store.selectNode(id, additive: additive) },
                         onBeginGesture: { owner in await store.acquireTimelineLease(owner: owner) },
                         onScrub: { frame, final in
-                            if final { store.setPlayhead(frame) }
-                            else { store.updatePlayheadFromPreview(frame, revision: nil) }
+                            store.setPlayhead(frame, final: final)
                         },
                         onTrim: { node, sourceIn, sourceOut, lease in store.trim(node: node, sourceIn: sourceIn, sourceOut: sourceOut, lease: lease) },
                         onReorder: { node, frame, beforeID, lease in

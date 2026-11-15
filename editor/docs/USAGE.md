@@ -78,6 +78,8 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Trim, split, reorder, move overlays and change typed Inspector values. Times
   are resolved by the renderer, including speed, fades and beat timing. Generated
   caption timing is read-only; word corrections preserve original word times.
+- Drag the red timeline playhead or ruler to scrub: the Program preview updates
+  while the mouse is held down. The final playhead position is saved on release.
 - Each validated gesture or operation batch autosaves as one transaction.
   Undo/redo covers both manual and Claude changes. Failed edits leave the last
   committed revision intact.

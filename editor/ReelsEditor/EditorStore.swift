@@ -33,6 +33,7 @@ final class EditorStore {
     var sourceStates: [String: String] = [:]
     var playheadFrame = 0
     var seekGeneration = 0
+    private var isScrubbing = false
     var sourceIn: Double?
     var sourceOut: Double?
     var searchText = ""
@@ -436,9 +437,11 @@ final class EditorStore {
         }
     }
 
-    func setPlayhead(_ frame: Int) {
+    func setPlayhead(_ frame: Int, final: Bool = true) {
+        isScrubbing = !final
         playheadFrame = max(0, min(snapshot?.durationFrames ?? frame, frame))
         seekGeneration += 1
+        guard final else { return }
         Task {
             _ = try? await service.call("selection.set", params: .object([
                 "ids": .array(selectedIDs.sorted().map(JSONValue.string)),
@@ -449,7 +452,7 @@ final class EditorStore {
     }
 
     func updatePlayheadFromPreview(_ frame: Int, revision: String?) {
-        guard let snapshot,
+        guard !isScrubbing, let snapshot,
               revision == nil || revision == snapshot.revisions.document || revision == displayedPreviewRevision else { return }
         playheadFrame = max(0, min(snapshot.durationFrames, frame))
     }
