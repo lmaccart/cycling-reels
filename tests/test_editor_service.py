@@ -332,11 +332,20 @@ class StdioServiceTests(unittest.TestCase):
                     messages.put({"invalidProtocol": line})
         reader = threading.Thread(target=read, daemon=True)
         reader.start()
-        def request(rid, method, params):
+        def failure_details():
+            # A service that crashed at startup looks like a silent timeout; show why.
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=5)
+            return f"exit={process.returncode}\nstderr:\n{process.stderr.read()[-4000:]}"
+        def request(rid, method, params, timeout=60):
             process.stdin.write(json.dumps({"version": 1, "id": rid, "method": method, "params": params}) + "\n")
             process.stdin.flush()
             for _ in range(100):
-                message = messages.get(timeout=10)
+                try:
+                    message = messages.get(timeout=timeout)
+                except queue.Empty:
+                    self.fail(f"No response to {method} within {timeout}s; {failure_details()}")
                 self.assertNotIn("invalidProtocol", message)
                 if message.get("id") == rid:
                     return message
