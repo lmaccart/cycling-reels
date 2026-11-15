@@ -1,5 +1,6 @@
 import React from 'react';
-import { Audio, interpolate, staticFile } from 'remotion';
+import { Audio, interpolate } from 'remotion';
+import { editorStaticFile } from '../../editorStaticFile';
 import type { Music } from '../types';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
@@ -29,5 +30,5 @@ export const MusicTrack: React.FC<{ music: Music; totalFrames: number }> = ({ mu
     }
     return music.volume * fadeIn * out * duck;
   };
-  return <Audio src={staticFile(music.src)} trimBefore={music.trimBefore} volume={volume} loop />;
+  return <Audio src={editorStaticFile(music.src)} trimBefore={music.trimBefore} volume={volume} loop />;
 };

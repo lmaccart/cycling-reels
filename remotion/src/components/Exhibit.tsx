@@ -1,5 +1,6 @@
 import React from 'react';
-import { AbsoluteFill, Easing, Img, OffthreadVideo, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, Img, OffthreadVideo, interpolate, useCurrentFrame } from 'remotion';
+import { editorStaticFile } from '../../editorStaticFile';
 import { TEXT } from '../fonts';
 import type { Chart, Exhibit, Foreground } from '../types';
 import { punchAt } from './SegmentView';
@@ -71,7 +72,7 @@ export const ExhibitView: React.FC<{ exhibit: Exhibit; accent: string }> = ({ ex
         {e.kind === 'chart' && e.chart ? (
           <ChartView chart={e.chart} width={e.width - 2 * e.padding} height={e.height - 2 * e.padding} accent={accent} />
         ) : e.src ? (
-          <Img src={staticFile(e.src)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+          <Img src={editorStaticFile(e.src)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
         ) : null}
       </div>
     </AbsoluteFill>
@@ -92,7 +93,7 @@ export const ForegroundView: React.FC<{ fg: Foreground }> = ({ fg }) => {
   }
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      <OffthreadVideo src={staticFile(fg.src)} transparent muted style={style} />
+      <OffthreadVideo src={editorStaticFile(fg.src)} transparent muted style={style} />
     </AbsoluteFill>
   );
 };

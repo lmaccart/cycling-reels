@@ -1,0 +1,80 @@
+import AppKit
+import XCTest
+@testable import ReelsEditor
+
+final class EditorUXHelpersTests: XCTestCase {
+    func testTimecodeAndPreciseTime() {
+        XCTAssertEqual(TimeFormat.timecode(0, fps: 30), "00:00:00:00")
+        XCTAssertEqual(TimeFormat.timecode(95, fps: 30), "00:00:03:05")
+        XCTAssertEqual(TimeFormat.timecode(-4, fps: 30), "00:00:00:00")
+        XCTAssertEqual(TimeFormat.precise(3.26), "0:03.3")
+        XCTAssertEqual(TimeFormat.precise(75.04), "1:15.0")
+        XCTAssertEqual(TimeFormat.precise(.nan), "0:00.0")
+        XCTAssertEqual(TimeFormat.clock(65), "1:05")
+        XCTAssertEqual(TimeFormat.clock(3725), "1:02:05")
+    }
+
+    func testZoomClampsAndSteps() {
+        XCTAssertEqual(TimelineMetrics.clamp(100), TimelineMetrics.maxZoom)
+        XCTAssertEqual(TimelineMetrics.clamp(0), TimelineMetrics.minZoom)
+        XCTAssertEqual(TimelineMetrics.clamp(.nan), TimelineMetrics.defaultZoom)
+        XCTAssertGreaterThan(TimelineMetrics.zoomIn(1), 1)
+        XCTAssertLessThan(TimelineMetrics.zoomOut(1), 1)
+        XCTAssertEqual(TimelineMetrics.zoomIn(TimelineMetrics.maxZoom), TimelineMetrics.maxZoom)
+    }
+
+    func testFitZoomLeavesGutterAndMargin() {
+        let zoom = TimelineMetrics.fitZoom(durationFrames: 300, viewportWidth: 1000, gutter: 112)
+        XCTAssertEqual(zoom, (1000 - 112 - 48) / 300, accuracy: 0.0001)
+        XCTAssertEqual(TimelineMetrics.fitZoom(durationFrames: 0, viewportWidth: 1000, gutter: 112), TimelineMetrics.defaultZoom)
+    }
+
+    func testRulerStepKeepsLabelsApart() {
+        XCTAssertEqual(TimelineMetrics.rulerStepSeconds(pixelsPerSecond: 100), 1)
+        XCTAssertEqual(TimelineMetrics.rulerStepSeconds(pixelsPerSecond: 20), 5)
+        XCTAssertEqual(TimelineMetrics.rulerStepSeconds(pixelsPerSecond: 0.1), 600)
+    }
+
+    func testSnapPicksNearestWithinPixelThreshold() {
+        // zoom 0.5 px/frame: 8 px = 16 frames
+        XCTAssertEqual(TimelineMetrics.snap(frame: 95, candidates: [0, 100, 110], zoom: 0.5), 100)
+        XCTAssertNil(TimelineMetrics.snap(frame: 60, candidates: [0, 100], zoom: 0.5))
+        XCTAssertNil(TimelineMetrics.snap(frame: 5, candidates: [], zoom: 0.5))
+        // zoomed in: 8 px = 2 frames
+        XCTAssertNil(TimelineMetrics.snap(frame: 95, candidates: [100], zoom: 4))
+    }
+
+    func testEdgeZoneShrinksOnNarrowClips() {
+        XCTAssertEqual(TimelineMetrics.edgeZone(clipWidth: 200), 7)
+        XCTAssertEqual(TimelineMetrics.edgeZone(clipWidth: 12), 4)
+        XCTAssertEqual(TimelineMetrics.edgeZone(clipWidth: 1), 2)
+    }
+
+    func testShortcutResolution() {
+        func r(_ code: UInt16, _ ch: String, _ f: NSEvent.ModifierFlags = []) -> EditorShortcut? {
+            EditorShortcut.resolve(keyCode: code, characters: ch, flags: f)
+        }
+        XCTAssertEqual(r(49, " "), .togglePlayback)
+        XCTAssertEqual(r(40, "k"), .togglePlayback)
+        XCTAssertEqual(r(38, "j"), .jumpBack)
+        XCTAssertEqual(r(37, "l"), .jumpForward)
+        XCTAssertEqual(r(34, "i"), .markIn)
+        XCTAssertEqual(r(31, "o"), .markOut)
+        XCTAssertEqual(r(43, ","), .insert)
+        XCTAssertEqual(r(123, ""), .stepBack)
+        XCTAssertEqual(r(124, "", .shift), .jumpForward)
+        XCTAssertEqual(r(51, ""), .delete)
+        XCTAssertEqual(r(11, "b", .command), .split)
+        XCTAssertEqual(r(24, "=", .command), .zoomIn)
+        XCTAssertEqual(r(27, "-", .command), .zoomOut)
+        XCTAssertEqual(r(29, "0", .command), .zoomFit)
+        XCTAssertNil(r(11, "b"))
+        XCTAssertNil(r(34, "i", .command))
+        XCTAssertNil(r(40, "k", .option))
+    }
+
+    func testPreviewModeLabelsAvoidJargon() {
+        XCTAssertEqual(PreviewModeLabel.title("interactive"), "Fast preview")
+        XCTAssertEqual(PreviewModeLabel.title("exact"), "Final quality")
+    }
+}

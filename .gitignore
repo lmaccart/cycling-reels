@@ -2,6 +2,9 @@
 .cache/
 .env
 remotion/node_modules/
+remotion/dist/
+**/xcuserdata/
+*.xcuserstate
 inbox/*
 !inbox/README.md
 library/media/

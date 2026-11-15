@@ -108,8 +108,23 @@ def find_root() -> Path:
 class Project:
     """Paths and settings for one cycling-reels folder."""
 
-    def __init__(self, root: Path | None = None):
-        self.root = (root or find_root()).resolve()
+    def __init__(
+        self,
+        root: Path | str | None = None,
+        *,
+        code_root: Path | str | None = None,
+        media_root: Path | str | None = None,
+        media_read_only: bool = False,
+    ):
+        """media_read_only: the editor may read library/media but never write it.
+
+        media_root is only for the editor's sandboxed worker copies, whose data
+        root is a private clone while the originals stay in the real library.
+        """
+        self.root = Path(root or find_root()).resolve()
+        self.code_root = Path(code_root).resolve() if code_root is not None else self.root
+        self._external_media_root = Path(os.path.abspath(media_root)) if media_root is not None else None
+        self.read_only_media = bool(media_read_only) or self._external_media_root is not None
         cfg_path = self.root / "config.json"
         user: dict = {}
         if cfg_path.exists():
@@ -137,7 +152,7 @@ class Project:
 
     @property
     def media_dir(self) -> Path:
-        return self.library / "media"
+        return self._external_media_root or self.library / "media"
 
     @property
     def sheets_dir(self) -> Path:
@@ -170,17 +185,16 @@ class Project:
 
     @property
     def remotion_dir(self) -> Path:
-        return self.root / "remotion"
+        return self.code_root / "remotion"
 
     @property
     def staging_dir(self) -> Path:
         return self.root / ".cache" / "staging"
 
     def ensure_dirs(self) -> None:
-        for d in (
+        dirs = [
             self.inbox,
             self.assets_dir,
-            self.media_dir,
             self.sheets_dir,
             self.transcripts_dir,
             self.thumbs_dir,
@@ -188,16 +202,40 @@ class Project:
             self.out_dir,
             self.music_dir,
             self.exhibits_dir,
-        ):
+        ]
+        # The editor never creates (or writes) the originals folder.
+        if not self.read_only_media:
+            dirs.append(self.media_dir)
+        for d in dirs:
             d.mkdir(parents=True, exist_ok=True)
 
     # --- helpers -----------------------------------------------------------
     def rel(self, path: Path | str) -> str:
-        return os.path.relpath(Path(path).resolve(), self.root)
+        p = Path(path).resolve()
+        if self._external_media_root is not None:
+            media = self._external_media_root.resolve()
+            if _is_within(p, media):
+                return (Path("library/media") / p.relative_to(media)).as_posix()
+        return os.path.relpath(p, self.root)
 
     def abs(self, rel: Path | str) -> Path:
         p = Path(rel)
+        if self._external_media_root is not None and not p.is_absolute() and p.parts[:2] == ("library", "media"):
+            return self._external_media_root.joinpath(*p.parts[2:])
         return p if p.is_absolute() else (self.root / p)
+
+    def assert_media_writable(self) -> None:
+        """Fail closed in APIs that would modify files under library/media/."""
+        if self.read_only_media:
+            raise ReelsError("original media is read-only in the editor")
 
     def cfg(self, section: str, key: str) -> Any:
         return self.config.get(section, {}).get(key)
+
+
+def _is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False

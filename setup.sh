@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for cycling-reels on macOS (works on Linux too).
+# One-time setup for cycling-reels; --editor also builds and installs the native Reels Editor app.
 # Safe to re-run: it only installs what's missing.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -7,6 +7,20 @@ ROOT="$(pwd)"
 
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31mSetup stopped: %s\033[0m\n' "$*" >&2; exit 1; }
+
+case "${1:-}" in
+  --editor)
+    # Builds the app from this folder and installs ~/Applications/Reels Editor.app
+    # (it also installs the Python/Remotion dependencies).
+    exec "$ROOT/editor/reels-editor" setup ;;
+  --help|-h)
+    echo "Usage: bash setup.sh [--editor]"
+    echo "  --editor  Build and install the native Reels Editor app for this folder."
+    exit 0 ;;
+  "") ;;
+  *) fail "usage: bash setup.sh [--editor]" ;;
+esac
+[ "$#" -le 1 ] || fail "usage: bash setup.sh [--editor]"
 
 # --- system tools -----------------------------------------------------------
 need_brew=()
@@ -50,7 +64,7 @@ fi
 .venv/bin/python -m pip install --quiet -r requirements.txt
 
 # --- Remotion template ------------------------------------------------------
-say "Remotion template (npm install)"
+say "Remotion template"
 ( cd remotion && npm install --no-audit --no-fund --loglevel=error )
 
 warn() { printf '\033[33m%s\033[0m\n' "$*" >&2; }

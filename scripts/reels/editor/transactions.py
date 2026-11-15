@@ -1,0 +1,2042 @@
+"""Transactional, revisioned editing of authoritative reel-plan JSON."""
+
+from __future__ import annotations
+
+import hashlib
+import inspect
+import json
+import math
+import os
+import stat
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import uuid
+from contextlib import contextmanager, nullcontext
+from copy import copy, deepcopy
+from pathlib import Path
+from typing import Any, Callable
+
+from ..config import DEFAULTS, Project, deep_merge
+from ..util import ReelsError, read_json
+from .document import (
+    canonical_json,
+    editing_snapshot,
+    ensure_node_ids,
+    fingerprint,
+    node_location,
+    normalize_compiled,
+    pointer,
+    pointer_get,
+    pointer_parent,
+)
+from .timing import seconds_to_frames, source_duration, split_segment, trim_segment, trim_local_source
+
+_WORKSPACE_LOCKS: dict[str, threading.RLock] = {}
+_WORKSPACE_LOCKS_GUARD = threading.Lock()
+
+
+class DocumentError(Exception):
+    """Expected editor failure suitable for a structured protocol response."""
+
+    def __init__(self, code: str, message: str, details: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.code, self.message, self.details = code, message, details or {}
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"code": self.code, "message": self.message, "details": self.details}
+
+
+def _atomic_bytes(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(prefix=".editor-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:  # mkstemp makes 0600 files; keep an existing file's mode, else the normal umask default
+            mode = stat.S_IMODE(path.stat().st_mode)
+        except OSError:
+            umask = os.umask(0)
+            os.umask(umask)
+            mode = 0o666 & ~umask
+        os.chmod(temp_name, mode)
+        os.replace(temp_name, path)
+        try:
+            dfd = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(dfd)
+            finally:
+                os.close(dfd)
+        except OSError:
+            pass
+    finally:
+        if os.path.exists(temp_name):
+            os.unlink(temp_name)
+
+
+def _json_bytes(value: Any, indent: int = 2) -> bytes:
+    return (json.dumps(value, indent=indent, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def _existing_indent(path: Path, default: int = 2) -> int:
+    """Indent width of an existing JSON file, so edits don't reformat the whole plan."""
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            stream.readline()
+            second = stream.readline()
+    except (OSError, UnicodeDecodeError):
+        return default
+    width = len(second) - len(second.lstrip(" "))
+    return width if 1 <= width <= 8 and second.strip() else default
+
+
+EDITOR_KEY = "_editor"
+SIDECAR_VERSION = 1
+
+
+def _is_plan_rel(rel: str) -> bool:
+    parts = Path(rel).parts
+    return len(parts) == 2 and parts[0] == "plans" and rel.endswith(".json")
+
+
+def _without_editor(rel: str, value: Any) -> Any:
+    """The plan as it exists on disk: real plan content only, never ``_editor`` metadata."""
+    if _is_plan_rel(rel) and isinstance(value, dict) and EDITOR_KEY in value:
+        return {key: child for key, child in value.items() if key != EDITOR_KEY}
+    return value
+
+
+def _same_json(left: Any, right: Any) -> bool:
+    return _json_bytes(left) == _json_bytes(right)
+
+
+def _read_object(path: Path, default: Any = None) -> Any:
+    try:
+        return read_json(path)
+    except FileNotFoundError:
+        return default
+
+
+def _worker_compile(
+    project: Project,
+    plan: dict[str, Any],
+    transcript_overrides: dict[str, Any],
+    *,
+    process_started: Callable[[subprocess.Popen], None] | None = None,
+    process_finished: Callable[[subprocess.Popen], None] | None = None,
+    originals: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Run renderer build outside the broker and against private worker data.
+
+    All writes are confined by the trusted macOS profile to disposable worker
+    data. Registered footage is resolved explicitly, never via a writable link.
+    """
+    if not [segment for segment in plan.get("segments") or []]:
+        # A brand-new project has nothing to render yet. The renderer rejects
+        # an empty plan, so the editor opens it as an empty timeline instead.
+        return {"fps": int(project.cfg("render", "fps") or 30), "total": 0,
+                "warnings": ["No footage yet: add a clip from the library to start."],
+                "segs": [], "props": {}, "sound": {"cues": []}, "loop": None}
+    code_root = project.code_root
+    if not (code_root / "scripts/reels/render.py").is_file():
+        if project.read_only_media or code_root != project.root:
+            raise DocumentError("renderer_unavailable", "recorded renderer source is incomplete")
+        code_root = Path(__file__).resolve().parents[3]
+    package_root = code_root / "scripts"
+    worker = r'''
+import json, os, re, shutil, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from reels.config import Project
+from reels.render import build
+import reels.render as renderer
+
+# Trusted worker-only instrumentation. A str subclass carries the helper's
+# explicit raw locator through normalization; copied/retimed/dropped beat dicts
+# then keep exact provenance even when two raw captions have identical text.
+class LocatedText(str):
+    pass
+def traced_text_helper(original, field):
+    def wrapped(*args, **kwargs):
+        screen = renderer.screen_text
+        def located(value, warnings, where):
+            text = LocatedText(screen(value, warnings, where))
+            m = re.fullmatch(r"segment (\d+) (text|stats)\[(\d+)\]", where)
+            root = re.fullmatch(r"text\[(\d+)\]", where)
+            text.locator = (f"/segments/{int(m[1])-1}/{m[2]}/{m[3]}" if m else
+                            f"/text/{root[1]}" if root else None)
+            return text
+        renderer.screen_text = located
+        try:
+            values = original(*args, **kwargs)
+            for value in values:
+                locator = getattr(value.get(field), "locator", None)
+                if locator:
+                    value["_editorPath"] = locator
+            return values
+        finally:
+            renderer.screen_text = screen
+    return wrapped
+for helper, field in (("_beats", "text"), ("_stats", "label")):
+    original = getattr(renderer, helper, None)
+    if callable(original) and callable(getattr(renderer, "screen_text", None)):
+        setattr(renderer, helper, traced_text_helper(original, field))
+original_exhibits = getattr(renderer, "build_exhibits", None)
+if callable(original_exhibits):
+    def located_exhibits(*args, **kwargs):
+        values = original_exhibits(*args, **kwargs)
+        for value in values:
+            m = re.fullmatch(r"(?:segment (\d+) )?exhibit (\d+)", value.get("where", ""))
+            if m:
+                value["props"]["_editorPath"] = (f"/segments/{int(m[1])-1}" if m[1] else "") + f"/exhibits/{int(m[2])-1}"
+        return values
+    renderer.build_exhibits = located_exhibits
+
+source, scratch, plan_path, overrides_path, result_path = map(Path, sys.argv[2:])
+def copy_json_tree(src, dst):
+    if not src.exists(): return
+    dst.mkdir(parents=True, exist_ok=True)
+    for item in src.glob("*.json"):
+        if item.is_file(): shutil.copy2(item, dst / item.name)
+def link_dir(src, dst):
+    if src.exists(): dst.parent.mkdir(parents=True, exist_ok=True); dst.symlink_to(src.resolve(), target_is_directory=True)
+
+(scratch / "library").mkdir(parents=True, exist_ok=True)
+copy_json_tree(source / "library" / "assets", scratch / "library" / "assets")
+copy_json_tree(source / "library" / "transcripts", scratch / "library" / "transcripts")
+link_dir(source / "library" / "media", scratch / "library" / "media")
+copy_json_tree(source / "music", scratch / "music")
+for item in (source / "music").glob("*") if (source / "music").exists() else []:
+    if item.is_file() and item.suffix.lower() != ".json":
+        target = scratch / "music" / item.name
+        if not target.exists(): shutil.copyfile(item, target)
+for name in ("exhibits", "sfx", "library/sounds", "library/telemetry", "strava", "learning", "models"):
+    if (source / name).is_dir(): shutil.copytree(source / name, scratch / name)
+if (source / "config.json").exists(): shutil.copy2(source / "config.json", scratch / "config.json")
+for name in ("library/progress.json", "progress.json"):
+    if (source / name).is_file():
+        (scratch / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source / name, scratch / name)
+for rel, value in json.loads(overrides_path.read_text(encoding="utf-8")).items():
+    if rel.startswith("__editor_"): continue
+    target = (scratch / rel).resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+for rel in json.loads(overrides_path.read_text(encoding="utf-8")).get("__editor_deleted_files__", []):
+    target = (scratch / rel).resolve()
+    try:
+        target.unlink()
+    except FileNotFoundError:
+        pass
+
+media = json.loads(overrides_path.read_text(encoding="utf-8")).get("__editor_media__", {})
+p = Project(scratch, code_root=Path(sys.argv[1]).parent, **media)
+built = build(p, json.loads(plan_path.read_text(encoding="utf-8")))
+segs = []
+for sg in built["segs"]:
+    spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
+    cuts = []
+    for cut in sg.spec.get("_cutaways") or []:
+        cs = cut["seg"]
+        match = re.search(r"cutaway (\d+)$", cut.get("where", ""))
+        cuts.append({"start": cut["start"], "frames": cs.frames, "assetId": cs.asset["id"],
+                     "kind": cs.kind, "rawIndex": int(match[1])-1 if match else None,
+                     "sourceDuration": cs.asset.get("probe", {}).get("duration"),
+                     "spec": {k:v for k,v in cs.spec.items() if not k.startswith("_")}})
+    segs.append({"index":sg.index, "kind":sg.kind, "asset":{"id":sg.asset["id"]},
+                 "spec":spec, "frames":sg.frames, "trans":sg.trans, "start":sg.start,
+                 "cutaways":cuts})
+sound = dict(built.get("sound") or {})
+sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
+result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],
+          "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda value: sorted(value) if isinstance(value, set) else str(value)), encoding="utf-8")
+'''
+    scratch_parent = project.root / ".cache/editor-compile"
+    scratch_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="build-", dir=scratch_parent) as temp:
+        worker_dir = Path(temp)
+        plan_path = worker_dir / "plan.json"
+        override_path = worker_dir / "overrides.json"
+        result_path = worker_dir / "result.json"
+        _atomic_bytes(plan_path, _json_bytes(plan))
+        overrides = deepcopy(transcript_overrides)
+        if project.read_only_media:
+            overrides["__editor_media__"] = {"media_root": str(project.media_dir)}
+        _atomic_bytes(override_path, _json_bytes(overrides))
+        cmd = [
+            sys.executable, "-c", worker, str(package_root), str(project.root),
+            str(worker_dir / "private"), str(plan_path), str(override_path), str(result_path),
+        ]
+        from types import SimpleNamespace
+        from .preview import _path_roots, _profile_text, _safe_env, _executables
+        sandbox = shutil.which("sandbox-exec") if sys.platform == "darwin" else None
+        if not sandbox:
+            raise DocumentError("sandbox_unavailable", "renderer compilation requires the trusted macOS sandbox")
+        workspace = SimpleNamespace(project=project, root=project.root, data_root=project.root, code_root=code_root,
+                                    _originals=originals or {})
+        reads, _ = _path_roots(workspace, code_root, worker_dir, worker_dir, worker_dir, worker_dir)
+        # Compilation freezes these private inputs inside its sandbox. Unlike
+        # preview/export, it has not received a pre-copied data snapshot yet.
+        # Do not restore a checkout-wide or whole-workspace read grant.
+        for relative in (
+            "library/assets", "library/transcripts", "library/sounds", "library/telemetry",
+            "music", "sfx", "exhibits", "strava", "learning", "models",
+            "config.json", "library/progress.json", "progress.json",
+        ):
+            path = project.root / relative
+            if path.exists():
+                reads.append(path.resolve())
+        if not project.read_only_media and project.media_dir.is_dir():
+            # Ordinary throwaway/test Projects own their media locally.
+            reads.append(project.media_dir.resolve())
+        # Only this compile's scratch is writable, never source/private metadata.
+        profile = worker_dir / "compile.sb"
+        profile_text = _profile_text(reads, [worker_dir.resolve()], _executables(workspace, code_root))
+        # dyld/Python realpath traverses ancestors, including "/" itself.
+        # Literal directory grants do not expose their child file contents.
+        ancestors = {parent for root in reads for parent in root.parents}
+        profile_text += "\n".join(f"(allow file-read* (literal {json.dumps(str(path))}))"
+                                  for path in sorted(ancestors, key=str)) + "\n"
+        profile.write_text(profile_text, encoding="utf-8")
+        env = _safe_env(workspace, worker_dir, code_root)
+        process = subprocess.Popen([sandbox, "-f", str(profile), *cmd], cwd=worker_dir, env=env,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+        if process_started:
+            process_started(process)
+        try:
+            try:
+                stdout, stderr = process.communicate(timeout=180)
+            except subprocess.TimeoutExpired:
+                from .jobs import JobContext
+                JobContext._terminate(process)
+                stdout, stderr = process.communicate()
+                raise DocumentError("validation_timeout", "renderer worker exceeded the 180 second validation limit")
+            if process.returncode:
+                message = stderr.strip() or stdout.strip() or "renderer worker failed"
+                raise DocumentError("validation_failed", message[-4000:])
+        finally:
+            from .jobs import JobContext
+            JobContext._terminate(process)
+            if process_finished:
+                process_finished(process)
+        try:
+            return read_json(result_path)
+        except Exception as exc:  # noqa: BLE001
+            raise DocumentError("worker_protocol", f"renderer worker returned invalid data: {exc}") from exc
+
+
+class DocumentStore:
+    """Facade for raw plan reads, typed operations, journal commits and recovery."""
+
+    def __init__(
+        self,
+        workspace: Any,
+        plan_path: str | Path,
+        *,
+        compiler: Callable[..., dict[str, Any]] | None = None,
+        renderer_revision: str | None = None,
+    ):
+        self.workspace = workspace
+        self.project: Project = workspace.project
+        self.data_root = Path(getattr(workspace, "data_root", self.project.root)).resolve()
+        self.root = Path(getattr(workspace, "root", self.data_root)).resolve()
+        candidate = self.project.abs(plan_path)
+        self.plan_path = candidate.resolve()
+        try:
+            self.plan_rel = self.plan_path.relative_to(self.data_root).as_posix()
+        except ValueError as exc:
+            raise DocumentError("path_denied", "plan must be inside the private editor data root") from exc
+        # Independent undo chains, with a shared workspace lock for shared JSON.
+        # A different renderer source starts a fresh history: the live editor
+        # always previews and exports with the repo's current renderer code.
+        key_source = self.plan_rel
+        live_revision = getattr(workspace, "renderer_revision", None)
+        if renderer_revision is None and callable(live_revision):
+            key_source = f"{self.plan_rel}\0{live_revision()}"
+        document_key = hashlib.sha256(key_source.encode()).hexdigest()[:24]
+        self.history = self.root / "history" / "documents" / document_key
+        self.objects = self.history / "objects"
+        self.manifests = self.history / "commits"
+        self.head_path = self.history / "HEAD"
+        self.materialized_path = self.history / "MATERIALIZED"
+        self.compiler = compiler or self._run_worker_compiler
+        self._renderer_revision_override = renderer_revision
+        with _WORKSPACE_LOCKS_GUARD:
+            self._lock = _WORKSPACE_LOCKS.setdefault(str(self.root), threading.RLock())
+        self._lease: dict[str, Any] | None = None
+        self._redo_target: str | None = None
+        self._current_compiled: dict[str, Any] | None = None
+        self._transcript_cache: dict[str, dict[str, Any]] = {}
+        self._revision_compilers: dict[str, Callable[..., dict[str, Any]]] = {}
+        self._compile_state = threading.local()
+        self._cancel_guard = threading.Lock()
+        self._epochs: dict[str, int] = {"manual": 0, "ai": 0, "renderer": 0, "undo": 0, "redo": 0, "system": 0, "external": 0}
+        self._active_processes: dict[str, list[subprocess.Popen]] = {}
+        self._compile_token: tuple[str, int] | None = None
+        self._closed = False
+        self._prepared_candidates: dict[str, dict[str, Any]] = {}
+        self.history.mkdir(parents=True, exist_ok=True)
+        self.objects.mkdir(parents=True, exist_ok=True)
+        self.manifests.mkdir(parents=True, exist_ok=True)
+        with self._lock:
+            self._recover_pending_histories()
+            self._open_or_initialize()
+
+    def _run_worker_compiler(self, project: Project, plan: dict[str, Any], overrides: dict[str, Any],
+                             renderer_revision: str | None = None) -> dict[str, Any]:
+        if hasattr(self.workspace, "code_root"):
+            source = self.root / "code/renderers" / str(renderer_revision) / "source"
+            if (not source.is_dir() or any(path.is_symlink() for path in
+                    (source, source.parent, source.parent.parent, source.parent.parent.parent))):
+                raise DocumentError("renderer_unavailable", f"recorded renderer source {renderer_revision} is missing")
+            project = copy(project)
+            project.code_root = source
+        token = self._compile_token
+        origin = token[0] if token else "system"
+        def started(process: subprocess.Popen) -> None:
+            with self._cancel_guard:
+                self._active_processes.setdefault(origin, []).append(process)
+                if token and self._epochs.get(origin, 0) != token[1]:
+                    from .jobs import JobContext
+                    JobContext._terminate(process)
+        def finished(process: subprocess.Popen) -> None:
+            with self._cancel_guard:
+                current = self._active_processes.get(origin, [])
+                if process in current:
+                    current.remove(process)
+        return _worker_compile(project, plan, overrides, process_started=started, process_finished=finished,
+                               originals=getattr(self.workspace, "_originals", None))
+
+    def _epoch(self, origin: str) -> int:
+        with self._cancel_guard:
+            return self._epochs.get(origin, 0)
+
+    @property
+    def _compile_token(self):
+        return getattr(self._compile_state, "token", None)
+
+    @_compile_token.setter
+    def _compile_token(self, token):
+        self._compile_state.token = token
+
+    @property
+    def _current_compiled(self):
+        value = getattr(self, "_compiled_cache", None)
+        if value is not None and getattr(self, "_compiled_revisions", None) == self._revisions():
+            return value
+        return None
+
+    @_current_compiled.setter
+    def _current_compiled(self, value):
+        self._compiled_cache = value
+        self._compiled_revisions = self._revisions() if value is not None else None
+
+    @contextmanager
+    def _validation_unlocked(self):
+        # The candidate is private. Let a manual gesture/commit win while the
+        # worker validates; callers recheck revisions and leases before HEAD.
+        state = self._lock._release_save() if self._lock._is_owned() else None
+        try:
+            yield
+        finally:
+            if state is not None:
+                self._lock._acquire_restore(state)
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise DocumentError("closed", "document store is closed")
+
+    def cancel_pending(self, origin: str = "ai") -> dict[str, Any]:
+        """Invalidate validations and terminate their renderer worker if running."""
+        if origin == "all":
+            origins = list(self._epochs)
+        elif origin == "ai":
+            origins = ["ai", "renderer"]
+        elif origin in self._epochs:
+            origins = [origin]
+        else:
+            raise DocumentError("invalid_origin", f"cannot cancel work for origin {origin!r}")
+        cancelled = 0
+        with self._cancel_guard:
+            for name in origins:
+                self._epochs[name] = self._epochs.get(name, 0) + 1
+                for process in list(self._active_processes.get(name, [])):
+                    from .jobs import JobContext
+                    JobContext._terminate(process)
+                    cancelled += 1
+            return {"origin": origin, "cancelledProcesses": cancelled,
+                    "epochs": {name: self._epochs[name] for name in origins}}
+
+    def close(self) -> None:
+        self.cancel_pending("all")
+        self._closed = True
+
+    # ---- revisions, paths and journal ---------------------------------
+
+    def _library_revision(self) -> str:
+        value = getattr(self.workspace, "library_revision", None)
+        if callable(value):
+            try:
+                value = value()
+            except Exception as exc:  # noqa: BLE001
+                raise DocumentError("library_unavailable", f"cannot verify private library revision: {exc}") from exc
+        if value:
+            return str(value)
+        digest = hashlib.sha256()
+        for directory in (self.project.assets_dir, self.project.transcripts_dir, self.project.music_dir):
+            for path in sorted(directory.glob("*.json")):
+                digest.update(str(path.relative_to(self.data_root)).encode())
+                try:
+                    digest.update(path.read_bytes())
+                except OSError:
+                    digest.update(b"offline")
+        config = self.data_root / "config.json"
+        if config.is_file():
+            digest.update(config.read_bytes())
+        return digest.hexdigest()[:24]
+
+    def _renderer_revision(self) -> str:
+        head = _read_object(self.head_path, {})
+        committed = head.get("rendererRevision")
+        if committed:
+            return str(committed)
+        return self._working_renderer_revision()
+
+    def _working_renderer_revision(self) -> str:
+        if self._renderer_revision_override is not None:
+            return self._renderer_revision_override
+        value = getattr(self.workspace, "renderer_revision", None)
+        if callable(value):
+            value = value()
+        if value:
+            return str(value)
+        code_root = Path(getattr(self.workspace, "code_root", Path(__file__).resolve().parents[3]))
+        digest = hashlib.sha256()
+        for name in ("render.py", "mix.py", "music.py", "punch.py", "sphere.py", "exhibits.py"):
+            path = code_root / "scripts" / "reels" / name
+            try:
+                digest.update(path.read_bytes())
+            except OSError:
+                digest.update(name.encode())
+        return digest.hexdigest()[:24]
+
+    def _revisions(self, document: str | None = None) -> dict[str, str]:
+        return {
+            "document": document or self._head_revision(),
+            "library": self._library_revision(),
+            "renderer": self._renderer_revision(),
+        }
+
+    def _head_revision(self) -> str:
+        head = _read_object(self.head_path, {})
+        return str(head.get("revision") or "")
+
+    def _head_renderer_revision(self) -> str | None:
+        head = _read_object(self.head_path, {})
+        value = head.get("rendererRevision")
+        if value:
+            return str(value)
+        manifest = self._manifest(head.get("revision")) if head.get("revision") else {}
+        return str(manifest.get("rendererRevision")) if manifest.get("rendererRevision") else None
+
+    def _manifest(self, revision: str | None = None) -> dict[str, Any]:
+        revision = revision or self._head_revision()
+        if not revision:
+            return {}
+        manifest = _read_object(self.manifests / f"{revision}.json")
+        if not isinstance(manifest, dict):
+            raise DocumentError("history_corrupt", f"missing commit manifest {revision}")
+        return manifest
+
+    def _object_value(self, digest: str) -> Any:
+        path = self.objects / f"{digest}.json"
+        if not path.is_file():
+            raise DocumentError("history_corrupt", f"missing immutable object {digest}")
+        value = read_json(path)
+        if hashlib.sha256(_json_bytes(value)).hexdigest() != digest:
+            raise DocumentError("history_corrupt", f"immutable object {digest} failed its hash check")
+        return value
+
+    def _safe_data_path(self, relative: str) -> Path:
+        path = (self.data_root / relative).resolve()
+        try:
+            path.relative_to(self.data_root)
+        except ValueError as exc:
+            raise DocumentError("path_denied", f"journal path escapes private data root: {relative}") from exc
+        return path
+
+    def _delete_private(self, relative: str) -> None:
+        """Remove a journalled file. Never anything under library/ or plans/."""
+        path = self._safe_data_path(relative)
+        top = Path(relative).parts[:1]
+        if top in (("library",), ("plans",), ("out",), ("inbox",)):
+            return  # guarantee: the editor never deletes library/plans/out/inbox files
+        path.unlink(missing_ok=True)
+
+    def _manifest_files(self, manifest: dict[str, Any]) -> dict[str, Any]:
+        return {rel: self._object_value(digest) for rel, digest in manifest.get("files", {}).items()}
+
+    # ---- plan files on disk: real plan content only; metadata in a sidecar ----
+
+    def _sidecar_path(self, rel: str) -> Path:
+        path = Path(rel)
+        name = path.stem if path.parent.name == "plans" and len(path.parts) == 2 else rel.replace("/", "__")
+        return self.root / "documents" / f"{name}.json"
+
+    def _read_sidecar(self, rel: str) -> dict[str, Any] | None:
+        """Private node-ID metadata for a plan. Missing, corrupt or foreign sidecars are ignored."""
+        try:
+            value = read_json(self._sidecar_path(rel))
+        except Exception:  # noqa: BLE001
+            return None
+        editor = value.get("editor") if isinstance(value, dict) else None
+        if not isinstance(editor, dict) or value.get("plan") != rel:
+            return None
+        return editor
+
+    def _write_materialized(self, rel: str, value: Any) -> None:
+        path = self._safe_data_path(rel)
+        if not (_is_plan_rel(rel) and isinstance(value, dict)):
+            _atomic_bytes(path, _json_bytes(value))
+            return
+        meta = value.get(EDITOR_KEY)
+        if isinstance(meta, dict):
+            record = _json_bytes({"version": SIDECAR_VERSION, "plan": rel, "editor": meta})
+            sidecar = self._sidecar_path(rel)
+            try:
+                unchanged = sidecar.read_bytes() == record
+            except OSError:
+                unchanged = False
+            if not unchanged:
+                _atomic_bytes(sidecar, record)
+        clean = _without_editor(rel, value)
+        try:
+            # Same content as disk (ignoring formatting and any legacy _editor block): leave the file alone.
+            if _same_json(_without_editor(rel, read_json(path)), clean):
+                return
+        except Exception:  # noqa: BLE001
+            pass
+        _atomic_bytes(path, _json_bytes(clean, _existing_indent(path)))
+
+    def _read_disk(self, rel: str) -> Any:
+        return _without_editor(rel, read_json(self._safe_data_path(rel)))
+
+    def _disk_matches(self, rel: str, digest: str) -> bool:
+        try:
+            current = read_json(self._safe_data_path(rel))
+        except Exception:  # noqa: BLE001
+            return False
+        if _is_plan_rel(rel):
+            return _same_json(_without_editor(rel, current), _without_editor(rel, self._object_value(digest)))
+        return hashlib.sha256(_json_bytes(current)).hexdigest() == digest
+
+    def _materialize(self, manifest: dict[str, Any]) -> None:
+        for rel, digest in manifest.get("files", {}).items():
+            if rel not in manifest.get("previousFiles", manifest.get("files", {})):
+                continue
+            self._write_materialized(rel, self._object_value(digest))
+        for rel in manifest.get("deleted", []):
+            self._delete_private(rel)
+        _atomic_bytes(self.materialized_path, _json_bytes({"revision": manifest["revision"]}))
+
+    def _recover(self) -> None:
+        manifest = self._manifest()
+        if not manifest:
+            return
+        materialized = _read_object(self.materialized_path, {})
+        if materialized.get("revision") != manifest["revision"]:
+            # HEAD is the commit point. Complete an interrupted multi-file publish.
+            self._materialize(manifest)
+
+    def _recover_pending_histories(self) -> None:
+        """Finish committed shared-file writes before another plan can edit them."""
+        histories = self.root / "history/documents"
+        for history in sorted(histories.iterdir()) if histories.is_dir() else []:
+            if not history.is_dir() or history.is_symlink():
+                continue
+            head = _read_object(history / "HEAD", {})
+            revision = head.get("revision")
+            if not revision or _read_object(history / "MATERIALIZED", {}).get("revision") == revision:
+                continue
+            if not isinstance(revision, str) or not re.fullmatch(r"[A-Za-z0-9-]{1,128}", revision):
+                raise DocumentError("history_corrupt", "invalid pending document revision")
+            manifest = _read_object(history / "commits" / f"{revision}.json")
+            if not isinstance(manifest, dict) or manifest.get("revision") != revision:
+                raise DocumentError("history_corrupt", "missing pending commit manifest")
+            for rel, digest in manifest.get("files", {}).items():
+                if rel not in manifest.get("previousFiles", manifest["files"]):
+                    continue
+                if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+                    raise DocumentError("history_corrupt", "invalid pending object identity")
+                value = read_json(history / "objects" / f"{digest}.json")
+                if hashlib.sha256(_json_bytes(value)).hexdigest() != digest:
+                    raise DocumentError("history_corrupt", "pending object failed hash verification")
+                self._write_materialized(rel, value)
+            for rel in manifest.get("deleted", []):
+                self._delete_private(rel)
+            _atomic_bytes(history / "MATERIALIZED", _json_bytes({"revision": revision}))
+
+    def _disk_files_match(self, manifest: dict[str, Any]) -> bool:
+        if "config.json" not in manifest.get("files", {}) and (self.data_root / "config.json").is_file():
+            return False
+        for rel, digest in manifest.get("files", {}).items():
+            path = self._safe_data_path(rel)
+            if not self._disk_matches(rel, digest):
+                return False
+        if any(self._safe_data_path(rel).exists() for rel in manifest.get("deleted", [])):
+            return False
+        return True
+
+    def _commit_files(
+        self,
+        files: dict[str, Any],
+        *,
+        origin: str,
+        reason: str,
+        affected_ids: list[str],
+        parent: str | None,
+        undo_target: str | None,
+        redo_target: str | None = None,
+        redo_stack: list[str] | None = None,
+        restored_from: str | None = None,
+        renderer_revision: str | None = None,
+        preview: dict[str, Any] | None = None,
+        source_ref: str | None = None,
+        rebind_preview: bool = False,
+        clear_preview: bool = False,
+        expected_revisions: dict[str, Any] | None = None,
+        cancel_token: tuple[str, int] | None = None,
+    ) -> str:
+        revision = str(uuid.uuid4())
+        renderer_revision = renderer_revision or self._head_renderer_revision() or self._working_renderer_revision()
+        old_manifest = self._manifest() if self._head_revision() else {}
+        if clear_preview:
+            preview_record = None
+        elif preview is None:
+            preview_record = deepcopy(old_manifest.get("preview"))
+        else:
+            preview_record = deepcopy(preview)
+        if preview_record is not None and rebind_preview:
+            preview_record = {**preview_record, "documentRevision": revision, "rendererRevision": renderer_revision}
+            plan_value = files.get(self.plan_rel)
+            if isinstance(plan_value, dict):
+                plan_value.setdefault("_editor", {})["rendererPreview"] = deepcopy(preview_record)
+        def write_object(value: Any) -> str:
+            digest = hashlib.sha256(_json_bytes(value)).hexdigest()
+            object_path = self.objects / f"{digest}.json"
+            if not object_path.exists():
+                _atomic_bytes(object_path, _json_bytes(value))
+            return digest
+
+        refs: dict[str, str] = {rel: write_object(value) for rel, value in files.items()}
+        previous_refs: dict[str, str | None] = {}
+        prior_refs = old_manifest.get("files", {})
+        for rel in set(prior_refs) | set(refs):
+            if prior_refs.get(rel) == refs.get(rel):
+                continue
+            if rel in prior_refs:
+                previous_refs[rel] = prior_refs[rel]
+                continue
+            try:
+                prior_path = self._safe_data_path(rel)
+                prior_value = read_json(prior_path) if prior_path.is_file() else None
+            except Exception:  # noqa: BLE001
+                prior_value = None
+            previous_refs[rel] = write_object(prior_value) if prior_value is not None else None
+        deleted = sorted(set(old_manifest.get("files", {})) - set(refs))
+        manifest = {
+            "revision": revision, "parent": parent, "created": time.time(),
+            "origin": origin, "reason": reason, "affectedIds": sorted(set(affected_ids)),
+            "files": refs, "undoTarget": undo_target, "redoTarget": redo_target,
+            "redoStack": list(redo_stack or []),
+            "deleted": deleted, "previousFiles": previous_refs,
+            "restoredFrom": restored_from, "rendererRevision": renderer_revision,
+            "preview": deepcopy(preview_record),
+            "sourceRef": source_ref or (
+                old_manifest.get("sourceRef") if old_manifest.get("rendererRevision") == renderer_revision
+                else f"code/renderers/{renderer_revision}/source"
+            ),
+        }
+        _atomic_bytes(self.manifests / f"{revision}.json", _json_bytes(manifest))
+        guard = self._cancel_guard if cancel_token else nullcontext()
+        with guard:
+            if self._closed:
+                raise DocumentError("cancelled", "document store closed before the commit point")
+            if cancel_token and self._epochs.get(cancel_token[0], 0) != cancel_token[1]:
+                raise DocumentError("cancelled", f"pending {cancel_token[0]} edit was cancelled before commit",
+                                    {"origin": cancel_token[0]})
+            if expected_revisions is not None:
+                self._check_expected(expected_revisions)
+            if parent != (self._head_revision() or None):
+                raise DocumentError("conflict", "document changed before the commit point",
+                                    {"current": self._revisions()})
+            # The only commit point. Recovery always materializes this entire set.
+            _atomic_bytes(self.head_path, _json_bytes({"revision": revision, "rendererRevision": renderer_revision,
+                                                       "preview": deepcopy(preview_record)}))
+        self._materialize(manifest)
+        self._current_compiled = None
+        self._redo_target = redo_target
+        return revision
+
+    def _load_files(self) -> dict[str, Any]:
+        return self._manifest_files(self._manifest())
+
+    def _open_or_initialize(self) -> None:
+        if self.head_path.exists():
+            self._recover()
+            manifest = self._manifest()
+            if not self._disk_files_match(manifest):
+                # This is an external edit only if the last committed materialization
+                # was already complete; otherwise _recover has just repaired it.
+                marker = _read_object(self.materialized_path, {})
+                if marker.get("revision") == manifest.get("revision") and not self._offline_media(self._current_raw_plan()):
+                    self.reload_external()
+            return
+        if not self.plan_path.is_file():
+            raise DocumentError("not_found", f"plan not found: {self.plan_path}")
+        plan = read_json(self.plan_path)
+        if not isinstance(plan, dict):
+            raise DocumentError("invalid_plan", "plan root must be a JSON object")
+        # Node identity comes from the private sidecar, else a legacy embedded block, else is regenerated.
+        meta = self._read_sidecar(self.plan_rel)
+        if meta is None and isinstance(plan.get(EDITOR_KEY), dict):
+            meta = plan[EDITOR_KEY]
+        plan.pop(EDITOR_KEY, None)
+        if meta is not None:
+            plan[EDITOR_KEY] = {key: deepcopy(child) for key, child in meta.items() if key != "rendererPreview"}
+        ensure_node_ids(plan)
+        initial_renderer = self._working_renderer_revision()
+        if hasattr(self.workspace, "code_root") and self.compiler == self._run_worker_compiler:
+            from .renderer import RendererManager
+            RendererManager(self.workspace).resolve_renderer(initial_renderer)
+        plan.setdefault("_editor", {})["rendererRevision"] = initial_renderer
+        compiled = self._compile(plan, {})
+        self._current_compiled = compiled
+        files = {self.plan_rel: plan}
+        config_path = self.project.root / "config.json"
+        if config_path.is_file():
+            config_rel = config_path.resolve().relative_to(self.data_root).as_posix()
+            files[config_rel] = read_json(config_path)
+        self._commit_files(files, origin="system", reason="initialize document", affected_ids=[],
+                           parent=None, undo_target=None, renderer_revision=initial_renderer)
+
+    # ---- raw plan compilation and snapshots ----------------------------
+
+    def _compile(
+        self,
+        plan: dict[str, Any],
+        transcript_overrides: dict[str, Any],
+        renderer_revision: str | None = None,
+        compiler: Callable[..., dict[str, Any]] | None = None,
+        removed_files: list[str] | None = None,
+    ) -> dict[str, Any]:
+        try:
+            renderer_revision = renderer_revision or self._renderer_revision()
+            selected = compiler or self._revision_compilers.get(renderer_revision)
+            if selected is None:
+                provider = getattr(self.workspace, "compiler_for_renderer", None)
+                if callable(provider):
+                    selected = provider(renderer_revision)
+                else:
+                    available = getattr(self.workspace, "renderer_revision_available", None)
+                    if callable(available) and not available(renderer_revision):
+                        raise DocumentError("renderer_unavailable",
+                                            f"renderer source revision {renderer_revision} is unavailable",
+                                            {"rendererRevision": renderer_revision})
+                    persisted = self.root / "code/renderers" / renderer_revision / "source"
+                    working = self._working_renderer_revision()
+                    if renderer_revision != working and not persisted.is_dir():
+                        raise DocumentError("renderer_unavailable",
+                                            f"renderer source revision {renderer_revision} is unavailable",
+                                            {"rendererRevision": renderer_revision})
+                    selected = self.compiler
+            if selected is None:
+                raise DocumentError("renderer_unavailable", f"no compiler is available for {renderer_revision}")
+            offline = self._offline_media(plan)
+            if offline:
+                self._assert_view_renderer(renderer_revision)
+                raise DocumentError("media_offline", "referenced originals are offline or changed; document is view-only",
+                                    {"media": offline})
+            # The compiler receives a deep copy and is expected to be a worker
+            # interface. No normalized renderer data is ever written to a plan.
+            params = inspect.signature(selected).parameters
+            overrides = deepcopy(transcript_overrides)
+            if removed_files:
+                overrides["__editor_deleted_files__"] = list(removed_files)
+            compile_project = copy(self.project)
+            config_path = self.data_root / "config.json"
+            config = overrides.get("config.json", _read_object(config_path, {}))
+            if removed_files and "config.json" in removed_files:
+                config = {}
+            compile_project.config = deep_merge(deepcopy(DEFAULTS), deepcopy(config))
+            with self._validation_unlocked():
+                if len(params) >= 4:
+                    result = selected(compile_project, deepcopy(plan), overrides, renderer_revision)
+                elif len(params) == 3:
+                    result = selected(compile_project, deepcopy(plan), overrides)
+                elif len(params) == 2:
+                    result = selected(compile_project, deepcopy(plan))
+                else:
+                    result = selected(deepcopy(plan))
+            if not isinstance(result, dict) or not {"fps", "total", "segs"}.issubset(result):
+                raise DocumentError("compiler_contract", "compiler must return fps, total and segs")
+            return normalize_compiled(result)
+        except DocumentError:
+            raise
+        except ReelsError as exc:
+            raise DocumentError("validation_failed", str(exc)) from exc
+        except Exception as exc:  # noqa: BLE001
+            raise DocumentError("validation_failed", str(exc)) from exc
+
+    def _current_raw_plan(self) -> dict[str, Any]:
+        files = self._load_files()
+        plan = files.get(self.plan_rel)
+        if not isinstance(plan, dict):
+            raise DocumentError("history_corrupt", "committed plan is missing")
+        return plan
+
+    def _offline_media(self, plan: dict[str, Any]) -> dict[str, Any]:
+        """Only referenced originals gate this document, not unrelated assets."""
+        status = getattr(self.workspace, "media_status", None)
+        if not callable(status):
+            return {}
+        from .workspace import _plan_media_refs
+        from ..library import resolve_id
+        all_status = status()
+        offline = {}
+        for reference in _plan_media_refs(plan):
+            try:
+                asset_id = resolve_id(self.project, reference)
+                asset = read_json(self.project.assets_dir / f"{asset_id}.json")
+            except ReelsError:
+                continue  # ordinary validation still handles invalid references
+            media = asset.get("media")
+            state = all_status.get(media)
+            if state and state.get("status") != "online":
+                offline[media] = state
+        return offline
+
+    def _assert_view_renderer(self, revision: str) -> None:
+        """Offline mode never makes a missing selected renderer acceptable."""
+        available = getattr(self.workspace, "renderer_revision_available", None)
+        if callable(available) and not available(revision):
+            raise DocumentError("renderer_unavailable", f"renderer source revision {revision} is unavailable")
+        persisted = self.root / "code/renderers" / revision / "source"
+        requires_snapshot = hasattr(self.workspace, "code_root") and self.compiler == self._run_worker_compiler
+        if (requires_snapshot or revision != self._working_renderer_revision()) and not persisted.is_dir():
+            # Explicit test/integration compiler providers still own availability.
+            if not callable(getattr(self.workspace, "compiler_for_renderer", None)):
+                raise DocumentError("renderer_unavailable", f"renderer source revision {revision} is unavailable")
+        if persisted.is_symlink():
+            raise DocumentError("renderer_unavailable", "renderer source revision is unsafe")
+
+    def _offline_snapshot(self, plan: dict, offline: dict) -> dict:
+        revisions = self._revisions()
+        self._assert_view_renderer(revisions["renderer"])
+        cache_path = self.history / "VIEW.json"
+        cache = {}
+        if cache_path.is_file() and not cache_path.is_symlink() and cache_path.stat().st_nlink == 1:
+            try:
+                cache = _read_object(cache_path, {})
+            except (ValueError, OSError):
+                pass
+        cached_revisions = cache.get("revisions") or {}
+        compiled = cache.get("compiled")
+        usable = (cache.get("planHash") == fingerprint(plan)
+                  and all(cached_revisions.get(key) == revisions[key] for key in ("document", "renderer"))
+                  and isinstance(compiled, dict) and {"fps", "total", "segs"}.issubset(compiled))
+        if not usable:
+            compiled = {"fps": int(self.project.cfg("render", "fps")), "total": 0, "segs": [],
+                        "props": {}, "sound": {}, "warnings": []}
+        result = self._snapshot_result(plan, compiled, revisions, cache_view=False)
+        result.update(viewOnly=True, offline=True, offlineMedia=offline,
+                      timingState="cached_offline" if usable else "unavailable",
+                      compiledRevisions=cached_revisions if usable else None,
+                      pendingExternalEdits=not self._disk_files_match(self._manifest()))
+        result["warnings"].append("Referenced originals are offline or changed; viewing the last committed document only.")
+        for node in result["nodes"]:
+            node["editable"] = False
+            node["readOnly"] = True
+            if usable:
+                node["cached"] = True
+                if node["timingState"] == "resolved":
+                    node["timingState"] = "cached_offline"
+        return result
+
+    def _snapshot_result(
+        self,
+        plan: dict[str, Any],
+        compiled: dict[str, Any],
+        revisions: dict[str, str],
+        manifest: dict[str, Any] | None = None,
+        *,
+        cache_view: bool = True,
+    ) -> dict[str, Any]:
+        manifest = manifest or self._manifest()
+        result = editing_snapshot(plan, compiled, revisions)
+        raw_config = self._load_files().get("config.json", {})
+        config = deep_merge(deepcopy(DEFAULTS), deepcopy(raw_config))
+        result["config"] = config
+        result["projectConfig"] = deepcopy(config)
+        result["change"] = {
+            "origin": manifest.get("origin"),
+            "reason": manifest.get("reason"),
+            "affectedIds": list(manifest.get("affectedIds") or []),
+        }
+        if (cache_view and revisions["document"] == self._head_revision()
+                and fingerprint(plan) == fingerprint(self._current_raw_plan())):
+            # A recoverable view cache, not history authority or export input.
+            # It is never assigned to _current_compiled when originals are gone.
+            try:
+                _atomic_bytes(self.history / "VIEW.json", _json_bytes({
+                    "revisions": revisions, "planHash": fingerprint(plan), "compiled": compiled,
+                }))
+            except (OSError, TypeError, ValueError):
+                pass
+        return result
+
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            self._ensure_open()
+            self._recover_pending_histories()
+            plan = self._current_raw_plan()
+            offline = self._offline_media(plan)
+            if offline:
+                return self._offline_snapshot(plan, offline)
+            if not self._disk_files_match(self._manifest()):
+                return self.reload_external()
+            expected = self._revisions()
+            plan = self._current_raw_plan()
+            ensure_node_ids(plan)
+            if self._current_compiled is None:
+                transcript_overrides = {
+                    rel: value for rel, value in self._load_files().items() if rel != self.plan_rel
+                }
+                self._compile_token = ("system", self._epoch("system"))
+                compile_epoch = self._compile_token[1]
+                try:
+                    compiled = self._compile(plan, transcript_overrides)
+                finally:
+                    self._compile_token = None
+                if self._closed or self._epoch("system") != compile_epoch:
+                    raise DocumentError("cancelled", "snapshot preparation was cancelled")
+                self._check_expected(expected)
+                self._current_compiled = compiled
+            return self._snapshot_result(plan, self._current_compiled, self._revisions())
+
+    @contextmanager
+    def revision_guard(self, expected: dict[str, Any]):
+        """Hold the document commit lock while publishing revision-bound state."""
+        with self._lock:
+            self._ensure_open()
+            self._check_expected(expected)
+            current = self.snapshot()
+            if current.get("viewOnly"):
+                raise DocumentError("media_offline", "offline snapshots cannot prepare new output")
+            yield current
+
+    def publish_if_current(self, expected: dict[str, Any], callback: Callable[..., Any]) -> Any:
+        """Run a short preview-publication callback iff all input revisions remain current.
+
+        The callback executes under the same lock used by ``apply`` and
+        ``activate_renderer``; a manual commit cannot race between the check
+        and publishing the displayed preview.
+        """
+        with self._lock:
+            self._ensure_open()
+            self._check_expected(expected)
+            current = self.snapshot()
+            if current.get("viewOnly"):
+                raise DocumentError("media_offline", "offline snapshots cannot publish new output")
+            try:
+                parameters = inspect.signature(callback).parameters
+            except (TypeError, ValueError):
+                parameters = {"snapshot": None}
+            return callback() if not parameters else callback(current)
+
+    # ---- edit leases / expected revisions ------------------------------
+
+    def _check_expected(self, expected: dict[str, Any] | None, *, strict: bool = True) -> None:
+        self._recover_pending_histories()
+        current = self._revisions()
+        if expected is None:
+            if strict:
+                raise DocumentError("revision_required", "expected document, library and renderer revisions are required",
+                                    {"current": current})
+            return
+        missing = [k for k in ("document", "library", "renderer") if k not in expected]
+        if missing:
+            raise DocumentError("revision_required", "all expected revisions are required",
+                                {"missing": missing, "current": current})
+        stale = {k: {"expected": str(expected[k]), "current": current[k]}
+                 for k in current if str(expected[k]) != current[k]}
+        if stale:
+            raise DocumentError("conflict", "the document changed while this edit was being prepared",
+                                 {"stale": stale, "current": current})
+        if self._head_revision() and not self._disk_files_match(self._manifest()):
+            raise DocumentError("external_changes", "private files changed; reload before editing",
+                                {"current": current})
+
+    def acquire_lease(self, owner: str, ttl: float = 15) -> dict[str, Any]:
+        with self._lock:
+            now = time.monotonic()
+            if self._lease and self._lease["expires"] <= now:
+                self._lease = None
+            if self._lease:
+                raise DocumentError("lease_held", "another edit gesture holds the document lease",
+                                    {"owner": self._lease["owner"]})
+            token = str(uuid.uuid4())
+            self._lease = {"token": token, "owner": str(owner), "expires": now + max(0.25, min(float(ttl), 120))}
+            return {"token": token, "owner": str(owner), "expiresIn": max(0.25, min(float(ttl), 120))}
+
+    def release_lease(self, token: str) -> bool:
+        with self._lock:
+            if self._lease and self._lease["token"] == token:
+                self._lease = None
+                return True
+            return False
+
+    def _check_lease(self, batch: dict[str, Any]) -> None:
+        now = time.monotonic()
+        if self._lease and self._lease["expires"] <= now:
+            self._lease = None
+        if self._lease:
+            supplied = batch.get("lease")
+            if batch.get("origin", "ai") != "manual" or supplied != self._lease["token"]:
+                raise DocumentError("lease_conflict", "an active manual edit lease takes precedence",
+                                    {"owner": self._lease["owner"]})
+
+    # ---- operation application -----------------------------------------
+
+    def candidate_snapshot(self, batch_or_operations=None, expected=None, rendererRevision=None,
+                           *, operations=None, batch=None, renderer_revision=None) -> dict[str, Any]:
+        """Prepare an isolated batch before renderer validation; never write HEAD."""
+        if batch is not None:
+            batch_or_operations = batch
+        elif operations is not None:
+            batch_or_operations = operations
+        rendererRevision = rendererRevision or renderer_revision
+        batch = deepcopy(batch_or_operations) if isinstance(batch_or_operations, dict) else {
+            "operations": deepcopy(batch_or_operations), "expected": expected, "origin": "ai",
+        }
+        expected = batch.get("expected", expected)
+        operations = batch.get("operations") or []
+        with self._lock:
+            self._ensure_open()
+            self._check_expected(expected)
+            self._check_lease(batch)
+            epoch = self._epoch("ai")
+            files = self._load_files()
+            plan = deepcopy(files[self.plan_rel])
+            if self._offline_media(plan):
+                raise DocumentError("media_offline", "offline document is view-only")
+            aux = {rel: deepcopy(value) for rel, value in files.items() if rel != self.plan_rel}
+            compiled = self._current_compiled or self._compile(plan, aux)
+            ctx = {"plan": plan, "files": files, "aux": aux, "compiled": compiled,
+                   "fps": int(compiled["fps"]), "affected": set(), "origin": batch.get("origin", "ai")}
+            for index, operation in enumerate(operations):
+                try:
+                    self._apply_edit_operation(ctx, operation)
+                except (KeyError, IndexError, TypeError, ValueError) as exc:
+                    raise DocumentError("invalid_operation", str(exc), {"operation": index}) from exc
+            ensure_node_ids(plan)
+            # Candidate effects may be invalid under the old renderer. Their
+            # final compile belongs to the new sandboxed renderer validator.
+            result = self._snapshot_result(plan, ctx["compiled"], self._revisions())
+            result["fileOverrides"] = deepcopy(aux)
+            result["overrides"] = deepcopy(aux)
+            result["candidate"] = True
+            result["candidateHash"] = fingerprint({"plan": plan, "files": aux})
+            result["projectConfig"] = deep_merge(deepcopy(DEFAULTS), deepcopy(aux.get("config.json", {})))
+            result["config"] = deepcopy(result["projectConfig"])
+            if rendererRevision is not None:
+                result["revisions"]["renderer"] = str(rendererRevision)
+            self._check_expected(expected)
+            if self._epoch("ai") != epoch:
+                raise DocumentError("cancelled", "candidate preparation was cancelled")
+            key = fingerprint({"expected": expected, "operations": operations})
+            self._prepared_candidates[key] = {"plan": deepcopy(plan), "aux": deepcopy(aux),
+                                               "affected": set(ctx["affected"]), "aiEpoch": epoch}
+            while len(self._prepared_candidates) > 16:
+                self._prepared_candidates.pop(next(iter(self._prepared_candidates)))
+            return result
+
+    def commit_export_usage(self, updates: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
+        """Append an export receipt's usage deltas to latest private metadata."""
+        if not isinstance(expected, dict) or any(k not in expected for k in ("document", "library", "renderer")):
+            raise DocumentError("revision_required", "export receipt requires all input revisions")
+        if not isinstance(updates, dict) or set(updates) - {"assets", "music"}:
+            raise DocumentError("invalid_usage", "usage updates require assets and music maps")
+        with self._lock:
+            self._ensure_open()
+            self._recover()
+            if not self._disk_files_match(self._manifest()):
+                self.reload_external()
+            files = self._load_files()
+            affected = []
+            for kind, directory in (("assets", self.project.assets_dir), ("music", self.project.music_dir)):
+                records = updates.get(kind, {})
+                if not isinstance(records, dict):
+                    raise DocumentError("invalid_usage", f"{kind} updates must be a map")
+                for identifier, additions in records.items():
+                    if not isinstance(identifier, str) or not identifier or Path(identifier).name != identifier or identifier in (".", ".."):
+                        raise DocumentError("invalid_usage", "usage identifier must be a stable asset ID or music slug")
+                    if not isinstance(additions, list):
+                        raise DocumentError("invalid_usage", "usage delta must be an array")
+                    path = self._safe_data_path((directory / f"{identifier}.json").relative_to(self.data_root).as_posix())
+                    if not path.is_file():
+                        raise DocumentError("invalid_usage", f"usage metadata is missing for {identifier}")
+                    value = read_json(path)
+                    used = value.setdefault("used", [])
+                    if not isinstance(used, list):
+                        raise DocumentError("invalid_usage", f"used field is not an array for {identifier}")
+                    changed = False
+                    for entry in additions:
+                        if entry not in used:
+                            used.append(deepcopy(entry))
+                            changed = True
+                    if changed:
+                        files[path.relative_to(self.data_root).as_posix()] = value
+                        affected.append(identifier)
+            if not affected:
+                return self.snapshot()
+            current = self._revisions()
+            self._commit_files(files, origin="system", reason="record completed export usage",
+                               affected_ids=affected, parent=current["document"],
+                               undo_target=self._manifest().get("undoTarget"),
+                               restored_from=self._manifest().get("restoredFrom") or current["document"],
+                               expected_revisions=current)
+            return self.snapshot()
+
+    def apply(self, batch: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(batch, dict):
+            raise DocumentError("invalid_batch", "batch must be an object")
+        expected = batch.get("expected")
+        with self._lock:
+            self._ensure_open()
+            self._check_expected(expected)
+            self._check_lease(batch)
+            origin = batch.get("origin", "ai")
+            if origin not in ("manual", "ai", "external", "system"):
+                raise DocumentError("invalid_origin", "origin must be manual, ai, external or system")
+            epoch = self._epoch(origin)
+            self._compile_token = (origin, epoch)
+            base_revision = self._head_revision()
+            files = self._load_files()
+            plan = deepcopy(files[self.plan_rel])
+            aux = {k: deepcopy(v) for k, v in files.items() if k != self.plan_rel}
+            prior_nodes = ensure_node_ids(plan)
+            current_renderer = self._renderer_revision()
+            if self._offline_media(plan):
+                self._compile_token = None
+                raise DocumentError("media_offline", "offline document is view-only")
+            try:
+                compiled_before = self._current_compiled or self._compile(plan, aux, current_renderer)
+            except DocumentError:
+                if self._epoch(origin) != epoch:
+                    self._compile_token = None
+                    raise DocumentError("cancelled", f"pending {origin} edit was cancelled during validation")
+                self._compile_token = None
+                raise
+            if self._epoch(origin) != epoch:
+                self._compile_token = None
+                raise DocumentError("cancelled", f"pending {origin} edit was cancelled during validation")
+            self._compile_token = None
+            context = {"plan": plan, "files": files, "aux": aux, "compiled": compiled_before,
+                       "fps": int(compiled_before["fps"]), "affected": set(), "origin": origin}
+            operations = batch.get("operations")
+            if not isinstance(operations, list) or not operations:
+                raise DocumentError("invalid_batch", "operations must be a non-empty array")
+            for n, operation in enumerate(operations):
+                if not isinstance(operation, dict):
+                    raise DocumentError("invalid_operation", f"operation {n} must be an object")
+                try:
+                    self._apply_edit_operation(context, operation)
+                except DocumentError as exc:
+                    exc.details.setdefault("operation", n)
+                    raise
+                except (KeyError, IndexError, TypeError, ValueError) as exc:
+                    raise DocumentError("invalid_operation", str(exc), {"operation": n}) from exc
+            ensure_node_ids(plan)
+            # Compile and validate candidate entirely before touching HEAD.
+            self._compile_token = (origin, epoch)
+            try:
+                candidate_compiled = self._compile(plan, aux, current_renderer)
+            except DocumentError:
+                if self._epoch(origin) != epoch:
+                    raise DocumentError("cancelled", f"pending {origin} edit was cancelled during validation",
+                                        {"origin": origin})
+                raise
+            finally:
+                self._compile_token = None
+            if self._epoch(origin) != epoch:
+                raise DocumentError("cancelled", f"pending {origin} edit was cancelled during validation",
+                                    {"origin": origin})
+            # Validation may have yielded while a manual gesture, library
+            # refresh, or renderer activation changed the base revisions.
+            self._check_expected(expected)
+            if self._head_revision() != base_revision:
+                raise DocumentError("conflict", "document changed during validation",
+                                    {"current": self._revisions()})
+            self._check_lease(batch)
+            files[self.plan_rel] = plan
+            files.update(aux)
+            revision = self._commit_files(
+                files, origin=origin, reason=str(batch.get("reason") or "edit"),
+                affected_ids=list(context["affected"]), parent=base_revision,
+                undo_target=base_revision, renderer_revision=current_renderer,
+                expected_revisions=expected,
+                cancel_token=(origin, epoch),
+            )
+            self._current_compiled = candidate_compiled
+            return self._snapshot_result(plan, candidate_compiled, self._revisions(revision))
+
+    def _apply_edit_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
+        """Preserve IDs by object identity and ripple against renderer positions."""
+        plan = ctx["plan"]
+        metadata = deepcopy(ensure_node_ids(plan))
+        objects = {node_id: pointer_get(plan, entry["locator"]) for node_id, entry in metadata.items()}
+        old_snapshot = editing_snapshot(plan, ctx["compiled"], self._revisions())
+        self._apply_operation(ctx, operation)
+        # Moving identical clips must preserve identities, not just fingerprints.
+        from .document import _descriptors
+        descriptors = _descriptors(plan)
+        replacement = ctx.pop("idReplacement", {})
+        removed_ids = ctx.pop("removedNodeIds", set())
+        used_paths = set()
+        for node_id, value in objects.items():
+            value = replacement.get(node_id, value)
+            candidates = [item for item in descriptors if item["raw"] is value
+                          and item["kind"] == metadata[node_id]["kind"]
+                          and item["path"] not in used_paths] if node_id not in removed_ids else []
+            if not isinstance(value, (dict, list)):
+                parent = metadata.get(metadata[node_id].get("parentId"), {}).get("locator")
+                candidates = [item for item in candidates if item["parentPath"] == parent]
+            descriptor = candidates[0] if len(candidates) == 1 else next(
+                (item for item in candidates if item["path"] == metadata[node_id]["locator"]), None)
+            if descriptor is not None:
+                used_paths.add(descriptor["path"])
+                metadata[node_id]["locator"] = descriptor["path"]
+                metadata[node_id]["fingerprint"] = fingerprint(descriptor["raw"])
+            else:
+                metadata.pop(node_id, None)
+        for node_id, entry in ctx.pop("newNodeMetadata", {}).items():
+            if node_id not in metadata:
+                metadata[node_id] = entry
+        plan["_editor"]["nodes"] = metadata
+        ensure_node_ids(plan)
+        op = operation.get("op")
+        edited_kind = metadata.get(str(operation.get("id")), {}).get("kind")
+        timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments")
+        timing_changed |= op == "trim_segment" and edited_kind == "segment"
+        timing_changed |= op == "set_field" and operation.get("path") in (
+            "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps",
+        )
+        if edited_kind == "cutaway":
+            timing_changed = False
+        if not timing_changed:
+            return
+        compiled = self._compile(plan, ctx["aux"])
+        new_snapshot = editing_snapshot(plan, compiled, self._revisions())
+        old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment"]
+        new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
+        old_fps, new_fps = old_snapshot["fps"], new_snapshot["fps"]
+        old_total, new_total = old_snapshot["durationFrames"] / old_fps, new_snapshot["durationFrames"] / new_fps
+        def remap(at):
+            if at >= old_total:
+                return max(0.0, at + new_total - old_total)
+            if op == "split_segment":
+                return at
+            anchor = next((node for node in reversed(old_nodes) if node["startFrame"] / old_fps <= at), None)
+            if anchor is None:
+                return at
+            target = new_nodes.get(anchor["id"])
+            if target is None:
+                return None
+            offset = at - anchor["startFrame"] / old_fps
+            if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
+                offset = (offset * anchor.get("speed", 1) + anchor["sourceIn"] - target["sourceIn"]) / target.get("speed", 1)
+            return max(target["startFrame"] / new_fps, target["startFrame"] / new_fps + offset)
+        for collection in ("text", "musicDrops", "sfx", "exhibits"):
+            events = plan.get(collection)
+            if not isinstance(events, list):
+                continue
+            kept = []
+            for event in events:
+                if not isinstance(event, dict) or (event.get("at") is None and event.get("endAt") is None):
+                    kept.append(event)
+                    continue
+                time_field = "at" if event.get("at") is not None else "endAt"
+                old_at = float(event[time_field])
+                at = remap(old_at)
+                if at is None:
+                    continue
+                if time_field == "endAt":
+                    event["endAt"] = round(at, 6)
+                    kept.append(event)
+                    continue
+                end = remap(float(event.get("endAt", old_at + float(event.get("for", 0) or 0))))
+                event["at"] = round(at, 6)
+                if "for" in event and end is not None:
+                    event["for"] = round(max(0.0, end - at), 6)
+                if "endAt" in event and end is not None:
+                    event["endAt"] = round(max(at, end), 6)
+                kept.append(event)
+            plan[collection] = kept
+        ctx["compiled"] = compiled
+        ctx["fps"] = int(compiled["fps"])
+        ensure_node_ids(plan)
+
+    def _apply_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
+        plan: dict[str, Any] = ctx["plan"]
+        op = operation.get("op")
+        affected: set[str] = ctx["affected"]
+
+        if op == "insert_segment":
+            value = operation.get("value")
+            if not isinstance(value, dict):
+                raise ValueError("insert_segment.value must be an object")
+            segments = plan.setdefault("segments", [])
+            before = operation.get("beforeId")
+            if before:
+                _, target = node_location(plan, before)
+                if not isinstance(target, dict) or not any(target is item for item in segments):
+                    raise ValueError("beforeId must identify a primary segment")
+                segments.insert(next(i for i, item in enumerate(segments) if item is target), deepcopy(value))
+            else:
+                segments.append(deepcopy(value))
+            return
+
+        if op == "remove_segments":
+            ids = operation.get("ids") or []
+            locations = [(node_id, node_location(plan, node_id)[1]) for node_id in ids]
+            segments = plan.get("segments") or []
+            for node_id, item in locations:
+                if not any(item is candidate for candidate in segments):
+                    raise ValueError(f"{node_id} is not a primary segment")
+                affected.add(node_id)
+                segments.pop(next(i for i, candidate in enumerate(segments) if candidate is item))
+            return
+
+        if op == "reorder_segments":
+            ids = operation.get("ids") or []
+            segments = plan.get("segments") or []
+            resolved = []
+            for node_id in ids:
+                _, item = node_location(plan, node_id)
+                if not any(item is candidate for candidate in segments):
+                    raise ValueError(f"{node_id} is not a primary segment")
+                if not any(item is candidate for candidate in resolved):
+                    resolved.append(item)
+                affected.add(node_id)
+            remaining = [item for item in segments if not any(item is candidate for candidate in resolved)]
+            before_id = operation.get("beforeId")
+            if before_id:
+                _, before = node_location(plan, before_id)
+                if not any(before is candidate for candidate in remaining):
+                    raise ValueError("beforeId must be a segment outside the moved set")
+                at = next(i for i, candidate in enumerate(remaining) if candidate is before)
+            else:
+                at = len(remaining)
+            plan["segments"] = remaining[:at] + resolved + remaining[at:]
+            return
+
+        if op in ("trim_segment", "trim_cutaway"):
+            node_id = str(operation["id"])
+            entry, segment = node_location(plan, node_id)
+            if entry["kind"] == "cutaway":
+                resolved = self._resolved_cutaway(ctx, node_id)
+                if resolved.get("mediaKind") == "photo":
+                    raise ValueError("photo cutaways use resize_overlay.for")
+                for field, value in (("in", resolved.get("sourceIn")), ("out", resolved.get("sourceOut")),
+                                     ("speed", resolved.get("speed", 1))):
+                    if value is not None:
+                        segment.setdefault(field, value)
+                source_in, source_out = float(operation["sourceIn"]), float(operation["sourceOut"])
+                if resolved.get("sourceDuration") is not None and source_out > resolved["sourceDuration"]:
+                    raise ValueError("cutaway sourceOut exceeds the original source duration")
+                trim_local_source(segment, source_in, source_out)
+                affected.add(node_id)
+                return
+            if entry["kind"] != "segment" or op == "trim_cutaway":
+                raise ValueError("trim operation requires a video segment or cutaway")
+            index = int(entry["locator"].split("/")[2])
+            compiled_seg = ctx["compiled"]["segs"][index]
+            for field in ("in", "out"):
+                segment.setdefault(field, compiled_seg["spec"].get(field))
+            trim_segment(
+                plan, index, float(operation["sourceIn"]), float(operation["sourceOut"]),
+                fps=ctx["fps"], start_frame=int(compiled_seg["start"]), old_frames=int(compiled_seg["frames"]),
+                ripple=False,
+            )
+            affected.add(node_id)
+            return
+
+        if op == "split_segment":
+            node_id = str(operation["id"])
+            entry, segment = node_location(plan, node_id)
+            if entry["kind"] != "segment":
+                raise ValueError("split_segment.id must identify a primary segment")
+            index = int(entry["locator"].split("/")[2])
+            compiled_seg = ctx["compiled"]["segs"][index]
+            for field in ("in", "out"):
+                segment.setdefault(field, compiled_seg["spec"].get(field))
+            at = int(operation["atFrame"])
+            local_frame = at - int(compiled_seg["start"])
+            if not 0 < local_frame < int(compiled_seg["frames"]):
+                raise ValueError("split frame must be inside the segment")
+            left, right = split_segment(segment, local_frame, fps=ctx["fps"],
+                                        total_frames=int(compiled_seg["frames"]))
+            plan["segments"][index:index + 1] = [left, right]
+            ctx["idReplacement"] = {node_id: left}
+            affected.add(node_id)
+            return
+
+        if op == "insert_overlay":
+            parent_id = operation.get("parentId")
+            collection = str(operation.get("collection") or "")
+            value = operation.get("value")
+            if not isinstance(value, dict):
+                raise ValueError("insert_overlay.value must be an object")
+            parent: dict[str, Any]
+            if parent_id not in (None, "", "document", plan.get("_editor", {}).get("documentId")):
+                entry, parent = node_location(plan, str(parent_id))
+                if entry["kind"] != "segment":
+                    raise ValueError("overlay parentId must identify a primary segment")
+            else:
+                parent = plan
+            allowed = {"text", "stats", "nat", "sfx", "bleep", "punch", "blur", "path", "exhibits", "cutaways"}
+            if parent is plan:
+                allowed = {"text", "musicDrops", "sfx", "exhibits"}
+            if collection not in allowed:
+                raise ValueError("invalid overlay collection")
+            parent.setdefault(collection, [])
+            if not isinstance(parent[collection], list):
+                raise ValueError(f"{collection} is not an array")
+            parent[collection].append(deepcopy(value))
+            if parent_id:
+                affected.add(str(parent_id))
+            return
+
+        if op in ("move_overlay", "resize_overlay", "remove_overlay"):
+            node_id = str(operation["id"])
+            if node_id in ctx.get("generatedRemoved", set()):
+                raise ValueError("generated cue was already removed in this batch")
+            aliases = ctx.get("generatedAliases", {})
+            if node_id in aliases:
+                operation = {**operation, "id": aliases[node_id]}
+                node_id = aliases[node_id]
+            generated = {n["id"]: n for n in editing_snapshot(plan, ctx["compiled"], self._revisions())["nodes"]
+                         if n.get("generated")}
+            if node_id in generated:
+                if generated[node_id]["kind"] != "generated_sfx":
+                    raise DocumentError("read_only_node", "renderer-generated caption/effect nodes are read-only; edit their raw source settings")
+                self._materialize_generated(ctx, node_id, operation)
+                affected.add(node_id)
+                return
+            entry, item = node_location(plan, node_id)
+            if entry["kind"] == "segment":
+                raise ValueError("overlay operation requires a timed overlay node")
+            if op == "remove_overlay":
+                parent, key = pointer_parent(plan, entry["locator"])
+                if isinstance(parent, list):
+                    parent.pop(int(key))
+                elif parent is plan and key == "endCard":
+                    parent[key] = False
+                else:
+                    parent.pop(key)
+                ctx.setdefault("removedNodeIds", set()).add(node_id)
+                affected.add(node_id)
+                return
+            if entry["kind"] == "cutaway":
+                resolved = self._resolved_cutaway(ctx, node_id)
+                if "at" in operation:
+                    at = float(operation["at"])
+                    if not math.isfinite(at) or at < 0:
+                        raise ValueError("cutaway at must be nonnegative segment-local seconds")
+                    item["at"] = round(at, 6)
+                if op == "resize_overlay" and "for" in operation:
+                    duration = float(operation["for"])
+                    if not math.isfinite(duration) or duration <= 0:
+                        raise ValueError("cutaway duration must be positive and finite")
+                    if resolved.get("mediaKind") == "photo":
+                        item["duration"] = round(duration, 6)
+                    else:
+                        start = float(item.get("in", resolved["sourceIn"]))
+                        speed = float(item.get("speed", resolved.get("speed", 1)))
+                        self._apply_operation(ctx, {"op": "trim_cutaway", "id": node_id,
+                                                   "sourceIn": start, "sourceOut": start + duration * speed})
+                affected.add(node_id)
+                return
+            if entry["kind"] == "sfx" and op == "resize_overlay" and "for" in operation:
+                raise DocumentError("unsupported_timing", "SFX duration is determined by the selected sound")
+            if not isinstance(item, dict):
+                raise ValueError("overlay must be an object")
+            if op == "move_overlay":
+                item.pop("endAt", None)
+                item["at"] = round(float(operation["at"]), 6)
+            else:
+                if "at" in operation:
+                    item["at"] = round(float(operation["at"]), 6)
+                if "for" in operation:
+                    value = float(operation["for"])
+                    if value < 0:
+                        raise ValueError("overlay duration cannot be negative")
+                    item["for"] = round(value, 6)
+            affected.add(node_id)
+            return
+
+        if op in ("set_field", "set_keyframes"):
+            node_id = operation.get("id")
+            path = str(operation.get("path") or "")
+            if node_id == "project":
+                if op != "set_field":
+                    raise ValueError("project config supports set_field only")
+                self._set_project_config(ctx, path, operation.get("value"))
+                affected.add("project")
+                return
+            if node_id in (None, "", "document"):
+                target = plan
+                node_id = None
+            else:
+                entry, target = node_location(plan, str(node_id))
+                if not isinstance(target, (dict, list)):
+                    if op == "set_field" and path == "/value":
+                        parent, key = pointer_parent(plan, entry["locator"])
+                        value = deepcopy(operation.get("value"))
+                        parent[int(key) if isinstance(parent, list) else key] = value
+                        ctx.setdefault("idReplacement", {})[str(node_id)] = value
+                        affected.add(str(node_id))
+                        return
+                    raise ValueError("target node cannot contain fields")
+                if entry["kind"] == "generated_sfx":
+                    raise ValueError("generated events must be moved/resized to materialize an override")
+            if not path.startswith("/") or path == "/_editor" or path.startswith("/_editor/"):
+                raise ValueError("path must be a JSON pointer outside reserved _editor metadata")
+            if node_id is None and (path == "/segments" or path.startswith("/segments/")):
+                raise ValueError("primary segments must be edited through stable node IDs")
+            if node_id is None and (path == "/render" or path.startswith("/render/")):
+                raise ValueError("render defaults belong to project config: use id='project' and path='/render/…'")
+            parent, key = pointer_parent(target, path)
+            cursor = target
+            for component in path.lstrip("/").split("/")[:-1]:
+                if isinstance(cursor, list):
+                    raise ValueError("array elements must be edited through stable node IDs")
+                cursor = cursor[component.replace("~1", "/").replace("~0", "~")]
+            value = deepcopy(operation.get("value"))
+            if isinstance(parent, list):
+                raise ValueError("array elements must be edited through stable node IDs")
+            else:
+                parent[key] = value
+            if node_id:
+                affected.add(str(node_id))
+            return
+
+        if op == "correct_words":
+            asset_id = str(operation["assetId"])
+            asset_path = self.project.assets_dir / f"{asset_id}.json"
+            if not asset_path.is_file():
+                raise ValueError(f"unknown asset id: {asset_id}")
+            asset = read_json(asset_path)
+            transcript_rel = asset.get("transcript")
+            if not transcript_rel:
+                raise ValueError(f"{asset_id} has no transcript")
+            transcript_path = self.project.abs(transcript_rel).resolve()
+            try:
+                rel = transcript_path.relative_to(self.data_root).as_posix()
+            except ValueError as exc:
+                raise DocumentError("path_denied", "transcript is outside private data root") from exc
+            transcript = deepcopy(ctx["aux"].get(rel))
+            if transcript is None:
+                transcript = read_json(transcript_path)
+            words = transcript.get("words")
+            if not isinstance(words, list):
+                raise ValueError("transcript has no words array")
+            for correction in operation.get("corrections") or []:
+                index, word = int(correction["index"]), str(correction["word"])
+                if not 0 <= index < len(words):
+                    raise ValueError(f"word index {index} is out of range")
+                words[index]["w"] = word
+            ctx["aux"][rel] = transcript
+            affected.add(asset_id)
+            return
+
+        raise ValueError(f"unsupported operation: {op!r}")
+
+    def _resolved_cutaway(self, ctx: dict[str, Any], node_id: str) -> dict[str, Any]:
+        node = next((n for n in editing_snapshot(ctx["plan"], ctx["compiled"], self._revisions())["nodes"]
+                     if n["id"] == node_id and n["kind"] == "cutaway" and n.get("resolved")), None)
+        if node is None:
+            raise ValueError("cutaway has no resolved source bounds in the compiled snapshot")
+        return node
+
+    def _set_project_config(self, ctx: dict[str, Any], path: str, value: Any) -> None:
+        allowed = {"render", "audio", "brand", "captions", "sfx", "units"}
+        if not path.startswith("/"):
+            raise ValueError("project config path must be a JSON pointer")
+        section = path.lstrip("/").split("/", 1)[0].replace("~1", "/").replace("~0", "~")
+        from .workspace import _sensitive_key
+        def sensitive(item):
+            if isinstance(item, dict):
+                return any(_sensitive_key(str(key)) or sensitive(child) for key, child in item.items())
+            return isinstance(item, list) and any(sensitive(child) for child in item)
+        if any(_sensitive_key(component) for component in path.split("/")) or sensitive(value):
+            raise DocumentError("config_permission", "credential fields cannot be edited through project operations")
+        if section not in allowed:
+            raise DocumentError(
+                "config_permission",
+                f"project config section {section!r} is not editable through this operation",
+                {"allowedSections": sorted(allowed)},
+            )
+        config_rel = (self.project.root / "config.json").resolve().relative_to(self.data_root).as_posix()
+        if config_rel in ctx["aux"]:
+            config = deepcopy(ctx["aux"][config_rel])
+        elif (self.project.root / "config.json").is_file():
+            config = read_json(self.project.root / "config.json")
+        else:
+            config = {}
+        if not isinstance(config, dict):
+            raise DocumentError("invalid_config", "private config.json must contain an object")
+        parts = [part.replace("~1", "/").replace("~0", "~") for part in path.lstrip("/").split("/")]
+        cursor = config
+        for component in parts[:-1]:
+            next_value = cursor.get(component)
+            if next_value is None:
+                next_value = {}
+                cursor[component] = next_value
+            if not isinstance(next_value, dict):
+                raise ValueError(f"config path component {component!r} is not an object")
+            cursor = next_value
+        cursor[parts[-1]] = deepcopy(value)
+        if section == "units" and config.get("units") not in (None, "imperial", "metric"):
+            raise DocumentError("invalid_config", "units must be 'imperial' or 'metric'")
+        ctx["aux"][config_rel] = config
+
+    def activate_renderer(
+        self,
+        renderer_revision: str,
+        expected: dict[str, Any],
+        reason: str,
+        operations: list[dict[str, Any]] | None = None,
+        preview: str | dict[str, Any] | None = None,
+        *,
+        candidate_compiler: Callable[..., dict[str, Any]] | None = None,
+        source_ref: str | None = None,
+    ) -> dict[str, Any]:
+        """Atomically make a prepared renderer revision and its edit live.
+
+        RendererManager owns source snapshotting and candidate validation. It
+        calls this only after preparing an immutable candidate and matching
+        preview. The revision/preview references, plan operations, history
+        manifest and HEAD pointer then commit as one document revision.
+        """
+        renderer_revision = str(renderer_revision).strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", renderer_revision):
+            raise DocumentError("invalid_renderer_revision", "renderer_revision is required")
+        with self._lock:
+            self._ensure_open()
+            self._check_expected(expected)
+            self._check_lease({"origin": "ai"})
+            epoch = self._epoch("renderer")
+            self._compile_token = ("renderer", epoch)
+            base_revision = self._head_revision()
+            files = self._load_files()
+            plan = deepcopy(files[self.plan_rel])
+            aux = {k: deepcopy(v) for k, v in files.items() if k != self.plan_rel}
+            try:
+                compiled_before = self._current_compiled or self._compile(plan, aux, self._renderer_revision())
+            except DocumentError:
+                self._compile_token = None
+                if self._epoch("renderer") != epoch:
+                    raise DocumentError("cancelled", "renderer activation was cancelled during validation")
+                raise
+            if self._epoch("renderer") != epoch:
+                self._compile_token = None
+                raise DocumentError("cancelled", "renderer activation was cancelled during validation")
+            self._compile_token = None
+            context = {
+                "plan": plan, "files": files, "aux": aux, "compiled": compiled_before,
+                "fps": int(compiled_before["fps"]), "affected": set(), "origin": "ai",
+            }
+            prepared = self._prepared_candidates.get(fingerprint({"expected": expected, "operations": operations or []}))
+            if operations and preview is not None and hasattr(self.workspace, "code_root") and prepared is None:
+                raise DocumentError("candidate_required",
+                                    "prepare the frozen operation batch with candidate_snapshot before validating its preview")
+            if prepared:
+                if prepared["aiEpoch"] != self._epoch("ai"):
+                    raise DocumentError("cancelled", "renderer candidate's AI turn was cancelled")
+                plan = deepcopy(prepared["plan"])
+                aux = deepcopy(prepared["aux"])
+                context.update(plan=plan, aux=aux, affected=set(prepared["affected"]))
+            for index, operation in enumerate([] if prepared else operations or []):
+                if not isinstance(operation, dict):
+                    raise DocumentError("invalid_operation", f"operation {index} must be an object")
+                try:
+                    self._apply_edit_operation(context, operation)
+                except DocumentError as exc:
+                    exc.details.setdefault("operation", index)
+                    raise
+                except (KeyError, IndexError, TypeError, ValueError) as exc:
+                    raise DocumentError("invalid_operation", str(exc), {"operation": index}) from exc
+            editor = plan.setdefault("_editor", {})
+            editor["rendererRevision"] = renderer_revision
+            preview_record: dict[str, Any] | None
+            if isinstance(preview, str):
+                preview_record = {"ref": preview}
+            elif isinstance(preview, dict):
+                preview_record = deepcopy(preview)
+            elif preview is None:
+                preview_record = None
+            else:
+                raise DocumentError("invalid_preview", "preview must be a reference string or object")
+            if preview_record is not None:
+                if not preview_record.get("ref"):
+                    raise DocumentError("invalid_preview", "preview reference object requires a non-empty ref")
+                preview_renderer = preview_record.get("rendererRevision", renderer_revision)
+                if str(preview_renderer) != renderer_revision:
+                    raise DocumentError("invalid_preview", "prepared preview renderer revision does not match candidate",
+                                        {"previewRenderer": preview_renderer, "rendererRevision": renderer_revision})
+                preview_input = preview_record.get("inputDocumentRevision", base_revision)
+                if str(preview_input) != base_revision:
+                    raise DocumentError("invalid_preview", "prepared preview was not built from the expected document revision",
+                                        {"previewDocumentRevision": preview_input, "expectedDocument": base_revision})
+                preview_record["rendererRevision"] = renderer_revision
+                preview_record["inputDocumentRevision"] = base_revision
+            elif "rendererPreview" in editor:
+                # A code change cannot claim the prior renderer's preview.
+                editor.pop("rendererPreview", None)
+
+            ensure_node_ids(plan)
+            files[self.plan_rel] = plan
+            files.update(aux)
+            provider = getattr(self.workspace, "compiler_for_renderer", None)
+            if candidate_compiler is None and callable(provider):
+                candidate_compiler = provider(renderer_revision)
+            self._compile_token = ("renderer", epoch)
+            try:
+                candidate_compiled = self._compile(plan, aux, renderer_revision, candidate_compiler)
+            except DocumentError:
+                if self._epoch("renderer") != epoch:
+                    raise DocumentError("cancelled", "renderer activation was cancelled during validation")
+                raise
+            finally:
+                self._compile_token = None
+            if self._epoch("renderer") != epoch:
+                raise DocumentError("cancelled", "renderer activation was cancelled during validation")
+            # This second check is deliberately adjacent to the commit point:
+            # candidate builds may take minutes and manual edits always win.
+            self._check_expected(expected)
+            self._check_lease({"origin": "ai"})
+            if self._head_revision() != base_revision:
+                raise DocumentError("conflict", "document changed while renderer candidate was validating",
+                                    {"current": self._revisions()})
+            revision = self._commit_files(
+                files, origin="renderer", reason=reason or "activate renderer revision",
+                affected_ids=list(context["affected"]), parent=base_revision, undo_target=base_revision,
+                renderer_revision=renderer_revision, preview=preview_record, source_ref=source_ref,
+                rebind_preview=preview_record is not None,
+                clear_preview=preview_record is None,
+                expected_revisions=expected,
+                cancel_token=("renderer", epoch),
+            )
+            if candidate_compiler is not None:
+                self._revision_compilers[renderer_revision] = candidate_compiler
+            self._current_compiled = candidate_compiled
+            return self._snapshot_result(plan, candidate_compiled, self._revisions(revision))
+
+    def _materialize_generated(self, ctx: dict[str, Any], node_id: str, operation: dict[str, Any]) -> None:
+        nodes = editing_snapshot(ctx["plan"], ctx["compiled"], self._revisions())["nodes"]
+        generated = next((n for n in nodes if n["id"] == node_id and n["kind"] == "generated_sfx"), None)
+        if generated is None:
+            raise ValueError("generated cue is no longer present in the current compiled revision")
+        if operation.get("op") == "resize_overlay" and "for" in operation:
+            raise DocumentError("unsupported_timing", "SFX duration is determined by the selected sound")
+        plan = ctx["plan"]
+        fps = ctx["fps"]
+        # Disable automatic generation and materialize every currently visible
+        # generated cue, so only the moved cue changes and no siblings vanish.
+        explicit = list(plan.get("sfx") or [])
+        materialized = {}
+        for node in nodes:
+            if node["kind"] != "generated_sfx":
+                continue
+            cue = node["raw"]
+            if node["id"] == node_id and operation["op"] == "remove_overlay":
+                ctx.setdefault("generatedRemoved", set()).add(node_id)
+                continue
+            at = round(int(cue.get("startFrame", 0)) / fps, 6)
+            if node["id"] == node_id:
+                if operation.get("op") == "move_overlay":
+                    at = round(float(operation["at"]), 6)
+                elif operation.get("at") is not None:
+                    at = round(float(operation["at"]), 6)
+            item = {"sound": cue["sound"], "at": at, "gain": cue.get("gain", 0.7),
+                    "_editorGeneratedEvent": cue.get("source")}
+            explicit.append(item)
+            materialized[node["id"]] = item
+        plan["sfx"] = explicit
+        plan["autoSfx"] = False
+        ids = ensure_node_ids(plan)
+        aliases = ctx.setdefault("generatedAliases", {})
+        for generated_id, item in materialized.items():
+            aliases[generated_id] = next(node for node, entry in ids.items()
+                                         if pointer_get(plan, entry["locator"]) is item)
+        # Keep the freshly assigned IDs through _apply_edit_operation's identity
+        # reconciliation, including any later operations in this same batch.
+        ctx.setdefault("newNodeMetadata", {}).update(deepcopy(ids))
+
+    # ---- history and external materialization --------------------------
+
+    def _preserve_usage(self, files: dict[str, Any], current: dict[str, Any]) -> None:
+        # Completed exports are facts, not editing gestures. Restoring a plan
+        # checkpoint must not erase receipts or newer library annotations.
+        for rel in set(files) | set(current.get("files", {})):
+            if rel.startswith(("library/assets/", "music/")) and rel.endswith(".json"):
+                path = self._safe_data_path(rel)
+                if path.is_file():
+                    files[rel] = read_json(path)
+
+    def undo(self, expected: dict[str, Any] | None = None) -> dict[str, Any]:
+        with self._lock:
+            self._ensure_open()
+            self._check_lease({})
+            expected = expected or self._revisions()
+            self._check_expected(expected, strict=expected is not None)
+            current = self._manifest()
+            logical = self._manifest(current["restoredFrom"]) if current.get("restoredFrom") else current
+            target = current.get("undoTarget")
+            if not target:
+                raise DocumentError("nothing_to_undo", "there is no earlier document revision")
+            target_manifest = self._manifest(target)
+            files = self._manifest_files(target_manifest)
+            for rel, digest in logical.get("previousFiles", {}).items():
+                if digest is None:
+                    files.pop(rel, None)
+                else:
+                    files[rel] = self._object_value(digest)
+            self._preserve_usage(files, current)
+            candidate_plan = files.get(self.plan_rel)
+            aux = {k: v for k, v in files.items() if k != self.plan_rel}
+            target_renderer = str(target_manifest.get("rendererRevision") or
+                                  candidate_plan.get("_editor", {}).get("rendererRevision") or self._renderer_revision())
+            removed = sorted(set(current.get("files", {})) - set(files))
+            compiled = self._compile(candidate_plan, aux, target_renderer, removed_files=removed)
+            self._check_lease({})
+            redo_stack = list(current.get("redoStack") or []) + [logical["revision"]]
+            revision = self._commit_files(
+                files, origin="undo", reason=f"undo: {logical.get('reason', 'edit')}",
+                affected_ids=current.get("affectedIds", []), parent=current["revision"],
+                undo_target=target_manifest.get("undoTarget"), redo_target=redo_stack[-1], redo_stack=redo_stack,
+                restored_from=target, renderer_revision=target_renderer,
+                preview=target_manifest.get("preview"), rebind_preview=target_manifest.get("preview") is not None,
+                clear_preview=target_manifest.get("preview") is None,
+                expected_revisions=expected,
+            )
+            self._current_compiled = compiled
+            return self._snapshot_result(candidate_plan, compiled, self._revisions(revision))
+
+    def redo(self, expected: dict[str, Any] | None = None) -> dict[str, Any]:
+        with self._lock:
+            self._ensure_open()
+            self._check_lease({})
+            expected = expected or self._revisions()
+            self._check_expected(expected, strict=expected is not None)
+            current = self._manifest()
+            redo_stack = list(current.get("redoStack") or [])
+            target = redo_stack.pop() if redo_stack else current.get("redoTarget") or self._redo_target
+            if not target:
+                raise DocumentError("nothing_to_redo", "there is no edit to redo")
+            target_manifest = self._manifest(target)
+            files = self._manifest_files(target_manifest)
+            self._preserve_usage(files, current)
+            candidate_plan = files.get(self.plan_rel)
+            aux = {k: v for k, v in files.items() if k != self.plan_rel}
+            target_renderer = str(target_manifest.get("rendererRevision") or
+                                  candidate_plan.get("_editor", {}).get("rendererRevision") or self._renderer_revision())
+            removed = sorted(set(current.get("files", {})) - set(files))
+            compiled = self._compile(candidate_plan, aux, target_renderer, removed_files=removed)
+            self._check_lease({})
+            revision = self._commit_files(
+                files, origin="redo", reason=f"redo: {target_manifest.get('reason', 'edit')}",
+                affected_ids=target_manifest.get("affectedIds", []), parent=current["revision"],
+                undo_target=target_manifest.get("undoTarget"), redo_target=redo_stack[-1] if redo_stack else None,
+                redo_stack=redo_stack, restored_from=target,
+                renderer_revision=target_renderer, preview=target_manifest.get("preview"),
+                rebind_preview=target_manifest.get("preview") is not None,
+                clear_preview=target_manifest.get("preview") is None,
+                expected_revisions=expected,
+            )
+            self._current_compiled = compiled
+            return self._snapshot_result(candidate_plan, compiled, self._revisions(revision))
+
+    def reload_external(self) -> dict[str, Any]:
+        """Validate private materialized edits and commit them as new revisions."""
+        with self._lock:
+            self._ensure_open()
+            current = self._manifest()
+            if not current:
+                raise DocumentError("not_found", "document has not been initialized")
+            changed = {}
+            removed: list[str] = []
+            watched = set(current.get("files", {}))
+            if (self.data_root / "config.json").is_file():
+                watched.add("config.json")
+            for rel in watched:
+                path = self._safe_data_path(rel)
+                if not path.exists():
+                    if rel == self.plan_rel:
+                        raise DocumentError("external_invalid", "the authoritative plan file was removed")
+                    removed.append(rel)
+                    continue
+                try:
+                    value = read_json(path)
+                except Exception as exc:  # noqa: BLE001
+                    raise DocumentError("external_invalid", f"cannot read externally edited {rel}: {exc}") from exc
+                if not self._disk_matches(rel, current["files"].get(rel, "")):
+                    changed[rel] = _without_editor(rel, value)
+            if not changed and not removed:
+                self._recover()
+                return self.snapshot()
+            files = self._manifest_files(current)
+            for rel in removed:
+                files.pop(rel, None)
+            files.update(changed)
+            plan = files.get(self.plan_rel)
+            if not isinstance(plan, dict):
+                raise DocumentError("external_invalid", "external plan root must remain a JSON object")
+            if self.plan_rel in changed:
+                # The file carries no metadata: identity comes from the committed head, then the sidecar.
+                head_plan = self._object_value(current["files"][self.plan_rel]) if self.plan_rel in current["files"] else {}
+                meta = head_plan.get(EDITOR_KEY) if isinstance(head_plan, dict) else None
+                if not isinstance(meta, dict):
+                    meta = self._read_sidecar(self.plan_rel)
+                if isinstance(meta, dict):
+                    plan[EDITOR_KEY] = deepcopy(meta)
+            ensure_node_ids(plan)
+            plan.setdefault("_editor", {})["rendererRevision"] = self._renderer_revision()
+            aux = {k: v for k, v in files.items() if k != self.plan_rel}
+            expected = self._revisions()
+            disk_versions = {rel: fingerprint(self._read_disk(rel))
+                             for rel in watched if rel not in removed}
+            compiled = self._compile(plan, aux, removed_files=removed)
+            if self._revisions() != expected or any(
+                not self._safe_data_path(rel).is_file()
+                or fingerprint(self._read_disk(rel)) != digest
+                for rel, digest in disk_versions.items()
+            ) or any(self._safe_data_path(rel).exists() for rel in removed):
+                raise DocumentError("conflict", "private data changed again during external validation")
+            self._check_lease({"origin": "external"})
+            revision = self._commit_files(
+                files, origin="external", reason="reload externally edited private files",
+                affected_ids=list(ensure_node_ids(plan)), parent=current["revision"],
+                undo_target=current["revision"],
+            )
+            self._current_compiled = compiled
+            return self._snapshot_result(plan, compiled, self._revisions(revision))

@@ -33,6 +33,23 @@ inbox/  ──ingest──▶  library/  ──Claude tags moments──▶  pla
 3. **Edit `config.json`** (setup creates it from `config.example.json`): your handle (`brand.handle`), text style (`brand.textStyle`: `light`, `dark` or `plain`), posting time(s) and timezone, hashtags. `transcription.keyterms` holds words Whisper should get right (crit, KOM, your bike brand…).
 4. **Optional check:** `./reels selftest` runs the whole pipeline on throwaway test clips in a temp folder (they never touch your library).
 
+## Native macOS editor
+
+**Reels Editor** is a Mac app for the same reel plans the renderer uses: a project
+picker, Source and Program monitors, a timeline, inspectors, undo/redo, footage
+import and an in-app Claude chat. It edits the real `plans/*.json`, so the app,
+Claude Code in the terminal and `./reels render` always see the same files. It is
+an editing client, **not a publishing client**, and it never deletes from `library/`.
+
+```bash
+./editor/reels-editor setup   # once, and after pulling editor changes
+```
+
+Setup installs the editor's packages into this repo's `.venv` and `remotion/`, builds
+the app and copies it to `~/Applications/Reels Editor.app`. Launch it from
+Finder, Spotlight or the Dock. `./editor/reels-editor open plans/<file>.json` opens
+a specific reel. More in [`editor/README.md`](editor/README.md).
+
 ## Weekly use
 
 0. On every ride, film the shots in [SHOTLIST.md](SHOTLIST.md). The ★ ones take about 5 minutes and unlock the formats that work best.

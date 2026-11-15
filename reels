@@ -3,7 +3,14 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REELS_HOME="$HERE"
-if [ -f "$HERE/.env" ]; then set -a; . "$HERE/.env"; set +a; fi
+# The editor uses account-owned Claude authentication, not project API keys:
+# editor commands never evaluate .env. A search term, song title or asset named
+# "editor" is not the subcommand, so only the first argument counts.
+if [ "${1:-}" != "editor" ] && [ -f "$HERE/.env" ]; then
+  set -a
+  . "$HERE/.env"
+  set +a
+fi
 PY="$HERE/.venv/bin/python"
 if [ ! -x "$PY" ]; then
   echo "No Python environment yet — run ./setup.sh first." >&2

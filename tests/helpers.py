@@ -48,3 +48,11 @@ class TempProject:
 
 def words(*items: tuple[str, float, float], p: float = 0.95) -> list[dict]:
     return [{"w": w, "s": s, "e": e, "p": p} for w, s, e in items]
+
+
+def live_workspace(fixture: "TempProject"):
+    """A live editor workspace on a throwaway repo, rendering with this checkout's code."""
+    from reels.editor.workspace import Workspace
+
+    (fixture.root / "remotion").mkdir(exist_ok=True)
+    return Workspace.live(fixture.root, code_root=Path(__file__).resolve().parents[1])
