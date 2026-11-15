@@ -698,7 +698,7 @@ def make_room(exhibits: list[dict], hook: dict | None, beats: list[dict], pages:
         if "offsetBottom" in prev and "offsetBottom" not in pg and pg["startFrame"] - prev["endFrame"] <= 8:
             if any(s < pg["endFrame"] + fps and pg["startFrame"] - fps < e for s, e, *_ in obstacles[: len(exhibits)]):
                 pg["offsetBottom"] = prev["offsetBottom"]
-    if hook:
+    if hook and hook.get("size") != "big":  # a big hook is the statement on top of the pile: it stays put
         place(hook, "hook", "the hook")
     for b in beats:
         place(b, "beat", f"text '{b['text']}'")

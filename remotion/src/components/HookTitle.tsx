@@ -9,7 +9,8 @@ import { TikTokText, useEntrance } from './TikTokText';
 export const HookTitle: React.FC<{ hook: Hook }> = ({ hook }) => {
   const dur = hook.endFrame - hook.startFrame;
   const anim = useEntrance(dur, { enter: hook.startFrame > 0 });
-  const fontSize = hook.text.length > 70 ? 52 : hook.text.length > 42 ? 58 : 64;
+  const big = hook.size === 'big';
+  const fontSize = big ? 168 : hook.text.length > 70 ? 52 : hook.text.length > 42 ? 58 : 64;
   const placement: React.CSSProperties =
     hook.position === 'center'
       ? { justifyContent: 'center' }
@@ -17,7 +18,14 @@ export const HookTitle: React.FC<{ hook: Hook }> = ({ hook }) => {
   return (
     <AbsoluteFill style={{ alignItems: 'center', ...placement }}>
       <div style={anim}>
-        <TikTokText text={hook.text} textStyle={hook.style} fontSize={fontSize} maxWidth={880} />
+        <TikTokText
+          text={hook.text}
+          textStyle={hook.style}
+          fontSize={fontSize}
+          maxWidth={big ? 1000 : 880}
+          weight={big ? 800 : 700}
+          lineHeight={big ? 1.04 : undefined}
+        />
       </div>
     </AbsoluteFill>
   );
