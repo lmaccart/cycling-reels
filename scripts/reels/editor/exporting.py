@@ -23,7 +23,8 @@ def save_artifact(workspace, receipt: dict, destination: str, *, artifact="reel"
     if source.is_symlink() or not source.is_file():
         raise ProtocolError("artifact_unavailable", "The completed export is unavailable.")
     source = source.resolve(strict=True)
-    if not source.is_relative_to(Path(workspace.root).resolve()):
+    if not (source.is_relative_to(Path(workspace.root).resolve())
+            or source.is_relative_to(Path(workspace.project.out_dir).resolve())):
         raise ProtocolError("invalid_artifact", "Export source is outside this private workspace.")
     destination_path = Path(destination).expanduser()
     if not destination_path.is_absolute() or destination_path.suffix.lower() not in (".mp4", ".mov"):

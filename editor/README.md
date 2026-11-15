@@ -1,68 +1,54 @@
 # Reels Editor
 
-The native macOS editor is now part of this codebase. Its Swift app and launchers
-live here; the editing service is `scripts/reels/editor/`, and the renderer is
-shared with the existing `reels` pipeline.
+A native macOS editor that is part of this codebase. It edits the **real**
+`plans/*.json`, so Claude Code in the terminal, `./reels render` and the app all
+see the same files. Your original footage in `library/media/` is read-only to it.
 
-## Open it
+## Install (once, and after source changes)
 
 ```bash
 cd ~/rice/cycling
-./editor/reels-editor open
+./editor/reels-editor setup      # or: bash setup.sh --editor
 ```
 
-Or double-click **Open Editor.command** in this folder. You can choose a specific
-plan:
+This installs the repo's Python and Remotion dependencies, builds the app and
+copies it to `~/Applications/Reels Editor.app`. Open it from Finder or Spotlight
+and keep it in the Dock (right-click its icon, Options, Keep in Dock). It remembers
+this folder, so it launches with no terminal and no arguments.
 
-```bash
-./editor/reels-editor open plans/2026-11-11-easy-day-laundry.json
-```
-
-On a new machine, or after changing source code, first run:
-
-```bash
-./editor/reels-editor setup
-```
-
-Requires macOS 14+, full Xcode, Python 3.10–3.13, Node 18+, ffmpeg/ffprobe and
+Requires macOS 14+, full Xcode, Python 3.10–3.13, Node 18+, ffmpeg and
 `sandbox-exec`. Claude Code is optional for manual editing; sign in to it locally
-for chat and semantic search. No API key is needed by the editor.
+for chat and semantic search. No API key is needed.
 
-## Basic workflow
+From the terminal you can also use `./editor/reels-editor open [plans/x.json]`
+(or double-click **Open Editor.command**) and `./editor/reels-editor info`.
 
-1. Choose a reel in **Projects**.
-2. Use **Library** and the Source monitor to find footage. Select a timeline
-   clip to change its typed Inspector values, trim it, or add B-roll.
-3. Ask **Chat** for changes such as “lower the music under my voice.” Claude
-   edits the same timeline; undo/redo covers both manual and Claude changes.
-4. Use **Interactive** for editing, then **Exact** for final picture/audio review.
-5. **Export**, then **Save Reel** or **Save Review** to a folder outside the live
-   checkout. Nothing is approved, uploaded or published automatically.
+## Using it
 
-## Where edits go
+1. The welcome window shows your reels (newest first), **New Reel** and
+   **Import Footage**.
+2. Import copies files into `inbox/` (your originals stay where they are) and
+   runs `./reels ingest`; the library refreshes when it finishes.
+3. Edit with the library, timeline, inspector and chat. Every change is an undoable
+   edit written straight to the plan file; edits made in the terminal appear in the app.
+4. **Export** renders the plan to `out/<slug>/` exactly like `./reels render plans/<file>`.
+   Nothing is ever approved, scheduled or published by the editor.
 
-Use `./editor/reels-editor info` to see exact locations. Independent dependencies,
-builds, editable snapshots and exports are under:
+## Safety
 
-```text
-~/Library/Application Support/CyclingReelsEditor/
-```
+- The editor never deletes or modifies anything in `library/media/`, and never
+  deletes from `library/` or `plans/`. Footage import copies only.
+- Editor state (undo history, previews, chat, jobs, lock) lives in
+  `.cache/editor/live/`, which git ignores.
+- Renderer and preview workers run in a macOS sandbox: no network, no `.env` or
+  credential files, no writes anywhere in `library/`.
+- Renderer code changes are not available in the app. Ask Claude Code in the
+  terminal for those.
 
-**Changes autosave to a private snapshot, not the live `cycling/plans/`.**
-Your originals and existing production dependencies are not modified.
-Previous snapshots and runtime versions are retained; setup never replaces them.
+## Claude Code in the terminal
 
-After ingesting footage or creating plans with the usual pipeline, close the app
-and import them:
+While the app is open it writes `.cache/editor/live/context.json` with the open
+plan, the selected nodes and the playhead, so a terminal Claude Code session can
+read it to see what you are looking at.
 
-```bash
-./editor/reels-editor refresh --keep-private
-```
-
-This creates a new snapshot, imports new files and keeps conflicting private
-files. For a changed production file that should replace its private counterpart,
-use the explicit resolutions workflow in [the usage guide](docs/USAGE.md).
-There is no automatic write-back to production; ask explicitly when an edited
-plan should be promoted.
-
-[Full usage and recovery](docs/USAGE.md) · [Acceptance evidence and limits](docs/ACCEPTANCE.md)
+[Full usage and recovery](docs/USAGE.md)

@@ -1,9 +1,9 @@
 # Native Reels Editor
 
-> Historical approved implementation plan. The isolated development work is
-> complete; the user subsequently authorized integration into `cycling/editor/`.
-> Current setup and paths are in [USAGE.md](USAGE.md). Dependencies, editable
-> snapshots, original-media protections and sandboxed rendering remain isolated.
+> Historical plan from the first build. Superseded: the editor is now fully
+> integrated — it edits the real `plans/`, runs on the repo's `.venv` and
+> `remotion/`, and there are no private snapshots or separate runtime. Current
+> behaviour is in [USAGE.md](USAGE.md) and [INTEGRATION.md](INTEGRATION.md).
 
 ## Context
 

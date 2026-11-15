@@ -750,11 +750,11 @@ class EditorTransactionsTests(unittest.TestCase):
         import shutil
         from copy import copy
         from reels.editor.transactions import _worker_compile
-        from reels.editor.workspace import init_workspace
+        from helpers import live_workspace
         self.temp.asset("asset-a")
         self.temp.plan("renderer-fixture", [{"asset": "asset-a", "in": 0, "out": 1}])
         with tempfile.TemporaryDirectory() as directory:
-            workspace = init_workspace(self.temp.root, Path(directory) / "workspace")
+            workspace = live_workspace(self.temp)
             store = DocumentStore(workspace, "plans/renderer-fixture.json")
             before = store.snapshot()
             source = workspace.root / "code/renderers" / before["revisions"]["renderer"] / "source"
@@ -782,7 +782,7 @@ class EditorTransactionsTests(unittest.TestCase):
                 "    return _trusted_build(*args, **kwargs)\n")
             project = copy(workspace.project)
             project.code_root = candidate
-            _worker_compile(project, before["plan"], {})
+            _worker_compile(project, before["plan"], {}, originals=workspace._originals)
             self.assertEqual(original.read_bytes(), original_bytes)
             self.assertEqual(private_plan.read_bytes(), plan_bytes)
             source.rename(source.with_name("missing-source"))
@@ -790,6 +790,109 @@ class EditorTransactionsTests(unittest.TestCase):
             with self.assertRaises(DocumentError) as caught:
                 store.snapshot()
             self.assertEqual(caught.exception.code, "renderer_unavailable")
+
+
+class PlanFileMetadataTests(unittest.TestCase):
+    """Plan files on disk hold only real plan content; node identity lives in a private sidecar."""
+
+    setUp = EditorTransactionsTests.setUp
+    make_store = EditorTransactionsTests.make_store
+
+    def sidecar(self, store):
+        return store._sidecar_path(store.plan_rel)
+
+    def segment_ids(self, snapshot):
+        return [n["id"] for n in snapshot["nodes"] if n["kind"] == "segment"]
+
+    def test_open_without_edits_leaves_plan_byte_identical(self):
+        self.temp.asset("asset-a")
+        path = self.temp.plan("2026-11-14-hand", [{"asset": "asset-a", "in": 0, "out": 5}])
+        path.write_text('{"slug": "2026-11-14-hand", "segments": [{"asset": "asset-a", "in": 0, "out": 5}]}\n')
+        before = path.read_bytes()
+        store = DocumentStore(self.workspace, path, compiler=fake_compile)
+        self.addCleanup(store.close)
+        store.snapshot()
+        self.assertEqual(path.read_bytes(), before)
+        self.assertIn("nodes", json.loads(self.sidecar(store).read_text())["editor"])
+
+    def test_edit_writes_no_editor_key_and_keeps_formatting(self):
+        store, path = self.make_store(compiler=fake_compile)
+        before = store.snapshot()
+        node = next(n for n in before["nodes"] if n["kind"] == "segment")
+        result = store.apply({"expected": before["revisions"], "origin": "manual", "reason": "edit",
+                              "operations": [{"op": "set_field", "id": node["id"], "path": "/out", "value": 4}]})
+        text = path.read_text()
+        self.assertNotIn("_editor", text)
+        raw = json.loads(text)
+        self.assertEqual(raw["segments"][0]["out"], 4)
+        self.assertEqual(text, json.dumps(raw, indent=2, ensure_ascii=False) + "\n")
+        self.assertIn("_editor", result["plan"])  # history keeps it; the disk copy does not
+        undone = store.undo(result["revisions"])
+        self.assertNotIn("_editor", path.read_text())
+        self.assertEqual(json.loads(path.read_text())["segments"][0]["out"], 5)
+        self.assertEqual(self.segment_ids(undone), self.segment_ids(before))
+
+    def test_edit_keeps_a_one_space_indented_plan_one_space(self):
+        store, path = self.make_store(compiler=fake_compile)
+        path.write_text(json.dumps(json.loads(path.read_text()), indent=1, ensure_ascii=False) + "\n")
+        before = store.reload_external()
+        node = next(n for n in before["nodes"] if n["kind"] == "segment")
+        store.apply({"expected": before["revisions"], "origin": "manual", "reason": "edit",
+                     "operations": [{"op": "set_field", "id": node["id"], "path": "/out", "value": 4}]})
+        text = path.read_text()
+        self.assertEqual(text, json.dumps(json.loads(text), indent=1, ensure_ascii=False) + "\n")
+
+    def test_external_edit_keeps_ids_for_untouched_segments(self):
+        store, path = self.make_store(compiler=fake_compile)
+        before = store.snapshot()
+        ids = self.segment_ids(before)
+        raw = json.loads(path.read_text())
+        raw["segments"][1]["out"] = 7
+        path.write_text(json.dumps(raw, indent=2) + "\n")
+        result = store.reload_external()
+        after = self.segment_ids(result)
+        self.assertEqual(after, ids)
+        self.assertNotIn("_editor", path.read_text())
+        raw["segments"].reverse()  # reorder externally: fingerprints follow the content
+        path.write_text(json.dumps(raw, indent=2) + "\n")
+        self.assertEqual(self.segment_ids(store.reload_external()), list(reversed(ids)))
+
+    def test_ids_survive_reopen_and_corrupt_sidecar_regenerates(self):
+        store, path = self.make_store(compiler=fake_compile)
+        ids = self.segment_ids(store.snapshot())
+        sidecar = self.sidecar(store)
+        store.close()
+        reopened = DocumentStore(self.workspace, path, compiler=fake_compile)
+        self.assertEqual(self.segment_ids(reopened.snapshot()), ids)
+        reopened.close()
+        import shutil
+        shutil.rmtree(reopened.history)  # fresh history: identity must come from the sidecar
+        fresh = DocumentStore(self.workspace, path, compiler=fake_compile)
+        self.assertEqual(self.segment_ids(fresh.snapshot()), ids)
+        fresh.close()
+        shutil.rmtree(fresh.history)
+        sidecar.write_text("{not json")
+        regenerated = DocumentStore(self.workspace, path, compiler=fake_compile)
+        self.addCleanup(regenerated.close)
+        self.assertEqual(len(self.segment_ids(regenerated.snapshot())), 2)
+
+    def test_legacy_embedded_editor_block_is_migrated_not_rewritten_on_open(self):
+        self.temp.asset("asset-a")
+        path = self.temp.plan("2026-11-14-legacy", [{"asset": "asset-a", "in": 0, "out": 5}, {"asset": "asset-a", "in": 6, "out": 9}])
+        legacy = json.loads(path.read_text())
+        legacy_ids = deepcopy(ensure_node_ids(legacy))
+        path.write_text(json.dumps(legacy, indent=2) + "\n")
+        before = path.read_bytes()
+        store = DocumentStore(self.workspace, path, compiler=fake_compile)
+        self.addCleanup(store.close)
+        snap = store.snapshot()
+        self.assertEqual(path.read_bytes(), before)  # not rewritten just to strip it
+        self.assertEqual(set(self.segment_ids(snap)), {i for i, e in legacy_ids.items() if e["kind"] == "segment"})
+        self.assertEqual(json.loads(self.sidecar(store).read_text())["editor"]["documentId"], legacy["_editor"]["documentId"])
+        node = next(n for n in snap["nodes"] if n["kind"] == "segment")
+        store.apply({"expected": snap["revisions"], "origin": "manual", "reason": "edit",
+                     "operations": [{"op": "set_field", "id": node["id"], "path": "/out", "value": 4}]})
+        self.assertNotIn("_editor", path.read_text())
 
 
 if __name__ == "__main__":

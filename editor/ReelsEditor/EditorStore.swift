@@ -7,7 +7,19 @@ import UniformTypeIdentifiers
 @MainActor
 @Observable
 final class EditorStore {
+    static let shared = EditorStore()
+
     let service = EditorService()
+    let importer = ImportCoordinator()
+    var planSummaries: [PlanSummary] = []
+    var plansLoaded = false
+    var showPicker = true
+    var startupFailure: StartupFailure?
+    var toast: String?
+    var isNamingNewReel = false
+    var newReelTitle = ""
+    private(set) var repositoryRoot: URL?
+    private var toastTask: Task<Void, Never>?
     var serviceState: EditorService.ServiceState = .stopped
     var snapshot: EditorSnapshot?
     var plans: [JSONValue] = []
@@ -28,11 +40,27 @@ final class EditorStore {
     var chatEntries: [ChatEntry] = []
     var chatDraft = ""
     var isChatWorking = false
-    var notice: String?
+    var notice: String? {
+        didSet {
+            noticeTask?.cancel()
+            guard let current = notice else { return }
+            noticeTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(4))
+                guard !Task.isCancelled, let self, self.notice == current else { return }
+                self.notice = nil
+            }
+        }
+    }
+    @ObservationIgnored private var noticeTask: Task<Void, Never>?
+    /// Repo-relative path of the open plan, exactly as given to `document.open`.
+    var openPlanPath: String?
     var errorMessage: String?
+    /// Set when exporting would overwrite a scheduled/posted reel; the view shows a confirmation.
+    var exportConfirmation: String?
+    var exportOutcome: ExportOutcome?
+    @ObservationIgnored var lastExportReceipt: JSONValue?
     var workspaceInfo: JSONValue = .object([:])
     var inspectorSchema: JSONValue = .object([:])
-    var protectedRoots: [String] = []
     var previewManifest: JSONValue?
     var currentPreviewMode = "interactive"
     var playbackRate = 1.0
@@ -53,32 +81,55 @@ final class EditorStore {
     private var libraryLoadGeneration = 0
     private var expectedSearchFilterHash: String?
     private var chatOutputStartIndex: Int?
-    private var repositoryRoot: URL?
-    private var workspaceRoot: URL?
     private var launchPlanPath: String?
     private var capturePreviewAttempted = false
-    var configurationError: String?
-    var hasLaunchConfiguration: Bool { repositoryRoot != nil && workspaceRoot != nil }
+    private var connectGeneration = 0
+
+    struct StartupFailure: Equatable {
+        var title: String
+        var detail: String
+        var logLines: [String]
+    }
 
     init() {
-        let env = ProcessInfo.processInfo.environment
         let args = ProcessInfo.processInfo.arguments
-        let argumentRepo = Self.argument("--repo", in: args) ?? env["REELS_EDITOR_REPO_ROOT"]
-        let argumentWorkspace = Self.argument("--workspace", in: args) ?? env["REELS_EDITOR_WORKSPACE"]
         launchPlanPath = Self.argument("--plan", in: args)
-        if let argumentRepo, let argumentWorkspace {
-            repositoryRoot = URL(fileURLWithPath: argumentRepo).standardizedFileURL.resolvingSymlinksInPath()
-            workspaceRoot = URL(fileURLWithPath: argumentWorkspace).standardizedFileURL.resolvingSymlinksInPath()
-        } else if argumentRepo != nil || argumentWorkspace != nil {
-            configurationError = "Pass both --repo <isolated-repo> and --workspace <workspace>; partial paths are not used."
-        } else if let savedRepo = UserDefaults.standard.string(forKey: "reelsEditor.repositoryRoot"),
-                  let savedWorkspace = UserDefaults.standard.string(forKey: "reelsEditor.workspaceRoot") {
-            repositoryRoot = URL(fileURLWithPath: savedRepo).standardizedFileURL.resolvingSymlinksInPath()
-            workspaceRoot = URL(fileURLWithPath: savedWorkspace).standardizedFileURL.resolvingSymlinksInPath()
+        showPicker = launchPlanPath == nil
+        let saved = UserDefaults.standard.string(forKey: RepositoryLocator.defaultsKey)
+        if let candidate = RepositoryLocator.candidatePath(
+            arguments: args, environment: ProcessInfo.processInfo.environment, saved: saved) {
+            do {
+                repositoryRoot = try RepositoryLocator.validate(URL(fileURLWithPath: candidate))
+            } catch {
+                startupFailure = StartupFailure(
+                    title: "Can't use that folder", detail: error.localizedDescription, logLines: [])
+            }
         }
-        service.onState = { [weak self] state in self?.serviceState = state }
-        service.onEvent = { [weak self] event in self?.receive(event) }
+        wireCallbacks()
     }
+
+    private func wireCallbacks() {
+        service.onState = { [weak self] state in
+            guard let self else { return }
+            self.serviceState = state
+            if case .failed(let message) = state, self.startupFailure == nil {
+                self.startupFailure = StartupFailure(
+                    title: "The editing service stopped", detail: message, logLines: self.service.logTail())
+            }
+        }
+        service.onEvent = { [weak self] event in self?.receive(event) }
+        importer.call = { [weak self] method, params in
+            guard let self else { throw ServiceFailure(code: "gone", message: "The app is closing.", details: nil) }
+            return try await self.service.call(method, params: params)
+        }
+        importer.onToast = { [weak self] message in self?.showToast(message) }
+        importer.onLibraryNeedsReload = { [weak self] in
+            self?.loadLibrary()
+            Task { await self?.refreshPlans() }
+        }
+    }
+
+    var needsRepositoryChoice: Bool { repositoryRoot == nil }
 
     var hasDocument: Bool { snapshot != nil }
     var selectedNode: EditorNode? { snapshot?.nodes.first { selectedIDs.contains($0.id) } }
@@ -160,60 +211,163 @@ final class EditorStore {
         return [reason, scope].compactMap { $0 }.joined(separator: "\n\nScope:\n")
     }
 
+    /// Launch/retry entry point. Resolves the repo (asking once if needed), then starts the service.
     func connect() {
-        guard let repositoryRoot, let workspaceRoot else { return }
-        do {
-            protectedRoots = try Self.validate(root: repositoryRoot, workspace: workspaceRoot)
-        } catch {
-            configurationError = error.localizedDescription
-            serviceState = .failed(error.localizedDescription)
+        if repositoryRoot == nil {
+            guard startupFailure == nil else { return }
+            chooseRepository()
             return
         }
-        do {
-            try service.start(repositoryRoot: repositoryRoot, workspace: workspaceRoot)
-            Task {
-                do {
-                    workspaceInfo = try await service.call("workspace.info")
-                    syncPermissions(from: workspaceInfo)
-                    if let productionRoot = workspaceInfo["productionRoot"]?.stringValue
-                        ?? workspaceInfo["production_root"]?.stringValue {
-                        let resolved = URL(fileURLWithPath: productionRoot)
-                            .standardizedFileURL.resolvingSymlinksInPath().path
-                        protectedRoots = Array(Set(protectedRoots + [resolved])).sorted()
-                    }
-                    let result = try await service.call("plans.list")
-                    plans = Self.items(from: result, keys: ["plans", "items"])
-                    let history = try? await service.call("chat.history")
-                    chatEntries = Self.chatHistory(from: history ?? .null)
-                    loadLibrary()
-                    if let recent = launchPlanPath
-                        ?? workspaceInfo["plan"]?.stringValue
-                        ?? workspaceInfo["state"]?["plan"]?.stringValue,
-                       !recent.isEmpty {
-                        await openPlan(recent)
-                    }
-                } catch {
-                    self.errorMessage = error.localizedDescription
+        guard let repositoryRoot else { return }
+        startupFailure = nil
+        errorMessage = nil
+        connectGeneration += 1
+        let generation = connectGeneration
+        Task {
+            let loginPath = await Self.cachedLoginPath()
+            guard generation == connectGeneration else { return }
+            let environment = AppEnvironment.serviceEnvironment(
+                base: ProcessInfo.processInfo.environment, loginPath: loginPath)
+            do {
+                try service.start(repositoryRoot: repositoryRoot, environment: environment)
+            } catch {
+                serviceState = .failed(error.localizedDescription)
+                startupFailure = StartupFailure(
+                    title: "Could not launch the editing service",
+                    detail: error.localizedDescription, logLines: service.logTail())
+                return
+            }
+            do {
+                workspaceInfo = try await service.call("workspace.info")
+                syncPermissions(from: workspaceInfo)
+                let history = try? await service.call("chat.history")
+                chatEntries = Self.chatHistory(from: history ?? .null)
+                loadLibrary()
+                await refreshPlans()
+                importer.refreshInbox()
+                if let launchPlanPath, !launchPlanPath.isEmpty {
+                    await openPlan(launchPlanPath)
+                    self.launchPlanPath = nil
+                }
+            } catch {
+                if case .failed = serviceState {
+                    // The failure screen already shows the service's own last lines.
+                } else {
+                    startupFailure = StartupFailure(
+                        title: "The editing service didn't start",
+                        detail: error.localizedDescription, logLines: service.logTail())
                 }
             }
-        } catch {
-            serviceState = .failed(error.localizedDescription)
-            errorMessage = "Could not launch the local editing service: \(error.localizedDescription)"
         }
     }
 
-    func configure(repository: URL, workspace: URL) {
-        repositoryRoot = repository.standardizedFileURL.resolvingSymlinksInPath()
-        workspaceRoot = workspace.standardizedFileURL.resolvingSymlinksInPath()
+    private static let loginPathBox = LoginPathBox()
+    private static func cachedLoginPath() async -> String? { await loginPathBox.value() }
+
+    /// First-run / failure recovery: ask for the cycling folder, validate it, remember it, connect.
+    func chooseRepository() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose your cycling folder"
+        panel.message = "Pick the folder that contains the reels launcher and your plans folder."
+        panel.prompt = "Choose"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        if let repositoryRoot { panel.directoryURL = repositoryRoot }
+        guard panel.runModal() == .OK, let url = panel.url else {
+            if repositoryRoot == nil && startupFailure == nil {
+                startupFailure = StartupFailure(
+                    title: "Choose your cycling folder",
+                    detail: "Reels Editor needs the folder that holds your reels launcher and plans.", logLines: [])
+            }
+            return
+        }
         do {
-            protectedRoots = try Self.validate(root: repositoryRoot!, workspace: workspaceRoot!)
-            UserDefaults.standard.set(repositoryRoot!.path, forKey: "reelsEditor.repositoryRoot")
-            UserDefaults.standard.set(workspaceRoot!.path, forKey: "reelsEditor.workspaceRoot")
-            configurationError = nil
+            let valid = try RepositoryLocator.validate(url)
+            RepositoryLocator.save(valid)
+            service.stopSynchronously(grace: 1)
+            repositoryRoot = valid
+            snapshot = nil
+            plans = []
+            planSummaries = []
+            plansLoaded = false
+            showPicker = true
+            startupFailure = nil
             connect()
         } catch {
-            configurationError = error.localizedDescription
+            startupFailure = StartupFailure(
+                title: "Can't use that folder", detail: error.localizedDescription, logLines: [])
         }
+    }
+
+    func retryConnection() {
+        service.stopSynchronously(grace: 1)
+        startupFailure = nil
+        serviceState = .stopped
+        connect()
+    }
+
+    func showLog() {
+        let url = LogRing.defaultFileURL
+        if FileManager.default.fileExists(atPath: url.path) { NSWorkspace.shared.open(url) }
+        else { NSWorkspace.shared.activateFileViewerSelecting([url.deletingLastPathComponent()]) }
+    }
+
+    func openInClaudeCode() {
+        guard let repositoryRoot else { return }
+        if !ClaudeCodeLauncher.open(repo: repositoryRoot) {
+            errorMessage = "Could not open Terminal. Run claude in \(repositoryRoot.path) yourself."
+        }
+    }
+
+    func showToast(_ message: String) {
+        toast = message
+        toastTask?.cancel()
+        toastTask = Task {
+            try? await Task.sleep(for: .seconds(3.5))
+            guard !Task.isCancelled else { return }
+            toast = nil
+        }
+    }
+
+    // MARK: Projects
+
+    func refreshPlans() async {
+        do {
+            let result = try await service.call("plans.list")
+            plans = Self.items(from: result, keys: ["plans", "items"])
+            planSummaries = PlanSummary.parse(result)
+            plansLoaded = true
+        } catch {
+            plansLoaded = true
+            if case .connected = serviceState { errorMessage = error.localizedDescription }
+        }
+    }
+
+    func createProject(title: String) async {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        var params: [String: JSONValue] = [:]
+        if !trimmed.isEmpty { params["title"] = .string(trimmed) }
+        do {
+            let result = try await service.call("projects.create", params: .object(params))
+            guard let path = result["path"]?.stringValue else {
+                errorMessage = "The service created a reel but did not say where."
+                return
+            }
+            await refreshPlans()
+            await openPlan(path)
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func beginNewReel() {
+        newReelTitle = ""
+        showPicker = true
+        isNamingNewReel = true
+    }
+
+    func revealPlan(_ path: String) {
+        guard let repositoryRoot else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([repositoryRoot.appending(path: path)])
     }
 
     func openPlan(_ path: String) async {
@@ -222,6 +376,7 @@ final class EditorStore {
             displayedPreviewRevision = nil
             _ = try await service.call("document.open", params: .object(["path": .string(path)]))
             await refreshSnapshot()
+            if snapshot != nil { showPicker = false; openPlanPath = path }
             notice = "Project opened"
         } catch { errorMessage = error.localizedDescription }
     }
@@ -849,7 +1004,7 @@ final class EditorStore {
         Task {
             do {
                 _ = try await service.call("preview.prepare", params: .object(["mode": .string(mode)]))
-                notice = "\(mode.capitalized) preview requested"
+                notice = mode == "exact" ? "Final-quality preview requested" : "Fast preview requested"
             } catch { errorMessage = error.localizedDescription }
             isPreparingPreview = false
         }
@@ -857,10 +1012,10 @@ final class EditorStore {
 
     func requestExactPreview(reason: String) {
         guard currentPreviewMode != "exact" else {
-            errorMessage = "Exact preview also failed: \(reason)"
+            errorMessage = "Final-quality preview also failed: \(reason)"
             return
         }
-        notice = "Interactive preview issue: \(reason). Preparing Exact."
+        notice = "Fast preview issue: \(reason). Preparing final quality."
         preparePreview(mode: "exact")
     }
 
@@ -889,7 +1044,7 @@ final class EditorStore {
     }
 
     func stopServiceForCapture() {
-        service.stop()
+        service.stopSynchronously(grace: 1)
     }
 
     func respondToPermission(granted: Bool) {
@@ -919,6 +1074,45 @@ final class EditorStore {
         }
     }
 
+    /// Export button: confirm first when the reel is already scheduled or posted.
+    func requestExport() {
+        guard hasDocument else { return }
+        if let path = openPlanPath, let status = planSummaries.first(where: { $0.path == path })?.status,
+           ExportPolicy.needsConfirmation(status: status) {
+            exportConfirmation = ExportPolicy.confirmationMessage(status: status, slug: ExportPolicy.slug(planPath: path))
+            return
+        }
+        export()
+    }
+
+    private func makeExportOutcome(for receipt: JSONValue) -> ExportOutcome {
+        var relative = openPlanPath.map { ExportPolicy.outputPath(slug: ExportPolicy.slug(planPath: $0)) }
+        var absolute: URL?
+        if let reel = receipt["reelPath"]?.stringValue {
+            let url = reel.hasPrefix("/") ? URL(fileURLWithPath: reel) : repositoryRoot?.appendingPathComponent(reel)
+            absolute = url
+            if let root = repositoryRoot?.path, let url, url.path.hasPrefix(root + "/") {
+                relative = String(url.path.dropFirst(root.count + 1))
+            }
+        } else if let relative, let root = repositoryRoot {
+            absolute = root.appendingPathComponent(relative)
+        }
+        return ExportOutcome(displayPath: relative ?? "out/", fileURL: absolute)
+    }
+
+    func showExportInFinder() {
+        guard let url = exportOutcome?.fileURL else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } else {
+            NSWorkspace.shared.open(url.deletingLastPathComponent())
+        }
+    }
+
+    func saveCopyOfLastExport() {
+        if let receipt = lastExportReceipt { presentExportSave(for: receipt) }
+    }
+
     func export() {
         Task {
             do {
@@ -926,7 +1120,7 @@ final class EditorStore {
                 pendingExportReceipt = nil
                 let result = try await service.call("export.start")
                 exportJobID = result["id"]?.stringValue
-                notice = "Export started for the current revision"
+                notice = "Rendering…"
                 if let receipt = pendingExportReceipt {
                     pendingExportReceipt = nil
                     presentExportSave(for: receipt)
@@ -940,14 +1134,14 @@ final class EditorStore {
             let path = receipt["reelPath"]?.stringValue
                 ?? receipt["previewVideoPath"]?.stringValue
             if let path { saveExportCopy(path) }
-            else { notice = "Export ready in the private editor workspace" }
+            else { notice = "Export ready in the out folder" }
             return
         }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.mpeg4Movie, .quickTimeMovie]
         panel.canCreateDirectories = true
         panel.nameFieldStringValue = URL(fileURLWithPath: receipt["reelPath"]?.stringValue ?? "reel.mp4").lastPathComponent
-        panel.message = "Save an export artifact outside the production checkout."
+        panel.message = "Save a copy of the export. Your original footage is never touched."
         let selector = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 180, height: 24), pullsDown: false)
         selector.addItems(withTitles: ["Reel", "Review copy"])
         panel.accessoryView = selector
@@ -955,7 +1149,7 @@ final class EditorStore {
             guard response == .OK, let destination = panel.url, let self else { return }
             let target = destination.standardizedFileURL.resolvingSymlinksInPath()
             guard self.isAllowedExportDestination(target) else {
-                self.errorMessage = "That location is inside a protected project or production checkout. Choose another destination."
+                self.errorMessage = "Don't save into the library folder. Choose another destination."
                 return
             }
             let artifact = selector.indexOfSelectedItem == 1 ? "review" : "reel"
@@ -981,23 +1175,23 @@ final class EditorStore {
     }
 
     func saveExportCopy(_ sourcePath: String) {
-        guard let workspaceRoot else { return }
+        guard let repositoryRoot else { return }
         let source = URL(fileURLWithPath: sourcePath).standardizedFileURL.resolvingSymlinksInPath()
-        guard source.path.hasPrefix(workspaceRoot.path + "/"),
+        guard source.path.hasPrefix(repositoryRoot.path + "/"),
               FileManager.default.fileExists(atPath: source.path) else {
-            errorMessage = "The export is not a file inside the private editor workspace."
+            errorMessage = "The export is not a file inside your cycling folder."
             return
         }
         let panel = NSSavePanel()
         panel.nameFieldStringValue = source.lastPathComponent
         panel.allowedContentTypes = [.mpeg4Movie, .quickTimeMovie]
         panel.canCreateDirectories = true
-        panel.message = "Save a copy outside the production checkout. The private editor export remains unchanged."
+        panel.message = "Save a copy of the export. The original stays in your out folder."
         panel.begin { [weak self] response in
             guard response == .OK, let destination = panel.url, let self else { return }
             let target = destination.standardizedFileURL.resolvingSymlinksInPath()
             guard self.isAllowedExportDestination(target) else {
-                self.errorMessage = "That location is inside a protected project or production checkout. Choose another destination."
+                self.errorMessage = "Don't save into the library folder. Choose another destination."
                 return
             }
             do {
@@ -1011,9 +1205,9 @@ final class EditorStore {
     }
 
     private func isAllowedExportDestination(_ target: URL) -> Bool {
-        !protectedRoots.contains(where: {
-            target.path == $0 || target.path.hasPrefix($0 + "/")
-        })
+        guard let repositoryRoot else { return true }
+        let library = repositoryRoot.appending(path: "library").path
+        return !(target.path == library || target.path.hasPrefix(library + "/"))
     }
 
     private func persistState() async {
@@ -1141,12 +1335,24 @@ final class EditorStore {
             pendingExportReceipt = payload
             if exportJobID != nil {
                 pendingExportReceipt = nil
-                presentExportSave(for: payload)
+                lastExportReceipt = payload
+                exportOutcome = makeExportOutcome(for: payload)
+                Task { await refreshPlans() }
             } else {
-                notice = "Export completed; preparing save options"
+                notice = "Render finished"
             }
+        } else if name == "plans.changed" {
+            Task { await refreshPlans() }
+        } else if name == "library.changed" {
+            loadLibrary()
+            Task { await refreshPlans() }
+            importer.refreshInbox()
         } else if name.hasPrefix("job.") {
-            notice = payload["message"]?.stringValue ?? name.replacingOccurrences(of: ".", with: " ").capitalized
+            if payload["kind"]?.stringValue == "ingest" {
+                importer.handleJob(payload)
+            } else {
+                notice = EventNotice.jobMessage(payload)
+            }
         }
     }
 
@@ -1365,72 +1571,6 @@ final class EditorStore {
         return arguments[index + 1]
     }
 
-    static func validate(root: URL, workspace: URL) throws -> [String] {
-        guard FileManager.default.isExecutableFile(atPath: root.appending(path: "reels").path) else {
-            throw ServiceFailure(code: "invalid_repo", message: "The selected --repo does not contain an executable reels launcher.", details: nil)
-        }
-        let rootPath = root.standardizedFileURL.resolvingSymlinksInPath().path
-        let workspacePath = workspace.standardizedFileURL.resolvingSymlinksInPath().path
-        guard workspacePath != rootPath, !(rootPath.hasPrefix(workspacePath + "/")) else {
-            throw ServiceFailure(code: "invalid_workspace", message: "Choose a separate private --workspace directory; the repository root itself cannot be used.", details: nil)
-        }
-        let marker = root.appending(path: ".reels-editor-runtime.json")
-        if FileManager.default.fileExists(atPath: marker.path) {
-            let metadata = try marker.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-            guard metadata.isRegularFile == true, metadata.isSymbolicLink != true,
-                  let record = try JSONSerialization.jsonObject(with: Data(contentsOf: marker)) as? [String: Any],
-                  record["version"] as? Int == 1,
-                  record["kind"] as? String == "cycling-reels-editor-runtime",
-                  record["status"] as? String == "ready",
-                  let digest = record["codeDigest"] as? String,
-                  digest.count == 64, digest.allSatisfy({ $0.isHexDigit }),
-                  let source = record["sourceRoot"] as? String, source.hasPrefix("/") else {
-                throw ServiceFailure(code: "invalid_runtime", message: "Invalid installed editor runtime. Run editor/reels-editor setup again.", details: nil)
-            }
-            let production = URL(fileURLWithPath: source).standardizedFileURL.resolvingSymlinksInPath().path
-            guard rootPath != production, !rootPath.hasPrefix(production + "/"),
-                  !production.hasPrefix(rootPath + "/") else {
-                throw ServiceFailure(code: "production_repo", message: "The installed runtime must be outside the production checkout.", details: nil)
-            }
-            guard workspacePath != production, !workspacePath.hasPrefix(production + "/"),
-                  !production.hasPrefix(workspacePath + "/"), !workspacePath.hasPrefix(rootPath + "/") else {
-                throw ServiceFailure(code: "production_workspace", message: "Choose a private workspace outside the production checkout and runtime.", details: nil)
-            }
-            for relative in [".venv", "remotion/node_modules"] {
-                let dependency = root.appending(path: relative)
-                let values = try dependency.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-                guard values.isDirectory == true, values.isSymbolicLink != true else {
-                    throw ServiceFailure(code: "shared_dependencies", message: "Editor dependencies must be independent directories. Run editor/reels-editor setup.", details: nil)
-                }
-            }
-            return [production, rootPath].sorted()
-        }
-        let git = Process()
-        let pipe = Pipe()
-        git.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        git.arguments = ["-C", rootPath, "worktree", "list", "--porcelain"]
-        git.standardOutput = pipe
-        git.standardError = Pipe()
-        try git.run()
-        let output = pipe.fileHandleForReading.readDataToEndOfFile()
-        git.waitUntilExit()
-        guard git.terminationStatus == 0, let text = String(data: output, encoding: .utf8) else {
-            throw ServiceFailure(code: "unverified_repo", message: "Could not verify the selected repository as an isolated Git worktree.", details: nil)
-        }
-        let worktrees = text.components(separatedBy: "\n")
-            .filter { $0.hasPrefix("worktree ") }
-            .map { String($0.dropFirst("worktree ".count)) }
-            .map { URL(fileURLWithPath: $0).standardizedFileURL.resolvingSymlinksInPath().path }
-        guard worktrees.count > 1, worktrees.first != rootPath else {
-            throw ServiceFailure(code: "production_repo", message: "The main checkout is not an editor target. Select the isolated editor worktree and a private workspace.", details: nil)
-        }
-        if let productionRoot = worktrees.first,
-           workspacePath == productionRoot || workspacePath.hasPrefix(productionRoot + "/") {
-            throw ServiceFailure(code: "production_workspace", message: "The workspace is inside the production checkout; choose a private editor workspace instead.", details: nil)
-        }
-        return Array(Set(worktrees + [rootPath])).sorted()
-    }
-
     private static func sameOrigin(_ lhs: URL, _ rhs: URL) -> Bool {
         guard let left = URLComponents(url: lhs, resolvingAgainstBaseURL: false),
               let right = URLComponents(url: rhs, resolvingAgainstBaseURL: false) else { return false }
@@ -1447,4 +1587,20 @@ extension Notification.Name {
     static let reelsEditorPreviewFailed = Notification.Name("ReelsEditor.PreviewFailed")
     static let reelsEditorPreviewTimedOut = Notification.Name("ReelsEditor.PreviewTimedOut")
     static let reelsEditorCaptureQuit = Notification.Name("ReelsEditor.CaptureQuit")
+}
+
+/// Runs the login-shell PATH lookup once per launch.
+actor LoginPathBox {
+    private var task: Task<String?, Never>?
+    func value() async -> String? {
+        if let task { return await task.value }
+        let created = Task { await AppEnvironment.loginShellPath() }
+        task = created
+        return await created.value
+    }
+}
+
+struct ExportOutcome: Equatable {
+    var displayPath: String
+    var fileURL: URL?
 }

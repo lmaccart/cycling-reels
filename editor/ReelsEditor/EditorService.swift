@@ -13,24 +13,32 @@ final class EditorService {
         let continuation: CheckedContinuation<JSONValue, Error>
     }
 
-    private let process = Process()
+    private var process = Process()
     private var stdin: FileHandle?
     private var stdoutBuffer = Data()
     private var pending: [String: Pending] = [:]
     private var nextID = 1
     private(set) var state: ServiceState = .stopped
+    private(set) var logRing = LogRing()
     var onEvent: ((JSONValue) -> Void)?
     var onState: ((ServiceState) -> Void)?
 
-    func start(repositoryRoot: URL, workspace: URL) throws {
+    /// Last stderr lines from the service, for failure screens.
+    func logTail(_ count: Int = 20) -> [String] { logRing.tail(count) }
+
+    /// Live mode: `<repo>/reels editor serve` with cwd = repo.
+    func start(repositoryRoot: URL, environment: [String: String]) throws {
         guard state == .stopped || isTerminated else { return }
+        process = Process()
+        stdoutBuffer = Data()
         state = .starting
         onState?(state)
+        let ring = LogRing(fileURL: LogRing.defaultFileURL)
+        logRing = ring
+        let process = self.process
         process.executableURL = repositoryRoot.appending(path: "reels")
         process.currentDirectoryURL = repositoryRoot
-        process.arguments = ["--editor-workspace", workspace.path, "editor", "serve"]
-        var environment = ProcessInfo.processInfo.environment
-        environment["PYTHONUNBUFFERED"] = "1"
+        process.arguments = ["editor", "serve"]
         process.environment = environment
         let input = Pipe()
         let output = Pipe()
@@ -48,16 +56,23 @@ final class EditorService {
             Task { @MainActor [weak self] in self?.receive(data) }
         }
         errors.fileHandleForReading.readabilityHandler = { handle in
-            // Protocol stdout is intentionally kept free of diagnostics.
-            if handle.availableData.isEmpty { handle.readabilityHandler = nil }
+            // Protocol stdout stays free of diagnostics; stderr goes to the ring buffer and log file.
+            let data = handle.availableData
+            if data.isEmpty { handle.readabilityHandler = nil } else { ring.append(data) }
         }
-        process.terminationHandler = { [weak self] process in
+        process.terminationHandler = { [weak self] finished in
+            let status = finished.terminationStatus
+            // Give the stderr handler a beat to drain the final lines.
             Task { @MainActor [weak self] in
-                guard let self else { return }
-                let message = "Editing service stopped (exit \(process.terminationStatus))."
+                try? await Task.sleep(for: .milliseconds(150))
+                guard let self, self.process === finished else { return }
+                var message = "The editing service stopped (exit \(status))."
+                if let last = ring.tail(1).first { message += " " + last }
                 self.failPending(message)
-                self.state = .failed(message)
-                self.onState?(self.state)
+                if self.state != .stopped {
+                    self.state = .failed(message)
+                    self.onState?(self.state)
+                }
             }
         }
         try process.run()
@@ -94,10 +109,24 @@ final class EditorService {
 
     func stop() {
         guard process.isRunning else { return }
+        state = .stopped
         Task { _ = try? await call("shutdown") }
         process.terminate()
         stdin?.closeFile()
         stdin = nil
+    }
+
+    /// For app quit: ask the service to shut down, wait briefly, then terminate. Never leaves a child behind.
+    func stopSynchronously(grace: TimeInterval = 2) {
+        guard process.isRunning else { return }
+        state = .stopped
+        let request = #"{"version":1,"id":"native-quit","method":"shutdown","params":{}}"# + "\n"
+        try? stdin?.write(contentsOf: Data(request.utf8))
+        try? stdin?.close()
+        stdin = nil
+        let deadline = Date().addingTimeInterval(grace)
+        while process.isRunning, Date() < deadline { Thread.sleep(forTimeInterval: 0.05) }
+        if process.isRunning { process.terminate() }
     }
 
     private func receive(_ data: Data) {

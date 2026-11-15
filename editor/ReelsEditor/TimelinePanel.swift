@@ -30,57 +30,85 @@ enum TimelineLaneClassifier {
 
 struct TimelinePanel: View {
     @Bindable var store: EditorStore
-    @State private var zoom = 0.56
+    @State private var zoom = TimelineMetrics.defaultZoom
+    @State private var snapping = true
+    @State private var viewportWidth: CGFloat = 0
+
+    private static let gutter = 126.0
 
     private var contentWidth: CGFloat {
-        max(650, 118 + CGFloat(store.snapshot?.durationFrames ?? 0) * zoom + 80)
+        max(650, CGFloat(Self.gutter) + CGFloat(store.snapshot?.durationFrames ?? 0) * zoom + 120)
     }
     private var trackHeight: CGFloat {
-        max(164, 28 + CGFloat(TimelineCanvas.lanes(for: store.snapshot).count) * 34)
+        max(164, 28 + CGFloat(TimelineCanvas.lanes(for: store.snapshot).count) * 38)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 9) {
-                Text("TIMELINE")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(0.6)
+            HStack(spacing: 8) {
+                Text("Timeline")
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
-                Rectangle().fill(EditorPalette.separator).frame(width: 1, height: 17)
+                Rectangle().fill(EditorPalette.separator).frame(width: 1, height: 18)
                 Button { store.setPlayhead(store.playheadFrame - 1) } label: { Image(systemName: "backward.frame") }
-                    .help("Previous frame")
+                    .help("Previous frame  ←")
+                    .accessibilityLabel("Previous frame")
                 Button {
                     NotificationCenter.default.post(name: .reelsTogglePlayback, object: nil)
                 } label: { Image(systemName: "playpause.fill") }
-                    .help("Play / pause")
+                    .help("Play / pause  Space or K")
+                    .accessibilityLabel("Play or pause")
                 Button { store.setPlayhead(store.playheadFrame + 1) } label: { Image(systemName: "forward.frame") }
-                    .help("Next frame")
-                Text(timecode(store.playheadFrame, fps: store.fps))
-                    .font(.system(size: 11, design: .monospaced))
+                    .help("Next frame  →")
+                    .accessibilityLabel("Next frame")
+                Text(TimeFormat.timecode(store.playheadFrame, fps: store.fps))
+                    .font(.system(size: 12, design: .monospaced))
                     .monospacedDigit()
                     .frame(minWidth: 92, alignment: .leading)
+                    .help("Playhead timecode (hours:minutes:seconds:frames)")
                 Button { store.splitAtPlayhead() } label: { Image(systemName: "scissors") }
-                    .help("Split at playhead")
+                    .help("Split the selected clip at the playhead  ⌘B")
+                    .accessibilityLabel("Split at playhead")
+                    .disabled(store.selectedNode == nil)
                 Button { store.deleteSelection() } label: { Image(systemName: "trash") }
-                    .help("Delete selection")
-                Spacer()
+                    .help("Delete the selected clip  ⌫")
+                    .accessibilityLabel("Delete selection")
+                    .disabled(store.selectedIDs.isEmpty)
+                Spacer(minLength: 8)
                 if let node = store.selectedNode {
                     Text(node.title)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
-                        .frame(maxWidth: 220, alignment: .trailing)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 200, alignment: .trailing)
                 }
-                Label("\(Int(zoom * 100))%", systemImage: "magnifyingglass")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                Slider(value: $zoom, in: 0.12...1.6)
-                    .frame(width: 86)
+                Toggle(isOn: $snapping) { Image(systemName: "magnet") }
+                    .toggleStyle(.button)
+                    .help("Snap edges to the playhead and neighboring clips")
+                    .accessibilityLabel("Snapping")
+                Button { zoom = TimelineMetrics.zoomOut(zoom) } label: { Image(systemName: "minus.magnifyingglass") }
+                    .help("Zoom out  ⌘−")
+                    .accessibilityLabel("Zoom out")
+                Slider(value: Binding(
+                    get: { log(zoom) },
+                    set: { zoom = TimelineMetrics.clamp(exp($0)) }
+                ), in: log(TimelineMetrics.minZoom)...log(TimelineMetrics.maxZoom))
+                    .frame(width: 90)
                     .accessibilityLabel("Timeline zoom")
+                    .help("Timeline zoom")
+                Button { zoom = TimelineMetrics.zoomIn(zoom) } label: { Image(systemName: "plus.magnifyingglass") }
+                    .help("Zoom in  ⌘+")
+                    .accessibilityLabel("Zoom in")
+                Button { fit() } label: { Image(systemName: "arrow.left.and.right.square") }
+                    .help("Fit the whole reel in view  ⌘0")
+                    .accessibilityLabel("Fit reel to window")
+                    .disabled(!store.hasDocument)
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
             .padding(.horizontal, 10)
-            .frame(height: 36)
+            .frame(height: 38)
             .background(EditorPalette.panel)
             Divider()
 
@@ -93,6 +121,7 @@ struct TimelinePanel: View {
                         sourceURLs: store.timelineSourceURLs,
                         playheadFrame: store.playheadFrame,
                         zoom: zoom,
+                        snapping: snapping,
                         onSelect: { id, additive in store.selectNode(id, additive: additive) },
                         onBeginGesture: { owner in await store.acquireTimelineLease(owner: owner) },
                         onScrub: { frame, final in
@@ -106,7 +135,7 @@ struct TimelinePanel: View {
                         onDelete: { store.deleteSelection() },
                         onSplit: { store.splitAtPlayhead() }
                     )
-                    .frame(width: max(contentWidth, proxy.size.width), height: trackHeight)
+                    .frame(width: max(contentWidth, proxy.size.width), height: max(trackHeight, proxy.size.height))
                     .dropDestination(for: String.self) { items, _ in
                         guard let first = items.first else { return false }
                         store.insertDroppedItem(first)
@@ -114,17 +143,56 @@ struct TimelinePanel: View {
                     }
                 }
                 .scrollIndicators(.visible)
+                .onAppear { viewportWidth = proxy.size.width }
+                .onChange(of: proxy.size.width) { _, width in viewportWidth = width }
             }
             .background(EditorPalette.canvas)
             .overlay {
                 if !store.hasDocument {
-                    ContentUnavailableView("Open a reel plan", systemImage: "timeline.selection",
-                                           description: Text("Choose Projects in the left panel. Clip lanes and timing will appear here."))
+                    ContentUnavailableView("No reel open", systemImage: "timeline.selection",
+                                           description: Text("Pick a reel from the Reels list on the left. Its clips and timing appear here."))
                         .allowsHitTesting(false)
+                } else if store.isReelEmpty {
+                    emptyReel
                 }
             }
         }
         .background(EditorPalette.panel)
+        .onReceive(NotificationCenter.default.publisher(for: .reelsTimelineZoom)) { note in
+            switch note.object as? String {
+            case "in": zoom = TimelineMetrics.zoomIn(zoom)
+            case "out": zoom = TimelineMetrics.zoomOut(zoom)
+            default: fit()
+            }
+        }
+    }
+
+    private func fit() {
+        zoom = TimelineMetrics.fitZoom(durationFrames: store.snapshot?.durationFrames ?? 0,
+                                       viewportWidth: Double(viewportWidth), gutter: Self.gutter)
+    }
+
+    private var emptyReel: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "film.stack").font(.system(size: 26)).foregroundStyle(.secondary)
+            Text("This reel has no clips yet").font(.system(size: 14, weight: .semibold))
+            Text("Drag clips from the Library onto the timeline, or mark a range in Source with I and O and press , to insert it.")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 380)
+            Button {
+                store.insertFromSource()
+            } label: {
+                Label("Insert selected clip", systemImage: "arrow.down.to.line")
+            }
+            .controlSize(.regular)
+            .disabled(store.selectedAssetID == nil)
+            .help(store.selectedAssetID == nil ? "Select a clip in the Library first" : "Insert the selected library clip")
+        }
+        .padding(.leading, 126)
+        .padding(.top, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -135,6 +203,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let sourceURLs: [String: URL]
     let playheadFrame: Int
     let zoom: Double
+    let snapping: Bool
     let onSelect: (String, Bool) -> Void
     let onBeginGesture: (String) async -> String?
     let onScrub: (Int, Bool) -> Void
@@ -147,7 +216,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
         let view = TimelineCanvas()
         view.update(
             snapshot: snapshot, selectedIDs: selectedIDs, changedIDs: changedIDs, sourceURLs: sourceURLs,
-            playheadFrame: playheadFrame, zoom: zoom,
+            playheadFrame: playheadFrame, zoom: zoom, snapping: snapping,
             onSelect: onSelect, onBeginGesture: onBeginGesture, onScrub: onScrub,
             onTrim: onTrim, onReorder: onReorder, onDelete: onDelete, onSplit: onSplit
         )
@@ -157,7 +226,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     func updateNSView(_ view: TimelineCanvas, context: Context) {
         view.update(
             snapshot: snapshot, selectedIDs: selectedIDs, changedIDs: changedIDs, sourceURLs: sourceURLs,
-            playheadFrame: playheadFrame, zoom: zoom,
+            playheadFrame: playheadFrame, zoom: zoom, snapping: snapping,
             onSelect: onSelect, onBeginGesture: onBeginGesture, onScrub: onScrub,
             onTrim: onTrim, onReorder: onReorder, onDelete: onDelete, onSplit: onSplit
         )
@@ -166,9 +235,9 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
 
 @MainActor
 private final class TimelineCanvas: NSView {
-    private static let labelWidth: CGFloat = 112
+    private static let labelWidth: CGFloat = 126
     private static let rulerHeight: CGFloat = 28
-    private static let rowHeight: CGFloat = 34
+    private static let rowHeight: CGFloat = 38
     private var snapshot: EditorSnapshot?
     private var selectedIDs: Set<String> = []
     private var changedIDs: Set<String> = []
@@ -178,7 +247,10 @@ private final class TimelineCanvas: NSView {
     private var waveformCache: [String: [Float]] = [:]
     private var pendingWaveforms: Set<String> = []
     private var playheadFrame = 0
-    private var zoom = 0.56
+    private var zoom = TimelineMetrics.defaultZoom
+    private var snapping = true
+    private var snapGuideFrame: Int?
+    private var scrollObserver: NSObjectProtocol?
     private var onSelect: ((String, Bool) -> Void)?
     private var onScrub: ((Int, Bool) -> Void)?
     private var onTrim: ((EditorNode, Double, Double, String?) -> Void)?
@@ -222,7 +294,7 @@ private final class TimelineCanvas: NSView {
 
     func update(snapshot: EditorSnapshot?, selectedIDs: Set<String>, changedIDs: Set<String>,
                 sourceURLs: [String: URL],
-                playheadFrame: Int, zoom: Double,
+                playheadFrame: Int, zoom: Double, snapping: Bool,
                 onSelect: @escaping (String, Bool) -> Void,
                 onBeginGesture: @escaping (String) async -> String?,
                 onScrub: @escaping (Int, Bool) -> Void,
@@ -241,6 +313,7 @@ private final class TimelineCanvas: NSView {
         self.sourceURLs = sourceURLs
         self.playheadFrame = playheadFrame
         self.zoom = zoom
+        self.snapping = snapping
         self.onSelect = onSelect
         self.onBeginGesture = onBeginGesture
         self.onScrub = onScrub
@@ -248,7 +321,10 @@ private final class TimelineCanvas: NSView {
         self.onReorder = onReorder
         self.onDelete = onDelete
         self.onSplit = onSplit
-        if contentsChanged { needsDisplay = true }
+        if contentsChanged {
+            needsDisplay = true
+            window?.invalidateCursorRects(for: self)
+        }
         playheadLayer?.update(frame: playheadFrame, zoom: zoom, labelWidth: Self.labelWidth,
                               rulerHeight: Self.rulerHeight, fps: snapshot?.fps ?? 30)
         setAccessibilityChildren(makeAccessibilityChildren())
@@ -274,9 +350,86 @@ private final class TimelineCanvas: NSView {
         super.draw(dirtyRect)
         NSColor.windowBackgroundColor.setFill()
         dirtyRect.fill()
-        drawRuler()
         drawTracks()
         drawClips(dirtyRect)
+        drawSnapGuide()
+        drawRuler()
+        drawGutter()
+    }
+
+    /// The lane header column stays pinned to the left edge while the timeline scrolls.
+    private func drawGutter() {
+        let left = visibleRect.minX
+        let rulerBottom = bounds.maxY - Self.rulerHeight
+        NSColor.controlBackgroundColor.setFill()
+        NSRect(x: left, y: 0, width: Self.labelWidth, height: bounds.height).fill()
+        let nameAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.labelColor.withAlphaComponent(0.82)
+        ]
+        for (index, lane) in lanes.enumerated() {
+            let y = rowTop(index) - Self.rowHeight
+            color(for: lane).setFill()
+            NSBezierPath(roundedRect: NSRect(x: left + 10, y: y + Self.rowHeight / 2 - 4, width: 8, height: 8), xRadius: 2, yRadius: 2).fill()
+            NSAttributedString(string: lane, attributes: nameAttrs)
+                .draw(at: CGPoint(x: left + 24, y: y + Self.rowHeight / 2 - 7))
+            NSColor.separatorColor.withAlphaComponent(0.38).setStroke()
+            let rule = NSBezierPath()
+            rule.move(to: CGPoint(x: left, y: y)); rule.line(to: CGPoint(x: left + Self.labelWidth, y: y))
+            rule.lineWidth = 0.5; rule.stroke()
+        }
+        NSColor.separatorColor.setStroke()
+        let edge = NSBezierPath()
+        edge.move(to: CGPoint(x: left + Self.labelWidth - 0.5, y: 0))
+        edge.line(to: CGPoint(x: left + Self.labelWidth - 0.5, y: rulerBottom))
+        edge.lineWidth = 1
+        edge.stroke()
+        // ruler corner
+        NSColor.controlBackgroundColor.setFill()
+        NSRect(x: left, y: rulerBottom, width: Self.labelWidth, height: Self.rulerHeight).fill()
+        NSAttributedString(string: "Lanes", attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+            .foregroundColor: NSColor.secondaryLabelColor
+        ]).draw(at: CGPoint(x: left + 10, y: rulerBottom + 7))
+    }
+
+    private func drawSnapGuide() {
+        guard let frame = snapGuideFrame else { return }
+        let x = Self.labelWidth + CGFloat(frame) * scale
+        NSColor.systemYellow.withAlphaComponent(0.9).setStroke()
+        let path = NSBezierPath()
+        path.move(to: CGPoint(x: x, y: 0)); path.line(to: CGPoint(x: x, y: bounds.maxY - Self.rulerHeight))
+        path.lineWidth = 1
+        path.setLineDash([3, 3], count: 2, phase: 0)
+        path.stroke()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let scrollObserver { NotificationCenter.default.removeObserver(scrollObserver) }
+        scrollObserver = nil
+        guard window != nil, let clip = enclosingScrollView?.contentView else { return }
+        clip.postsBoundsChangedNotifications = true
+        scrollObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification, object: clip, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.needsDisplay = true }
+        }
+    }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        guard let snapshot else { return }
+        for node in snapshot.nodes where TimelineLaneClassifier.visibleInTimeline(node) && !node.isReadOnly {
+            guard let laneIndex = lanes.firstIndex(of: category(for: node)),
+                  node.kind.lowercased() != "generated_sfx" else { continue }
+            let x0 = Self.labelWidth + CGFloat(node.startFrame) * scale
+            let x1 = Self.labelWidth + CGFloat(node.endFrame) * scale
+            let zone = CGFloat(TimelineMetrics.edgeZone(clipWidth: Double(x1 - x0)))
+            let y = rowTop(laneIndex) - Self.rowHeight
+            addCursorRect(NSRect(x: x0 - zone, y: y, width: zone * 2, height: Self.rowHeight), cursor: .resizeLeftRight)
+            addCursorRect(NSRect(x: x1 - zone, y: y, width: zone * 2, height: Self.rowHeight), cursor: .resizeLeftRight)
+        }
     }
 
     private func drawRuler() {
@@ -284,27 +437,26 @@ private final class TimelineCanvas: NSView {
         NSColor.controlBackgroundColor.setFill()
         ruler.fill()
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedSystemFont(ofSize: 9, weight: .regular),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular),
             .foregroundColor: NSColor.secondaryLabelColor
         ]
-        let label = NSAttributedString(string: "TIME / LANE", attributes: attrs)
-        label.draw(at: CGPoint(x: 10, y: ruler.minY + 9))
         let fps = max(snapshot?.fps ?? 30, 1)
-        let pixelsPerSecond = scale * fps
-        let interval: Int = pixelsPerSecond > 55 ? 1 : pixelsPerSecond > 22 ? 2 : pixelsPerSecond > 10 ? 5 : 10
+        let pixelsPerSecond = Double(scale) * fps
+        let interval = TimelineMetrics.rulerStepSeconds(pixelsPerSecond: pixelsPerSecond)
         let duration = snapshot?.durationFrames ?? 0
         let seconds = Int(ceil(Double(duration) / fps))
-        for second in stride(from: 0, through: max(seconds, 10), by: interval) {
-            let x = Self.labelWidth + CGFloat(second) * pixelsPerSecond
-            guard x <= bounds.maxX else { continue }
+        let last = max(seconds, 10) + interval
+        for second in stride(from: 0, through: last, by: interval) {
+            let x = Self.labelWidth + CGFloat(Double(second) * pixelsPerSecond)
+            guard x <= bounds.maxX, x >= visibleRect.minX - 60, x <= visibleRect.maxX else { continue }
             let path = NSBezierPath()
             path.move(to: CGPoint(x: x, y: ruler.minY))
             path.line(to: CGPoint(x: x, y: bounds.maxY))
             NSColor.separatorColor.withAlphaComponent(0.3).setStroke()
             path.lineWidth = 0.5
             path.stroke()
-            let text = NSAttributedString(string: String(format: "%02d:%02d", second / 60, second % 60), attributes: attrs)
-            text.draw(at: CGPoint(x: x + 3, y: ruler.minY + 9))
+            NSAttributedString(string: TimeFormat.clock(Double(second)), attributes: attrs)
+                .draw(at: CGPoint(x: x + 4, y: ruler.minY + 8))
         }
         let border = NSBezierPath()
         border.move(to: CGPoint(x: 0, y: ruler.minY))
@@ -319,12 +471,6 @@ private final class TimelineCanvas: NSView {
             let rect = NSRect(x: 0, y: y, width: bounds.width, height: Self.rowHeight)
             (index.isMultiple(of: 2) ? NSColor.textBackgroundColor : NSColor.controlBackgroundColor.withAlphaComponent(0.55)).setFill()
             rect.fill()
-            let nameAttrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 10, weight: .medium),
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
-            NSAttributedString(string: lane.uppercased(), attributes: nameAttrs)
-                .draw(at: CGPoint(x: 10, y: y + 12))
             let border = NSBezierPath()
             border.move(to: CGPoint(x: 0, y: y))
             border.line(to: CGPoint(x: bounds.width, y: y))
@@ -346,7 +492,7 @@ private final class TimelineCanvas: NSView {
             let rect = NSRect(x: x, y: y, width: width, height: Self.rowHeight - 8)
             guard rect.intersects(dirtyRect) else { continue }
             let color = color(for: category(for: node))
-            color.withAlphaComponent(selectedIDs.contains(node.id) ? 0.82 : 0.6).setFill()
+            color.withAlphaComponent(selectedIDs.contains(node.id) ? 0.9 : 0.68).setFill()
             NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3).fill()
             if category(for: node) == "Audio" {
                 drawWaveform(for: node, in: rect)
@@ -372,13 +518,22 @@ private final class TimelineCanvas: NSView {
                 NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY + 5, width: 2, height: rect.height - 10), xRadius: 1, yRadius: 1).fill()
                 NSBezierPath(roundedRect: NSRect(x: rect.maxX - 2, y: rect.minY + 5, width: 2, height: rect.height - 10), xRadius: 1, yRadius: 1).fill()
             }
-            if width > 42 {
+            if width > 36 {
+                let font = NSFont.systemFont(ofSize: 11, weight: .medium)
+                let textRect = rect.insetBy(dx: 8, dy: 0)
+                let para = NSMutableParagraphStyle()
+                para.lineBreakMode = .byTruncatingTail
                 let attrs: [NSAttributedString.Key: Any] = [
-                    .font: NSFont.systemFont(ofSize: 9, weight: .medium),
-                    .foregroundColor: NSColor.white
+                    .font: font, .foregroundColor: NSColor.white, .paragraphStyle: para
                 ]
                 let name = NSAttributedString(string: node.title, attributes: attrs)
-                name.draw(in: rect.insetBy(dx: 7, dy: 0).offsetBy(dx: 0, dy: -1))
+                let size = name.size()
+                let drawn = NSRect(x: textRect.minX, y: rect.midY - size.height / 2,
+                                   width: min(size.width, textRect.width), height: size.height)
+                // dark scrim keeps the label readable over thumbnails and waveforms
+                NSColor.black.withAlphaComponent(0.5).setFill()
+                NSBezierPath(roundedRect: drawn.insetBy(dx: -4, dy: -1), xRadius: 3, yRadius: 3).fill()
+                name.draw(in: drawn)
             }
             if targetNodeID == node.id {
                 NSColor.white.withAlphaComponent(0.85).setStroke()
@@ -570,8 +725,8 @@ private final class TimelineCanvas: NSView {
         let clipStart = Self.labelWidth + CGFloat(node.startFrame) * scale
         let clipEnd = Self.labelWidth + CGFloat(node.endFrame) * scale
         if node.kind.lowercased() == "generated_sfx" { mode = .move }
-        else if abs(point.x - clipStart) <= 7 { mode = .trimStart }
-        else if abs(point.x - clipEnd) <= 7 { mode = .trimEnd }
+        else if abs(point.x - clipStart) <= CGFloat(TimelineMetrics.edgeZone(clipWidth: Double(clipEnd - clipStart))) { mode = .trimStart }
+        else if abs(point.x - clipEnd) <= CGFloat(TimelineMetrics.edgeZone(clipWidth: Double(clipEnd - clipStart))) { mode = .trimEnd }
         else { mode = .move }
         if mode == .trimStart || mode == .trimEnd || mode == .move {
             let owner = mode == .move ? "timeline-reorder" : "timeline-trim"
@@ -584,16 +739,27 @@ private final class TimelineCanvas: NSView {
         let point = convert(event.locationInWindow, from: nil)
         switch mode {
         case .scrub:
+            autoscroll(with: event)
             scrub(point, final: false)
         case .trimStart, .trimEnd:
             let delta = Int(((point.x - downPoint.x) / max(scale, 0.05)).rounded())
+            let candidates = snapping
+                ? TimelineMetrics.snapCandidates(nodes: snapshot?.nodes ?? [], excluding: activeNode?.id, playhead: playheadFrame)
+                : []
             if mode == .trimStart {
-                ghostStart = max(0, min(originalEnd - 1, originalStart + delta))
+                var next = originalStart + delta
+                snapGuideFrame = TimelineMetrics.snap(frame: next, candidates: candidates, zoom: zoom)
+                if let snapped = snapGuideFrame { next = snapped }
+                ghostStart = max(0, min(originalEnd - 1, next))
                 ghostEnd = originalEnd
             } else {
+                var next = originalEnd + delta
+                snapGuideFrame = TimelineMetrics.snap(frame: next, candidates: candidates, zoom: zoom)
+                if let snapped = snapGuideFrame { next = snapped }
                 ghostStart = originalStart
-                ghostEnd = max(originalStart + 1, originalEnd + delta)
+                ghostEnd = max(originalStart + 1, next)
             }
+            autoscroll(with: event)
             needsDisplay = true
         case .move:
             guard hypot(point.x - downPoint.x, point.y - downPoint.y) > 12 else { return }
@@ -674,6 +840,7 @@ private final class TimelineCanvas: NSView {
         ghostStart = nil
         ghostEnd = nil
         targetNodeID = nil
+        snapGuideFrame = nil
         gestureLeaseTask = nil
         gestureLease = nil
         needsDisplay = true
@@ -719,7 +886,7 @@ private final class TimelineCanvas: NSView {
 private final class PlayheadLayer: NSView {
     private var frameNumber = 0
     private var zoom = 0.56
-    private var labelWidth: CGFloat = 112
+    private var labelWidth: CGFloat = 126
     private var rulerHeight: CGFloat = 28
     private var fps = 30.0
 
@@ -754,12 +921,7 @@ private final class PlayheadLayer: NSView {
     }
 }
 
-private func timecode(_ frame: Int, fps: Double) -> String {
-    let rate = max(Int(fps.rounded()), 1)
-    let seconds = frame / rate
-    let subframe = frame % rate
-    return String(format: "%02d:%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60, subframe)
-}
+private func timecode(_ frame: Int, fps: Double) -> String { TimeFormat.timecode(frame, fps: fps) }
 
 private func extractAudioWaveform(url: URL, from: Double, to: Double) async -> [Float]? {
     guard to > from else { return nil }

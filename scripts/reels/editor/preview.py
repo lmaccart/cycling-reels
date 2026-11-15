@@ -47,8 +47,23 @@ def source_proxy_reason(asset: dict, path: Path) -> str | None:
     return None
 
 
-def _copy_input_tree(source: Path, destination: Path) -> None:
-    """Copy private inputs without following links or accepting a concurrent rewrite."""
+def _allowed_by(only, rel: Path, is_dir: bool) -> bool:
+    if only is None:
+        return True
+    text = rel.as_posix()
+    for entry in only:
+        if text == entry or text.startswith(entry + "/"):
+            return True
+        if is_dir and entry.startswith(text + "/"):
+            return True
+    return False
+
+
+def _copy_input_tree(source: Path, destination: Path, only=None) -> None:
+    """Copy private inputs without following links or accepting a concurrent rewrite.
+
+    ``only`` limits the copy to those repo-relative files/folders (live mode:
+    the render inputs, never library/media, .env, .venv or node_modules)."""
     if source.is_symlink() or not source.is_dir():
         raise ReelsError("editor data root is not a regular private directory")
     if destination.exists() or destination.is_symlink():
@@ -57,7 +72,9 @@ def _copy_input_tree(source: Path, destination: Path) -> None:
     for current, dirs, files in os.walk(source, topdown=True, followlinks=False):
         source_dir = Path(current)
         rel = source_dir.relative_to(source)
-        dirs[:] = sorted(d for d in dirs if d not in ("out", ".cache", "__pycache__"))
+        dirs[:] = sorted(d for d in dirs if d not in ("out", ".cache", "__pycache__")
+                         and _allowed_by(only, rel / d, True))
+        files = [f for f in files if _allowed_by(only, rel / f, False)]
         for name in dirs + files:
             if (source_dir / name).is_symlink():
                 raise ReelsError(f"private renderer input contains a symlink: {(rel / name).as_posix()}")
@@ -192,6 +209,15 @@ def _path_roots(workspace, code_root: Path, job_root: Path, revision_dir: Path,
         cache_root.resolve(),
         bundle_cache.resolve(),
     }
+    # Remotion keeps its webpack cache in remotion/node_modules/.cache (shared with
+    # ./reels render) and clears it when the bundler config changes. It is a build
+    # cache, never footage or project data.
+    for application_root in application_roots:
+        dependencies = application_root / "remotion/node_modules"
+        if dependencies.is_dir():
+            cache = dependencies.resolve() / ".cache"
+            cache.mkdir(exist_ok=True)
+            writes.add(cache)
     # The isolated worker must read the job JSON, revision output it is
     # creating, and reusable cache entries as well as write there.
     reads.update(writes)
@@ -483,7 +509,10 @@ class PreviewManager:
         if expected and before != expected:
             raise ReelsError("preview snapshot library revision is stale; prepare the latest snapshot")
         data = job_root / "data"
-        _copy_input_tree(Path(self.workspace.data_root), data)
+        from .workspace import CLONE_EXTRA_DIRS, INPUT_DIRS, INPUT_FILES
+
+        only = (*INPUT_DIRS, *CLONE_EXTRA_DIRS, *INPUT_FILES) if getattr(self.workspace, "live_mode", False) else None
+        _copy_input_tree(Path(self.workspace.data_root), data, only)
         _apply_snapshot_overrides(snapshot, data)
         after = self.workspace.library_revision()
         if before != after or (expected and after != expected):
@@ -693,12 +722,14 @@ class PreviewManager:
 
             code_root = RendererManager(self.workspace).resolve_renderer(str(revisions["renderer"]))
         export_id = uuid.uuid4().hex
-        export_root = Path(self.workspace.project.out_dir) / "exports" / export_id
+        # Private scratch; the finished files are published to out/<slug>/ below.
+        export_root = Path(self.workspace.root) / "exports" / export_id
         export_root.mkdir(parents=True, mode=0o700, exist_ok=False)
         job_root = self.worker_root / f"export-{export_id}"
         job_root.mkdir(parents=True, mode=0o700, exist_ok=False)
         try:
             data_root = self._copy_inputs(snapshot, export_root)
+            self._seed_previous_post(snapshot, data_root)
             job_path = job_root / "job.json"
             result_path = job_root / "result.json"
             job = {
@@ -728,12 +759,59 @@ class PreviewManager:
             result["exportId"] = export_id
             result["exportRoot"] = str(export_root)
             result["status"] = "rendered-private"
+            if getattr(self.workspace, "live_mode", False):
+                result = self._publish_to_out(result, output_dir)
             return result
         except Exception:
             shutil.rmtree(export_root, ignore_errors=True)
             raise
         finally:
             shutil.rmtree(job_root, ignore_errors=True)
+
+    def _seed_previous_post(self, snapshot: dict, data_root: Path) -> None:
+        """Give the worker the existing out/<slug>/post.json so history/Metricool ids carry over."""
+        slug = (snapshot.get("plan") or {}).get("slug")
+        if not isinstance(slug, str) or not slug or "/" in slug or "\\" in slug:
+            return
+        previous = Path(self.workspace.project.out_dir) / slug / "post.json"
+        if previous.is_file() and not previous.is_symlink():
+            target = data_root / "out" / slug / "post.json"
+            target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            shutil.copyfile(previous, target)
+
+    def _publish_to_out(self, result: dict, output_dir: Path) -> dict:
+        """Copy the finished render into the real out/<slug>/ like ./reels render does.
+
+        Each file is staged beside its destination and swapped in with an atomic
+        replace. Nothing outside out/<slug>/ is touched and no existing file is
+        deleted except a superseded review movie in that same folder.
+        """
+        slug = str(result["slug"])
+        destination = (Path(self.workspace.project.out_dir) / slug)
+        out_root = Path(self.workspace.project.out_dir).resolve()
+        destination.mkdir(parents=True, exist_ok=True)
+        if not _inside(destination.resolve(), out_root):
+            raise ReelsError("export destination escaped out/")
+        names = [path.name for path in output_dir.iterdir() if path.is_file() and not path.is_symlink()]
+        for name in sorted(names):
+            if name.startswith("."):
+                continue
+            temporary = destination / f".{name}.{uuid.uuid4().hex}.tmp"
+            try:
+                shutil.copyfile(output_dir / name, temporary)
+                os.replace(temporary, destination / name)
+            finally:
+                if temporary.exists():
+                    temporary.unlink()
+        if "preview.mp4" not in names and (destination / "preview.mp4").is_file():
+            (destination / "preview.mp4").unlink()
+        published = dict(result)
+        published["outputDir"] = str(destination)
+        published["reelPath"] = str(destination / "reel.mp4")
+        published["previewVideoPath"] = str(destination / "preview.mp4") if "preview.mp4" in names else None
+        published["publishedTo"] = f"out/{slug}"
+        shutil.rmtree(Path(result["exportRoot"]), ignore_errors=True)
+        return published
 
     def merge_usage_fields(
         self,

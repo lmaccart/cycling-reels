@@ -10,6 +10,18 @@ final class EditorAppDelegate: NSObject, NSApplicationDelegate {
     private var previewOutcome: Bool?
     private var previewFailure: String?
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag, let window = sender.windows.first(where: { $0.contentView != nil && $0.canBecomeMain }) {
+            window.makeKeyAndOrderFront(nil)
+            return false
+        }
+        return !flag
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        EditorStore.shared.service.stopSynchronously()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         Task { await enforceMinimumWindowSize() }
         guard let destination = Self.argument("--capture-window", in: ProcessInfo.processInfo.arguments) else { return }
@@ -51,7 +63,11 @@ final class EditorAppDelegate: NSObject, NSApplicationDelegate {
                 let needsDocument = Self.argument("--plan", in: ProcessInfo.processInfo.arguments) != nil
                     || ProcessInfo.processInfo.arguments.contains("--capture-require-document")
                 if needsDocument, !(await waitForDocumentReady()) {
-                    NSLog("Reels Editor capture skipped: no open document before the 45-second deadline.")
+                    NSLog("Reels Editor capture: no open document before the 45-second deadline; capturing the current screen.")
+                    window.setContentSize(NSSize(width: 1280, height: 768))
+                    window.displayIfNeeded()
+                    try? await Task.sleep(for: .milliseconds(600))
+                    capture(window: window, to: destination)
                     finishCaptureIfRequested()
                     return
                 }

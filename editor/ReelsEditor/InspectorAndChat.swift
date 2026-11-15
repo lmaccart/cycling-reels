@@ -10,7 +10,7 @@ struct RightRail: View {
             vertical: false,
             autosaveName: "ReelsEditor.InspectorChat",
             minimumSizes: [200, 170],
-            initialFractions: [0.58, 0.42]
+            initialFractions: [0.5, 0.5]
         )
     }
 }
@@ -29,7 +29,7 @@ private struct PermissionGrantSummary: View {
                                 .font(.system(size: 10, weight: .medium))
                             if let scope = grant["scope"] {
                                 Text(scope.displayValue)
-                                    .font(.system(size: 9, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -52,19 +52,21 @@ private struct InspectorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("INSPECTOR")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(0.6)
+                Text("Inspector")
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 if let node = store.selectedNode {
-                    Text(node.kind.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
+                    Text(humanize(node.kind))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(laneColor(node.lane))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(laneColor(node.lane).opacity(0.16), in: Capsule())
                 }
             }
-            .padding(.horizontal, 10)
-            .frame(height: 32)
+            .padding(.horizontal, 12)
+            .frame(height: 34)
             .background(EditorPalette.panel)
             Divider()
 
@@ -75,16 +77,19 @@ private struct InspectorPane: View {
                             Text(node.title)
                                 .font(.system(size: 13, weight: .semibold))
                                 .lineLimit(2)
-                            Text("\(timeString(Double(node.startFrame) / store.fps))  ·  \(node.frames) frames")
-                                .font(.system(size: 10, design: .monospaced))
+                            Text("Starts \(timeString(Double(node.startFrame) / store.fps))  ·  \(node.frames) frames")
+                                .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             Text("ID  \(node.id)")
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(.tertiary)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary.opacity(0.8))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                                 .textSelection(.enabled)
+                                .help("Stable ID of this item. Claude Code can refer to it.")
                             if node.isReadOnly {
-                                Label("Generated caption timing is locked", systemImage: "lock.fill")
-                                    .font(.system(size: 9, weight: .medium))
+                                Label("Caption timing comes from the transcript and can't be moved", systemImage: "lock.fill")
+                                    .font(.system(size: 10, weight: .medium))
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -104,22 +109,26 @@ private struct InspectorPane: View {
             } else if let snapshot = store.snapshot {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(snapshot.plan["slug"]?.stringValue ?? "Project")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("Format  \(snapshot.plan["format"]?.displayValue ?? "—")")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                        Text("\(snapshot.durationFrames) frames at \(snapshot.fps.formatted()) fps")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(store.reelTitle)
+                                .font(.system(size: 13, weight: .semibold))
+                                .lineLimit(2)
+                            Text("\(TimeFormat.clock(Double(snapshot.durationFrames) / max(snapshot.fps, 1))) long  ·  \(snapshot.fps.formatted()) fps  ·  \(snapshot.plan["format"]?.displayValue ?? "no format")")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                            Label("Select a clip on the timeline to edit it. These are whole-reel settings.", systemImage: "cursorarrow.click")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 2)
+                        }
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
                             SchemaInspector(schema: store.inspectorSchema,
                                             fields: snapshot.plan,
                                             nodeID: "document", store: store,
                                             targetKeys: ["document", "post", "hook", "endCard", "titleCard"])
                             if snapshot.projectConfig == nil && store.workspaceInfo["config"] == nil {
-                                Text("Showing schema defaults; current project config is not included in this service snapshot.")
-                                    .font(.system(size: 9))
+                                Text("Showing default values: this reel's saved settings haven't loaded yet.")
+                                    .font(.system(size: 10))
                                     .foregroundStyle(.tertiary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -155,8 +164,8 @@ private struct InspectorPane: View {
                     .padding(10)
                 }
             } else {
-                ContentUnavailableView("No selection", systemImage: "slider.horizontal.3",
-                                       description: Text("Open a plan and select a timeline item to inspect its editable fields."))
+                ContentUnavailableView("Nothing to inspect", systemImage: "slider.horizontal.3",
+                                       description: Text("Open a reel, then select a clip on the timeline to edit its settings."))
             }
         }
         .background(EditorPalette.panel)
@@ -305,7 +314,7 @@ private struct SchemaInspector: View {
             }
             if !isReadOnly {
                 InspectorGroup(
-                    title: "Advanced JSON extensions",
+                    title: "Other settings (advanced)",
                     icon: "curlybraces",
                     fields: fields,
                     excluding: Array(Set(coveredRoots + ["_editor"])),
@@ -329,6 +338,12 @@ private struct SchemaTargetGroups: View {
     private var scope: String { target["scopePath"]?.stringValue ?? "" }
     private var groups: [JSONValue] { target["groups"]?.arrayValue ?? [] }
     private var scopedToSelectedNode: Bool { nodeID != "project" && nodeID != "document" }
+    private var selectedNode: EditorNode? { store.snapshot?.nodes.first(where: { $0.id == nodeID }) }
+    private var selectedNodeReadOnly: Bool { selectedNode?.isReadOnly == true }
+    private var assetRecord: JSONValue? {
+        guard let id = selectedNode?.assetId else { return nil }
+        return store.library.first(where: { $0["id"]?.stringValue == id })
+    }
 
     var body: some View {
         ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
@@ -350,6 +365,22 @@ private struct SchemaTargetGroups: View {
                             descriptor, fields: fields, scope: scope, scoped: scopedToSelectedNode
                            ) {
                             let value = fields.value(at: path) ?? InspectorSchemaSupport.defaultValue(for: descriptor)
+                            if descriptor["id"]?.stringValue == "moment" || path.last == "moment" {
+                                let moments = AssetPresentation.moments(assetRecord)
+                                if !moments.isEmpty {
+                                    MomentPickerField(
+                                        name: descriptor["label"]?.stringValue ?? "Tagged moment",
+                                        moments: moments,
+                                        value: value,
+                                        readOnly: descriptor["readOnly"]?.boolValue == true || selectedNodeReadOnly
+                                    ) { newValue in
+                                        let pointer = "/" + path.map {
+                                            $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
+                                        }.joined(separator: "/")
+                                        store.editField(nodeID: nodeID, path: pointer, value: newValue)
+                                    }
+                                }
+                            } else {
                             SchemaFieldEditor(
                                 name: descriptor["label"]?.stringValue ?? path.last ?? targetKey,
                                 value: value,
@@ -362,8 +393,9 @@ private struct SchemaTargetGroups: View {
                                 store: store
                             )
                             if let help = descriptor["help"]?.stringValue, !help.isEmpty {
-                                Text(help).font(.system(size: 9)).foregroundStyle(.tertiary)
+                                Text(help).font(.system(size: 10)).foregroundStyle(.tertiary)
                                     .padding(.leading, 2)
+                            }
                             }
                         }
                     }
@@ -405,7 +437,7 @@ private struct SchemaFieldEditor: View {
                 Text(name).font(.system(size: 10))
                 Spacer()
                 Text(currentValue.displayValue)
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.tertiary)
             }
             .accessibilityElement(children: .combine)
@@ -478,6 +510,37 @@ private struct SchemaFieldEditor: View {
     }
 }
 
+/// Menu of the tagged moments of a clip; plans store the moment ID.
+private struct MomentPickerField: View {
+    let name: String
+    let moments: [AssetPresentation.Moment]
+    let value: JSONValue
+    let readOnly: Bool
+    let commit: (JSONValue) -> Void
+
+    var body: some View {
+        let selected = AssetPresentation.selectedMomentID(value, moments: moments)
+        HStack {
+        Text(name).font(.system(size: 10))
+        Spacer(minLength: 6)
+        Picker(name, selection: Binding<String?>(
+            get: { selected },
+            set: { commit($0.map(JSONValue.string) ?? .string("")) }
+        )) {
+            Text("None").tag(String?.none)
+            Divider()
+            ForEach(moments) { moment in
+                Text(moment.label).tag(Optional(moment.id))
+            }
+        }
+        .labelsHidden()
+        .controlSize(.small)
+        .disabled(readOnly)
+        .accessibilityLabel(name)
+        }
+    }
+}
+
 private struct SchemaEnumField: View {
     let name: String
     let value: JSONValue
@@ -539,7 +602,7 @@ private struct SchemaGroupField: View {
                 HStack {
                     Text(name).font(.system(size: 10, weight: .medium))
                     Spacer()
-                    Text(value.displayValue).font(.system(size: 9)).foregroundStyle(.tertiary)
+                    Text(value.displayValue).font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
             }
             .tint(.secondary)
@@ -674,7 +737,7 @@ private struct SchemaCollectionField: View {
                                 )
                             }
                         } else if targetKey == nil || child == nil {
-                            Text(item.displayValue).font(.system(size: 9)).foregroundStyle(.secondary)
+                            Text(item.displayValue).font(.system(size: 10)).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, 3)
@@ -688,7 +751,7 @@ private struct SchemaCollectionField: View {
             HStack {
                 Text(name).font(.system(size: 10, weight: .medium))
                 Spacer()
-                Text("\(values.count)").font(.system(size: 9, design: .monospaced)).foregroundStyle(.tertiary)
+                Text("\(values.count)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
             }
         }
         .tint(.secondary)
@@ -818,7 +881,7 @@ private struct JSONFieldEditor: View {
                 HStack {
                     Text(humanize(name)).font(.system(size: 10, weight: .medium))
                     Spacer()
-                    Text("\(object.count) fields").font(.system(size: 9)).foregroundStyle(.tertiary)
+                    Text("\(object.count) fields").font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
             }
             .tint(.secondary)
@@ -855,7 +918,7 @@ private struct JSONFieldEditor: View {
                 HStack {
                     Text(humanize(name)).font(.system(size: 10, weight: .medium))
                     Spacer()
-                    Text("\(values.count)").font(.system(size: 9, design: .monospaced)).foregroundStyle(.tertiary)
+                    Text("\(values.count)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
                 }
             }
             .tint(.secondary)
@@ -880,7 +943,7 @@ private struct JSONFieldEditor: View {
             HStack {
                 Text(humanize(name)).font(.system(size: 10))
                 Spacer()
-                Text("Not set").font(.system(size: 9)).foregroundStyle(.tertiary)
+                Text("Not set").font(.system(size: 10)).foregroundStyle(.tertiary)
                 Button {
                     commit(.string(""))
                 } label: { Image(systemName: "plus.circle").foregroundStyle(.secondary) }
@@ -927,7 +990,7 @@ private struct NumberField: View {
                 .onChange(of: value) { _, newValue in draft = Self.format(newValue) }
                 .accessibilityLabel(humanize(name))
             if let unit, !unit.isEmpty {
-                Text(unit).font(.system(size: 8)).foregroundStyle(.tertiary).lineLimit(1)
+                Text(unit).font(.system(size: 10)).foregroundStyle(.tertiary).lineLimit(1)
             }
             Stepper("", onIncrement: { step(1) }, onDecrement: { step(-1) })
                 .labelsHidden()
@@ -1094,7 +1157,7 @@ private struct KeyframeField: View {
                 }
             }
             Text("Keyframe values are edited from the full format fields below.")
-                .font(.system(size: 9))
+                .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
         .padding(7)
@@ -1131,7 +1194,7 @@ private struct TranscriptWordEditor: View {
             ForEach(Array(words.enumerated()), id: \.offset) { index, word in
                 HStack(spacing: 5) {
                     Text("\(word["s"]?.numberValue ?? 0, format: .number.precision(.fractionLength(1)))")
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.tertiary)
                         .frame(width: 30, alignment: .trailing)
                     TextField("Word", text: Binding(
@@ -1174,100 +1237,143 @@ private struct ChatPane: View {
     @Bindable var store: EditorStore
     @FocusState private var focused: Bool
 
+    private var canSend: Bool {
+        !store.chatDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.isChatWorking
+    }
+
+    private static let starters = ["Tighten the pacing", "Make the hook punchier", "Cut any dead air"]
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: "bubble.left.and.text.bubble.right")
                     .foregroundStyle(EditorPalette.accent)
                     .accessibilityHidden(true)
-                Text("CHAT & HISTORY").font(.system(size: 11, weight: .bold)).tracking(0.5)
+                Text("Claude").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
-                if store.isChatWorking {
-                    Button { store.stopChat() } label: { Image(systemName: "stop.fill") }
-                        .buttonStyle(.borderless)
-                        .help("Stop Claude")
-                        .accessibilityLabel("Stop Claude")
-                }
             }
-            .padding(.horizontal, 9)
-            .frame(height: 32)
+            .padding(.horizontal, 12)
+            .frame(height: 34)
             .background(EditorPalette.panel)
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        if store.chatEntries.isEmpty {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("Ask Claude to shape this reel.")
-                                    .font(.system(size: 11, weight: .medium))
-                                Text("Validated edits appear in the timeline and stay undoable.")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(9)
-                        }
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        if store.chatEntries.isEmpty { emptyState }
                         ForEach(store.chatEntries) { entry in
                             ChatMessage(entry: entry)
                                 .id(entry.id)
                         }
                         Color.clear.frame(height: 1).id("chat-bottom")
                     }
-                    .padding(8)
+                    .padding(10)
                 }
-                .onChange(of: store.chatEntries.count) { _, _ in
-                    withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo("chat-bottom", anchor: .bottom) }
+                .onChange(of: store.chatEntries.count) { _, _ in scrollToEnd(proxy) }
+                .onChange(of: store.chatEntries.last?.text.count) { _, _ in scrollToEnd(proxy, animated: false) }
+                .onChange(of: store.isChatWorking) { _, _ in scrollToEnd(proxy) }
+            }
+            if store.isChatWorking {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Claude is working…")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button { store.stopChat() } label: { Label("Stop", systemImage: "stop.fill") }
+                        .controlSize(.small)
+                        .help("Stop Claude. Edits already applied stay, and you can undo them.")
+                        .accessibilityLabel("Stop Claude")
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(EditorPalette.accent.opacity(0.12))
+                .accessibilityElement(children: .contain)
             }
             Divider()
-            HStack(alignment: .bottom, spacing: 6) {
+            HStack(alignment: .bottom, spacing: 8) {
                 TextField("Describe an edit…", text: $store.chatDraft, axis: .vertical)
-                    .lineLimit(1...4)
+                    .lineLimit(1...5)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .focused($focused)
-                    .onSubmit { if !store.chatDraft.contains("\n") { store.sendChat() } }
-                    .disabled(store.isChatWorking)
+                    .onKeyPress(.return, phases: .down) { press in
+                        // Return sends; Shift-Return (or Option-Return) inserts a new line.
+                        if press.modifiers.contains(.shift) || press.modifiers.contains(.option) { return .ignored }
+                        if canSend { store.sendChat() }
+                        return .handled
+                    }
                     .accessibilityLabel("Message Claude")
-                Button { store.sendChat() } label: { Image(systemName: "arrow.up.circle.fill").font(.system(size: 18)) }
+                    .accessibilityHint("Return sends. Shift-Return adds a new line.")
+                Button { store.sendChat() } label: { Image(systemName: "arrow.up.circle.fill").font(.system(size: 22)) }
                     .buttonStyle(.plain)
-                    .foregroundStyle(EditorPalette.accent)
-                    .disabled(store.chatDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isChatWorking)
-                    .keyboardShortcut(.return, modifiers: .command)
-                    .help("Send message")
+                    .foregroundStyle(canSend ? EditorPalette.accent : Color.secondary.opacity(0.5))
+                    .disabled(!canSend)
+                    .help("Send  ↩ (Shift-↩ for a new line)")
+                    .accessibilityLabel("Send message")
             }
-            .padding(8)
+            .padding(10)
         }
         .background(EditorPalette.panel)
+    }
+
+    private func scrollToEnd(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        if animated {
+            withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo("chat-bottom", anchor: .bottom) }
+        } else {
+            proxy.scrollTo("chat-bottom", anchor: .bottom)
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Ask Claude to shape this reel")
+                .font(.system(size: 13, weight: .semibold))
+            Text("Changes save to \(store.planFileLabel ?? "plans/<file>.json"), the same file Claude Code and ./reels render use. Every edit can be undone with ⌘Z.")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Self.starters, id: \.self) { text in
+                Button(text) { store.chatDraft = text; focused = true }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!store.hasDocument)
+            }
+        }
+        .padding(4)
     }
 }
 
 private struct ChatMessage: View {
     let entry: ChatEntry
+    private var isYou: Bool { entry.role == "you" }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(entry.role.uppercased())
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(0.3)
-                    .foregroundStyle(entry.role == "you" ? EditorPalette.accent : .secondary)
+                Text(isYou ? "You" : entry.role.prefix(1).uppercased() + entry.role.dropFirst())
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isYou ? EditorPalette.accent : .secondary)
                 Spacer()
                 Text(entry.timestamp, style: .time)
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 10))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
             }
             Text(entry.text)
-                .font(.system(size: 10))
+                .font(.system(size: 12))
+                .lineSpacing(2)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if entry.state == "streaming" {
                 ProgressView().controlSize(.mini).frame(maxWidth: .infinity, alignment: .leading)
             } else if entry.state == "error" {
-                Label("Not sent", systemImage: "exclamationmark.circle").font(.system(size: 9)).foregroundStyle(.red)
+                Label("This message failed", systemImage: "exclamationmark.circle")
+                    .font(.system(size: 11)).foregroundStyle(.red)
             }
         }
-        .padding(7)
-        .background(entry.role == "you" ? EditorPalette.accent.opacity(0.1) : EditorPalette.raised,
-                    in: RoundedRectangle(cornerRadius: 5))
+        .padding(9)
+        .background(isYou ? EditorPalette.accent.opacity(0.14) : EditorPalette.raised,
+                    in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
     }
 }

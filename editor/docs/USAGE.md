@@ -4,92 +4,67 @@ A local macOS editor for the existing cycling-reels plan format. Manual actions
 and Claude edits go through the same revision-checked, undoable transactions.
 The reel JSON—not a second timeline format—remains authoritative.
 
-## Open the integrated editor
+## Open the editor
 
-The app source and launcher now live in `~/rice/cycling/editor/`. The service and
-renderer are shared with this codebase; a versioned copy runs independently.
+The app source and launcher live in `~/rice/cycling/editor/`. The editing service
+is part of the normal `reels` CLI (`./reels editor ...`), runs on the repo's own
+`.venv` and `remotion/`, and works directly on this folder.
 
 ```bash
 cd ~/rice/cycling
 ./editor/reels-editor setup        # first run, or after source changes
-./editor/reels-editor open
+./editor/reels-editor open         # or open the app from ~/Applications
 ./editor/reels-editor open plans/2026-11-11-easy-day-laundry.json
+./editor/reels-editor info         # where everything lives
 ```
 
-After setup, double-clicking `editor/Open Editor.command` is equivalent to
-`open` above. The native app reopens its last plan, or shows Projects so you can
-choose one.
+`setup` installs `requirements.txt` into `.venv`, runs `npm install` in `remotion/`
+if needed, builds the editor preview bundle and the app (Release), replaces
+`~/Applications/Reels Editor.app` and records this folder for the app
+(`defaults write com.cycling.ReelsEditor reelsEditor.repositoryRoot <folder>`).
+To keep it in the Dock, open it once, then right-click its icon, Options, Keep in Dock.
 
-`setup` installs only into
-`~/Library/Application Support/CyclingReelsEditor/`. It builds the app, installs
-independent Python/Remotion/browser dependencies and initializes a private
-snapshot of the current main project. It never uses the live `.venv` or
-`remotion/node_modules`. Run `./editor/reels-editor info` for exact paths.
-Previous runtime versions, snapshots and their history are retained.
+The app finds the folder from `--repo`, then that saved setting, then asks you to
+choose your cycling folder (it must contain `reels` and `plans/`).
 
-## Prerequisites and isolation
+## Prerequisites
 
 - macOS 14 or later and full Xcode with the macOS SDK and Swift 6 support.
 - Python 3.10–3.13, Node 18+, ffmpeg/ffprobe, and `sandbox-exec`.
-- The installer's independent `.venv`, `remotion/node_modules`, Chrome Headless
-  Shell, caches and build products. Do not link production dependencies to them.
 - Optional: locally installed, authenticated Claude Code for chat and semantic
   search. Sign in through Claude Code; the editor does not request API keys.
+  Editor commands never source `.env`.
 
-The supported integrated setup command is:
+## What is live
 
-```bash
-cd ~/rice/cycling
-./editor/reels-editor setup
-```
-
-Editor setup installs local dependencies and the rendering browser, checks the
-Remotion template, and builds the preview bundle. It does not ingest footage,
-download Whisper or create production config. The integrated launcher explicitly
-snapshots the current checkout after building. Missing system tools are reported
-rather than installed globally by this mode.
-
-## Additional private projects (advanced)
-
-Setup already initializes the default workspace. Existing low-level `reels editor`
-commands are routed to the installed runtime before the main `.env` or `.venv`
-is loaded. To create another workspace, use a new path **outside** the live
-checkout:
-
-```bash
-./reels editor init \
-  --source /path/to/cycling \
-  --workspace "$HOME/Library/Application Support/CyclingReelsEditor/my-workspace"
-
-./reels --editor-workspace "$HOME/Library/Application Support/CyclingReelsEditor/my-workspace" editor info
-```
-
-The destination must be new. Plans, transcripts, asset records, relevant metadata,
-music, SFX and exhibits are independent copies. Original footage is registered by
-path and file identity and shared read-only. Credentials, `.env`, source-code
-settings, existing renders and production dependencies are not imported.
-
-There is no background synchronization or automatic write-back to production.
-Changed or missing originals are reported, not silently replaced. Keep the
-production originals in their registered location.
-
-Open it with `./editor/reels-editor open --workspace "/absolute/workspace/path"`.
+- Projects are the real `plans/*.json`. The picker lists them with title, post
+  date, format, length and status (from `out/<slug>/post.json` when rendered).
+  New Reel creates `plans/<date>-<title>.json` with no segments (never overwriting
+  a plan).
+- `library/media/` is read-only to the editor. Nothing under `library/` or
+  `plans/` is ever deleted by it. Transcript word corrections and export usage
+  records are the only edits to library metadata.
+- Import copies files into `inbox/` (hidden files and `.LRV`/`.THM` sidecars are
+  skipped, folders are searched), then runs `./reels ingest` as a cancellable job
+  with its output shown live. Your source files are never moved or removed.
+- Terminal Claude Code or manual edits to `plans/` show up in the app within a
+  couple of seconds. `.cache/editor/live/context.json` shows a terminal session what is
+  open (plan, selection, playhead).
+- Private state (undo history, jobs, previews, chat, `service.lock`) is in
+  `.cache/editor/live/`. Only one editing service runs per folder.
+- The renderer is the repo's current `remotion/` and `scripts/reels` source; when it
+  changes, a plan starts a fresh undo history. Renderer code cannot be changed from the app.
 
 ## Launch and service
 
-Pass an optional `plans/<existing-plan>.json` to `editor/reels-editor open`;
-without it the app can reopen its previous plan. Only one editing
-service may mutate a workspace at a time; use another private workspace for a
-second independent editor.
-
-The app launches the local service itself. For protocol development only:
+The app runs `<repo>/reels editor serve` itself (newline-delimited JSON on
+stdin/stdout, working directory = the repo). For protocol development only:
 
 ```bash
-./reels --editor-workspace "/absolute/private/workspace" editor serve
+./reels editor serve
 ```
 
-This uses versioned newline-delimited JSON on stdin/stdout. Do not run it beside
-the app against the same workspace. See [INTEGRATION.md](INTEGRATION.md).
+Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATION.md).
 
 ## Editing
 
@@ -151,140 +126,57 @@ the selected export artifact and its post metadata rather than treating every
 MP4 as interchangeable. Still-frame and loudness measurements do not establish
 that someone has watched motion or listened to the mix.
 
-## Renderer/effect changes
+## Renderer changes
 
-Claude may submit changes only to allowed effect/composition source areas.
-Launcher, broker, provenance/privacy policy, authentication, dependencies,
-preview bridge and trusted tests are protected.
+The app does not change renderer or effect code (`renderer.submit` returns an
+error). Ask Claude Code in the terminal; code changes need your approval and tests.
 
-Each candidate receives immutable source and private input snapshots, fixed
-contract/type/bundle checks, and a real draft render inside the macOS sandbox.
-Original/production writes and external network are denied; only necessary local
-rendering access is allowed. The boundary is tested on an isolated original-write
-fixture. Failure to enforce it blocks activation—there is no unsandboxed retry.
+## Export
 
-Source, accompanying plan operations and the matching preview activate together
-only if their input revisions are still current. Invalid/stale candidates keep
-the previous renderer and preview. Extra Inspector controls are declarative,
-not executable native UI. Undo restores the previous recorded source revision.
+Export freezes the document, library and renderer revisions and renders the plan
+with the normal pipeline inside a macOS sandbox (no network, no `.env`, no writes
+to `library/`). The result is published to `out/<slug>/` (`reel.mp4`, `cover.jpg`,
+`post.json`, `caption.txt`, `plan.json`, ...) like `./reels render plans/<file>`;
+an existing `post.json` history is carried over. Opening or exporting a reel
+does not approve, schedule or publish it; use the normal pipeline for that.
 
-## Export and save
-
-Export freezes document, library and renderer revisions and runs the existing
-renderer against private data. Finished artifacts, post metadata, captions and
-lineage stay under:
-
-```text
-<workspace>/data/out/exports/<export-id>/
-```
-
-Usage bookkeeping is applied only to private metadata. Opening/exporting a reel
-does not approve, schedule or publish it.
-
-Use the native Save action to copy a completed reel or audible review elsewhere.
-The save operation refuses production paths and symlink destinations; replacement
-requires confirmation. An incomplete/interrupted job is not a completed export.
-
-## Refresh without losing private edits
-
-Close the app first. The launcher imports main-project updates into a new
-snapshot and switches to it only after successful validation:
-
-```bash
-./editor/reels-editor refresh --keep-private
-```
-
-This keeps conflicting private files while importing new files. It does **not**
-overwrite a changed private plan merely because its production counterpart was
-updated. Running `refresh` without `--keep-private` stops on conflicts and prints
-a report. Pass `--resolutions /absolute/choices.json` to choose individual files.
-
-For advanced explicit destinations, use the low-level command with external
-paths obtained from `editor/reels-editor info`:
-
-Production changes are imported explicitly into a **new** workspace:
-
-```bash
-./reels editor refresh \
-  --source /path/to/cycling \
-  --workspace "/absolute/current/private/workspace" \
-  --into "/absolute/new/private/workspace"
-```
-
-Differing files require choices; an unresolved candidate stays inactive and the
-command prints a conflict-report path. Supply a JSON map of relative data paths:
-
-```json
-{
-  "plans/example.json": "private",
-  "library/progress.json": "source"
-}
-```
-
-Pass it with `--resolutions /path/to/choices.json`, or explicitly choose
-`--keep-private` to retain conflicting private files while adding new source
-files. This is conservative file-level reconciliation, not a three-way merge.
-After a low-level refresh, open with `editor/reels-editor open --workspace` and
-the new path. The previous workspace
-remains the full history archive; the new one starts fresh history while retaining
-current plan/node identities and referenced renderer sources.
+**Save Reel** / **Save Review** copy a completed export elsewhere (not into this
+folder); replacement requires confirmation.
 
 ## Recovery
 
-- **Service interrupted:** reopen the same workspace. Journal recovery restores
+- **Service interrupted:** reopen the app. Journal recovery restores
   the committed state; interrupted jobs cannot masquerade as completed exports.
   Do not delete `service.lock` to bypass an active editor—its process lock releases
   when the owning service exits.
 - **Offline media:** a committed cached view/last-good preview can remain
   available read-only. Reconnect the recorded original before editing/exporting;
   never substitute a similarly named file.
-- **Missing renderer revision:** restore that workspace's recorded
-  `code/renderers/<revision>` from backup. Do not point it at current checkout
-  code; reopening/export fails closed rather than changing the result.
+- **Missing renderer revision:** reopen the plan; it starts a fresh history on the current renderer source.
 - **Validation or preview error:** inspect the visible error and retry after
   correcting its cause. Manual editing and previous committed revisions remain
   separate from failed candidate work.
 - **Disk full:** free space outside original footage/active history, then reopen
   and retry. Do not manually remove transaction journals or recorded sources.
-- **Snapshot conflict/race:** review its report and retry into another new
-  destination after stopping edits. Neither source nor existing workspace is
-  overwritten.
 
-Back up the entire private workspace, including its `data`, `history` and
-`code/renderers`, alongside the separately retained originals.
+Back up `plans/` and `.cache/editor/live/history` if you want the undo history kept; original footage is backed up separately.
 
 ## Verification
 
-Use the runtime path shown by `./editor/reels-editor info` for Python/Remotion
-checks, not the production dependencies:
-
 ```bash
-cd "/installed/runtime/path"
+cd ~/rice/cycling
 PYTHONPATH=scripts:tests .venv/bin/python -m unittest discover -s tests
 npm --prefix remotion run typecheck
-npm --prefix remotion run build:editor-preview
-cd ~/rice/cycling
 xcodebuild -project editor/ReelsEditor.xcodeproj \
   -scheme ReelsEditor -configuration Debug -destination 'platform=macOS' \
   -derivedDataPath .cache/editor/DerivedData test
 ```
 
-The optional actual sandbox/render fixture requires macOS and installed local
-rendering dependencies:
+The optional sandbox/render proofs need macOS with ffmpeg, node and a Chrome
+Headless Shell:
 
 ```bash
 REELS_RUN_SANDBOX_RENDER_PROOF=1 PYTHONPATH=scripts:tests .venv/bin/python -m unittest \
-  test_editor_preview.EditorPreviewTests.test_sandboxed_exact_preview_and_private_export_fixture
+  test_editor_preview.EditorPreviewTests.test_sandboxed_exact_preview_and_private_export_fixture \
+  test_editor_live.LiveExportProof
 ```
-
-Network/model tests and real-footage playback are separate acceptance checks;
-the deterministic unit suite needs neither credentials nor private footage.
-
-For app-owned development captures, invoke the installed app binary with its
-installed runtime `--repo` and private `--workspace`, then append
-`--capture-window /absolute/path.png
---capture-playback --capture-and-quit` to the app command. It waits for real
-Program frame advancement, records `.playback.json`, and saves the actual WebKit
-viewport separately as `.program.png`. The whole-window bitmap may omit
-GPU-backed video layers; a file's existence alone is not playback proof. The
-diagnostic does not claim that anyone listened to the audio.

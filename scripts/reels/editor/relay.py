@@ -60,8 +60,7 @@ class Relay:
         path = self.root / f"{scope}-mcp.json"
         python = Path(workspace.code_root) / ".venv/bin/python"
         payload = {"mcpServers": {"reels_editor": {
-            "command": str(python), "args": ["-m", "reels", "--editor-workspace", str(workspace.root),
-                                             "editor", "mcp", "--socket", str(self.path),
+            "command": str(python), "args": ["-m", "reels", "editor", "mcp", "--socket", str(self.path),
                                              "--token-file", str(self.token_files[scope]), "--scope", scope],
             "env": {"PYTHONPATH": str(Path(workspace.code_root) / "scripts"),
                     "REELS_HOME": str(workspace.data_root)},

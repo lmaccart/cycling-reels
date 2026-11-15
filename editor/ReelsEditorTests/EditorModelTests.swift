@@ -3,33 +3,92 @@ import XCTest
 @testable import ReelsEditor
 
 final class EditorModelTests: XCTestCase {
-    @MainActor
-    func testInstalledRuntimeCanLaunchWithoutBecomingTheProductionTarget() throws {
-        let temporary = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: temporary) }
-        let production = temporary.appending(path: "production")
-        let runtime = temporary.appending(path: "Application Support/runtime")
-        let workspace = temporary.appending(path: "Application Support/workspace")
-        for folder in [production, runtime, workspace, runtime.appending(path: ".venv"), runtime.appending(path: "remotion/node_modules")] {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        }
-        let launcher = runtime.appending(path: "reels")
+    func testRepositoryValidationNeedsExecutableLauncherAndPlansFolder() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        XCTAssertThrowsError(try RepositoryLocator.validate(root))
+        let launcher = root.appending(path: "reels")
         try "#!/bin/sh\nexit 0\n".write(to: launcher, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: launcher.path)
-        let marker: [String: Any] = [
-            "version": 1, "kind": "cycling-reels-editor-runtime", "status": "ready",
-            "sourceRoot": production.path, "codeDigest": String(repeating: "a", count: 64)
-        ]
-        try JSONSerialization.data(withJSONObject: marker).write(to: runtime.appending(path: ".reels-editor-runtime.json"))
-        let roots = try EditorStore.validate(root: runtime, workspace: workspace)
-        XCTAssertTrue(roots.contains(production.standardizedFileURL.resolvingSymlinksInPath().path))
-        XCTAssertTrue(roots.contains(runtime.standardizedFileURL.resolvingSymlinksInPath().path))
-        XCTAssertThrowsError(try EditorStore.validate(root: runtime, workspace: production.appending(path: "editor/data")))
-        XCTAssertThrowsError(try EditorStore.validate(root: runtime, workspace: runtime.appending(path: "workspace")))
-        try FileManager.default.removeItem(at: runtime.appending(path: ".venv"))
-        try FileManager.default.createSymbolicLink(
-            at: runtime.appending(path: ".venv"), withDestinationURL: production)
-        XCTAssertThrowsError(try EditorStore.validate(root: runtime, workspace: workspace))
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: launcher.path)
+        XCTAssertThrowsError(try RepositoryLocator.validate(root))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcher.path)
+        XCTAssertThrowsError(try RepositoryLocator.validate(root), "plans/ is still missing")
+        try FileManager.default.createDirectory(at: root.appending(path: "plans"), withIntermediateDirectories: true)
+        XCTAssertEqual(try RepositoryLocator.validate(root).lastPathComponent, root.lastPathComponent)
+    }
+
+    func testRepositoryPrecedenceIsArgumentThenEnvironmentThenSaved() {
+        XCTAssertEqual(RepositoryLocator.candidatePath(
+            arguments: ["app", "--repo", "/a"], environment: ["REELS_EDITOR_REPO_ROOT": "/b"], saved: "/c"), "/a")
+        XCTAssertEqual(RepositoryLocator.candidatePath(
+            arguments: ["app"], environment: ["REELS_EDITOR_REPO_ROOT": "/b"], saved: "/c"), "/b")
+        XCTAssertEqual(RepositoryLocator.candidatePath(arguments: ["app"], environment: [:], saved: "/c"), "/c")
+        XCTAssertNil(RepositoryLocator.candidatePath(arguments: ["app", "--repo"], environment: [:], saved: nil))
+    }
+
+    func testPathMergeKeepsLoginPathFirstAndDropsDuplicates() {
+        let merged = AppEnvironment.mergedPath(
+            loginPath: "/Users/x/.nvm/bin:/opt/homebrew/bin:/usr/bin",
+            basePath: "/usr/bin:/bin:/usr/sbin:/sbin", home: "/Users/x")
+        XCTAssertEqual(merged.split(separator: ":").map(String.init), [
+            "/Users/x/.nvm/bin", "/opt/homebrew/bin", "/usr/bin", "/usr/local/bin",
+            "/Users/x/.local/bin", "/bin", "/usr/sbin", "/sbin"
+        ])
+        XCTAssertTrue(AppEnvironment.mergedPath(loginPath: nil, basePath: nil, home: "/h").hasPrefix("/opt/homebrew/bin"))
+        let environment = AppEnvironment.serviceEnvironment(base: ["PATH": "/usr/bin"], loginPath: nil, home: "/h")
+        XCTAssertEqual(environment["PYTHONUNBUFFERED"], "1")
+        XCTAssertTrue(environment["PATH"]?.contains("/h/.local/bin") == true)
+    }
+
+    func testLoginPathParsingIgnoresShellNoise() {
+        XCTAssertEqual(AppEnvironment.parseMarkedPath("welcome\n__REELS_PATH__/a:/b__REELS_PATH__"), "/a:/b")
+        XCTAssertNil(AppEnvironment.parseMarkedPath("no markers"))
+    }
+
+    func testLogRingKeepsLastLinesAndPartialOutput() {
+        let ring = LogRing(capacity: 3)
+        ring.append("one\ntwo\nthr")
+        ring.append("ee\nfour\nfi")
+        XCTAssertEqual(ring.tail(3), ["three", "four", "fi"])
+        XCTAssertEqual(ring.tail(10).count, 4, "capacity 3 plus the partial line")
+    }
+
+    func testClaudeCodeCommandQuotesTheRepoPath() {
+        let repo = URL(fileURLWithPath: "/Users/x/My Rides/it's")
+        XCTAssertEqual(ClaudeCodeLauncher.shellCommand(repo: repo), "cd '/Users/x/My Rides/it'\\''s' && claude")
+        XCTAssertTrue(ClaudeCodeLauncher.appleScript(repo: repo).contains("do script"))
+    }
+
+    func testPlansListDecodesNewFieldsAndToleratesMissingOnes() {
+        let result = JSONValue.object(["plans": .array([
+            .object([
+                "path": .string("plans/2026-11-15-little-gray.json"), "title": .string("little gray"),
+                "postDate": .string("2026-11-15"), "format": .string("talking"), "segmentCount": .number(3),
+                "durationSeconds": .number(8.4), "status": .string("approved"),
+                "thumbnailURL": .string("http://127.0.0.1:1/t.jpg"), "modified": .number(1_700_000_000)
+            ]),
+            .object(["path": .string("plans/old-one.json")]),
+            .object(["title": .string("no path")])
+        ])])
+        let plans = PlanSummary.parse(result)
+        XCTAssertEqual(plans.count, 2)
+        XCTAssertEqual(plans[0].segmentCount, 3)
+        XCTAssertEqual(plans[0].durationText, "0:08")
+        XCTAssertEqual(plans[0].thumbnailURL?.host, "127.0.0.1")
+        XCTAssertEqual(plans[1].title, "old-one")
+        XCTAssertNil(plans[1].status)
+        XCTAssertTrue(plans[0].matches("GRAY"))
+        XCTAssertFalse(plans[0].matches("zzz"))
+        XCTAssertTrue(PlanSummary.parse(.null).isEmpty)
+    }
+
+    @MainActor
+    func testIngestJobEventsDriveTheImportPhase() {
+        let importer = ImportCoordinator()
+        importer.handleJob(.object(["kind": .string("ingest"), "state": .string("running"), "log": .string("copying a.mp4")]))
+        XCTAssertEqual(importer.logLines, ["copying a.mp4"])
+        XCTAssertEqual(importer.phase, .idle, "events outside an import session do not start one")
     }
 
     func testPlaybackProbeNeedsActualAdvancingFrames() {

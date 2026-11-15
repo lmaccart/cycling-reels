@@ -35,31 +35,20 @@ inbox/  ──ingest──▶  library/  ──Claude tags moments──▶  pla
 
 ## Native macOS editor
 
-The native editor opens the same reel-plan JSON used by the renderer, with Source
-and Program monitors, a timeline, typed inspectors, undo/redo, and live Claude
-edits. It is an editing client, **not a publishing client**.
-
-The app, launcher and usage guide live in [`editor/`](editor/README.md):
+**Reels Editor** is a Mac app for the same reel plans the renderer uses: a project
+picker, Source and Program monitors, a timeline, inspectors, undo/redo, footage
+import and an in-app Claude chat. It edits the real `plans/*.json`, so the app,
+Claude Code in the terminal and `./reels render` always see the same files. It is
+an editing client, **not a publishing client**, and it never deletes from `library/`.
 
 ```bash
-cd ~/rice/cycling
-./editor/reels-editor setup   # once, or after changing editor/shared source code
-./editor/reels-editor open
-# Optional: open a specific plan from the private snapshot.
-./editor/reels-editor open plans/2026-11-11-easy-day-laundry.json
+./editor/reels-editor setup   # once, and after pulling editor changes
 ```
 
-Or double-click `editor/Open Editor.command` in Finder after setup.
-
-Setup builds an independent runtime and private snapshot under
-`~/Library/Application Support/CyclingReelsEditor/`; it does not install into this
-checkout's `.venv` or `remotion/node_modules`. Original footage is registered
-read-only. Edits autosave to the private snapshot, **not** the live `plans/`.
-Interactive preview is for editing; Exact uses the renderer's finishing/audio
-path. Export stays private until the native Save action.
-
-See [setup, usage and recovery](editor/docs/USAGE.md) for prerequisites,
-safe snapshot refresh, Claude authentication, preview differences and recovery.
+Setup installs the editor's packages into this repo's `.venv` and `remotion/`, builds
+the app and copies it to `~/Applications/Reels Editor.app`. Launch it from
+Finder, Spotlight or the Dock. `./editor/reels-editor open plans/<file>.json` opens
+a specific reel. More in [`editor/README.md`](editor/README.md).
 
 ## Weekly use
 

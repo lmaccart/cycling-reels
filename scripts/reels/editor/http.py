@@ -158,12 +158,19 @@ class CapabilityServer:
             root = Path(self.workspace.root).resolve()
             if not resolved.is_relative_to(root):
                 originals = Path(self.workspace.project.media_dir).resolve()
-                if not resolved.is_relative_to(originals):
+                project = self.workspace.project
+                static = [Path(project.thumbs_dir).resolve(), Path(project.sheets_dir).resolve(),
+                          Path(project.out_dir).resolve()]
+                if any(resolved.is_relative_to(base) for base in static):
+                    pass  # thumbnails, contact sheets and rendered covers: read-only images for the plan picker
+                elif not resolved.is_relative_to(originals):
                     raise ProtocolError("unregistered_media", "Media is outside this workspace and its registered originals.")
-                # Project.abs performs the manifest identity/registration check.
-                relative = Path("library/media") / resolved.relative_to(originals)
-                if self.workspace.project.abs(relative).resolve() != resolved:
-                    raise ProtocolError("unregistered_media", "Original media is not registered.")
+                else:
+                    if hasattr(self.workspace, "sync_originals"):
+                        self.workspace.sync_originals()
+                    registered = getattr(self.workspace, "_originals", None) or {}
+                    if not any(Path(record["path"]).resolve() == resolved for record in registered.values()):
+                        raise ProtocolError("unregistered_media", "Original media is not registered.")
         observed = globals()["identity"](resolved)
         if identity is not None and tuple(identity) != observed:
             raise ProtocolError("offline_media", "Original identity changed.")

@@ -110,13 +110,12 @@ class EditorSandboxTests(unittest.TestCase):
     def test_document_compiler_uses_registered_reads_and_its_own_input_clone(self):
         from helpers import TempProject
         from reels.editor.transactions import DocumentStore
-        from reels.editor.workspace import init_workspace
+        from helpers import live_workspace
 
         fixture = TempProject(self)
         fixture.asset("registered")
         fixture.plan("registered", [{"asset": "registered", "in": 0, "out": 2}])
-        workspace = init_workspace(
-            fixture.root, self.root / "compiler-workspace", code_root=Path(__file__).resolve().parents[1])
+        workspace = live_workspace(fixture)
         store = DocumentStore(workspace, "plans/registered.json")
         self.addCleanup(store.close)
         snapshot = store.snapshot()

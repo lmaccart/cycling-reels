@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for cycling-reels; --editor sets up an isolated macOS editor checkout.
+# One-time setup for cycling-reels; --editor also builds and installs the native Reels Editor app.
 # Safe to re-run: it only installs what's missing.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -8,32 +8,19 @@ ROOT="$(pwd)"
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31mSetup stopped: %s\033[0m\n' "$*" >&2; exit 1; }
 
-EDITOR_ONLY=0
 case "${1:-}" in
-  --editor) EDITOR_ONLY=1 ;;
+  --editor)
+    # Builds the app from this folder and installs ~/Applications/Reels Editor.app
+    # (it also installs the Python/Remotion dependencies).
+    exec "$ROOT/editor/reels-editor" setup ;;
   --help|-h)
     echo "Usage: bash setup.sh [--editor]"
-    echo "  --editor  Local editor dependencies only; no ingest folders, project config or Whisper download."
+    echo "  --editor  Build and install the native Reels Editor app for this folder."
     exit 0 ;;
   "") ;;
   *) fail "usage: bash setup.sh [--editor]" ;;
 esac
 [ "$#" -le 1 ] || fail "usage: bash setup.sh [--editor]"
-
-if [ "$EDITOR_ONLY" -eq 1 ]; then
-  if [ "${REELS_EDITOR_RUNTIME:-0}" != 1 ] && [ -x "$ROOT/editor/reels-editor" ]; then
-    exec "$ROOT/editor/reels-editor" setup
-  fi
-  [ "$(uname -s)" = Darwin ] || fail "the native editor requires macOS."
-  command -v xcodebuild >/dev/null 2>&1 && xcodebuild -version >/dev/null 2>&1 \
-    || fail "install/select full Xcode before setting up the native app."
-  command -v sandbox-exec >/dev/null 2>&1 || fail "sandbox-exec is required; renderer code never runs unsandboxed."
-  [ ! -L .venv ] && [ ! -L remotion/node_modules ] \
-    || fail "use independent .venv and remotion/node_modules directories, not links to another checkout."
-  export PIP_CACHE_DIR="$ROOT/.cache/editor/setup/pip"
-  export npm_config_cache="$ROOT/.cache/editor/setup/npm"
-  export XDG_CACHE_HOME="$ROOT/.cache/editor/setup/xdg"
-fi
 
 # --- system tools -----------------------------------------------------------
 need_brew=()
@@ -54,9 +41,6 @@ PY="$(pick_python || true)"
 [ -z "$PY" ] && need_brew+=(python@3.12)
 
 if [ ${#need_brew[@]} -gt 0 ]; then
-  if [ "$EDITOR_ONLY" -eq 1 ]; then
-    fail "missing ${need_brew[*]}. Install the system tools separately, then retry --editor; this mode does not change global packages."
-  fi
   if command -v brew >/dev/null 2>&1; then
     say "Installing with Homebrew: ${need_brew[*]}"
     brew install "${need_brew[@]}"
@@ -81,38 +65,13 @@ fi
 
 # --- Remotion template ------------------------------------------------------
 say "Remotion template"
-if [ "$EDITOR_ONLY" -eq 1 ]; then
-  ( cd remotion && npm ci --no-audit --no-fund --loglevel=error )
-else
-  ( cd remotion && npm install --no-audit --no-fund --loglevel=error )
-fi
+( cd remotion && npm install --no-audit --no-fund --loglevel=error )
 
 warn() { printf '\033[33m%s\033[0m\n' "$*" >&2; }
 
 say "Chrome Headless Shell for rendering"
 if ! ( cd remotion && npx --no-install remotion browser ensure ); then
-  if [ "$EDITOR_ONLY" -eq 1 ]; then
-    fail "the private rendering browser could not be installed. Retry editor setup when the network is available."
-  fi
   warn "Couldn't download it now — Remotion will retry on the first render (or run ./reels doctor --fix)."
-fi
-
-if [ "$EDITOR_ONLY" -eq 1 ]; then
-  say "Checking and building the protected editor preview"
-  npm --prefix remotion run typecheck
-  npm --prefix remotion run build:editor-preview
-  chmod +x reels
-  if ! command -v claude >/dev/null 2>&1; then
-    warn "Claude Code is optional for manual editing. Install it and sign in locally for chat and semantic search."
-  fi
-  cat <<'EOF'
-
-Editor dependencies ready in this checkout.
-The integrated editor installer will finish the native build and private snapshot.
-For manual development, see editor/docs/USAGE.md in the source checkout.
-No source checkout was selected, project config created, or footage ingested.
-EOF
-  exit 0
 fi
 
 # --- Whisper model ----------------------------------------------------------

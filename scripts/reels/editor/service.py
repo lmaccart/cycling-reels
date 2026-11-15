@@ -20,6 +20,7 @@ from typing import Any
 
 from .claude import ClaudeCLI
 from .http import CapabilityServer
+from . import live
 from .jobs import JobManager, atomic_json
 from .protocol import MAX_MESSAGE, ProtocolError, Writer, decode, error_value, respond
 from .relay import Relay
@@ -75,6 +76,8 @@ class EditorService:
         self._preview_timer: threading.Timer | None = None
         self._preview_sequence = 0
         self._announced_document_state: dict | None = None
+        self._plans_stamp: dict | None = live.plans_stamp(self.project)
+        self._ingest_job: str | None = None
         self.state_path = Path(workspace.root) / "state.json"
         try:
             self.state = json.loads(self.state_path.read_text())
@@ -290,19 +293,6 @@ class EditorService:
             return job_summary(result, params.get("offset", 0), params.get("limit", 2_000))
         return result
 
-    def _plans(self):
-        items = []
-        for path in sorted(self.project.plans_dir.glob("*.json")):
-            if path.is_symlink():
-                continue
-            try:
-                plan = json.loads(path.read_text())
-                items.append({"path": self.project.rel(path), "name": path.stem, "slug": plan.get("slug", path.stem),
-                              "title": plan.get("title", plan.get("slug", path.stem))})
-            except (OSError, ValueError, AttributeError):
-                items.append({"path": self.project.rel(path), "name": path.stem, "invalid": True})
-        return {"plans": items}
-
     def _library(self, offset=0, limit=50):
         from ..library import all_assets
         assets = sorted(all_assets(self.project), key=lambda asset: str(asset.get("id", "")))
@@ -434,6 +424,11 @@ class EditorService:
         snapshot = copy.deepcopy(self.snapshot())
         if snapshot.get("viewOnly"):
             raise ProtocolError("offline_media", "This is an offline, read-only snapshot. The last good preview is retained; reconnect registered originals to prepare another.")
+        if not (snapshot.get("plan") or {}).get("segments"):
+            # Nothing to render yet (a new project); the monitor shows its empty state.
+            with self.lock:
+                self.preview = {"state": "empty", "reason": "Add footage to preview this reel."}
+            return {"state": "empty", "reason": self.preview["reason"]}
         with self.lock:
             existing_id = (self.preview.get("jobId") if self.preview.get("state") == "preparing"
                            and self.preview.get("requestedRevisions") == snapshot["revisions"]
@@ -475,9 +470,19 @@ class EditorService:
                     "plan": self.document_path, "chatSessionId": self.claude.state["id"],
                     "previewOrigin": self.http.origin, "state": self.state,
                     "projectConfig": self._project_config(), "config": self._project_config(),
-                    "permissions": copy.deepcopy(list(self.permissions.values()))}
+                    "permissions": copy.deepcopy(list(self.permissions.values())),
+                    "live": True, "repoRoot": str(self.workspace.data_root)}
         if method == "plans.list":
-            return self._plans()
+            return live.list_plans(self.project, self.http)
+        if method == "projects.create":
+            return live.create_plan(self.project, params)
+        if method == "library.inbox":
+            names = [str(path.relative_to(self.project.inbox)) for path in live.inbox_files(self.project)]
+            return {"count": len(names), "files": names}
+        if method == "library.import":
+            return self._start_import(params)
+        if method == "library.ingest":
+            return self._start_ingest()
         if method == "document.open":
             from .transactions import DocumentStore
             path = str(params.get("path", ""))
@@ -497,6 +502,7 @@ class EditorService:
                 if previous is not None and hasattr(previous, "close"):
                     previous.close()
                 self._restore_preview(store.snapshot())
+            self._write_context()
             return self._changed(self.snapshot())
         if method == "document.snapshot":
             return self.snapshot()
@@ -535,6 +541,7 @@ class EditorService:
             return dict(self.selection)
         if method == "selection.set":
             self.selection = {"ids": list(params.get("ids", [])), "playhead": max(0, int(params.get("playhead", 0)))}
+            self._write_context()
             return dict(self.selection)
         if method == "state.save":
             allowed = {"panels", "collapsed", "monitorMode", "zoom", "scroll", "safeArea"}
@@ -597,6 +604,8 @@ class EditorService:
             snapshot = copy.deepcopy(self.snapshot())
             if snapshot.get("viewOnly"):
                 raise ProtocolError("offline_media", "Reconnect the recorded originals before exporting this read-only snapshot.")
+            if not (snapshot.get("plan") or {}).get("segments"):
+                raise ProtocolError("empty_plan", "Add footage to this reel before exporting.")
             return self.jobs.submit("export", snapshot["revisions"],
                                     lambda ctx: self.preview_manager().export(snapshot, context=ctx),
                                     lambda receipt: self._publish_export(receipt))
@@ -661,9 +670,8 @@ class EditorService:
                     extras = json.loads(manifest.read_text()).get("descriptors", [])
             return inspector_schema(extras)
         if method == "renderer.submit":
-            if source == "ai":
-                self._guard_ai(params, renderer=True)
-            return self._submit_renderer(params)
+            raise ProtocolError("renderer_changes_unavailable",
+                                "Ask Claude Code in the terminal to change renderer code.")
         if method == "shutdown":
             self.begin_close()
             return {"stopping": True}
@@ -685,40 +693,6 @@ class EditorService:
             self._changed(snapshot)
         return receipt
 
-    def _submit_renderer(self, params):
-        snapshot = copy.deepcopy(self.snapshot())
-        if params.get("expected") != snapshot.get("revisions"):
-            raise ProtocolError("conflict", "Renderer request is stale.", {"current": snapshot.get("revisions")})
-        manager = self.renderer_manager()
-        document = self._doc()
-        def validate(context):
-            frozen = snapshot
-            if params.get("operations"):
-                candidate = document.candidate_snapshot(
-                    {"operations": params["operations"], "expected": params["expected"], "origin": "ai",
-                     "reason": params.get("reason", "Renderer change")},
-                )
-                frozen = {**snapshot, "candidateSnapshot": candidate}
-            return manager.validate_candidate(params.get("changes", {}), snapshot=frozen,
-                                              descriptors=params.get("descriptors", []), context=context,
-                                              operations=params.get("operations", []))
-        def activate(candidate):
-            revision = candidate["rendererRevision"]
-            if document is not self.document:
-                raise ProtocolError("conflict", "The selected document changed while validating renderer code.")
-            changed = document.activate_renderer(revision, params["expected"], params.get("reason", "Renderer change"),
-                                                  operations=params.get("operations", []), preview=candidate.get("preview"),
-                                                  source_ref=candidate.get("sourceRoot"))
-            # Validation already produced this exact revision's preview.
-            # Scheduling Interactive here can race its publication and replace
-            # it just as the renderer job completes.
-            self._changed(changed, prepare_preview=False)
-            if candidate.get("preview"):
-                self._publish_preview({**candidate["preview"], "revisions": changed["revisions"],
-                                       "documentId": changed.get("documentId")})
-            return {"rendererRevision": revision, "snapshot": changed, "validation": candidate}
-        return self.jobs.submit("renderer", snapshot["revisions"], validate, activate)
-
     def _check_external_changes(self):
         document = self.document
         if document is None:
@@ -732,7 +706,14 @@ class EditorService:
 
     def _watch(self):
         last_error = None
+        ticks = 0
         while not self.shutdown_requested.wait(1):
+            ticks += 1
+            if ticks % 2 == 0:
+                try:
+                    self._poll_plans()
+                except Exception:  # noqa: BLE001
+                    pass
             document = self.document
             if document is None:
                 continue
@@ -744,6 +725,73 @@ class EditorService:
                 if message != last_error:
                     self.emit("document.external_error", error_value(exc), self.current_revisions())
                     last_error = message
+
+    def _poll_plans(self):
+        stamp = live.plans_stamp(self.project)
+        previous, self._plans_stamp = self._plans_stamp, stamp
+        if previous is None or previous == stamp:
+            return
+        changed = sorted(name for name in set(stamp) | set(previous) if stamp.get(name) != previous.get(name))
+        self.emit("plans.changed", {"paths": [f"plans/{name}" for name in changed],
+                                    "added": [f"plans/{n}" for n in changed if n not in previous],
+                                    "removed": [f"plans/{n}" for n in changed if n not in stamp]}, {})
+
+    def _write_context(self):
+        try:
+            snapshot = self.document.snapshot() if self.document is not None else {}
+            ids = [str(item) for item in self.selection.get("ids", [])]
+            fps = 30
+            try:
+                fps = int((snapshot.get("fps") or snapshot.get("config", {}).get("render", {}).get("fps") or 30))
+            except (TypeError, ValueError):
+                pass
+            live.write_context(self.workspace, self.document_path, live.describe_nodes(snapshot, ids),
+                               round(float(self.selection.get("playhead", 0)) / max(1, fps), 3))
+        except Exception:  # noqa: BLE001 - context is a convenience, never a failure
+            pass
+
+    def _env_for_commands(self) -> dict:
+        env = dict(os.environ)
+        env["REELS_HOME"] = str(self.workspace.data_root)
+        return env
+
+    def _start_import(self, params):
+        paths = params.get("paths")
+        if not isinstance(paths, list) or not paths:
+            raise ProtocolError("invalid_paths", "Pass the files or folders to import as absolute paths.")
+        files, skipped = live.plan_import(self.project, paths)
+        ingest = params.get("ingest", True) is not False
+        if ingest and self._ingest_job and self.jobs.status(self._ingest_job).get("state") in ("queued", "running"):
+            raise ProtocolError("ingest_running", "An ingest is already running.")
+        job = self._submit_ingest(files, ingest)
+        return {"jobId": job["id"], "copied": len(files), "skipped": skipped}
+
+    def _start_ingest(self):
+        if self._ingest_job and self.jobs.status(self._ingest_job).get("state") in ("queued", "running"):
+            raise ProtocolError("ingest_running", "An ingest is already running.")
+        job = self._submit_ingest([], True)
+        return {"jobId": job["id"]}
+
+    def _submit_ingest(self, files, ingest):
+        repo = Path(self.workspace.data_root)
+
+        def work(context):
+            copied = live.copy_into_inbox(self.project, files, context.log, context.check_cancelled) if files else 0
+            if ingest:
+                context.log("Running ./reels ingest")
+                context.stream([str(repo / "reels"), "ingest"], cwd=repo, env=self._env_for_commands())
+            return {"copied": copied, "ingested": ingest}
+
+        def publish(result):
+            if result.get("ingested"):
+                revision = self.workspace.library_revision()
+                self._invalidate_index()
+                self.emit("library.changed", {"libraryRevision": revision}, {"library": revision})
+            return result
+
+        job = self.jobs.submit("ingest", {}, work, publish, independent=True)
+        self._ingest_job = job["id"]
+        return job
 
     def begin_close(self):
         self.shutdown_requested.set()

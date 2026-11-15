@@ -60,8 +60,7 @@ class ProtocolTests(unittest.TestCase):
             launcher = root / "reels"
             shutil.copy2(Path(__file__).resolve().parents[1] / "reels", launcher)
             (root / ".env").write_text("echo PRIVATE_ENV_WAS_EVALUATED\n")
-            for args in (["editor", "serve"], ["--editor-workspace", "/private", "editor", "serve"],
-                         ["--editor-workspace=/private", "editor", "serve"]):
+            for args in (["editor", "serve"], ["editor", "info"]):
                 result = subprocess.run([str(launcher), *args], text=True, capture_output=True, cwd=root)
                 self.assertNotIn("PRIVATE_ENV_WAS_EVALUATED", result.stdout + result.stderr)
             ordinary = subprocess.run([str(launcher), "doctor"], text=True, capture_output=True, cwd=root)

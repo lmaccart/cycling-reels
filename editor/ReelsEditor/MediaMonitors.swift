@@ -35,8 +35,8 @@ struct SourceMonitor: View {
                     store.selectedAsset == nil ? "Choose a source clip" : "Source preview unavailable",
                     systemImage: "play.rectangle",
                     description: Text(store.selectedAsset == nil
-                        ? "Select footage in the Library to load the Source monitor."
-                        : "This asset has no registered preview URL.")
+                        ? "Click a clip in the Library to watch it here, then mark In and Out (I / O)."
+                        : "This clip has no playable preview file.")
                 )
                 .foregroundStyle(.white.opacity(0.86))
             }
@@ -77,7 +77,7 @@ private struct SourcePhotoView: View {
                         .padding(12)
                 } else if failed {
                     ContentUnavailableView("Photo unavailable", systemImage: "photo",
-                                           description: Text("The registered still image could not be decoded."))
+                                           description: Text("This photo could not be opened."))
                         .foregroundStyle(.white)
                 } else {
                     ProgressView("Loading photo…").controlSize(.small).foregroundStyle(.white)
@@ -88,7 +88,7 @@ private struct SourcePhotoView: View {
                         image.resizable().aspectRatio(contentMode: .fit).padding(12)
                     } else if phase.error != nil {
                         ContentUnavailableView("Photo unavailable", systemImage: "photo",
-                                               description: Text("The registered still image could not be loaded."))
+                                               description: Text("This photo could not be loaded."))
                             .foregroundStyle(.white)
                     } else {
                         ProgressView("Loading photo…").controlSize(.small).foregroundStyle(.white)
@@ -317,8 +317,8 @@ struct ProgramMonitor: View {
                         }
                 } else {
                     unavailable(
-                        "Exact render is not ready",
-                        detail: "Wait for the rendered movie URL, or prepare Exact preview again."
+                        "Final-quality render isn't ready",
+                        detail: "Wait a moment, or reload the preview."
                     )
                 }
             } else if let url = store.previewURL, let origin = store.previewOrigin {
@@ -335,11 +335,11 @@ struct ProgramMonitor: View {
             } else {
                 VStack(spacing: 8) {
                     unavailable(
-                        "No prepared preview",
+                        store.hasDocument ? "Preview isn't loaded" : "No reel open",
                         detail: store.previewFailureMessage
-                            ?? "Prepare Interactive or Exact to load this revision."
+                            ?? (store.hasDocument ? "Load the preview to watch the reel with your latest edits." : "Open a reel from the Reels list to preview it.")
                     )
-                    Button("Prepare \(store.currentPreviewMode.capitalized)") {
+                    Button("Load \(PreviewModeLabel.title(store.currentPreviewMode).lowercased())") {
                         store.preparePreview(mode: store.currentPreviewMode)
                     }
                     .controlSize(.small)
@@ -358,8 +358,10 @@ struct ProgramMonitor: View {
             Image(systemName: "rectangle.on.rectangle.slash")
                 .font(.system(size: 24))
                 .foregroundStyle(.secondary)
-            Text(title).font(.system(size: 12, weight: .medium))
-            Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
+            Text(title).font(.system(size: 13, weight: .medium))
+            Text(detail).font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 320)
             if store.isPreparingPreview { ProgressView().controlSize(.small) }
         }
         .padding(16)
@@ -581,7 +583,7 @@ private struct ProgramWebView: NSViewRepresentable {
                 return
             }
             guard let manifest else {
-                store?.requestExactPreview(reason: "Interactive preview manifest is unavailable")
+                store?.requestExactPreview(reason: "The fast preview could not load")
                 return
             }
             if loadedURL == url, loadedRevision == revision, loadedManifest == manifest {

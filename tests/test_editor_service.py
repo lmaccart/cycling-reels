@@ -175,7 +175,7 @@ class ServiceBoundaryTests(unittest.TestCase):
         entered, release = threading.Event(), threading.Event()
         calls = []
         snapshot = {"documentId": "d", "revisions": {"document": "d", "library": "l", "renderer": "r"},
-                    "plan": {"slug": "fixture"}, "preview": {}}
+                    "plan": {"slug": "fixture", "segments": [{"asset": "a"}]}, "preview": {}}
         self.service.document = SimpleNamespace(snapshot=lambda: snapshot)
         def prepare(*args, **kwargs):
             calls.append(1)
@@ -202,7 +202,7 @@ class ServiceBoundaryTests(unittest.TestCase):
         submitting, release_submit, duplicate = threading.Event(), threading.Event(), threading.Event()
         release_worker = threading.Event()
         snapshot = {"documentId": "d", "revisions": {"document": "d", "library": "l", "renderer": "r"},
-                    "plan": {"slug": "fixture"}}
+                    "plan": {"slug": "fixture", "segments": [{"asset": "a"}]}}
         self.service.document = SimpleNamespace(snapshot=lambda: snapshot)
         def prepare(*args, **kwargs):
             release_worker.wait(3)
@@ -240,7 +240,7 @@ class ServiceBoundaryTests(unittest.TestCase):
     def test_unchanged_watcher_snapshots_do_not_restart_preview(self):
         from unittest.mock import patch
         snapshot = {"documentId": "d", "revisions": {"document": "d", "library": "l", "renderer": "r"},
-                    "plan": {"slug": "fixture"}}
+                    "plan": {"slug": "fixture", "segments": [{"asset": "a"}]}}
         self.service.document = SimpleNamespace(
             snapshot=lambda: snapshot, reload_external=lambda: snapshot)
         self.service._announced_document_state = self.service._document_state(snapshot)
@@ -305,17 +305,14 @@ class ServiceBoundaryTests(unittest.TestCase):
 
 class StdioServiceTests(unittest.TestCase):
     def test_actual_launcher_keeps_stdout_protocol_only_and_reopens_workspace(self):
-        from reels.editor.workspace import init_workspace
         fixture = TempProject(self)
         fixture.asset("fixture")
         fixture.plan("fixture", [{"asset": "fixture", "in": 0, "out": 2}])
-        temp = tempfile.TemporaryDirectory()
-        self.addCleanup(temp.cleanup)
         root = Path(__file__).resolve().parents[1]
-        workspace = init_workspace(fixture.root, Path(temp.name) / "workspace", code_root=root)
-        # Exercise the real shell launcher without depending on an installed
-        # desktop app or the production checkout's Python environment.
-        launch_root = Path(temp.name) / "launcher"
+        # Exercise the real shell launcher on a throwaway repo (the repo folder IS
+        # the workspace now): `./reels editor serve` with no workspace option.
+        launch_root = fixture.root
+        (launch_root / "remotion").mkdir()
         (launch_root / ".venv/bin").mkdir(parents=True)
         shutil.copyfile(root / "reels", launch_root / "reels")
         (launch_root / "reels").chmod(0o700)
@@ -323,8 +320,8 @@ class StdioServiceTests(unittest.TestCase):
         python = launch_root / ".venv/bin/python"
         python.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} \"$@\"\n")
         python.chmod(0o700)
-        process = subprocess.Popen([str(launch_root / "reels"), "--editor-workspace", str(workspace.root), "editor", "serve"],
-                                   cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        process = subprocess.Popen([str(launch_root / "reels"), "editor", "serve"],
+                                   cwd=launch_root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    text=True, start_new_session=True)
         messages = queue.Queue()
         def read():
@@ -346,7 +343,8 @@ class StdioServiceTests(unittest.TestCase):
             self.fail("No response to request")
         try:
             info = request("info", "workspace.info", {})["result"]
-            self.assertEqual(info["dataRoot"], str(workspace.data_root))
+            self.assertEqual(info["dataRoot"], str(launch_root.resolve()))
+            self.assertTrue(info["live"])
             plans = request("plans", "plans.list", {})["result"]["plans"]
             self.assertEqual(plans[0]["path"], "plans/fixture.json")
             request("state", "state.save", {"panels": {"library": 250}})
@@ -354,9 +352,8 @@ class StdioServiceTests(unittest.TestCase):
             process.stdin.close()
             process.wait(timeout=10)
             self.assertEqual(process.returncode, 0, process.stderr.read())
-            from reels.editor.workspace import Workspace
-            reopened = Workspace.load(workspace.root, code_root=root)
-            self.assertEqual(reopened.data_root, workspace.data_root)
+            state = json.loads((launch_root / ".cache/editor/live/state.json").read_text())
+            self.assertEqual(state["panels"], {"library": 250})
         finally:
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGKILL)

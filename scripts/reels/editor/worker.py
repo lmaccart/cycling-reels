@@ -679,7 +679,6 @@ def export(job: dict) -> dict:
         data_root,
         code_root=code_root,
         media_root=Path(job["mediaRoot"]),
-        registered_media=originals,
     )
     before = _usage_fields(data_root)
     post = render_plan(project, plan_path)
@@ -741,7 +740,6 @@ def prepare(job: dict) -> dict:
         data_root,
         code_root=code_root,
         media_root=Path(job["mediaRoot"]),
-        registered_media=originals,
     )
     if job.get("mode") not in ("interactive", "exact"):
         raise ReelsError("preview mode must be interactive or exact")

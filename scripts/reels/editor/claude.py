@@ -45,7 +45,7 @@ No invented facts, speeds, power, place names, race results, measurements or cla
 existing dynamic stats. No GoPro altitude, other athletes' names/data or identifiable strangers' closeups/crashes without consent.
 Strava routes starting/ending in Maine omit first/last 1 km. Preserve privacy, provenance, factual and approval checks.
 Caption voice: lowercase, casual, specific, lightly funny, no hype, no ALL CAPS, at most one emoji; no first-comment requests.
-Code authority is limited to allowlisted effect sources through sandboxed candidate validation, not broker/app/policy/dependencies.
+Renderer and effect code cannot be changed from this chat (submit_renderer is disabled); tell the person to ask Claude Code in the terminal.
 Never access credentials, execute shell, download, upload, schedule, publish, prune or change original footage.
 No approval, scheduling or posting state may be inferred from opening or exporting a review.
 Correct transcript words[].w only; never modify recorded word timings. Generated cues require materialized explicit overrides.
@@ -68,6 +68,19 @@ def account_environment() -> dict:
            and not key.startswith("CLAUDE_CODE_USE_")}
     env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
     return env
+
+
+def find_claude() -> str | None:
+    """The user's own Claude Code CLI. Dock-launched apps get a minimal PATH, so also try the usual homes."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    home = Path.home()
+    for candidate in (home / ".local/bin/claude", home / ".claude/local/claude", home / ".npm-global/bin/claude",
+                      Path("/opt/homebrew/bin/claude"), Path("/usr/local/bin/claude")):
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
 
 
 def classify_error(text: str) -> str:
@@ -109,7 +122,7 @@ class ClaudeCLI:
         self.search_config = relay.config("search", workspace)
 
     def arguments(self, text: str, *, search: bool = False, model: str | None = None) -> list[str]:
-        binary = shutil.which("claude")
+        binary = find_claude()
         if binary is None:
             raise ProtocolError("claude_missing", "Claude Code is not installed. Install it and authenticate locally.")
         tools = SEARCH_TOOLS if search else EDITING_TOOLS
@@ -200,7 +213,10 @@ class ClaudeCLI:
 
     def _stream(self, args: list[str], context: JobContext, callback: Callable, *, timeout: float) -> dict:
         context.check_cancelled()
-        process = subprocess.Popen(args, cwd=self.root, env=account_environment(), stdin=subprocess.DEVNULL,
+        # Run in the repo folder so the user's normal Claude Code login applies. No file or shell
+        # tools are enabled, so the chat can only use the scoped editor tools.
+        cwd = Path(getattr(self.workspace, "data_root", self.root))
+        process = subprocess.Popen(args, cwd=cwd if cwd.is_dir() else self.root, env=account_environment(), stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
         context.own(process)
         stderr_parts: list[str] = []

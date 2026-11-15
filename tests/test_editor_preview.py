@@ -31,7 +31,7 @@ class _Workspace:
         self.media_root.mkdir()
         self._originals: dict = {}
         self.code_root = code_root
-        self.project = Project(self.data_root, code_root=code_root, media_root=self.media_root, registered_media={})
+        self.project = Project(self.data_root, code_root=code_root, media_root=self.media_root)
 
     def library_revision(self) -> str:
         digest = hashlib.sha256()
@@ -110,7 +110,6 @@ class EditorPreviewTests(unittest.TestCase):
             self.workspace.data_root,
             code_root=self.workspace.code_root,
             media_root=self.workspace.media_root,
-            registered_media=self.workspace._originals,
         )
         write_json(self.workspace.data_root / "library/assets/spherical.json", {
             "id": "spherical", "media": identifier, "kind": "video",
@@ -143,7 +142,6 @@ class EditorPreviewTests(unittest.TestCase):
             self.workspace.data_root,
             code_root=self.workspace.code_root,
             media_root=self.workspace.media_root,
-            registered_media=self.workspace._originals,
         )
         write_json(self.workspace.data_root / f"library/assets/{asset_id}.json", {
             "id": asset_id,
@@ -429,7 +427,6 @@ class EditorPreviewTests(unittest.TestCase):
             self.workspace.data_root,
             code_root=self.workspace.code_root,
             media_root=self.workspace.media_root.resolve(),
-            registered_media=self.workspace._originals,
         )
         self.workspace.project.ensure_dirs()
         write_json(self.workspace.data_root / "library/assets/sandbox-fixture.json", {

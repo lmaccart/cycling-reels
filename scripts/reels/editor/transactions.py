@@ -7,6 +7,7 @@ import inspect
 import json
 import math
 import os
+import stat
 import re
 import shutil
 import subprocess
@@ -58,6 +59,13 @@ def _atomic_bytes(path: Path, content: bytes) -> None:
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
+        try:  # mkstemp makes 0600 files; keep an existing file's mode, else the normal umask default
+            mode = stat.S_IMODE(path.stat().st_mode)
+        except OSError:
+            umask = os.umask(0)
+            os.umask(umask)
+            mode = 0o666 & ~umask
+        os.chmod(temp_name, mode)
         os.replace(temp_name, path)
         try:
             dfd = os.open(path.parent, os.O_RDONLY)
@@ -72,8 +80,40 @@ def _atomic_bytes(path: Path, content: bytes) -> None:
             os.unlink(temp_name)
 
 
-def _json_bytes(value: Any) -> bytes:
-    return (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+def _json_bytes(value: Any, indent: int = 2) -> bytes:
+    return (json.dumps(value, indent=indent, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def _existing_indent(path: Path, default: int = 2) -> int:
+    """Indent width of an existing JSON file, so edits don't reformat the whole plan."""
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            stream.readline()
+            second = stream.readline()
+    except (OSError, UnicodeDecodeError):
+        return default
+    width = len(second) - len(second.lstrip(" "))
+    return width if 1 <= width <= 8 and second.strip() else default
+
+
+EDITOR_KEY = "_editor"
+SIDECAR_VERSION = 1
+
+
+def _is_plan_rel(rel: str) -> bool:
+    parts = Path(rel).parts
+    return len(parts) == 2 and parts[0] == "plans" and rel.endswith(".json")
+
+
+def _without_editor(rel: str, value: Any) -> Any:
+    """The plan as it exists on disk: real plan content only, never ``_editor`` metadata."""
+    if _is_plan_rel(rel) and isinstance(value, dict) and EDITOR_KEY in value:
+        return {key: child for key, child in value.items() if key != EDITOR_KEY}
+    return value
+
+
+def _same_json(left: Any, right: Any) -> bool:
+    return _json_bytes(left) == _json_bytes(right)
 
 
 def _read_object(path: Path, default: Any = None) -> Any:
@@ -90,12 +130,19 @@ def _worker_compile(
     *,
     process_started: Callable[[subprocess.Popen], None] | None = None,
     process_finished: Callable[[subprocess.Popen], None] | None = None,
+    originals: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Run renderer build outside the broker and against private worker data.
 
     All writes are confined by the trusted macOS profile to disposable worker
     data. Registered footage is resolved explicitly, never via a writable link.
     """
+    if not [segment for segment in plan.get("segments") or []]:
+        # A brand-new project has nothing to render yet. The renderer rejects
+        # an empty plan, so the editor opens it as an empty timeline instead.
+        return {"fps": int(project.cfg("render", "fps") or 30), "total": 0,
+                "warnings": ["No footage yet: add a clip from the library to start."],
+                "segs": [], "props": {}, "sound": {"cues": []}, "loop": None}
     code_root = project.code_root
     if not (code_root / "scripts/reels/render.py").is_file():
         if project.read_only_media or code_root != project.root:
@@ -221,8 +268,7 @@ result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda val
         _atomic_bytes(plan_path, _json_bytes(plan))
         overrides = deepcopy(transcript_overrides)
         if project.read_only_media:
-            overrides["__editor_media__"] = {"media_root": str(project.media_dir),
-                                             "registered_media": project.registered_media}
+            overrides["__editor_media__"] = {"media_root": str(project.media_dir)}
         _atomic_bytes(override_path, _json_bytes(overrides))
         cmd = [
             sys.executable, "-c", worker, str(package_root), str(project.root),
@@ -234,7 +280,7 @@ result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda val
         if not sandbox:
             raise DocumentError("sandbox_unavailable", "renderer compilation requires the trusted macOS sandbox")
         workspace = SimpleNamespace(project=project, root=project.root, data_root=project.root, code_root=code_root,
-                                    _originals=project.registered_media)
+                                    _originals=originals or {})
         reads, _ = _path_roots(workspace, code_root, worker_dir, worker_dir, worker_dir, worker_dir)
         # Compilation freezes these private inputs inside its sandbox. Unlike
         # preview/export, it has not received a pre-copied data snapshot yet.
@@ -308,7 +354,13 @@ class DocumentStore:
         except ValueError as exc:
             raise DocumentError("path_denied", "plan must be inside the private editor data root") from exc
         # Independent undo chains, with a shared workspace lock for shared JSON.
-        document_key = hashlib.sha256(self.plan_rel.encode()).hexdigest()[:24]
+        # A different renderer source starts a fresh history: the live editor
+        # always previews and exports with the repo's current renderer code.
+        key_source = self.plan_rel
+        live_revision = getattr(workspace, "renderer_revision", None)
+        if renderer_revision is None and callable(live_revision):
+            key_source = f"{self.plan_rel}\0{live_revision()}"
+        document_key = hashlib.sha256(key_source.encode()).hexdigest()[:24]
         self.history = self.root / "history" / "documents" / document_key
         self.objects = self.history / "objects"
         self.manifests = self.history / "commits"
@@ -359,7 +411,8 @@ class DocumentStore:
                 current = self._active_processes.get(origin, [])
                 if process in current:
                     current.remove(process)
-        return _worker_compile(project, plan, overrides, process_started=started, process_finished=finished)
+        return _worker_compile(project, plan, overrides, process_started=started, process_finished=finished,
+                               originals=getattr(self.workspace, "_originals", None))
 
     def _epoch(self, origin: str) -> int:
         with self._cancel_guard:
@@ -519,20 +572,78 @@ class DocumentStore:
             raise DocumentError("path_denied", f"journal path escapes private data root: {relative}") from exc
         return path
 
+    def _delete_private(self, relative: str) -> None:
+        """Remove a journalled file. Never anything under library/ or plans/."""
+        path = self._safe_data_path(relative)
+        top = Path(relative).parts[:1]
+        if top in (("library",), ("plans",), ("out",), ("inbox",)):
+            return  # guarantee: the editor never deletes library/plans/out/inbox files
+        path.unlink(missing_ok=True)
+
     def _manifest_files(self, manifest: dict[str, Any]) -> dict[str, Any]:
         return {rel: self._object_value(digest) for rel, digest in manifest.get("files", {}).items()}
+
+    # ---- plan files on disk: real plan content only; metadata in a sidecar ----
+
+    def _sidecar_path(self, rel: str) -> Path:
+        path = Path(rel)
+        name = path.stem if path.parent.name == "plans" and len(path.parts) == 2 else rel.replace("/", "__")
+        return self.root / "documents" / f"{name}.json"
+
+    def _read_sidecar(self, rel: str) -> dict[str, Any] | None:
+        """Private node-ID metadata for a plan. Missing, corrupt or foreign sidecars are ignored."""
+        try:
+            value = read_json(self._sidecar_path(rel))
+        except Exception:  # noqa: BLE001
+            return None
+        editor = value.get("editor") if isinstance(value, dict) else None
+        if not isinstance(editor, dict) or value.get("plan") != rel:
+            return None
+        return editor
+
+    def _write_materialized(self, rel: str, value: Any) -> None:
+        path = self._safe_data_path(rel)
+        if not (_is_plan_rel(rel) and isinstance(value, dict)):
+            _atomic_bytes(path, _json_bytes(value))
+            return
+        meta = value.get(EDITOR_KEY)
+        if isinstance(meta, dict):
+            record = _json_bytes({"version": SIDECAR_VERSION, "plan": rel, "editor": meta})
+            sidecar = self._sidecar_path(rel)
+            try:
+                unchanged = sidecar.read_bytes() == record
+            except OSError:
+                unchanged = False
+            if not unchanged:
+                _atomic_bytes(sidecar, record)
+        clean = _without_editor(rel, value)
+        try:
+            # Same content as disk (ignoring formatting and any legacy _editor block): leave the file alone.
+            if _same_json(_without_editor(rel, read_json(path)), clean):
+                return
+        except Exception:  # noqa: BLE001
+            pass
+        _atomic_bytes(path, _json_bytes(clean, _existing_indent(path)))
+
+    def _read_disk(self, rel: str) -> Any:
+        return _without_editor(rel, read_json(self._safe_data_path(rel)))
+
+    def _disk_matches(self, rel: str, digest: str) -> bool:
+        try:
+            current = read_json(self._safe_data_path(rel))
+        except Exception:  # noqa: BLE001
+            return False
+        if _is_plan_rel(rel):
+            return _same_json(_without_editor(rel, current), _without_editor(rel, self._object_value(digest)))
+        return hashlib.sha256(_json_bytes(current)).hexdigest() == digest
 
     def _materialize(self, manifest: dict[str, Any]) -> None:
         for rel, digest in manifest.get("files", {}).items():
             if rel not in manifest.get("previousFiles", manifest.get("files", {})):
                 continue
-            _atomic_bytes(self._safe_data_path(rel), _json_bytes(self._object_value(digest)))
+            self._write_materialized(rel, self._object_value(digest))
         for rel in manifest.get("deleted", []):
-            path = self._safe_data_path(rel)
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                pass
+            self._delete_private(rel)
         _atomic_bytes(self.materialized_path, _json_bytes({"revision": manifest["revision"]}))
 
     def _recover(self) -> None:
@@ -567,9 +678,9 @@ class DocumentStore:
                 value = read_json(history / "objects" / f"{digest}.json")
                 if hashlib.sha256(_json_bytes(value)).hexdigest() != digest:
                     raise DocumentError("history_corrupt", "pending object failed hash verification")
-                _atomic_bytes(self._safe_data_path(rel), _json_bytes(value))
+                self._write_materialized(rel, value)
             for rel in manifest.get("deleted", []):
-                self._safe_data_path(rel).unlink(missing_ok=True)
+                self._delete_private(rel)
             _atomic_bytes(history / "MATERIALIZED", _json_bytes({"revision": revision}))
 
     def _disk_files_match(self, manifest: dict[str, Any]) -> bool:
@@ -577,11 +688,7 @@ class DocumentStore:
             return False
         for rel, digest in manifest.get("files", {}).items():
             path = self._safe_data_path(rel)
-            try:
-                current = read_json(path)
-            except Exception:  # noqa: BLE001
-                return False
-            if hashlib.sha256(_json_bytes(current)).hexdigest() != digest:
+            if not self._disk_matches(rel, digest):
                 return False
         if any(self._safe_data_path(rel).exists() for rel in manifest.get("deleted", [])):
             return False
@@ -697,6 +804,13 @@ class DocumentStore:
         plan = read_json(self.plan_path)
         if not isinstance(plan, dict):
             raise DocumentError("invalid_plan", "plan root must be a JSON object")
+        # Node identity comes from the private sidecar, else a legacy embedded block, else is regenerated.
+        meta = self._read_sidecar(self.plan_rel)
+        if meta is None and isinstance(plan.get(EDITOR_KEY), dict):
+            meta = plan[EDITOR_KEY]
+        plan.pop(EDITOR_KEY, None)
+        if meta is not None:
+            plan[EDITOR_KEY] = {key: deepcopy(child) for key, child in meta.items() if key != "rendererPreview"}
         ensure_node_ids(plan)
         initial_renderer = self._working_renderer_revision()
         if hasattr(self.workspace, "code_root") and self.compiler == self._run_worker_compiler:
@@ -1885,8 +1999,8 @@ class DocumentStore:
                     value = read_json(path)
                 except Exception as exc:  # noqa: BLE001
                     raise DocumentError("external_invalid", f"cannot read externally edited {rel}: {exc}") from exc
-                if hashlib.sha256(_json_bytes(value)).hexdigest() != current["files"].get(rel):
-                    changed[rel] = value
+                if not self._disk_matches(rel, current["files"].get(rel, "")):
+                    changed[rel] = _without_editor(rel, value)
             if not changed and not removed:
                 self._recover()
                 return self.snapshot()
@@ -1897,16 +2011,24 @@ class DocumentStore:
             plan = files.get(self.plan_rel)
             if not isinstance(plan, dict):
                 raise DocumentError("external_invalid", "external plan root must remain a JSON object")
+            if self.plan_rel in changed:
+                # The file carries no metadata: identity comes from the committed head, then the sidecar.
+                head_plan = self._object_value(current["files"][self.plan_rel]) if self.plan_rel in current["files"] else {}
+                meta = head_plan.get(EDITOR_KEY) if isinstance(head_plan, dict) else None
+                if not isinstance(meta, dict):
+                    meta = self._read_sidecar(self.plan_rel)
+                if isinstance(meta, dict):
+                    plan[EDITOR_KEY] = deepcopy(meta)
             ensure_node_ids(plan)
             plan.setdefault("_editor", {})["rendererRevision"] = self._renderer_revision()
             aux = {k: v for k, v in files.items() if k != self.plan_rel}
             expected = self._revisions()
-            disk_versions = {rel: fingerprint(read_json(self._safe_data_path(rel)))
+            disk_versions = {rel: fingerprint(self._read_disk(rel))
                              for rel in watched if rel not in removed}
             compiled = self._compile(plan, aux, removed_files=removed)
             if self._revisions() != expected or any(
                 not self._safe_data_path(rel).is_file()
-                or fingerprint(read_json(self._safe_data_path(rel))) != digest
+                or fingerprint(self._read_disk(rel)) != digest
                 for rel, digest in disk_versions.items()
             ) or any(self._safe_data_path(rel).exists() for rel in removed):
                 raise DocumentError("conflict", "private data changed again during external validation")

@@ -1,10 +1,12 @@
-# Native editor implementation contract
+# Native editor protocol
 
-The approved development plan is `PLAN.md` alongside this file. The native app
-now lives in `editor/`, with the shared service in `scripts/reels/editor/`.
-The installer creates a code-only runtime, independent dependencies and private
-workspace outside the live checkout. Editing/rendering must never write back to
-the production project or its originals.
+The app (`editor/ReelsEditor/`) launches `<repo>/reels editor serve` with the repo
+as its working directory and talks to it over stdin/stdout. The service edits the
+real `plans/*.json`; its own state (undo history, jobs, preview cache, chat) lives
+in `.cache/editor/live/`. Nothing in the service deletes or rewrites files under
+`library/` (the only writes there are transcript word corrections and the usage
+records a render makes, same as `./reels render`); `tests/test_editor_live.py`
+audits every delete/rename in the package.
 
 ## Local protocol (version 1)
 
@@ -23,7 +25,17 @@ Methods: `workspace.info`, `plans.list`, `document.open` (`path`),
 `export.save` (`id`,`destination`,`artifact`: reel/review, `overwrite`),
 `chat.send` (`text`,`model` optional), `chat.stop`, `chat.history`,
 `permission.request`, `permission.respond`, `inspector.schema`, `renderer.read`,
-`renderer.submit`, and `shutdown`.
+`renderer.submit` (disabled: returns `renderer_changes_unavailable`), and `shutdown`.
+
+Projects and footage:
+
+- `plans.list` → `{plans:[{path,slug,title,postDate,format,segmentCount,durationSeconds,status,thumbnailURL,modified}]}`, newest first. `status` comes from `out/<slug>/post.json` (else `draft`).
+- `projects.create` (`title?`, `postDate?`) → `{path}`; writes a new zero-segment plan, never overwrites.
+- `library.import` (`paths`, `ingest`) → `{jobId,copied,skipped}`; copies media into `inbox/` (sources are never moved or deleted), then runs `./reels ingest` when `ingest` is true.
+- `library.ingest` → `{jobId}`; `library.inbox` → `{count,files}`.
+- Events: `job.changed` (`kind:"ingest"` carries `payload.log`), `library.changed`, `plans.changed` (`{paths,added,removed}`, polled every 2 s).
+- `document.open` / `selection.set` write `.cache/editor/live/context.json` (`plan`, `selection`, `playheadSeconds`) so a Claude Code session in the terminal can see what is open in the app.
+- `export.start` renders the open plan into `out/<slug>/` like `./reels render`. Nothing is approved, scheduled or published.
 
 Snapshots include `documentId`, `revisions: {document,library,renderer}`, `plan`
 (raw, never normalized), `nodes`, `fps`, `durationFrames`, `warnings`, and
@@ -81,32 +93,16 @@ is added to work around CLI spill files.
 
 ## Python boundaries
 
-`Workspace.load(path, code_root=None)` / `init_workspace(source, workspace,
-code_root=None)` in `editor/workspace.py`. A Workspace exposes `root` (workspace),
-`data_root`, `code_root`, `project`, `media_status()`, `library_revision()`.
+`Workspace.live(repo)` in `editor/workspace.py` exposes `root` (`.cache/editor/live`),
+`data_root` and `code_root` (both the repo), `project` (a `Project` whose
+`library/media` is read-only), `media_status()`, `library_revision()` and
+`renderer_revision()`.
 
 `DocumentStore(workspace, plan_path)` in `editor/transactions.py` exposes
 `snapshot()`, `apply(batch)`, `undo(expected=None)`, `redo(expected=None)`,
 `acquire_lease(owner, ttl=15)`, `release_lease(token)`, `reload_external()`.
 Snapshot compilation is renderer-based; raw plan data stays independent.
+Edits made outside the app (Claude Code in a terminal, a text editor) are
+picked up by `reload_external()` as new revisions.
 
-Other modules may add adapters, but must not silently create a second model.
-Expensive/candidate renderer code must execute in workers, not the service broker.
-
-## Parallel write ownership
-
-- Workspace agent: `config.py`, `cli.py`, `reels`, `editor/workspace.py`,
-  `editor/__init__.py`, `test_editor_workspace.py`; CLI registers editor lazily
-  through `editor.commands.register_parser` / `editor.commands.run`.
-- Document agent: `editor/transactions.py`, `editor/timing.py`,
-  `editor/document.py`, focused transaction/timing tests.
-- Native UI: `editor/ReelsEditor/`, product/design/surface context only.
-- Preview agent: Remotion preview entry/build, `editor/preview.py`,
-  `editor/renderer.py`, `editor/worker.py`, preview/renderer tests.
-- Search agent: `editor/search.py`, search tests.
-- Integrator: protocol/service/commands/jobs/Claude/MCP, dependencies,
-  integration tests, documentation, and cross-boundary fixes after handoff.
-
-Agents must not commit, change production, copy credentials, or start other
-agents. The user's approved ceiling is two Luna and one Astra concurrently.
-Keep contexts focused and summarize handoffs.
+Expensive renderer work runs in sandboxed workers, not the service broker.

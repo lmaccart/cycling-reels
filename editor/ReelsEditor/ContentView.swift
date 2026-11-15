@@ -1,4 +1,6 @@
 import AppKit
+import AVFoundation
+import ImageIO
 import SwiftUI
 
 enum EditorPalette {
@@ -18,25 +20,20 @@ struct ContentView: View {
     @Bindable var store: EditorStore
 
     var body: some View {
-        Group {
-            if !store.hasLaunchConfiguration || store.configurationError != nil {
-                WorkspaceSetupPane(store: store)
-            } else {
-                VStack(spacing: 0) {
-                    EditorToolbar(store: store)
-                    NativeSplitView(
-                        views: [AnyView(workspace), AnyView(TimelinePanel(store: store))],
-                        vertical: false,
-                        autosaveName: "ReelsEditor.WorkspaceTimeline",
-                        minimumSizes: [250, 190],
-                        initialFractions: [0.58, 0.42]
-                    )
-                    .background(EditorPalette.canvas)
-                    StatusBar(store: store)
-                }
-                .background(EditorPalette.canvas)
-            }
+        VStack(spacing: 0) {
+            EditorToolbar(store: store)
+            NativeSplitView(
+                views: [AnyView(workspace), AnyView(TimelinePanel(store: store))],
+                vertical: false,
+                autosaveName: "ReelsEditor.WorkspaceTimeline",
+                minimumSizes: [250, 190],
+                initialFractions: [0.58, 0.42]
+            )
+            .background(EditorPalette.canvas)
+            StatusBar(store: store)
         }
+        .background(EditorPalette.canvas)
+        .background(ShortcutMonitor { store.performShortcut($0) })
         .alert("Editing service", isPresented: Binding(
             get: { store.errorMessage != nil },
             set: { if !$0 { store.errorMessage = nil } }
@@ -44,6 +41,25 @@ struct ContentView: View {
             Button("Dismiss", role: .cancel) { store.errorMessage = nil }
         } message: {
             Text(store.errorMessage ?? "")
+        }
+        .alert("Render again?", isPresented: Binding(
+            get: { store.exportConfirmation != nil },
+            set: { if !$0 { store.exportConfirmation = nil } }
+        )) {
+            Button("Render Anyway", role: .destructive) { store.exportConfirmation = nil; store.export() }
+            Button("Cancel", role: .cancel) { store.exportConfirmation = nil }
+        } message: {
+            Text(store.exportConfirmation ?? "")
+        }
+        .alert("Render finished", isPresented: Binding(
+            get: { store.exportOutcome != nil },
+            set: { if !$0 { store.exportOutcome = nil } }
+        )) {
+            Button("Show in Finder") { store.showExportInFinder(); store.exportOutcome = nil }
+            Button("Save a Copy…") { store.exportOutcome = nil; store.saveCopyOfLastExport() }
+            Button("OK", role: .cancel) { store.exportOutcome = nil }
+        } message: {
+            Text("Saved to \(store.exportOutcome?.displayPath ?? "out/"). Nothing was approved, scheduled or posted.")
         }
         .alert("Permission request", isPresented: Binding(
             get: { store.isPermissionPromptPresented && store.activePermission != nil },
@@ -59,111 +75,7 @@ struct ContentView: View {
             store.stopServiceForCapture()
         }
         .onReceive(NotificationCenter.default.publisher(for: .reelsEditorPreviewTimedOut)) { _ in
-            store.previewFailureMessage = "Interactive preview was not ready within the 20-second capture deadline."
-        }
-    }
-
-    private struct WorkspaceSetupPane: View {
-        @Bindable var store: EditorStore
-        @State private var repository: URL?
-        @State private var workspacePath = ""
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 14) {
-                Label("Reels Editor", systemImage: "film.stack")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(EditorPalette.accent)
-                Text("Choose the isolated editor worktree and its private workspace. The main checkout is rejected.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 8) {
-                    Text("Repository")
-                        .font(.system(size: 11, weight: .medium))
-                        .frame(width: 92, alignment: .leading)
-                    Text(repository?.path ?? "No isolated repository selected")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(repository == nil ? .tertiary : .secondary)
-                        .lineLimit(2)
-                        .textSelection(.enabled)
-                    Spacer()
-                    Button("Choose…", action: chooseRepository)
-                }
-                HStack(spacing: 8) {
-                    Text("Workspace")
-                        .font(.system(size: 11, weight: .medium))
-                        .frame(width: 92, alignment: .leading)
-                    TextField("Private workspace path", text: $workspacePath)
-                        .font(.system(size: 10, design: .monospaced))
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityLabel("Private editor workspace path")
-                    Button("Choose…", action: chooseWorkspace)
-                        .disabled(repository == nil)
-                }
-                if let message = store.configurationError {
-                    Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                HStack {
-                    Spacer()
-                    Button("Launch Editor") { launch() }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(repository == nil || workspacePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-            .padding(20)
-            .frame(width: 560)
-            .background(EditorPalette.panel, in: RoundedRectangle(cornerRadius: 8))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(EditorPalette.canvas)
-            .onAppear {
-                if let saved = UserDefaults.standard.string(forKey: "reelsEditor.repositoryRoot") {
-                    repository = URL(fileURLWithPath: saved)
-                    workspacePath = UserDefaults.standard.string(forKey: "reelsEditor.workspaceRoot") ?? ""
-                }
-            }
-        }
-
-        private func chooseRepository() {
-            let panel = NSOpenPanel()
-            panel.canChooseFiles = false
-            panel.canChooseDirectories = true
-            panel.allowsMultipleSelection = false
-            panel.message = "Select the isolated cycling-editor worktree, not the production checkout."
-            if panel.runModal() == .OK, let url = panel.url {
-                repository = url
-                if workspacePath.isEmpty {
-                    workspacePath = url.appending(path: ".cache/editor/workspace").path
-                }
-            }
-        }
-
-        private func chooseWorkspace() {
-            guard let repository else { return }
-            let panel = NSOpenPanel()
-            panel.canChooseFiles = false
-            panel.canChooseDirectories = true
-            panel.allowsMultipleSelection = false
-            panel.canCreateDirectories = true
-            panel.directoryURL = URL(fileURLWithPath: workspacePath.isEmpty
-                ? repository.appending(path: ".cache/editor").path
-                : workspacePath)
-            panel.message = "Choose a private workspace, never production files or original media."
-            if panel.runModal() == .OK, let url = panel.url { workspacePath = url.path }
-        }
-
-        private func launch() {
-            guard let repository else { return }
-            let workspace = URL(fileURLWithPath: workspacePath).standardizedFileURL
-            do {
-                try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
-            } catch {
-                store.configurationError = "Could not create the private workspace: \(error.localizedDescription)"
-                return
-            }
-            store.configure(repository: repository, workspace: workspace)
+            store.previewFailureMessage = "Fast preview was not ready within the 20-second capture deadline."
         }
     }
 
@@ -198,48 +110,67 @@ private struct EditorToolbar: View {
     @Bindable var store: EditorStore
 
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "film.stack")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(EditorPalette.accent)
-                .accessibilityHidden(true)
-            Text(store.snapshot?.plan["slug"]?.stringValue ?? "Reels Editor")
-                .font(.system(size: 13, weight: .semibold))
-                .lineLimit(1)
-                .frame(maxWidth: 190, alignment: .leading)
-            Rectangle().fill(EditorPalette.separator).frame(width: 1, height: 20)
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(store.hasDocument ? store.reelTitle : "Reels Editor")
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if let file = store.planFileLabel {
+                    Text(file)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help("Edits save to this file as you make them. Claude Code and ./reels render read the same file.")
+                }
+            }
+            .frame(minWidth: 120, maxWidth: 260, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            toolbarDivider
             Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward") }
                 .help("Undo  ⌘Z")
+                .accessibilityLabel("Undo")
                 .disabled(!store.hasDocument)
             Button { store.redo() } label: { Image(systemName: "arrow.uturn.forward") }
                 .help("Redo  ⇧⌘Z")
+                .accessibilityLabel("Redo")
                 .disabled(!store.hasDocument)
+            toolbarDivider
             Button { store.splitAtPlayhead() } label: { Image(systemName: "scissors") }
-                .help("Split selected clip at playhead")
+                .help("Split the selected clip at the playhead  ⌘B")
+                .accessibilityLabel("Split at playhead")
                 .disabled(store.selectedNode == nil)
             Button { store.deleteSelection() } label: { Image(systemName: "trash") }
-                .help("Delete selected clip")
+                .help("Delete the selected clip  ⌫")
+                .accessibilityLabel("Delete selection")
                 .disabled(store.selectedIDs.isEmpty)
-            Rectangle().fill(EditorPalette.separator).frame(width: 1, height: 20)
-            Picker("Preview mode", selection: Binding(
+            toolbarDivider
+            Picker("Preview", selection: Binding(
                 get: { store.currentPreviewMode },
                 set: { store.preparePreview(mode: $0) }
             )) {
-                Text("Interactive").tag("interactive")
-                Text("Exact").tag("exact")
+                Text(PreviewModeLabel.title("interactive")).tag("interactive")
+                Text(PreviewModeLabel.title("exact")).tag("exact")
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .accessibilityLabel("Preview mode")
-            .frame(width: 160)
+            .accessibilityLabel("Preview quality")
+            .help(PreviewModeLabel.help(store.currentPreviewMode))
+            .frame(width: 210)
+            .disabled(!store.hasDocument)
             Button {
                 store.preparePreview(mode: store.currentPreviewMode)
             } label: {
-                Image(systemName: store.isPreparingPreview ? "arrow.trianglehead.2.clockwise" : "arrow.clockwise")
+                if store.isPreparingPreview {
+                    ProgressView().controlSize(.mini)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
             }
             .disabled(store.isPreparingPreview || !store.hasDocument)
-            .help(store.isPreparingPreview ? "Preparing preview" : "Refresh preview")
-            .accessibilityLabel(store.isPreparingPreview ? "Preparing preview" : "Refresh preview")
+            .help(store.isPreparingPreview ? "Preparing preview…" : "Reload the preview from the latest edits")
+            .accessibilityLabel(store.isPreparingPreview ? "Preparing preview" : "Reload preview")
             Spacer(minLength: 12)
             ConnectionBadge(state: store.serviceState)
             if store.activePermission != nil && !store.isPermissionPromptPresented {
@@ -250,18 +181,29 @@ private struct EditorToolbar: View {
                 }
                 .help("Review a pending permission request")
             }
-            Button { store.export() } label: {
+            Button { store.openInClaudeCode() } label: {
+                Label("Claude Code", systemImage: "terminal")
+            }
+            .disabled(store.repositoryRoot == nil)
+            .help("Open Terminal in your cycling folder and start Claude Code")
+            Button { store.requestExport() } label: {
                 Label("Export", systemImage: "square.and.arrow.up")
             }
             .disabled(!store.hasDocument)
-            .help("Render this revision to the private editor workspace")
+            .help("Render this reel to out/, the same as ./reels render. Nothing is scheduled or posted.")
         }
         .buttonStyle(.borderless)
-        .controlSize(.small)
-        .padding(.horizontal, 10)
-        .frame(height: 42)
+        .controlSize(.regular)
+        .padding(.leading, 80)  // clears the window's traffic-light buttons
+        .padding(.trailing, 12)
+        .frame(height: 40)
+        .background(WindowDragArea())
         .background(EditorPalette.panel)
         .overlay(alignment: .bottom) { Rectangle().fill(EditorPalette.separator).frame(height: 1) }
+    }
+
+    private var toolbarDivider: some View {
+        Rectangle().fill(EditorPalette.separator).frame(width: 1, height: 20).accessibilityHidden(true)
     }
 }
 
@@ -277,6 +219,7 @@ private struct ConnectionBadge: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
         }
+        .help(helpText)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Editing service: \(label)")
     }
@@ -284,9 +227,17 @@ private struct ConnectionBadge: View {
     private var label: String {
         switch state {
         case .stopped: "Offline"
-        case .starting: "Starting"
+        case .starting: "Starting…"
         case .connected: "Connected"
         case .failed: "Disconnected"
+        }
+    }
+
+    private var helpText: String {
+        switch state {
+        case .connected: "The editing service is running. Edits save to plans/ as you make them."
+        case .starting: "Starting the editing service…"
+        case .stopped, .failed: "The editing service is not running, so edits can't be saved. Reopen the reel or restart the app."
         }
     }
 
@@ -307,18 +258,14 @@ private struct LibraryPane: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(section == "Projects" ? "PROJECT" : "LIBRARY")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
-                Spacer()
                 Picker("Browser", selection: $section) {
                     Text("Footage").tag("Footage")
-                    Text("Projects").tag("Projects")
+                    Text("Reels").tag("Projects")
                 }
                 .labelsHidden()
                 .pickerStyle(.segmented)
-                .frame(width: 130)
+                .accessibilityLabel("Library section")
+                .frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 9)
@@ -326,10 +273,10 @@ private struct LibraryPane: View {
             if section == "Footage" {
                 HStack(spacing: 7) {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("Regex search…", text: $localQuery)
+                    TextField("Search what was said or shown", text: $localQuery)
                         .textFieldStyle(.plain)
                         .onChange(of: localQuery) { _, value in store.search(value) }
-                        .accessibilityLabel("Search footage by regular expression")
+                        .accessibilityLabel("Search footage")
                     if !localQuery.isEmpty {
                         Button { localQuery = ""; store.search("") } label: { Image(systemName: "xmark.circle.fill") }
                             .buttonStyle(.plain).foregroundStyle(.secondary)
@@ -344,14 +291,14 @@ private struct LibraryPane: View {
                 .padding(.bottom, 7)
 
                 HStack {
-                    Text(localQuery.isEmpty ? "ASSETS" : "MATCHES")
+                    Text(localQuery.isEmpty ? "Clips" : "Matches")
                     Spacer()
-                    Text(localQuery.isEmpty ? "\(store.library.count)" : "\(store.searchHits.count)")
+                    Text(localQuery.isEmpty ? "\(store.library.count)" : "\(store.searchHits.count + store.library.filter { AssetPresentation.matches($0, query: localQuery) }.count)")
                         .monospacedDigit()
                 }
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .padding(.horizontal, 10)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
                 .padding(.bottom, 4)
                 Divider()
                 if localQuery.isEmpty {
@@ -374,7 +321,7 @@ private struct LibraryPane: View {
         )) {
             ForEach(Array(store.library.enumerated()), id: \.offset) { _, item in
                 let id = item["id"]?.stringValue ?? UUID().uuidString
-                AssetRow(item: item)
+                AssetRow(item: item, root: store.repositoryRoot)
                     .tag(id)
                     .draggable(id)
             }
@@ -382,15 +329,27 @@ private struct LibraryPane: View {
         .listStyle(.sidebar)
         .overlay {
             if store.library.isEmpty {
-                ContentUnavailableView("No footage loaded", systemImage: "film", description: Text("The workspace library will appear here."))
+                ContentUnavailableView("No footage yet", systemImage: "film", description: Text("Put videos in inbox/ and run ./reels ingest, or import footage from the File menu. Clips show up here."))
             }
         }
     }
 
     private var searchList: some View {
-        List {
+        List(selection: Binding(
+            get: { store.selectedAssetID },
+            set: { id in if let id, let item = store.library.first(where: { $0["id"]?.stringValue == id }) { store.selectAsset(item) } }
+        )) {
+            let clips = store.library.filter { AssetPresentation.matches($0, query: localQuery) }
+            if !clips.isEmpty {
+                Section("Clips") {
+                    ForEach(Array(clips.prefix(50).enumerated()), id: \.offset) { _, item in
+                        let id = item["id"]?.stringValue ?? UUID().uuidString
+                        AssetRow(item: item, root: store.repositoryRoot).tag(id).draggable(id)
+                    }
+                }
+            }
             if store.searchHits.contains(where: { !$0.related }) {
-                Section("Regex") {
+                Section("Exact matches") {
                     ForEach(store.searchHits.filter { !$0.related }) { hit in
                         SearchHitRow(
                             hit: hit,
@@ -403,7 +362,7 @@ private struct LibraryPane: View {
                 }
             }
             if store.searchHits.contains(where: \.related) {
-                Section("Related · Haiku") {
+                Section("Related moments") {
                     ForEach(store.searchHits.filter(\.related)) { hit in
                         SearchHitRow(
                             hit: hit,
@@ -420,7 +379,7 @@ private struct LibraryPane: View {
         .overlay {
             if store.searchHits.isEmpty && !store.semanticSearchPending {
                 ContentUnavailableView("No matching footage", systemImage: "text.magnifyingglass",
-                                       description: Text("Try a phrase, rider, place, or activity."))
+                                       description: Text("Try a word from the transcript, a place, or an activity. Regular expressions work too."))
             } else if store.searchHits.isEmpty && store.semanticSearchPending {
                 ProgressView("Finding related moments…").controlSize(.small)
             }
@@ -430,16 +389,18 @@ private struct LibraryPane: View {
     private var plansList: some View {
         List {
             ForEach(Array(store.plans.enumerated()), id: \.offset) { _, plan in
+                let path = plan["path"]?.stringValue
+                let isOpen = path != nil && path == store.planFileLabel
                 Button {
-                    if let path = plan["path"]?.stringValue { Task { await store.openPlan(path) } }
+                    if let path { Task { await store.openPlan(path) } }
                 } label: {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(plan["title"]?.stringValue ?? plan["slug"]?.stringValue ?? plan["name"]?.stringValue ?? "Untitled plan")
+                        Text(plan["title"]?.stringValue ?? plan["slug"]?.stringValue ?? plan["name"]?.stringValue ?? "Untitled reel")
                             .font(.system(size: 12, weight: .medium))
                             .lineLimit(2)
-                        Text(plan["path"]?.stringValue ?? plan["postDate"]?.stringValue ?? "")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.tertiary)
+                        Text(PlanRowSummary.detail(plan))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
                     .padding(.vertical, 3)
@@ -447,63 +408,123 @@ private struct LibraryPane: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .disabled(plan["path"]?.stringValue == nil)
+                .disabled(path == nil)
+                .listRowBackground(isOpen ? EditorPalette.accent.opacity(0.18) : Color.clear)
+                .accessibilityAddTraits(isOpen ? .isSelected : [])
+                .help(path ?? "")
             }
         }
         .listStyle(.sidebar)
         .overlay {
             if store.plans.isEmpty {
-                ContentUnavailableView("No plans available", systemImage: "doc.text", description: Text("Choose a project after the service connects."))
+                ContentUnavailableView("No reels yet", systemImage: "doc.text", description: Text("Reels are the files in plans/. Create one from the File menu, or ask Claude Code to plan one."))
             }
         }
     }
 }
 
+/// One-line summary under a reel's title in the Reels list.
+enum PlanRowSummary {
+    static func detail(_ plan: JSONValue) -> String {
+        var parts: [String] = []
+        if let date = plan["postDate"]?.stringValue { parts.append(date) }
+        if let count = plan["segmentCount"]?.numberValue {
+            parts.append("\(Int(count)) clip\(Int(count) == 1 ? "" : "s")")
+        }
+        if let seconds = plan["durationSeconds"]?.numberValue { parts.append(TimeFormat.clock(seconds)) }
+        if let status = plan["status"]?.stringValue { parts.append(status) }
+        if parts.isEmpty { parts.append(plan["path"]?.stringValue ?? "") }
+        return parts.joined(separator: " · ")
+    }
+}
+
 private struct AssetRow: View {
     let item: JSONValue
+    var root: URL?
 
-    private var title: String {
-        item["originalName"]?.stringValue
-            ?? item["name"]?.stringValue
-            ?? item["filename"]?.stringValue
-            ?? item["id"]?.stringValue
-            ?? "Media"
-    }
-
-    private var detail: String? {
-        let candidates = [
-            item["summary"]?.stringValue,
-            item["duration"]?.displayValue,
-            item["media"]?.stringValue.map { URL(fileURLWithPath: $0).lastPathComponent },
-            item["filename"]?.stringValue.map { URL(fileURLWithPath: $0).lastPathComponent },
-            item["type"]?.stringValue
-        ]
-        return candidates.compactMap { $0 }
-            .first { !$0.isEmpty && $0.localizedCaseInsensitiveCompare(title) != .orderedSame
-                && $0 != item["id"]?.stringValue }
+    private var detail: String {
+        AssetPresentation.detailParts(item, currentYear: Calendar.current.component(.year, from: Date()))
+            .joined(separator: " · ")
     }
 
     var body: some View {
         HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(EditorPalette.video.opacity(0.3))
-                .frame(width: 46, height: 30)
-                .overlay(Image(systemName: "play.fill").font(.system(size: 10)).foregroundStyle(EditorPalette.video))
-                .accessibilityHidden(true)
+            AssetThumbnail(item: item, root: root)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(AssetPresentation.title(item))
                     .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-                if let detail {
-                    Text(detail)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
+                    .lineLimit(2)
+                HStack(spacing: 4) {
+                    if AssetPresentation.hasTranscript(item) {
+                        Image(systemName: "text.bubble")
+                            .font(.system(size: 9))
+                            .help("Has a transcript")
+                    }
+                    Text(detail).lineLimit(1)
                 }
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 2)
+        .help(item["originalName"]?.stringValue ?? "")
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Small frame grab (or the photo itself) read from the read-only originals in library/media.
+private struct AssetThumbnail: View {
+    let item: JSONValue
+    var root: URL?
+    @State private var image: NSImage?
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 3).fill(EditorPalette.video.opacity(0.3))
+            if let image {
+                Image(nsImage: image).resizable().scaledToFill()
+            } else {
+                Image(systemName: item["kind"]?.stringValue == "photo" ? "photo" : "play.fill")
+                    .font(.system(size: 10)).foregroundStyle(EditorPalette.video)
+            }
+        }
+        .frame(width: 46, height: 30)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .accessibilityHidden(true)
+        .task(id: item["id"]?.stringValue) {
+            guard let root, let media = item["media"]?.stringValue else { return }
+            image = await ThumbnailCache.shared.thumbnail(
+                for: root.appendingPathComponent(media), isPhoto: item["kind"]?.stringValue == "photo")
+        }
+    }
+}
+
+final class ThumbnailCache: @unchecked Sendable {
+    static let shared = ThumbnailCache()
+    private let cache = NSCache<NSURL, NSImage>()
+
+    func thumbnail(for url: URL, isPhoto: Bool) async -> NSImage? {
+        if let hit = cache.object(forKey: url as NSURL) { return hit }
+        let result: NSImage? = await Task.detached(priority: .utility) { () -> NSImage? in
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            if isPhoto {
+                guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+                let options: [CFString: Any] = [
+                    kCGImageSourceCreateThumbnailFromImageAlways: true,
+                    kCGImageSourceCreateThumbnailWithTransform: true,
+                    kCGImageSourceThumbnailMaxPixelSize: 160
+                ]
+                guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+                return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+            }
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: 160, height: 160)
+            guard let cg = try? await generator.image(at: CMTime(seconds: 0.4, preferredTimescale: 600)).image else { return nil }
+            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        }.value
+        if let result { cache.setObject(result, forKey: url as NSURL) }
+        return result
     }
 }
 
@@ -520,7 +541,7 @@ private struct SearchHitRow: View {
                 Text(hit.title).font(.system(size: 11, weight: .semibold)).lineLimit(1)
                 Spacer(minLength: 2)
                 Text("\(hit.sourceIn.formatted(.number.precision(.fractionLength(1))))s")
-                    .font(.system(size: 9, design: .monospaced)).foregroundStyle(.tertiary)
+                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
             }
             if !hit.evidence.isEmpty {
                 Text(highlightedEvidence(hit.evidence, offsets: hit.raw["highlights"]?.arrayValue ?? []))
@@ -529,8 +550,8 @@ private struct SearchHitRow: View {
                     .lineLimit(2)
             }
             if hit.related || hit.relatedReason != nil || !hit.sourceRanges.isEmpty {
-                Label("RELATED · HAIKU", systemImage: "sparkle.magnifyingglass")
-                    .font(.system(size: 9, weight: .semibold))
+                Label("Related moment", systemImage: "sparkle.magnifyingglass")
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.purple)
                     .labelStyle(.titleAndIcon)
                 if let reason = hit.relatedReason, !reason.isEmpty {
@@ -542,7 +563,7 @@ private struct SearchHitRow: View {
                 ForEach(hit.sourceRanges.prefix(4)) { range in
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(range.sourceIn.formatted(.number.precision(.fractionLength(1))))–\(range.sourceOut.formatted(.number.precision(.fractionLength(1))))s")
-                            .font(.system(size: 9, design: .monospaced))
+                            .font(.system(size: 10, design: .monospaced))
                             .foregroundStyle(.tertiary)
                         if !range.evidence.isEmpty {
                             Text(highlightedEvidence(range.evidence, offsets: range.highlights))
@@ -552,7 +573,7 @@ private struct SearchHitRow: View {
                         }
                         if !range.reason.isEmpty {
                             Text(range.reason)
-                                .font(.system(size: 9))
+                                .font(.system(size: 10))
                                 .foregroundStyle(.tertiary)
                                 .lineLimit(2)
                         }
@@ -561,7 +582,7 @@ private struct SearchHitRow: View {
                 }
                 if hit.sourceRanges.count > 4 {
                     Text("+ \(hit.sourceRanges.count - 4) more source ranges")
-                        .font(.system(size: 9))
+                        .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                         .padding(.leading, 9)
                 }
@@ -591,7 +612,7 @@ private struct SearchHitRow: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(hit.related ? "Related match" : "Regex match"), \(hit.title), source \(hit.sourceIn) to \(hit.sourceOut) seconds")
+        .accessibilityLabel("\(hit.related ? "Related match" : "Exact match"), \(hit.title), source \(hit.sourceIn) to \(hit.sourceOut) seconds")
         .accessibilityHint("Drag to the timeline for a primary clip, or open the context menu for B-roll actions.")
     }
 }
@@ -655,7 +676,7 @@ private struct MonitorPanel: View {
     private var sourceSurface: some View {
         VStack(spacing: 0) {
             HStack {
-                monitorTitle("SOURCE")
+                monitorTitle("Source")
                 Spacer()
                 monitorActions(source: true)
             }
@@ -673,7 +694,7 @@ private struct MonitorPanel: View {
     private var programSurface: some View {
         VStack(spacing: 0) {
             HStack {
-                monitorTitle("PROGRAM")
+                monitorTitle("Program")
                 Spacer()
                 monitorActions(source: false)
             }
@@ -711,19 +732,18 @@ private struct MonitorPanel: View {
 
     private func monitorTitle(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 10, weight: .semibold))
-            .tracking(0.6)
-            .foregroundStyle(.tertiary)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
     private func monitorActions(source: Bool) -> some View {
         if source {
-            Button { store.insertSourceSelection() } label: {
+            Button { store.insertFromSource() } label: {
                 Label("Insert", systemImage: "arrow.down.to.line")
             }
-            .disabled(store.selectedAssetID == nil || store.sourceIn == nil || store.sourceOut == nil)
-            .help("Insert marked source range into the timeline")
+            .disabled(store.selectedAssetID == nil || !store.hasDocument)
+            .help("Insert the marked range (or the whole clip) into the reel  ,")
             if store.selectedCutaway != nil {
                 Button { store.replaceSelectedCutawayFromSource() } label: {
                     Label("Replace B-roll", systemImage: "arrow.triangle.2.circlepath")
@@ -734,17 +754,19 @@ private struct MonitorPanel: View {
                 Button { store.addSelectedAssetAsBroll() } label: {
                     Label("Add as B-roll", systemImage: "rectangle.on.rectangle")
                 }
-                .disabled(store.selectedAssetID == nil)
-                .help("Attach this source range to the selected primary clip")
+                .disabled(store.selectedAssetID == nil || store.selectedPrimaryForBroll == nil)
+                .help("Lay this clip over the selected clip as a cutaway. Select a clip on the timeline first.")
             }
         } else {
-            Text(store.currentPreviewMode.capitalized)
-                .font(.system(size: 10, weight: .medium))
+            Text(PreviewModeLabel.title(store.currentPreviewMode))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
+                .help(PreviewModeLabel.help(store.currentPreviewMode))
             Button { store.preparePreview(mode: store.currentPreviewMode) } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("Prepare the current document revision")
+            .help("Reload the preview from the latest edits")
+            .accessibilityLabel("Reload preview")
         }
     }
 }
@@ -757,8 +779,8 @@ private struct SourceControls: View {
         HStack(spacing: 8) {
             if store.selectedAssetIsPhoto {
                 Image(systemName: "photo").foregroundStyle(EditorPalette.video)
-                Text("PHOTO")
-                Text("Set still duration in Inspector")
+                Text("Photo")
+                Text("Set how long it shows in the Inspector")
                     .foregroundStyle(.secondary)
                 Spacer()
                 if let id = store.selectedAssetID {
@@ -770,36 +792,48 @@ private struct SourceControls: View {
                 Button { model.togglePlayback() } label: {
                     Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
                 }
-                .help("Play / pause source")
+                .help("Play / pause the source clip")
                 .accessibilityLabel(model.isPlaying ? "Pause source" : "Play source")
-                Button { setMark(in: true) } label: { Label("In", systemImage: "bracket.left") }
-                Button { setMark(in: false) } label: { Label("Out", systemImage: "bracket.right") }
-                Rectangle().fill(EditorPalette.separator).frame(width: 1, height: 18)
-                Text("IN \(store.sourceIn.map(timeString) ?? "—")")
-                Text("OUT \(store.sourceOut.map(timeString) ?? "—")")
+                Button("Set In") { setMark(in: true) }
+                    .help("Mark In at the current position  I")
+                Text(store.sourceIn.map(TimeFormat.precise) ?? "—")
+                    .monospacedDigit()
+                Button("Set Out") { setMark(in: false) }
+                    .help("Mark Out at the current position  O")
+                Text(store.sourceOut.map(TimeFormat.precise) ?? "—")
+                    .monospacedDigit()
                 if model.durationSeconds > 0 {
                     Slider(value: Binding(
                         get: { model.currentSeconds },
                         set: { model.seek(to: $0) }
                     ), in: 0...model.durationSeconds)
-                    .frame(width: 110)
-                    .help("Seek source")
-                    Text(timeString(model.currentSeconds))
+                    .frame(minWidth: 60, maxWidth: 140)
+                    .accessibilityLabel("Source position")
+                    Text(TimeFormat.precise(model.currentSeconds))
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
-                Button { store.insertSourceSelection() } label: { Image(systemName: "arrow.down.to.line") }
-                    .help("Insert source In/Out")
-                    .disabled(store.selectedAssetID == nil || store.sourceIn == nil || store.sourceOut == nil)
+                Spacer(minLength: 0)
+                Button { store.insertFromSource() } label: { Image(systemName: "arrow.down.to.line") }
+                    .help("Insert the marked range into the reel  ,")
+                    .accessibilityLabel("Insert into reel")
+                    .disabled(store.selectedAssetID == nil || !store.hasDocument)
             }
         }
-        .font(.system(size: 10, design: .monospaced))
+        .font(.system(size: 11))
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .lineLimit(1)
         .padding(.horizontal, 10)
-        .frame(height: 33)
+        .frame(height: 34)
         .background(EditorPalette.panel)
         .overlay(alignment: .top) { Rectangle().fill(EditorPalette.separator).frame(height: 1) }
+        .onReceive(NotificationCenter.default.publisher(for: .reelsMarkSourceIn)) { _ in
+            if !store.selectedAssetIsPhoto, model.player != nil { setMark(in: true) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .reelsMarkSourceOut)) { _ in
+            if !store.selectedAssetIsPhoto, model.player != nil { setMark(in: false) }
+        }
     }
 
     private func setMark(in isIn: Bool) {
@@ -814,17 +848,21 @@ private struct ProgramControls: View {
     var body: some View {
         HStack(spacing: 8) {
             Button { store.setPlayhead(store.playheadFrame - 1) } label: { Image(systemName: "backward.frame") }
-                .help("Previous frame")
+                .help("Previous frame  ←")
+                .accessibilityLabel("Previous frame")
             Button { NotificationCenter.default.post(name: .reelsTogglePlayback, object: nil) } label: {
                 Image(systemName: "playpause.fill")
             }
-            .help("Play / pause")
+            .help("Play / pause  Space or K")
+            .accessibilityLabel("Play or pause")
             Button { store.setPlayhead(store.playheadFrame + 1) } label: { Image(systemName: "forward.frame") }
-                .help("Next frame")
-            Text(timeString(Double(store.playheadFrame) / store.fps))
-                .font(.system(size: 11, design: .monospaced))
+                .help("Next frame  →")
+                .accessibilityLabel("Next frame")
+            Text(TimeFormat.timecode(store.playheadFrame, fps: store.fps))
+                .font(.system(size: 12, design: .monospaced))
                 .monospacedDigit()
-            Picker("Playback rate", selection: Binding(
+                .help("Playhead timecode (hours:minutes:seconds:frames)")
+            Picker("Playback speed", selection: Binding(
                 get: { store.playbackRate },
                 set: { store.playbackRate = $0 }
             )) {
@@ -835,38 +873,35 @@ private struct ProgramControls: View {
             }
             .labelsHidden()
             .pickerStyle(.menu)
-            .frame(width: 55)
+            .frame(width: 62)
+            .help("Playback speed")
             .onChange(of: store.playbackRate) { _, value in
                 NotificationCenter.default.post(name: .reelsPlaybackRate, object: value)
             }
             Spacer()
-            if let snapshot = store.snapshot {
-                Text("DOC \(snapshot.revisions.document.prefix(8))")
-                    .help("Document revision \(snapshot.revisions.document)")
+            if store.snapshot != nil {
                 if store.isPreparingPreview {
-                    Label("Preview pending", systemImage: "clock")
+                    Label("Updating preview…", systemImage: "clock")
                         .foregroundStyle(EditorPalette.warning)
-                } else {
-                    Text("PREVIEW \(snapshot.revisions.renderer.prefix(8))")
+                } else if let snapshot = store.snapshot {
+                    Text("Preview ready")
                         .foregroundStyle(.secondary)
-                        .help("Renderer revision \(snapshot.revisions.renderer)")
+                        .help("Revision \(snapshot.revisions.document.prefix(8)); renderer \(snapshot.revisions.renderer.prefix(8))")
                 }
             }
         }
-        .font(.system(size: 10, weight: .medium))
+        .font(.system(size: 11, weight: .medium))
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .lineLimit(1)
         .padding(.horizontal, 10)
-        .frame(height: 33)
+        .frame(height: 34)
         .background(EditorPalette.panel)
         .overlay(alignment: .top) { Rectangle().fill(EditorPalette.separator).frame(height: 1) }
     }
 }
 
-func timeString(_ seconds: Double) -> String {
-    let safe = max(0, Int(seconds.rounded()))
-    return String(format: "%02d:%02d:%02d", safe / 3600, (safe / 60) % 60, safe % 60)
-}
+func timeString(_ seconds: Double) -> String { TimeFormat.precise(seconds) }
 
 struct StatusBar: View {
     @Bindable var store: EditorStore
@@ -881,21 +916,22 @@ struct StatusBar: View {
             } else if let warnings = store.snapshot?.warnings, !warnings.isEmpty {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 Text(warnings.first ?? "").lineLimit(1)
+            } else if store.hasDocument {
+                Text(store.planFileLabel.map { "Saved to \($0)" } ?? "Ready")
             } else {
-                Text(store.hasDocument ? "Ready" : "Connect to an editing workspace, then open a plan.")
+                Text("Pick a reel from the Reels list to start editing.")
             }
             Spacer()
             if let snapshot = store.snapshot {
-                Text("\(snapshot.nodes.count) nodes")
-                Text("\(snapshot.fps.formatted(.number.precision(.fractionLength(0...2)))) fps")
-                Text("\(snapshot.durationFrames) fr")
+                Text("\(TimeFormat.clock(Double(snapshot.durationFrames) / max(snapshot.fps, 1))) long")
                     .monospacedDigit()
+                Text("\(snapshot.fps.formatted(.number.precision(.fractionLength(0...2)))) fps")
             }
         }
-        .font(.system(size: 10))
+        .font(.system(size: 11))
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
-        .frame(height: 22)
+        .padding(.horizontal, 12)
+        .frame(height: 24)
         .background(EditorPalette.panel)
         .overlay(alignment: .top) { Rectangle().fill(EditorPalette.separator).frame(height: 1) }
     }
@@ -904,4 +940,13 @@ struct StatusBar: View {
 extension Notification.Name {
     static let reelsTogglePlayback = Notification.Name("ReelsEditor.TogglePlayback")
     static let reelsPlaybackRate = Notification.Name("ReelsEditor.PlaybackRate")
+}
+
+/// Lets the custom (title-bar-less) header drag the window.
+struct WindowDragArea: NSViewRepresentable {
+    final class DragView: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+    }
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }

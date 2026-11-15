@@ -1,5 +1,5 @@
-"""Native editor workspace and service integration."""
+"""Native editor service integration."""
 
-from .workspace import Workspace, init_workspace
+from .workspace import Workspace
 
-__all__ = ["Workspace", "init_workspace"]
+__all__ = ["Workspace"]

@@ -36,6 +36,7 @@ def atomic_json(path: Path, value: Any) -> None:
 
 class JobContext:
     def __init__(self):
+        self.on_log: Callable[[str], None] | None = None
         self.cancel = threading.Event()
         self._processes: set[subprocess.Popen] = set()
         self._lock = threading.RLock()
@@ -81,6 +82,38 @@ class JobContext:
         with self._lock:
             for process in tuple(self._processes):
                 self._terminate(process)
+
+    def log(self, line: str) -> None:
+        if self.on_log is not None and line:
+            self.on_log(line)
+
+    def stream(self, args: list[str], *, cwd: str | Path, env: dict | None = None, timeout: float = 6 * 3600) -> int:
+        """Run a command, forwarding each stdout/stderr line to the job log. Cancelling kills its process group."""
+        self.check_cancelled()
+        process = subprocess.Popen([str(a) for a in args], cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
+                                   errors="replace", start_new_session=True)
+        self.own(process)
+        tail: list[str] = []
+        timer = threading.Timer(timeout, self._terminate, args=(process,))
+        timer.daemon = True
+        timer.start()
+        try:
+            for raw in process.stdout:
+                line = raw.rstrip()
+                if line:
+                    tail = (tail + [line])[-40:]
+                    self.log(line)
+            process.wait()
+            self.check_cancelled()
+            if process.returncode:
+                raise ProtocolError("command_failed", f"Command exited with status {process.returncode}.",
+                                    {"log": "\n".join(tail)})
+            return process.returncode
+        finally:
+            timer.cancel()
+            self.disown(process)
+            process.stdout.close()
 
     def run(self, args: list[str], *, cwd: str | Path, env: dict | None = None,
             timeout: float = 600, input: str | None = None) -> subprocess.CompletedProcess:
@@ -128,11 +161,17 @@ class JobManager:
         atomic_json(self.root / f"{job['id']}.json", job)
 
     def submit(self, kind: str, revisions: dict, work: Callable[[JobContext], Any],
-               publish: Callable[[Any], Any] | None = None) -> dict:
+               publish: Callable[[Any], Any] | None = None, *, independent: bool = False) -> dict:
+        """independent jobs (footage ingest) are not tied to the open document's revisions."""
         revisions = dict(revisions)
         jid = uuid.uuid4().hex
         record = {"id": jid, "kind": kind, "revisions": dict(revisions), "state": "queued", "created": time.time()}
         context = JobContext()
+
+        def on_log(line: str) -> None:
+            record["log"] = line
+            self.emit("job.changed", dict(record), revisions)
+        context.on_log = on_log
         with self.lock:
             self.jobs[jid], self.contexts[jid] = record, context
             self._save(record)
@@ -150,7 +189,7 @@ class JobManager:
                     result = {**result, "jobId": jid}
                 with self.lock:
                     # Recheck immediately before publication, not just before work.
-                    stale = dict(revisions) != self.current()
+                    stale = (not independent) and dict(revisions) != self.current()
                     if not stale and publish is not None:
                         result = publish(result)
                     record.update(state="superseded" if stale else "completed", result=result, finished=time.time())

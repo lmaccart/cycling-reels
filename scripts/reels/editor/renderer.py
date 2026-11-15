@@ -163,6 +163,9 @@ class RendererManager:
         return self._code_revision()
 
     def _code_revision(self) -> str:
+        provided = getattr(self.workspace, "renderer_revision", None)
+        if callable(provided):
+            return str(provided())
         digest = hashlib.sha256()
         code_root = Path(self.workspace.code_root).resolve()
         for name in ("render.py", "mix.py", "music.py", "punch.py", "sphere.py", "exhibits.py"):

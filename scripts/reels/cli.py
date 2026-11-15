@@ -869,12 +869,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = argparse.ArgumentParser(prog="reels", description="Turn ride footage into captioned Instagram Reels.")
     p.add_argument("--version", action="version", version=f"cycling-reels {__version__}")
-    p.add_argument(
-        "--editor-workspace",
-        metavar="PATH",
-        default=argparse.SUPPRESS,
-        help="use an isolated native-editor workspace (editor commands only)",
-    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("doctor", help="check that everything needed is installed")
@@ -1143,20 +1137,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     project = None
     try:
-        editor_workspace = getattr(args, "editor_workspace", None)
-        if editor_workspace and args.cmd != "editor":
-            raise ReelsError("--editor-workspace can only be used with the editor command")
         if args.cmd == "editor":
-            if editor_workspace:
-                from .editor.workspace import Workspace
-
-                project = Workspace.load(editor_workspace).project
-            elif getattr(args, "editor_cmd", None) == "init":
-                workspace_path = Path(args.workspace).expanduser()
-                if not workspace_path.is_absolute():
-                    args.workspace = str(Path(__file__).resolve().parents[2] / workspace_path)
-            # Editor initialization deliberately runs without constructing a
-            # default Project: that would load this checkout's project config.
+            # The editor works on this repo directly; it needs no separate Project here.
             commands = importlib.import_module(".editor.commands", package=__package__)
             ProtocolError = importlib.import_module(".editor.protocol", package=__package__).ProtocolError
             try:
