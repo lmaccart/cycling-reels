@@ -17,7 +17,8 @@ export const TikTokText: React.FC<{
   fontSize: number;
   maxWidth?: number;
   weight?: number;
-}> = ({ text, textStyle, fontSize, maxWidth = 880, weight = 700 }) => {
+  lineHeight?: number;
+}> = ({ text, textStyle, fontSize, maxWidth = 880, weight = 700, lineHeight }) => {
   if (textStyle === 'plain') {
     return (
       <div
@@ -28,9 +29,10 @@ export const TikTokText: React.FC<{
           fontFamily: TEXT,
           fontWeight: weight,
           fontSize,
-          lineHeight: 1.22,
+          lineHeight: lineHeight ?? 1.22,
           color: '#fff',
-          WebkitTextStroke: `${Math.max(2, Math.round(fontSize * 0.07))}px rgba(0,0,0,0.85)`,
+          // the outline stops growing past normal text sizes, so big text stays white, not black-rimmed
+          WebkitTextStroke: `${Math.max(2, Math.round(Math.min(fontSize, 90) * 0.07))}px rgba(0,0,0,0.85)`,
           paintOrder: 'stroke fill',
           textShadow: '0 2px 10px rgba(0,0,0,0.35)',
           whiteSpace: 'pre-wrap',
@@ -42,7 +44,7 @@ export const TikTokText: React.FC<{
   }
   const light = textStyle === 'light';
   return (
-    <div style={{ ...balanced, maxWidth, textAlign: 'center', lineHeight: 1.36, fontSize }}>
+    <div style={{ ...balanced, maxWidth, textAlign: 'center', lineHeight: lineHeight ?? 1.36, fontSize }}>
       <span
         style={{
           fontFamily: TEXT,

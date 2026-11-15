@@ -199,6 +199,8 @@ export type Hook = {
   style: TextStyle;
   position: 'top' | 'center';
   offsetTop?: number;
+  /** 'big' = a statement hook: huge, one line per line break, on top of everything */
+  size?: 'normal' | 'big';
 };
 
 export type EndCard = { handle: string; cta: string; startFrame: number; endFrame: number; style: TextStyle };

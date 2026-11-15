@@ -37,7 +37,7 @@ DEPTHS = ("front", "behind")
 MOVES = ("pop", "fade", "slide", "none")
 SIDES = ("auto", "left", "right", "above", "below")
 KEYS = {"at", "for", "image", "chart", "style", "width", "x", "y", "tilt", "crop", "anchor", "side", "gap", "point", "follow",
-        "depth", "enter", "exit", "shadow", "background", "padding"}  # fmt: skip
+        "depth", "enter", "exit", "shadow", "background", "padding", "safeArea"}  # fmt: skip
 # Where an exhibit may sit on the 1080x1920 frame (px): under Instagram's top bar, above its
 # caption/buttons. Text keeps PAD clear of it.
 SAFE_LEFT, SAFE_RIGHT, SAFE_TOP, SAFE_BOTTOM = 40, 1040, 230, 1500
@@ -516,11 +516,20 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
         if h > most_h:
             w, h = w * most_h / h, most_h
             warnings.append(f"{where}: {label} is tall — shown {w / tw:.0%} of the frame wide so it fits (use \"crop\" to show part of it)")
-        cx, cy = _inside(_number(raw, "x", 0.5, 0, 1, errors, where) * tw, _number(raw, "y", 0.36, 0, 1, errors, where) * th, w, h)
-        note = "placed"
+        safe = raw.get("safeArea", True)
+        if not isinstance(safe, bool):
+            errors.append(f"{where}: safeArea is true or false")
+            continue
+        cx, cy = _number(raw, "x", 0.5, 0, 1, errors, where) * tw, _number(raw, "y", 0.36, 0, 1, errors, where) * th
+        # decorative overlays (a pile of stickers) may run to the frame's edges and under the app's buttons
+        cx, cy = _inside(cx, cy, w, h) if safe else (cx, cy)
+        note = "placed" if safe else "placed (whole frame)"
         path = None
 
         anchor = raw.get("anchor")
+        if anchor is not None and not safe:
+            errors.append(f"{where}: safeArea: false is for placed exhibits only (not anchor)")
+            continue
         if anchor not in (None, "hand"):
             errors.append(f'{where}: anchor can only be "hand" (leave it out to place the exhibit with x/y)')
             continue
@@ -698,7 +707,7 @@ def make_room(exhibits: list[dict], hook: dict | None, beats: list[dict], pages:
         if "offsetBottom" in prev and "offsetBottom" not in pg and pg["startFrame"] - prev["endFrame"] <= 8:
             if any(s < pg["endFrame"] + fps and pg["startFrame"] - fps < e for s, e, *_ in obstacles[: len(exhibits)]):
                 pg["offsetBottom"] = prev["offsetBottom"]
-    if hook:
+    if hook and hook.get("size") != "big":  # a big hook is the statement on top of the pile: it stays put
         place(hook, "hook", "the hook")
     for b in beats:
         place(b, "beat", f"text '{b['text']}'")

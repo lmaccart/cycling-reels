@@ -151,6 +151,33 @@ class ExhibitTests(unittest.TestCase):
             cap_bottom = 1920 - p["offsetBottom"]
             self.assertTrue(cap_bottom <= top2 - exhibits.PAD or cap_bottom - exhibits.LINE >= bottom2 + exhibits.PAD)
 
+    def test_a_big_hook_keeps_its_lines_and_stays_on_top_of_exhibits(self):
+        self.extra = {"hook": {"text": "THIS\nIS  MY\n\nART", "size": "big", "position": "center", "style": "plain"}}
+        self.addCleanup(setattr, self, "extra", {})
+        b = self.built([{"image": "vo2-study", "at": 0.0, "for": 5.0, "x": 0.5, "y": 0.5, "width": 0.9}])
+        hook = b["props"]["hook"]
+        self.assertEqual((hook["text"], hook["size"], hook["position"]), ("THIS\nIS MY\nART", "big", "center"))
+        self.assertNotIn("offsetTop", hook)
+        self.assertFalse(any("hook sits on an exhibit" in w for w in b["warnings"]))
+
+    def test_safe_area_off_lets_a_sticker_sit_under_the_buttons(self):
+        spot = {"image": "bottle", "style": "cutout", "x": 0.95, "y": 0.9, "width": 0.3}
+        (kept,) = self.built([spot])["props"]["exhibits"]
+        (free,) = self.built([{**spot, "safeArea": False}])["props"]["exhibits"]
+        self.assertLessEqual(kept["x"] + kept["width"] / 2, exhibits.BUTTONS_LEFT)
+        self.assertEqual((free["x"], free["y"]), (0.95 * 1080, 0.9 * 1920))
+        self.assertIn("safeArea", self.problems([{**spot, "safeArea": "no"}]))
+        self.assertIn("placed exhibits only", self.problems([{**spot, "safeArea": False, "anchor": "hand"}]))
+
+    def test_normal_hooks_fold_line_breaks_and_unknown_sizes_warn(self):
+        self.extra = {"hook": {"text": "legs\nsaid no", "size": "huge"}}
+        self.addCleanup(setattr, self, "extra", {})
+        b = self.built([{"image": "vo2-study", "at": 4.0, "for": 1.0, "x": 0.5, "y": 0.5, "width": 0.4}])
+        hook = b["props"]["hook"]
+        self.assertEqual(hook["text"], "legs said no")
+        self.assertNotIn("size", hook)
+        self.assertTrue(any("size 'huge' unknown" in w for w in b["warnings"]))
+
     def test_text_with_nowhere_to_go_is_reported(self):
         beats = [{"text": "the whole frame is taken", "startFrame": 0, "endFrame": 60, "position": "center"}]
         full = [{"props": {"startFrame": 0, "endFrame": 90, "x": 540, "y": 880, "width": 900, "height": 1250}}]

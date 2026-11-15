@@ -37,6 +37,7 @@ FITS = ("cover", "blurfill")
 MOTIONS = ("none", "zoom-in", "zoom-out", "pan-left", "pan-right", "pan-up", "pan-down")
 POSITIONS = ("top", "center", "lower")
 HOOK_POSITIONS = ("top", "center")
+HOOK_SIZES = ("normal", "big")
 STYLES = ("light", "dark", "plain")
 TRANSITIONS = ("cut", "fade")
 _EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
@@ -1150,7 +1151,16 @@ def build(project: Project, plan: dict) -> dict:
     hook = {"text": hook} if isinstance(hook, str) else hook
     hook_props = None
     if isinstance(hook, dict) and str(hook.get("text", "")).strip():
-        text = screen_text(hook["text"], warnings, "hook")
+        size = hook.get("size") or "normal"
+        if size not in HOOK_SIZES:
+            warnings.append(f"hook: size {size!r} unknown — using 'normal'")
+            size = "normal"
+        if size == "big":
+            # a statement hook ("this / is / my / art"): the writer's line breaks are kept, one per line
+            lines = [screen_text(line, warnings, "hook") for line in str(hook["text"]).split("\n")]
+            text = "\n".join(line for line in lines if line)
+        else:
+            text = screen_text(hook["text"], warnings, "hook")
         words = len(text.split())
         # Long enough to read comfortably: ~0.28 s a word, at least hookSeconds, at most 4.5 s.
         hs = float(hook.get("seconds") or min(4.5, max(float(project.cfg("render", "hookSeconds")), 0.6 + 0.28 * words)))
@@ -1165,6 +1175,10 @@ def build(project: Project, plan: dict) -> dict:
             "style": _style(hook.get("style"), default_style, warnings, "hook"),
             "position": pos,
         }
+        if size == "big":
+            hook_props["size"] = "big"
+            if words > 6:
+                warnings.append("hook: a big hook fills the frame — keep it to a few words")
         if words > 12:
             warnings.append("hook is over 12 words — trim it so it reads in a couple of seconds")
 
