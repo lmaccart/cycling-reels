@@ -1,0 +1,106 @@
+{
+  "id": "261115-img-3665-f6df",
+  "kind": "video",
+  "media": "library/media/261115-img-3665-f6df.mov",
+  "originalName": "IMG_3665.MOV",
+  "hash": "f6dffe3de55071e524c015fbc659b1f0454d916a",
+  "created": "2026-11-15T09:02:32",
+  "ingestedAt": "2026-11-15T15:45:35+00:00",
+  "probe": {
+    "duration": 10.147,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.921,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-15T09:02:32-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "indoor",
+    "shot": "handheld",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "riding the trainer on the balcony: POV over the teal top tube, wide of the bike, laptop on the fridge and the view, then a grinning selfie from above",
+    "hooks": [
+      "technically outside"
+    ],
+    "moments": [
+      {
+        "id": "m-fec00f",
+        "in": 1.6,
+        "out": 4.0,
+        "label": "wide of the balcony: teal bike on the trainer facing the laptop on the mini fridge, fan, railing and campus behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-c8ffd3",
+        "in": 4.0,
+        "out": 6.6,
+        "label": "pan across the balcony to the view of a campus tower, then back to the laptop on the fridge",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-9ed7e7",
+        "in": 6.8,
+        "out": 8.6,
+        "label": "rider grins up at the phone held overhead while pedalling on the balcony",
+        "score": 4,
+        "focusX": 0.55,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261115-img-3665-f6df.json",
+  "used": [
+    {
+      "plan": "2026-11-18-technically-outside",
+      "at": "2026-11-15T20:30:00+00:00",
+      "in": 1.6,
+      "out": 5.367
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -41.8,
+      "peakDb": -20.2
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261115-img-3665-f6df.jpg"
+  ],
+  "taggedAt": "2026-11-15T15:53:31+00:00"
+}

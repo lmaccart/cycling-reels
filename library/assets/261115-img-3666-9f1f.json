@@ -1,0 +1,112 @@
+{
+  "id": "261115-img-3666-9f1f",
+  "kind": "video",
+  "media": "library/media/261115-img-3666-9f1f.mov",
+  "originalName": "IMG_3666.MOV",
+  "hash": "9f1ff305a71c5f34a2ad2ba9174b0ec32991aa6d",
+  "created": "2026-11-15T09:14:48",
+  "ingestedAt": "2026-11-15T15:45:38+00:00",
+  "probe": {
+    "duration": 9.878,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.929,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-15T09:14:48-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "indoor",
+    "shot": "screen",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "none",
+    "summary": "Zwift on the laptop (3 hours endurance workout, warm-up 160 W target, 170 W) pulling back to the laptop on the mini fridge, then the bike and POV pedalling on the balcony",
+    "hooks": [
+      "technically outside"
+    ],
+    "moments": [
+      {
+        "id": "m-99d3de",
+        "in": 0.2,
+        "out": 1.5,
+        "label": "close on the Zwift screen: 3 hours endurance workout, warm-up target 160 W, 170 W",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "proof",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-d2f867",
+        "in": 1.5,
+        "out": 2.9,
+        "label": "pull back: laptop running Zwift on top of a mini fridge at the balcony railing, trees behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "mood": "funny",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-82947b",
+        "in": 3.0,
+        "out": 8.0,
+        "label": "looking down the teal bike on the trainer: fan, fridge, POV legs pedalling on the balcony",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261115-img-3666-9f1f.json",
+  "used": [
+    {
+      "plan": "2026-11-18-technically-outside",
+      "at": "2026-11-15T20:30:00+00:00",
+      "in": 0.2,
+      "out": 1.5
+    },
+    {
+      "plan": "2026-11-18-technically-outside",
+      "at": "2026-11-15T20:30:00+00:00",
+      "in": 1.5,
+      "out": 3.15
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -40.7,
+      "peakDb": -23.6
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261115-img-3666-9f1f.jpg"
+  ],
+  "taggedAt": "2026-11-15T15:53:31+00:00"
+}

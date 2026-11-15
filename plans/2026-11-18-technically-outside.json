@@ -1,0 +1,78 @@
+{
+ "slug": "2026-11-18-technically-outside",
+ "postDate": "2026-11-18",
+ "format": "talking-selfie",
+ "spine": "voice",
+ "autoSfx": false,
+ "segments": [
+  {
+   "asset": "261115-img-3667-3e81",
+   "focusX": 0.45,
+   "captions": "transcript",
+   "in": 0.1,
+   "out": 8.7,
+   "cutaways": [
+    {
+     "at": 4.6,
+     "asset": "261115-img-3665-f6df",
+     "in": 1.6,
+     "out": 5.6
+    }
+   ]
+  },
+  {
+   "asset": "261115-img-3667-3e81",
+   "focusX": 0.45,
+   "captions": "transcript",
+   "in": 8.7,
+   "out": 11.7,
+   "volume": 1.5,
+   "cutaways": [
+    {
+     "at": 0.0,
+     "asset": "261115-img-3666-9f1f",
+     "in": 0.2,
+     "out": 1.5
+    },
+    {
+     "at": 1.3,
+     "asset": "261115-img-3666-9f1f",
+     "in": 1.5,
+     "out": 3.15
+    }
+   ]
+  },
+  {
+   "asset": "261115-img-3672-2875",
+   "in": 0.0,
+   "out": 5.6,
+   "focusX": 0.5,
+   "volume": 0.4,
+   "payoff": true,
+   "text": [
+    {
+     "text": "2 hours later",
+     "at": 0.0,
+     "for": 2.6,
+     "position": "top"
+    }
+   ]
+  }
+ ],
+ "music": {
+  "track": "november-rain",
+  "start": 362.0,
+  "cutOnBeat": true,
+  "volume": 0.45
+ },
+ "post": {
+  "caption": "heart rate drifted to the moon smh\n\ni need to buy a better fan",
+  "hashtags": [
+   "#cycling",
+   "#zwift",
+   "#indoorcycling",
+   "#roadcycling"
+  ],
+  "altText": "A tired rider on an indoor trainer says they were supposed to ride three hours outside and technically they are: the bike, a fan and a laptop running Zwift on a mini fridge are set up on an apartment balcony. They roll their eyes at the ceiling, and at the end of the ride stare blankly at the camera, swing it to the laptop and back to a resigned frown."
+ }
+}

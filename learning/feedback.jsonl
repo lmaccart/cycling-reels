@@ -263,3 +263,29 @@
 {"at": "2026-11-15T01:55:45+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-15-this-is-my-art.json in 33.9s", "slug": "this-is-my-art", "source": "cli"}
 {"at": "2026-11-15T01:55:45+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "this-is-my-art", "source": "cli"}
 {"at": "2026-11-15T01:56:16+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "this-is-my-art", "source": "cli"}
+{"at": "2026-11-15T15:46:47+00:00", "category": "preference", "kind": "sound", "note": "Zwift balcony reel (11-15 footage): no sound effects, just music + the clips' own audio. Second reel in a row asking for no sfx (after i-have-plans).", "slug": null, "source": "user"}
+{"at": "2026-11-15T15:53:27+00:00", "category": "production", "kind": "command-failed", "note": "tag-batch failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-15T15:53:34+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T15:54:20+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 45.3s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T15:54:36+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T15:54:36+00:00", "category": "production", "kind": "render-failed", "note": "Render failed for 2026-11-18-technically-outside.json after 0.0s; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-15T15:54:44+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T15:55:19+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 34.3s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:11:32+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:12:13+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 40.8s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:12:32+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:13:14+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 42.2s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:13:23+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:14:06+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 42.8s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:19:38+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:20:36+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 58.2s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:20:43+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:20:43+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:20:43+00:00", "category": "production", "kind": "render-failed", "note": "Render failed for 2026-11-18-technically-outside.json after 0.0s; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:20:49+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:21:37+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 47.6s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:29:21+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-18-technically-outside.json", "slug": null, "source": "cli"}
+{"at": "2026-11-15T20:30:00+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-18-technically-outside.json in 39.6s", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:30:00+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:30:33+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-18-technically-outside", "source": "cli"}
+{"at": "2026-11-15T20:49:46+00:00", "category": "production", "kind": "command-failed", "note": "stats failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
