@@ -4,9 +4,9 @@ import json
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
-from .util import ReelsError
+from .util import ReelsError, quick_hash
 
 DEFAULTS: dict[str, Any] = {
     "brand": {
@@ -108,8 +108,30 @@ def find_root() -> Path:
 class Project:
     """Paths and settings for one cycling-reels folder."""
 
-    def __init__(self, root: Path | None = None):
-        self.root = (root or find_root()).resolve()
+    def __init__(
+        self,
+        root: Path | str | None = None,
+        *,
+        code_root: Path | str | None = None,
+        media_root: Path | str | None = None,
+        registered_media: Mapping[str, Mapping[str, Any] | Path | str] | None = None,
+    ):
+        self.root = Path(root or find_root()).resolve()
+        self.code_root = Path(code_root).resolve() if code_root is not None else self.root
+        self._external_media_root = Path(os.path.abspath(media_root)) if media_root is not None else None
+        self._registered_media: dict[str, dict[str, Any]] = {}
+        for identifier, entry in (registered_media or {}).items():
+            ident = Path(identifier)
+            if ident.is_absolute() or ".." in ident.parts or ident.parts[:2] != ("library", "media"):
+                raise ReelsError("registered original media identifier must be under library/media")
+            if isinstance(entry, (str, Path)):
+                entry = {"path": str(entry)}
+            record = dict(entry)
+            record["path"] = os.path.abspath(record["path"])
+            if self._external_media_root is None or not _is_within(Path(record["path"]), self._external_media_root):
+                raise ReelsError("registered original media path must be inside the explicit media root")
+            self._registered_media[ident.as_posix()] = record
+        self.read_only_media = self._external_media_root is not None
         cfg_path = self.root / "config.json"
         user: dict = {}
         if cfg_path.exists():
@@ -137,7 +159,7 @@ class Project:
 
     @property
     def media_dir(self) -> Path:
-        return self.library / "media"
+        return self._external_media_root or self.library / "media"
 
     @property
     def sheets_dir(self) -> Path:
@@ -170,17 +192,16 @@ class Project:
 
     @property
     def remotion_dir(self) -> Path:
-        return self.root / "remotion"
+        return self.code_root / "remotion"
 
     @property
     def staging_dir(self) -> Path:
         return self.root / ".cache" / "staging"
 
     def ensure_dirs(self) -> None:
-        for d in (
+        dirs = [
             self.inbox,
             self.assets_dir,
-            self.media_dir,
             self.sheets_dir,
             self.transcripts_dir,
             self.thumbs_dir,
@@ -188,16 +209,111 @@ class Project:
             self.out_dir,
             self.music_dir,
             self.exhibits_dir,
-        ):
+        ]
+        # An editor project may point at production's originals. Never even
+        # mkdir that externally supplied root.
+        if not self.read_only_media:
+            dirs.append(self.media_dir)
+        for d in dirs:
             d.mkdir(parents=True, exist_ok=True)
 
     # --- helpers -----------------------------------------------------------
     def rel(self, path: Path | str) -> str:
-        return os.path.relpath(Path(path).resolve(), self.root)
+        p = Path(path).resolve()
+        if self.read_only_media:
+            for identifier, entry in self._registered_media.items():
+                if p == Path(entry["path"]).resolve():
+                    return identifier
+            if _is_within(p, self.media_dir.resolve()):
+                raise ReelsError("original media path is not registered in this editor workspace")
+            if not _is_within(p, self.root):
+                raise ReelsError("path is outside the private editor data root")
+            return p.relative_to(self.root).as_posix()
+        return os.path.relpath(p, self.root)
 
     def abs(self, rel: Path | str) -> Path:
         p = Path(rel)
+        if self.read_only_media:
+            identifier = p.as_posix()
+            if not p.is_absolute() and identifier in self._registered_media:
+                target = self._registered_original(identifier)
+                if not _is_within(target, self.media_dir.resolve()):
+                    raise ReelsError("registered original media escaped its read-only root")
+                return target
+            if p.is_absolute():
+                target = p.resolve()
+                for key, entry in self._registered_media.items():
+                    if target == Path(entry["path"]).resolve():
+                        return self._registered_original(key)
+                if _is_within(target, self.root):
+                    return target
+                raise ReelsError("absolute paths are unavailable in an editor workspace unless registered as original media")
+            if p.parts[:2] == ("library", "media"):
+                raise ReelsError("original media identifier is not registered in this editor workspace")
+            target = (self.root / p).resolve()
+            if not _is_within(target, self.root):
+                raise ReelsError("relative path escapes the private editor data root")
+            return target
         return p if p.is_absolute() else (self.root / p)
+
+    def _registered_original(self, identifier: str) -> Path:
+        entry = self._registered_media[identifier]
+        path = Path(entry["path"])
+        if any(part.is_symlink() for part in (self.media_dir, *self.media_dir.parents)):
+            raise ReelsError("registered original media identity changed (symlinked root)")
+        if path.is_symlink():
+            raise ReelsError("registered original media identity changed (symlink)")
+        try:
+            relative = path.relative_to(self.media_dir)
+        except ValueError as exc:
+            raise ReelsError("registered original media escaped its read-only root") from exc
+        current = self.media_dir
+        for part in relative.parts[:-1]:
+            current = current / part
+            if current.is_symlink():
+                raise ReelsError("registered original media identity changed (symlinked directory)")
+        if not path.exists():
+            return path
+        expected = entry.get("identity")
+        if not isinstance(expected, dict):
+            raise ReelsError("registered original media identity changed (previously offline)")
+        try:
+            info = path.stat()
+            current_hash = quick_hash(path)
+            after = path.stat()
+        except OSError as exc:
+            raise ReelsError("registered original media became unavailable") from exc
+        fields = {
+            "dev": info.st_dev,
+            "ino": info.st_ino,
+            "size": info.st_size,
+            "mtime_ns": info.st_mtime_ns,
+            "ctime_ns": info.st_ctime_ns,
+        }
+        stable = all(
+            getattr(info, key) == getattr(after, key)
+            for key in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+        )
+        if not stable or any(fields.get(key) != expected.get(key) for key in fields) or current_hash != expected.get("quick_hash"):
+            raise ReelsError("registered original media identity changed")
+        return path.resolve()
+
+    def assert_media_writable(self) -> None:
+        """Fail closed in APIs that would modify files under library/media/."""
+        if self.read_only_media:
+            raise ReelsError("original media is read-only in an editor workspace")
+
+    @property
+    def registered_media(self) -> dict[str, dict[str, Any]]:
+        return {key: dict(value) for key, value in self._registered_media.items()}
 
     def cfg(self, section: str, key: str) -> Any:
         return self.config.get(section, {}).get(key)
+
+
+def _is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False

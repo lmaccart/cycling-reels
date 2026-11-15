@@ -1,5 +1,6 @@
 import React from 'react';
-import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, useCurrentFrame } from 'remotion';
+import { editorStaticFile } from '../../editorStaticFile';
 import type { Cutaway, Segment } from '../types';
 
 /** What a still needs to be shown: a photo segment, or a photo cutaway. */
@@ -51,7 +52,7 @@ export const SegmentView: React.FC<{ seg: Segment }> = ({ seg }) => {
 const CutawayView: React.FC<{ cut: Cutaway }> = ({ cut }) => {
   if (cut.kind === 'video') {
     return (
-      <OffthreadVideo src={staticFile(cut.src)} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <OffthreadVideo src={editorStaticFile(cut.src)} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     );
   }
   return <PhotoView seg={cut} />;
@@ -76,7 +77,7 @@ export const SegmentAudio: React.FC<{ seg: Segment }> = ({ seg }) => {
     return null;
   }
   const { audible, volume } = clipVolume(seg);
-  return audible ? <Audio src={staticFile(seg.src)} volume={volume} /> : null;
+  return audible ? <Audio src={editorStaticFile(seg.src)} volume={volume} /> : null;
 };
 
 const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
@@ -91,7 +92,7 @@ const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
       style.transformOrigin = `${x * 100}% ${y * 100}%`;
     }
   }
-  const main = <OffthreadVideo src={staticFile(seg.src)} volume={volume} muted={!audible} style={style} />;
+  const main = <OffthreadVideo src={editorStaticFile(seg.src)} volume={volume} muted={!audible} style={style} />;
   const patches = (seg.blur ?? []).filter((b) => frame >= b.keys[0][0] && frame <= b.keys[b.keys.length - 1][0]);
   if (!patches.length) {
     return main;
@@ -109,7 +110,7 @@ const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
           <AbsoluteFill key={`blur-${i}`} style={{ transform: style.transform, transformOrigin: style.transformOrigin }}>
             <AbsoluteFill style={{ maskImage: mask, WebkitMaskImage: mask }}>
               <OffthreadVideo
-                src={staticFile(seg.src)}
+                src={editorStaticFile(seg.src)}
                 muted
                 style={{ width: '100%', height: '100%', objectFit: 'cover', filter: `blur(${b.strength}px)` }}
               />
@@ -158,14 +159,14 @@ const PhotoView: React.FC<{ seg: Still }> = ({ seg }) => {
       scale = 1;
   }
 
-  const src = staticFile(seg.src);
+  const src = editorStaticFile(seg.src);
   const origin = `${fx * 100}% ${fy * 100}%`;
   const transform = `translate(${tx}%, ${ty}%) scale(${scale})`;
 
   if (seg.fit === 'blurfill') {
     // The blurred backdrop is a blurred copy of the same photo, pre-rendered by
     // the CLI next to it (<name>.bg.jpg) because CSS blur is slow headless.
-    const bg = staticFile(seg.src.replace(/\.jpg$/i, '.bg.jpg'));
+    const bg = editorStaticFile(seg.src.replace(/\.jpg$/i, '.bg.jpg'));
     return (
       <div style={{ position: 'absolute', inset: 0 }}>
         <Img src={bg} style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover' }} />

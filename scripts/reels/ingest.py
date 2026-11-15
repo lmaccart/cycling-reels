@@ -46,6 +46,7 @@ def describe(asset: dict) -> str:
 
 def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> list[dict]:
     """Moves new files from inbox/ into the library and builds contact sheets."""
+    project.assert_media_writable()
     project.ensure_dirs()
     ignored: dict[str, int] = {}
     new: list[dict] = []

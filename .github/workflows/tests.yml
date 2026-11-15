@@ -21,9 +21,40 @@ jobs:
       - name: ffmpeg
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: Python deps for the tests
-        run: python -m pip install --quiet pillow numpy
+        run: python -m pip install --quiet pillow numpy regex 'mcp>=1.20,<2' 'pydantic>=2.11,<3'
       - name: Unit tests
-        run: PYTHONPATH=scripts python -m unittest discover -s tests -v
+        run: |
+          PYTHONPATH=scripts python - <<'PY'
+          import unittest
+          def tests(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from tests(item)
+                  else:
+                      yield item
+          discovered = unittest.defaultTestLoader.discover("tests")
+          suite = unittest.TestSuite(t for t in tests(discovered)
+                                    if not t.__class__.__module__.startswith("test_editor_"))
+          raise SystemExit(not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful())
+          PY
+
+  native-editor:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ffmpeg
+        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Editor test dependencies
+        run: python -m pip install --quiet pillow numpy regex 'mcp>=1.20,<2' 'pydantic>=2.11,<3'
+      - name: Editor service tests
+        run: PYTHONPATH=scripts python -m unittest discover -s tests -p 'test_editor_*.py' -v
+      - name: Native macOS tests
+        run: |
+          xcodebuild -quiet -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
+            -destination 'platform=macOS' -derivedDataPath .cache/editor/DerivedData test
 
   template:
     runs-on: ubuntu-latest
@@ -40,3 +71,5 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Typecheck the template
         run: npx tsc --noEmit
+      - name: Build protected editor preview
+        run: npm run build:editor-preview

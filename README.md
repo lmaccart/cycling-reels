@@ -33,6 +33,34 @@ inbox/  ──ingest──▶  library/  ──Claude tags moments──▶  pla
 3. **Edit `config.json`** (setup creates it from `config.example.json`): your handle (`brand.handle`), text style (`brand.textStyle`: `light`, `dark` or `plain`), posting time(s) and timezone, hashtags. `transcription.keyterms` holds words Whisper should get right (crit, KOM, your bike brand…).
 4. **Optional check:** `./reels selftest` runs the whole pipeline on throwaway test clips in a temp folder (they never touch your library).
 
+## Native macOS editor
+
+The native editor opens the same reel-plan JSON used by the renderer, with Source
+and Program monitors, a timeline, typed inspectors, undo/redo, and live Claude
+edits. It is an editing client, **not a publishing client**.
+
+The app, launcher and usage guide live in [`editor/`](editor/README.md):
+
+```bash
+cd ~/rice/cycling
+./editor/reels-editor setup   # once, or after changing editor/shared source code
+./editor/reels-editor open
+# Optional: open a specific plan from the private snapshot.
+./editor/reels-editor open plans/2026-11-11-easy-day-laundry.json
+```
+
+Or double-click `editor/Open Editor.command` in Finder after setup.
+
+Setup builds an independent runtime and private snapshot under
+`~/Library/Application Support/CyclingReelsEditor/`; it does not install into this
+checkout's `.venv` or `remotion/node_modules`. Original footage is registered
+read-only. Edits autosave to the private snapshot, **not** the live `plans/`.
+Interactive preview is for editing; Exact uses the renderer's finishing/audio
+path. Export stays private until the native Save action.
+
+See [setup, usage and recovery](editor/docs/USAGE.md) for prerequisites,
+safe snapshot refresh, Claude authentication, preview differences and recovery.
+
 ## Weekly use
 
 0. On every ride, film the shots in [SHOTLIST.md](SHOTLIST.md). The ★ ones take about 5 minutes and unlock the formats that work best.

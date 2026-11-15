@@ -3,7 +3,24 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REELS_HOME="$HERE"
-if [ -f "$HERE/.env" ]; then set -a; . "$HERE/.env"; set +a; fi
+EDITOR_MODE=0
+# Only global editor options/the actual subcommand select editor mode. A
+# search term, song title or asset named "editor" must stay in production.
+case "${1:-}" in
+  editor|--editor-workspace|--editor-workspace=*) EDITOR_MODE=1 ;;
+esac
+# The integrated native app has a versioned runtime of its own. Route editor
+# commands there before loading project credentials or the production venv.
+if [ "$EDITOR_MODE" -eq 1 ] && [ "${REELS_EDITOR_RUNTIME:-0}" != 1 ] && [ -x "$HERE/editor/reels-editor" ]; then
+  exec "$HERE/editor/reels-editor" cli -- "$@"
+fi
+# The editor uses account-owned Claude authentication, not project API keys.
+# Never evaluate a project .env before the private workspace is selected.
+if [ "$EDITOR_MODE" -eq 0 ] && [ -f "$HERE/.env" ]; then
+  set -a
+  . "$HERE/.env"
+  set +a
+fi
 PY="$HERE/.venv/bin/python"
 if [ ! -x "$PY" ]; then
   echo "No Python environment yet — run ./setup.sh first." >&2

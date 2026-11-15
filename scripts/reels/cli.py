@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import re
 import sys
@@ -868,6 +869,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = argparse.ArgumentParser(prog="reels", description="Turn ride footage into captioned Instagram Reels.")
     p.add_argument("--version", action="version", version=f"cycling-reels {__version__}")
+    p.add_argument(
+        "--editor-workspace",
+        metavar="PATH",
+        default=argparse.SUPPRESS,
+        help="use an isolated native-editor workspace (editor commands only)",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("doctor", help="check that everything needed is installed")
@@ -1117,6 +1124,18 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("selftest", help="end-to-end test on throwaway clips in a temp folder")
     s.add_argument("--keep", action="store_true")
     s.set_defaults(fn=cmd_selftest)
+    # Editor command dependencies stay out of ordinary command handlers. The
+    # editor package provides this small parser/run adapter in the integration
+    # layer, and owns its command-specific parser tree.
+    try:
+        commands = importlib.import_module(".editor.commands", package=__package__)
+    except ModuleNotFoundError as exc:
+        # Keep the established CLI usable while the editor command adapter is
+        # not installed. Once present, it owns and registers its whole parser.
+        if exc.name != f"{__package__}.editor.commands":
+            raise
+    else:
+        commands.register_parser(sub)
     return p
 
 
@@ -1124,10 +1143,31 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     project = None
     try:
+        editor_workspace = getattr(args, "editor_workspace", None)
+        if editor_workspace and args.cmd != "editor":
+            raise ReelsError("--editor-workspace can only be used with the editor command")
+        if args.cmd == "editor":
+            if editor_workspace:
+                from .editor.workspace import Workspace
+
+                project = Workspace.load(editor_workspace).project
+            elif getattr(args, "editor_cmd", None) == "init":
+                workspace_path = Path(args.workspace).expanduser()
+                if not workspace_path.is_absolute():
+                    args.workspace = str(Path(__file__).resolve().parents[2] / workspace_path)
+            # Editor initialization deliberately runs without constructing a
+            # default Project: that would load this checkout's project config.
+            commands = importlib.import_module(".editor.commands", package=__package__)
+            ProtocolError = importlib.import_module(".editor.protocol", package=__package__).ProtocolError
+            try:
+                return int(commands.run(project, args) or 0)
+            except ProtocolError as e:
+                print(f"error: {e.message}", file=sys.stderr)
+                return 1
         project = Project()
         return int(args.fn(project, args) or 0)
     except ReelsError as e:
-        if project is not None and args.cmd != "review":
+        if project is not None and args.cmd not in ("review", "editor"):
             from .review import auto_event
 
             # Do not persist raw errors/arguments: uploads and remote responses can contain secrets.

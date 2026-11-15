@@ -248,6 +248,7 @@ def _load_round(project: Project, round_path: str) -> tuple[Any, dict]:
 
 def _delete_one(project: Project, entry: Any, known: set[str], now: datetime | None) -> dict:
     """Re-checks one listed asset as it is on disk now, then removes its media file."""
+    project.assert_media_writable()
     aid = entry.get("id") if isinstance(entry, dict) else None
     if not isinstance(aid, str) or aid not in known:
         return {"status": "skipped", "why": "unknown-asset"}
@@ -273,6 +274,7 @@ def _delete_one(project: Project, entry: Any, known: set[str], now: datetime | N
 def apply_round(project: Project, round_path: str | None, *, yes: bool = False, now: datetime | None = None) -> list[dict]:
     """Deletes the media of the assets one round lists, each re-checked first. Free disk gates the
     start of a round: once it starts, the whole list the user approved is carried out."""
+    project.assert_media_writable()
     if not round_path:
         raise ReelsError("--apply needs --round <file> from ./reels prune --dry-run")
     if not yes:

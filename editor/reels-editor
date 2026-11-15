@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Native editor entry point; never uses the production .venv or sources .env.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for PY in python3.12 python3.13 python3.11 python3.10 python3; do
+  if command -v "$PY" >/dev/null 2>&1 && \
+    "$PY" -c 'import sys; raise SystemExit(sys.version_info < (3, 10))' 2>/dev/null; then
+    exec "$PY" "$HERE/../scripts/reels/editor/installation.py" --repository "$HERE/.." "$@"
+  fi
+done
+echo "Python 3.10+ is required to launch the editor. Install Python 3.12 first." >&2
+exit 1
