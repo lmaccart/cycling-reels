@@ -6,19 +6,19 @@ Audience findings are observational, not causal. Review overdue lessons before r
 
 ## aud-length-01 (audience, active, medium confidence)
 
-reels of about 7-12 s with a person and a visible payoff outperform 15-16 s montages on watch-through
+short 7-12 s reels with a person and payoff beat 15-16 s montages on watch-through; voice-led reels (30-40 s) have low watch-through % but the highest average watch seconds
 
-- Evidence: analytics/2026-11-08T210702.json: multitool-drain 85.1%, wake-the-roommate 66.1%, first-ride-back 70.5%; bike-trip 24.2%, chasing-the-group 32.4%, group-ride-chill 33.7%
-- Next action: keep reels 7-13 s; re-check once the Nov 2-8 reels reach 7 days
-- Review by: 2026-11-15
+- Evidence: analytics/2026-11-14T200000.json: creatine 33.5 s 38.5% / 12.9 s avg, road-to-5-ep1 40 s 30.5% / 12.2 s avg (both <48 h); multitool 101.7%, elevator 78.7%
+- Next action: keep montages 7-13 s; judge long talking reels on average watch seconds and likes/shares, re-check at 7 d
+- Review by: 2026-11-22
 
 ## aud-interaction-01 (audience, active, medium confidence)
 
-reels are watched but not answered: 0 comments on all 12 measured reels
+comments are starting but still tiny: 0-2 per reel
 
-- Evidence: analytics/2026-11-08T210702.json: comments 0 on all 12 rows, likes 0-3, reach 116-513
-- Next action: test an on-screen question vs caption-only (2026-w46-onscreen-question)
-- Review by: 2026-11-15
+- Evidence: analytics/2026-11-14T200000.json: maine 1, creatine 1, fortnite 2 (incl. likely self-comment); analytics/tiktok/2026-11-15T020000.json: overheard 2
+- Next action: keep one real reason to answer in captions where it fits; continue 2026-w46-onscreen-question
+- Review by: 2026-11-22
 
 ## prod-captions-01 (production, active, medium confidence)
 
@@ -28,10 +28,26 @@ a captioned in-point inside a transcript word puts a stray half-word caption on 
 - Next action: start captioned segments after the previous word's end; with PR #1 merged, fix every 'cuts into' warning ./reels check prints
 - Review by: 2026-11-15
 
-## aud-person-01 (audience, tentative, low confidence)
+## aud-person-01 (audience, active, medium confidence)
 
-a person on screen or a real voice in the first shot holds viewers better than scenery openings
+a person or real voice in the first shot holds better than scenery openings
 
-- Evidence: analytics/2026-11-08T210702.json: first-ride-back, wake-the-roommate, multitool-drain, train-horn holds 63.0-75.8% vs 43.6-50.4% for bike-trip, golden-bridge, empty-roads, bridges
-- Next action: open on a face or voice; don't make scenery-only reels unless the footage is exceptional
-- Review by: 2026-11-15
+- Evidence: analytics/2026-11-14T200000.json: talking/overheard openings 65-77% hold vs scenery 45-50% (empty-roads 45.1%, bike-trip 45.8%)
+- Next action: open on a face or voice; check why club-ride-downtown held only 56.6%
+- Review by: 2026-11-22
+
+## aud-overheard-01 (audience, tentative, low confidence)
+
+overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but get the lowest likes/reach and no shares
+
+- Evidence: analytics/2026-11-14T200000.json: how-is-it-in-maine reach 1460 hold 76.4% likes 0.9%; overheard-group-ride reach 1257 hold 76.6% likes 0.6%; regroup-confessions reach 567 hold 76.1% likes 0.7%
+- Next action: keep one overheard reel a week for reach; try ending on a payoff or a line that gives people something to send
+- Review by: 2026-11-22
+
+## aud-tiktok-01 (audience, tentative, low confidence)
+
+TikTok cross-posts began 11-12; first three got 111-275 views, 1-4 likes, Metricool gives no reach or watch data yet
+
+- Evidence: analytics/tiktok/2026-11-15T020000.json
+- Next action: pull TikTok weekly; compare the same reel across platforms once 5+ are 7 days old
+- Review by: 2026-11-22
