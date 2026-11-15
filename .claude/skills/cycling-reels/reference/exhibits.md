@@ -27,6 +27,7 @@ On a segment (`at` = seconds from the segment start) or at the top level of the 
 | `style` | `card` | `card` = plain rectangle with a soft shadow (a see-through PNG gets a white backing; `background` changes it, `padding` px adds a border). `cutout` = the PNG's own shape, shadow follows it |
 | `shadow` | true | |
 | `tilt` | 0 | Degrees, −20…20 |
+| `safeArea` | true | `false` = a decorative overlay (a pile of stickers) may sit anywhere on the frame, edges and the app's button column included. Placed exhibits only |
 | `crop` | – | `[left, top, right, bottom]` fractions: show one part of a big screenshot (one figure of a paper) |
 | `enter` / `exit` | `pop` / `fade` | `pop`, `fade`, `slide`, `none` |
 | `anchor` | – | `"hand"`: place it from the pointing fingertip (B) |

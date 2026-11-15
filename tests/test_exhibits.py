@@ -160,6 +160,15 @@ class ExhibitTests(unittest.TestCase):
         self.assertNotIn("offsetTop", hook)
         self.assertFalse(any("hook sits on an exhibit" in w for w in b["warnings"]))
 
+    def test_safe_area_off_lets_a_sticker_sit_under_the_buttons(self):
+        spot = {"image": "bottle", "style": "cutout", "x": 0.95, "y": 0.9, "width": 0.3}
+        (kept,) = self.built([spot])["props"]["exhibits"]
+        (free,) = self.built([{**spot, "safeArea": False}])["props"]["exhibits"]
+        self.assertLessEqual(kept["x"] + kept["width"] / 2, exhibits.BUTTONS_LEFT)
+        self.assertEqual((free["x"], free["y"]), (0.95 * 1080, 0.9 * 1920))
+        self.assertIn("safeArea", self.problems([{**spot, "safeArea": "no"}]))
+        self.assertIn("placed exhibits only", self.problems([{**spot, "safeArea": False, "anchor": "hand"}]))
+
     def test_normal_hooks_fold_line_breaks_and_unknown_sizes_warn(self):
         self.extra = {"hook": {"text": "legs\nsaid no", "size": "huge"}}
         self.addCleanup(setattr, self, "extra", {})

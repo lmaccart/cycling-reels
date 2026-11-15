@@ -12,7 +12,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | `postDate` | no | – | `YYYY-MM-DD` the reel is meant for; `./reels queue` honours it when that slot is free |
 | `spine` | no (`check` warns) | – | What carries the reel: `voice`, `story`, `sound` or `trend`. See **Spine** below |
 | `format` | no | – | Free-text recipe name from [recipes.md](recipes.md), e.g. `"pov-joke"`, `"beat-edit"`; `./reels stats` groups performance by it (shown as "—" when missing) |
-| `hook` | no | – | `"text"` or `{"text", "style", "position", "seconds", "size"}`. Upper third by default (`position: "center"` also works). Stays up ~0.28 s per word (2.6–4.5 s) unless `seconds` is set. `"size": "big"` = a statement hook for trend formats ("THIS\nIS\nMY\nART"): huge text, one line per `\n`, and it stays on top of exhibits instead of moving out of their way |
+| `hook` | no | – | `"text"` or `{"text", "style", "position", "seconds", "size"}`. Upper third by default (`position: "center"` also works). Stays up ~0.28 s per word (2.6–4.5 s) unless `seconds` is set. `"size": "big"` = a statement hook for trend formats ("THIS\nIS\nMY\nART"): huge off-white text with a soft glow (no box or outline; `style` doesn't apply), one line per `\n`, and it stays on top of exhibits instead of moving out of their way |
 | `segments` | yes | – | Played in order (see below) |
 | `text` | no | `[]` | Text beats with absolute timing: `{"text","at","for","position","style"}` |
 | `music` | no | none | Track slug from `./reels music list`: `"night-drive"`, or an object — see **Music** below. Leave it out (or `null`) for a ride-audio-only reel |
