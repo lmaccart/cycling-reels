@@ -46,8 +46,16 @@ overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but get
 
 ## aud-tiktok-01 (audience, tentative, low confidence)
 
-TikTok cross-posts began 11-12; first three got 111-275 views, 1-4 likes, Metricool gives no reach or watch data yet
+TikTok gets 20-60% of Instagram's views for the same reel but more likes per view and more comments; overheard audio travels worst there
 
-- Evidence: analytics/tiktok/2026-11-15T020000.json
-- Next action: pull TikTok weekly; compare the same reel across platforms once 5+ are 7 days old
+- Evidence: analytics/tiktok/2026-11-15T205020.json vs analytics/2026-11-15T204950.json: bridge-sprint 948 vs 2086 views, TT likes/view 1.9% vs IG 0.7%; overheard 336 vs 1863 (18%); angel 330 vs 290; TikTok 4 comments across 6 videos vs ~1 on IG for the same 6
+- Next action: pull TikTok weekly; compare per reel once 5+ are 7 days old; don't plan TikTok-specific content yet
+- Review by: 2026-11-22
+
+## aud-story-reach-01 (audience, tentative, low confidence)
+
+a short 360 group-ride story built on a group-ride rule got overheard-level reach and the account's first real shares at that reach
+
+- Evidence: analytics/2026-11-15T204950.json: every-bridge-sprint-zone 12.1 s, reach 1403, hold 76.8%, watch-through 75.2%, 5 shares (0.4%), 0.8 d old; overheard reels at similar reach had 0 shares
+- Next action: re-check at 7 d; plan another 10-13 s group-ride rule/story reel and compare shares with the overheard reel that week
 - Review by: 2026-11-22
