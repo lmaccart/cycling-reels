@@ -31,8 +31,9 @@ _FIELD_KEYS = {
     "id", "label", "path", "type", "default", "defaultSource", "required", "readOnly",
     "help", "unit", "precision", "min", "max", "step", "choices", "suggestions",
     "allowCustom", "timingDomain", "visibleWhen", "fields", "itemFields", "itemTarget",
-    "itemTargets", "minItems", "maxItems", "acceptedShapes", "placeholder",
+    "itemTargets", "minItems", "maxItems", "acceptedShapes", "placeholder", "display",
 }
+DISPLAYS = ("slider",)  # presentation hints for number controls
 _GROUP_KEYS = {"id", "label", "fields"}
 _EXTRA_KEYS = {"target", "group", "field"}
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,63}$")
@@ -159,6 +160,28 @@ def _visual_fields(path: str, *, video: bool, cutaway: bool = False) -> list[dic
     return fields
 
 
+def _grade_fields(path: str, *, project: bool = False) -> list[dict[str, Any]]:
+    """Colour grade controls (scripts/reels/grade.py). Reel and clip levels override the project default."""
+    base = path + "/grade"
+    inherited = {} if project else {"defaultSource": "project grade" if not path else "reel grade"}
+    fields = [
+        _field("look", "Look", base + "/look", "enum", default="house", choices=["house", "moody", "none"],
+               help="house = the shared look; none = colour fix only (no grade).", **inherited),
+        _field("strength", "Strength", base + "/strength", "number", default=1.0, min=0, max=1.5, step=0.05,
+               display="slider", unit="×", **inherited),
+        _field("rescue", "Grey-day rescue", base + "/rescue", "boolean", default=True,
+               help="Local contrast and a pull on bright sky, scaled by how overcast each shot is.", **inherited),
+    ]
+    if not project:
+        fields += [
+            _field("warmth", "Warmth", base + "/warmth", "number", default=0, min=-1, max=1, step=0.05,
+                   display="slider", help="Cooler (−) or warmer (+) on top of the automatic white balance."),
+            _field("exposure", "Exposure", base + "/exposure", "number", default=0, min=-1, max=1, step=0.05,
+                   display="slider", unit="stops"),
+        ]
+    return [_field("grade", "Colour grade", base, "group", acceptedShapes=["object"], fields=fields)]
+
+
 def _punch_common(path: str, default_scale: float) -> list[dict[str, Any]]:
     return [
         _field("scale", "Punch scale", path + "/scale", "number", default=default_scale, min=1.05, max=1.4, step=0.01, unit="×"),
@@ -279,6 +302,7 @@ def _base_schema() -> dict[str, Any]:
                            ],
                        ]),
             ]),
+            _group("colour", "Colour", _grade_fields("")),
             _group("publishing", "Post metadata", [
                 _field("post", "Post", "/post", "group",
                        fields=[
@@ -332,6 +356,7 @@ def _base_schema() -> dict[str, Any]:
                 _field("blur", "Blur patches", pseg + "/blur", "collection", itemTarget="blur.patch"),
                 *_sphere_fields(pseg),
             ]),
+            _group("colour", "Colour", _grade_fields(pseg)),
         ], extension_path=pseg + "/extensions"),
         "segment.photo": _target("Photo segment", pseg, [
             _group("source", "Photo source and framing", _visual_fields(pseg, video=False)),
@@ -341,14 +366,17 @@ def _base_schema() -> dict[str, Any]:
                 _field("exhibits", "Exhibits", pseg + "/exhibits", "collection", itemTarget="exhibit.segment"),
             ]),
             _group("effects", "360 view", _sphere_fields(pseg)),
+            _group("colour", "Colour", _grade_fields(pseg)),
         ], extension_path=pseg + "/extensions"),
         "cutaway.video": _target("Video cutaway", pcut, [
             _group("source", "B-roll source", _visual_fields(pcut, video=True, cutaway=True)),
             _group("effects", "360 view", _sphere_fields(pcut)),
+            _group("colour", "Colour", _grade_fields(pcut)),
         ], extension_path=pcut + "/extensions"),
         "cutaway.photo": _target("Photo cutaway", pcut, [
             _group("source", "B-roll source", _visual_fields(pcut, video=False, cutaway=True)),
             _group("effects", "360 view", _sphere_fields(pcut)),
+            _group("colour", "Colour", _grade_fields(pcut)),
         ], extension_path=pcut + "/extensions"),
     }
 
@@ -509,6 +537,7 @@ def _base_schema() -> dict[str, Any]:
             _field("endCardSeconds", "End-card default duration", "/render/endCardSeconds", "timing",
                    default=render_defaults["endCardSeconds"], timingDomain="reel_seconds", unit="s"),
         ]),
+        _group("colour", "Colour grade for every reel", _grade_fields("/render", project=True)),
     ])
     audio_defaults = DEFAULTS["audio"]
     targets["config.audio"] = _target("Project audio defaults", "/audio", [
@@ -798,6 +827,11 @@ def _validate_field(field: Any, scope: str) -> dict[str, Any]:
             raise DescriptorError(f"descriptor {key} must be a finite number")
     if "min" in field and "max" in field and field["min"] > field["max"]:
         raise DescriptorError("descriptor min cannot be greater than max")
+    if "display" in field:
+        if field["display"] not in DISPLAYS:
+            raise DescriptorError(f"descriptor display must be one of {', '.join(DISPLAYS)}")
+        if control != "number" or "min" not in field or "max" not in field:
+            raise DescriptorError("a slider needs a number control with min and max")
     for key in ("fields", "itemFields"):
         children = field.get(key, [])
         if not isinstance(children, list):

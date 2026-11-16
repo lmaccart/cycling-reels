@@ -148,7 +148,12 @@ def from_built(slug: str, built: dict) -> dict:
         segments.append({"asset": sg.asset, "in": sg.spec.get("in"), "out": sg.spec.get("out"), "captions": sg.spec.get("captions"),
                           "start": sg.start / fps, "seconds": sg.frames / fps, "cutaway": False, "cutaways": cutaways,
                           "audio": audio, "fps": fps})  # fmt: skip
-    return _lineage(slug, segments, backfilled=False)
+    out = _lineage(slug, segments, backfilled=False)
+    if built.get("graded"):  # what the colour grade measured and did per clip (grade.py), for comparing looks later
+        from .grade import VERSION
+
+        out["grade"] = {"version": VERSION, "clips": built["graded"]}
+    return out
 
 
 def record(project: Project, slug: str, built: dict) -> None:

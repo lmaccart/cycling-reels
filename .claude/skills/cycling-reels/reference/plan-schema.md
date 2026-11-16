@@ -23,6 +23,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | `loop` | no | `false` | `true` = a seamless loop: no music fades, no end card, the length snapped to whole bars of the song, and `check` / `render` judge the seam — see **Loops** |
 | `punchOnBeats` | no | – | `{"every": 4, "scale": 1.1}`: a punch-in every `every` beats of the music (in on one, back out on the next), on clips without their own `punch` — see **Punch-ins** |
 | `cover` | no | end of hook | Seconds into the reel for cover.jpg |
+| `grade` | no | config `render.grade` | Colour grade for the whole reel: `{"look": "house", "strength": 1.0, "rescue": "auto", "warmth": 0, "exposure": 0}` or `"none"` (colour fix only). Segments and cutaways take the same `grade` to override it — see **Colour grade** |
 | `post` | for queueing | – | `{"caption": "...", "hashtags": ["#cycling", ...], "altText": "...", "collaborators": ["@club"], "peopleTags": ["@friend"]}`; a music credit is appended automatically when the track has one. `collaborators` (≤ 5) = an Instagram Collab: the reel shows on their profile and to their followers too, once each accepts the invite in the app; `peopleTags` = people tagged on the reel (they're notified). Only handles the user gave you and only people who are in it or agreed — never guess a handle |
 
 **Text styles** (`style` on hook, text beats and end card): `light` = black text on a white box (TikTok's classic), `dark` = white text on a black box, `plain` = white text with an outline. Default comes from config `brand.textStyle`. Text appears exactly as written — write it in lowercase if that's how it should look. `*asterisks*` are ignored. One emoji is fine.
@@ -317,6 +318,28 @@ A generated visual: a drawn wooden board with the series title in old-timey wood
 - Sounds come with it as cues on the board's frames: `theme` (default `sting-showdown`, picked by the user 2026-11-13, at 0 s), `nail` (`hit-nail`, on the hit) and `creak` (`creak-wood`, as it swings). Swap any for another `./reels sfx list` slug (`"theme": "sting-slide-down"`) or switch it off with `false`.
 - A top `hook` would sit on the board, so it starts when the board is gone (check warns). Usually leave the hook out and let the board be the opening text.
 
+## Colour grade
+
+Every clip is first converted to BT.709 from what it really is (iPhone copies and shared clips are often Display P3, BT.601 and full range; staged as BT.709 they lost ~15% of their colour). Then each clip is graded while it's staged, so the fast path, the full render and the editor preview all show the same pixels (`scripts/reels/grade.py`):
+
+1. **Per-shot fix (technical only):** removes part of a colour cast (measured on neutral surfaces below the sky; little under blue sky, where blue shadows are real skylight, and little at golden hour), sets black and white points, and nudges mid-tones. Measured once per clip on 8 frames, so nothing flickers. It does **not** try to make shots match each other.
+2. **The house look**, the same on every reel so the feed reads as one: a gentle contrast curve, slightly warm highlights / cool shadows and mild vibrance that leaves skin and near-whites (clouds) alone. `moody` is the alternative (matte blacks, muted greens, kit blue kept).
+3. **Grey-day rescue:** on overcast shots, local contrast and a pull on bright sky, scaled by how overcast the shot measures (`overcast` in the render log) and eased off on low-resolution sources so compression blocks don't jump out.
+
+```json
+"grade": {"look": "house", "strength": 0.8, "rescue": "auto", "warmth": 0.2, "exposure": 0}
+```
+
+| Field | Default | Notes |
+| --- | --- | --- |
+| `look` | `house` | `house`, `moody`, or `none` (colour fix only, no grade) |
+| `strength` | 1.0 | 0–1.5: how much of the correction + look is applied |
+| `rescue` | `auto` | `auto` (from the overcast score), `off` / `false`, `true` (= auto), or a fixed 0–1 |
+| `warmth` | 0 | −1…1: cooler / warmer on top of the automatic white balance |
+| `exposure` | 0 | −1…1 stops |
+
+The project default lives in config `render.grade` (`look`, `strength`, `rescue`); a plan's `grade` overrides it and a segment's or cutaway's `grade` overrides the plan's (`"grade": "none"` on one clip leaves just that clip ungraded). The Reels Editor shows these as **Colour** sliders and toggles at reel, clip and project level. The user asked on 2026-11-15 for a mild, consistent look between reels — not saturated, and not uniform colour between shots; they may ask later to change the look itself, which is the `look()` function in grade.py (bump `VERSION`). Exhibits, charts, maps, title cards and text are never graded. The render log prints one `grade` line per clip, and `lineage.json` keeps what was measured.
+
 ## Photo segments
 
 | Field | Default | Notes |
@@ -326,7 +349,7 @@ A generated visual: a drawn wooden board with the series title in old-timey wood
 | `motion` | `zoom-in` | `zoom-in`, `zoom-out`, `pan-left`, `pan-right`, `pan-up`, `pan-down`, `none` |
 | `fit` | `cover` | `cover` fills the frame around `focusX/focusY`; `blurfill` shows the whole photo over a blurred copy of itself (landscape photos you don't want cropped) |
 | `focusX`, `focusY` | from tags | |
-| `transition`, `text`, `stats`, `sfx`, `payoff` | | Same as video (photos have no audio, so no `nat`) |
+| `transition`, `text`, `stats`, `sfx`, `payoff`, `grade` | | Same as video (photos have no audio, so no `nat`; the grey-day rescue's local contrast and sky pull are video only) |
 
 ## 360 segments (GoPro .360, 360 MP4s, 360 photos)
 

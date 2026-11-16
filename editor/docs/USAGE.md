@@ -78,6 +78,12 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Trim, split, reorder, move overlays and change typed Inspector values. Times
   are resolved by the renderer, including speed, fades and beat timing. Generated
   caption timing is read-only; word corrections preserve original word times.
+- **Colour** (Inspector, at reel, clip and project level): the colour grade's
+  look (house / moody / none), strength, grey-day rescue toggle, and per-reel or
+  per-clip warmth and exposure sliders. A slider commits when you let go, as one
+  undoable edit; the arrow button resets it. Clip settings override the reel's,
+  which override the project default (`config.json` `render.grade`). The preview
+  re-stages the clips you changed.
 - Drag the red timeline playhead or ruler to scrub: the Program preview updates
   while the mouse is held down. The final playhead position is saved on release.
 - Each validated gesture or operation batch autosaves as one transaction.
