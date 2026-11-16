@@ -1624,12 +1624,17 @@ class DocumentStore:
                 raise ValueError("primary segments must be edited through stable node IDs")
             if node_id is None and (path == "/render" or path.startswith("/render/")):
                 raise ValueError("render defaults belong to project config: use id='project' and path='/render/…'")
-            parent, key = pointer_parent(target, path)
-            cursor = target
-            for component in path.lstrip("/").split("/")[:-1]:
-                if isinstance(cursor, list):
+            components = [c.replace("~1", "/").replace("~0", "~") for c in path.lstrip("/").split("/")]
+            parent = target
+            for component in components[:-1]:
+                if isinstance(parent, list):
                     raise ValueError("array elements must be edited through stable node IDs")
-                cursor = cursor[component.replace("~1", "/").replace("~0", "~")]
+                if parent.get(component) is None:  # a group's first field (e.g. /grade/strength) creates the group
+                    parent[component] = {}
+                parent = parent[component]
+                if not isinstance(parent, (dict, list)):
+                    raise ValueError(f"{component!r} holds a value, not an object, so {path} can't be set inside it")
+            key = components[-1]
             value = deepcopy(operation.get("value"))
             if isinstance(parent, list):
                 raise ValueError("array elements must be edited through stable node IDs")

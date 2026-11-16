@@ -18,7 +18,7 @@ from ..util import ReelsError, quick_hash
 
 _STAGE_SPEC_FIELDS = {
     "in", "out", "speed", "frame", "zoom", "focusX", "focusY", "fit", "motion",
-    "sphere", "punch", "blur", "clean", "nat", "bleep", "tone", "volume", "_bleeps",
+    "sphere", "punch", "blur", "clean", "nat", "bleep", "tone", "volume", "_bleeps", "grade",
 }
 _OMIT_DATA_DIRS = {"out", ".cache", "__pycache__"}
 
@@ -185,6 +185,7 @@ def _cache_identity(project: Project, built: dict, snapshot: dict, code_root: Pa
         "fps": built["fps"],
         "render": project.config.get("render"),
         "cleanNat": (built.get("sound") or {}).get("cleanNat"),
+        "grade": built.get("grade"),
         "segments": used,
         "exhibits": exhibits,
         "foregrounds": built["props"].get("foregrounds") or [],
@@ -236,6 +237,7 @@ def _cache_tree_safe(root: Path) -> None:
 
 def _product_kind_and_options(name: str, args: tuple, kwargs: dict) -> tuple[Any, Path, dict]:
     _, seg, out = args[:3]
+    options: dict[str, Any]
     if name == "stage_video":
         fps = args[3] if len(args) > 3 else kwargs.get("fps")
         options = {
@@ -250,6 +252,8 @@ def _product_kind_and_options(name: str, args: tuple, kwargs: dict) -> tuple[Any
         options = {"fps": fps}
     else:
         options = {}
+    if kwargs.get("grade") is not None:  # resolved colour grade (config < plan < clip): a new grade is a new product
+        options["grade"] = kwargs["grade"]
     return seg, Path(out), options
 
 

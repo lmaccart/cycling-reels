@@ -19,6 +19,7 @@ from .images import open_image
 from .library import all_assets, load_asset, resolve_id, resolve_moment, save_asset
 from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
+from . import grade as grading
 from . import overlay
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
@@ -1040,6 +1041,13 @@ def build(project: Project, plan: dict) -> dict:
     errors: list[str] = []
     loop, on_beats = check_loop(plan, errors), check_beats_punch(plan, errors)
     check_spine(plan, errors)
+    grading.check("plan", plan.get("grade"), errors)
+    for i, s in enumerate(plan.get("segments") or []):
+        if isinstance(s, dict):
+            grading.check(f"segment {i + 1}", s.get("grade"), errors)
+            for j, c in enumerate(s.get("cutaways") or []):
+                if isinstance(c, dict):
+                    grading.check(f"segment {i + 1} cutaway {j + 1}", c.get("grade"), errors)
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     segs, warnings = normalize(project, plan)
@@ -1309,7 +1317,7 @@ def build(project: Project, plan: dict) -> dict:
     sound = {"nat": nat, "drops": drops, "cues": cues, "cleanNat": bool(acfg["cleanNat"]), "music": bool(music_props)}
     loop_info = {"swap": swap_halves(segs, fps), "bars": (music or {}).get("loop")} if loop else None  # as retimed
     return {"segs": segs, "props": props, "warnings": warnings, "music": music, "sound": sound, "total": int(total), "fps": fps,
-            "loop": loop_info, "post": extras, "exhibits": shown}  # fmt: skip
+            "loop": loop_info, "post": extras, "exhibits": shown, "grade": plan.get("grade")}  # fmt: skip
 
 
 # --------------------------------------------------------------------------
@@ -1319,10 +1327,12 @@ def build(project: Project, plan: dict) -> dict:
 
 def stage_video(
     project: Project, sg: Seg, out: Path, fps: int, *, clean: bool = False, scale: float = 1.0, edges: tuple[bool, bool] = (True, True),
-    audio: bool = True,
-) -> None:
+    audio: bool = True, grade: dict | None = None,
+) -> dict | None:
     """`scale` > 1 stages the clip larger than the reel (punch-ins stay sharp; the template scales it down);
-    `edges` = (fade in, fade out) the audio — a loop's seam leaves them off; `audio=False` = picture only (cutaways)."""
+    `edges` = (fade in, fade out) the audio — a loop's seam leaves them off; `audio=False` = picture only (cutaways).
+    Colour is always converted to BT.709 from the clip's real tags; `grade` (resolved settings, grade.py) then
+    grades the staged clip in a second pass and returns what it measured."""
     probe, spec = sg.asset["probe"], sg.spec
     src = project.abs(sg.asset["media"])
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
@@ -1331,7 +1341,7 @@ def stage_video(
     w, h = probe["width"], probe["height"]
     speed = spec["speed"]
     pre = hdr_filters(probe) + [f"setpts=(PTS-STARTPTS)/{speed:g}", f"fps={fps}"]
-    tail = "setsar=1,format=yuv420p,tpad=stop_mode=clone:stop_duration=2[v]"
+    tail = f"setsar=1,{grading.to_bt709(grading.source_colour(probe, src))},tpad=stop_mode=clone:stop_duration=2[v]"
 
     if spec.get("sphere"):
         # 360: rebuild the sphere, then point a virtual camera (fixed, or moving along a path)
@@ -1382,29 +1392,46 @@ def stage_video(
     cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-ss", f"{spec['in']:.3f}", "-t", f"{spec['out'] - spec['in']:.3f}", "-i", src]
     cmd += ["-filter_complex", graph, "-map", "[v]"]
     cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"] if use_audio else ["-an"]
-    cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "16"]
-    cmd += ["-g", fps, "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
+    graded = grade is not None and grading.active(grade)
+    first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
+    quality = ["-qp", "0"] if graded else ["-crf", "16"]  # lossless when a grade pass follows
+    cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "libx264", "-preset", "veryfast", *quality]
+    cmd += ["-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS, "-movflags", "+faststart", first]
     run(cmd, cwd=out.parent)
+    if not graded:
+        return None
+    measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe=probe, s=grade)
+    first.unlink(missing_ok=True)
+    return measured
 
 
-def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int) -> None:
-    """A 360 photo with a camera path becomes a short silent clip."""
+def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int, *, grade: dict | None = None) -> dict | None:
+    """A 360 photo with a camera path becomes a short silent clip (graded like video when `grade` is on)."""
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
     src = project.abs(sg.asset["media"])
     cam = camera_filter(sg.spec["sphere"], "e", tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"))
     graph = f"[0:v]format=yuv420p,fps={fps},{cam},setsar=1,format=yuv420p[v]"
+    graded = grade is not None and grading.active(grade)
+    first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
     run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", fps, "-t", f"{sg.frames / fps + 0.5:.3f}", "-i", src,
          "-filter_complex", graph, "-map", "[v]", "-an", "-frames:v", sg.frames, "-c:v", "libx264", "-preset", "veryfast",
-         "-crf", "16", "-g", fps, "-pix_fmt", "yuv420p", "-movflags", "+faststart", out], cwd=out.parent)  # fmt: skip
+         *(["-qp", "0"] if graded else ["-crf", "16"]), "-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS,
+         "-movflags", "+faststart", first], cwd=out.parent)  # fmt: skip
+    if not graded:
+        return None
+    measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe={"width": tw, "height": th}, s=grade)
+    first.unlink(missing_ok=True)
+    return measured
 
 
-def stage_photo(project: Project, sg: Seg, out: Path) -> None:
+def stage_photo(project: Project, sg: Seg, out: Path, *, grade: dict | None = None) -> dict | None:
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
+    graded = grade is not None and grading.active(grade)
     if sg.spec.get("sphere"):
         cam = sg.spec["sphere"]
         # 20% headroom so the template's slow zoom/pan never shows an edge
         photo_view(project.abs(sg.asset["media"]), out, cam["view"], even(tw * 1.2), even(th * 1.2), cam["projection"])
-        return
+        return grading.grade_image(out, grade) if graded else None
     im = open_image(project.abs(sg.asset["media"]))
     w, h = im.size
     spec = sg.spec
@@ -1414,10 +1441,14 @@ def stage_photo(project: Project, sg: Seg, out: Path) -> None:
     if cap < 1:
         nw, nh = round(nw * cap), round(nh * cap)
     im.resize((nw, nh), Image.LANCZOS).save(out, quality=90)
+    bg_path = out.with_name(out.stem + ".bg.jpg")
     if spec["fit"] == "blurfill":
         small = ImageOps.fit(im, (tw // 4, th // 4), Image.LANCZOS, centering=(spec["focusX"], spec["focusY"]))
         bg = ImageEnhance.Color(ImageEnhance.Brightness(small.filter(ImageFilter.GaussianBlur(9))).enhance(0.6)).enhance(1.15)
-        bg.resize((tw, th), Image.BICUBIC).save(out.with_name(out.stem + ".bg.jpg"), quality=88)
+        bg.resize((tw, th), Image.BICUBIC).save(bg_path, quality=88)
+    if not graded:
+        return None
+    return grading.grade_image(out, grade, also=[bg_path] if spec["fit"] == "blurfill" else None)
 
 
 def stage(project: Project, built: dict, staging: Path) -> None:
@@ -1429,24 +1460,32 @@ def stage(project: Project, built: dict, staging: Path) -> None:
     most = float(project.cfg("render", "punchStageScale") or 1)
     segs = built["segs"]
     seam = bool(built.get("loop") and built["loop"]["swap"][0])  # ride audio runs on across the seam: no edge fades there
-    for sg in segs:
-        if sg.kind == "video":
-            clean = bool(sg.spec.get("clean") or (clean_nat and sg.spec.get("nat")))
-            edges = (not (seam and sg.index == 0), not (seam and sg.index == len(segs) - 1))
-            k = stage_scale(sg, tw, th, most)
-            stage_video(project, sg, staging / f"seg{sg.index}.mp4", built["fps"], clean=clean, scale=k, edges=edges)
-        elif (sg.spec.get("sphere") or {}).get("path"):
-            stage_photo_pan(project, sg, staging / f"seg{sg.index}.mp4", built["fps"])
+    gcfg, gplan = project.cfg("render", "grade"), built.get("grade")
+    built["graded"] = []
+
+    def visual(seg: Seg, name: str, **video: Any) -> None:
+        """One segment or cutaway, graded per config render.grade < plan grade < its own grade (grade.py)."""
+        g = grading.settings(gcfg, gplan, seg.spec.get("grade"))
+        if seg.kind == "video":
+            m = stage_video(project, seg, staging / f"{name}.mp4", built["fps"], grade=g, **video)
+        elif (seg.spec.get("sphere") or {}).get("path"):
+            m = stage_photo_pan(project, seg, staging / f"{name}.mp4", built["fps"], grade=g)
         else:
-            stage_photo(project, sg, staging / f"seg{sg.index}.jpg")
+            m = stage_photo(project, seg, staging / f"{name}.jpg", grade=g)
+        if m:
+            built["graded"].append({"clip": name, "asset": seg.asset["id"], **m})
+            log(f"  grade {name}: {m['look']}, overcast {m['overcast']:.2f}, rescue {m['rescue']:.2f}, "
+                f"wb {'/'.join(f'{v:.2f}' for v in m['wb'])}, gamma {m['gamma']:.2f}")
+
+    for sg in segs:
+        video: dict[str, Any] = {}
+        if sg.kind == "video":
+            edges = (not (seam and sg.index == 0), not (seam and sg.index == len(segs) - 1))
+            video = {"clean": bool(sg.spec.get("clean") or (clean_nat and sg.spec.get("nat"))), "scale": stage_scale(sg, tw, th, most),
+                     "edges": edges}  # fmt: skip
+        visual(sg, f"seg{sg.index}", **video)
         for k, c in enumerate(sg.spec.get("_cutaways") or []):  # silent B-roll over the segment
-            cs, name = c["seg"], cutaway_name(sg, k)
-            if cs.kind == "video":
-                stage_video(project, cs, staging / f"{name}.mp4", built["fps"], audio=False)
-            elif (cs.spec.get("sphere") or {}).get("path"):
-                stage_photo_pan(project, cs, staging / f"{name}.mp4", built["fps"])
-            else:
-                stage_photo(project, cs, staging / f"{name}.jpg")
+            visual(c["seg"], cutaway_name(sg, k), **({"audio": False} if c["seg"].kind == "video" else {}))
     stage_exhibits(project, built, staging)  # images, and the rider cut out of the staged clips for depth
     if built["props"]["music"]:
         mp: Path = built["music"]["path"]

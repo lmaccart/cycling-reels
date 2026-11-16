@@ -466,6 +466,16 @@ private struct SchemaFieldEditor: View {
                 }
                 .toggleStyle(.switch)
                 .controlSize(.mini)
+            case "number" where descriptor["display"]?.stringValue == "slider"
+                && descriptor["min"]?.numberValue != nil && descriptor["max"]?.numberValue != nil:
+                SliderField(
+                    name: name, value: currentValue.numberValue ?? descriptor["default"]?.numberValue ?? 0,
+                    minimum: descriptor["min"]?.numberValue ?? 0,
+                    maximum: descriptor["max"]?.numberValue ?? 1,
+                    stepValue: descriptor["step"]?.numberValue,
+                    defaultValue: descriptor["default"]?.numberValue,
+                    unit: descriptor["unit"]?.stringValue
+                ) { commit(.number($0)) }
             case "number", "timing":
                 if let number = currentValue.numberValue {
                     NumberField(
@@ -1019,6 +1029,66 @@ private struct NumberField: View {
         min(maximum ?? .greatestFiniteMagnitude, max(minimum ?? -.greatestFiniteMagnitude, number))
     }
     private static func format(_ number: Double) -> String { number.formatted(.number.precision(.fractionLength(0...3))) }
+}
+
+/// A number with a known range shown as a slider (colour grade strength, warmth, exposure).
+/// Commits once when the drag ends, so one drag is one undoable edit and one preview refresh.
+private struct SliderField: View {
+    let name: String
+    let value: Double
+    let minimum: Double
+    let maximum: Double
+    var stepValue: Double? = nil
+    var defaultValue: Double? = nil
+    var unit: String? = nil
+    let commit: (Double) -> Void
+    @State private var draft = 0.0
+    @State private var dragging = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Text(humanize(name)).font(.system(size: 10)).lineLimit(1)
+                Spacer(minLength: 3)
+                Text(Self.format(draft) + (unit.map { " \($0)" } ?? ""))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                if let defaultValue, abs(draft - defaultValue) > 1e-9 {
+                    Button {
+                        draft = defaultValue
+                        commit(defaultValue)
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.mini)
+                    .help("Reset to \(Self.format(defaultValue))")
+                    .accessibilityLabel("Reset \(humanize(name))")
+                }
+            }
+            slider
+                .controlSize(.mini)
+                .accessibilityLabel(humanize(name))
+                .accessibilityValue(Self.format(draft))
+        }
+        .onAppear { draft = value }
+        .onChange(of: value) { _, newValue in if !dragging { draft = newValue } }
+    }
+
+    @ViewBuilder private var slider: some View {
+        if let stepValue, stepValue > 0 {
+            Slider(value: $draft, in: minimum...maximum, step: stepValue, onEditingChanged: finished)
+        } else {
+            Slider(value: $draft, in: minimum...maximum, onEditingChanged: finished)
+        }
+    }
+
+    private func finished(_ editing: Bool) {
+        dragging = editing
+        if !editing, abs(draft - value) > 1e-9 { commit(draft) }
+    }
+
+    private static func format(_ number: Double) -> String { number.formatted(.number.precision(.fractionLength(0...2))) }
 }
 
 private struct StringField: View {
