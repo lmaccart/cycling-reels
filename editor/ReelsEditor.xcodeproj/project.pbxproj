@@ -20,6 +20,13 @@
 		66260E1964D0B024A5F45D43 /* PreviewBridgeContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048EC2248268D2D315232CA2 /* PreviewBridgeContractTests.swift */; };
 		6B878737A22F21256DAE97A8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC77A5F4780F6E55DD51BE03 /* AppEnvironment.swift */; };
 		6E4EAB092C31F81838ED7301 /* TimelinePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9539EBB73468D7135AB2E87 /* TimelinePanel.swift */; };
+		9EF61B76AF4168FE6605AC85 /* EditorTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625809E6C7140138899DD1FB /* EditorTypography.swift */; };
+		8BE2D6C8AD305BA777F54F7A /* AudioVisuals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4771493EAE9C0E396722BC /* AudioVisuals.swift */; };
+		DD5F156D2A92A7BFEE129775 /* EditorStore+Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC89E2C4969FB94E4549B7C /* EditorStore+Tracks.swift */; };
+		1D254894A62A6BB8C12101CC /* EditorStore+Music.swift in Sources */ = {isa = PBXBuildFile; fileRef = 417CCCA4AFBB349CD548DDAC /* EditorStore+Music.swift */; };
+		BF08481C5CC394B8EB9A9836 /* MusicPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 694A8E0EE8DD482BFDE4C449 /* MusicPanel.swift */; };
+		2A406CD96ACF78E4B94E7042 /* ScheduleSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37740D8B1692729CB801CF5 /* ScheduleSheet.swift */; };
+		0B65AAC3F914F517BB5271DF /* EditorStore+Schedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CF8CCD7AEDD88FE4271DE9A /* EditorStore+Schedule.swift */; };
 		86E38C69C4263D91A0E14D73 /* InspectorSchemaSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86D5BF0B4504F0FF2D5C5307 /* InspectorSchemaSupport.swift */; };
 		9B02833190C9F1ADE54678D6 /* EditorStore+UX.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC208BD56C9E914CEA2AEF9 /* EditorStore+UX.swift */; };
 		9DD3709154F919B8CB1CD118 /* EditorAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93BC961B8B95B9B663FED454 /* EditorAppDelegate.swift */; };
@@ -69,6 +76,13 @@
 		DC77A5F4780F6E55DD51BE03 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		E6F62FE74CD133E5E22086AC /* InspectorAndChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorAndChat.swift; sourceTree = "<group>"; };
 		E9539EBB73468D7135AB2E87 /* TimelinePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelinePanel.swift; sourceTree = "<group>"; };
+		625809E6C7140138899DD1FB /* EditorTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorTypography.swift"; sourceTree = "<group>"; };
+		2C4771493EAE9C0E396722BC /* AudioVisuals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioVisuals.swift"; sourceTree = "<group>"; };
+		3FC89E2C4969FB94E4549B7C /* EditorStore+Tracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Tracks.swift"; sourceTree = "<group>"; };
+		417CCCA4AFBB349CD548DDAC /* EditorStore+Music.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Music.swift"; sourceTree = "<group>"; };
+		694A8E0EE8DD482BFDE4C449 /* MusicPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MusicPanel.swift"; sourceTree = "<group>"; };
+		A37740D8B1692729CB801CF5 /* ScheduleSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScheduleSheet.swift"; sourceTree = "<group>"; };
+		1CF8CCD7AEDD88FE4271DE9A /* EditorStore+Schedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Schedule.swift"; sourceTree = "<group>"; };
 		E9A15B4061D53DB60EC70595 /* EditorUXHelpersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorUXHelpersTests.swift; sourceTree = "<group>"; };
 		F415E96C6D05FB7C8387B775 /* ReelsEditorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReelsEditorApp.swift; sourceTree = "<group>"; };
 		F5B3C6840BA535BCCE0AA008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -96,6 +110,13 @@
 				974683C8F439B030F2062E57 /* ProjectPicker.swift */,
 				F415E96C6D05FB7C8387B775 /* ReelsEditorApp.swift */,
 				E9539EBB73468D7135AB2E87 /* TimelinePanel.swift */,
+				625809E6C7140138899DD1FB /* EditorTypography.swift */,
+				2C4771493EAE9C0E396722BC /* AudioVisuals.swift */,
+				3FC89E2C4969FB94E4549B7C /* EditorStore+Tracks.swift */,
+				417CCCA4AFBB349CD548DDAC /* EditorStore+Music.swift */,
+				694A8E0EE8DD482BFDE4C449 /* MusicPanel.swift */,
+				A37740D8B1692729CB801CF5 /* ScheduleSheet.swift */,
+				1CF8CCD7AEDD88FE4271DE9A /* EditorStore+Schedule.swift */,
 				38A48B9F57DC57C83FD570B5 /* UXPresentation.swift */,
 			);
 			path = ReelsEditor;
@@ -251,6 +272,13 @@
 				BF5EAC265581729BAF22073D /* ProjectPicker.swift in Sources */,
 				B866F3A4762DF86173B30451 /* ReelsEditorApp.swift in Sources */,
 				6E4EAB092C31F81838ED7301 /* TimelinePanel.swift in Sources */,
+				9EF61B76AF4168FE6605AC85 /* EditorTypography.swift in Sources */,
+				8BE2D6C8AD305BA777F54F7A /* AudioVisuals.swift in Sources */,
+				DD5F156D2A92A7BFEE129775 /* EditorStore+Tracks.swift in Sources */,
+				1D254894A62A6BB8C12101CC /* EditorStore+Music.swift in Sources */,
+				BF08481C5CC394B8EB9A9836 /* MusicPanel.swift in Sources */,
+				2A406CD96ACF78E4B94E7042 /* ScheduleSheet.swift in Sources */,
+				0B65AAC3F914F517BB5271DF /* EditorStore+Schedule.swift in Sources */,
 				37BE6647CEC139952C815D5F /* UXPresentation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
