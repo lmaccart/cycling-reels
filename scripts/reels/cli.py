@@ -296,6 +296,36 @@ def cmd_skip(project: Project, args) -> int:
     return cmd_tag(project, args)
 
 
+def cmd_flag(project: Project, args) -> int:
+    from . import flags
+
+    f = flags.add(project, args.asset, args.start, args.end, args.note or "")
+    print(f"flagged {flags.describe(f)}")
+    return 0
+
+
+def cmd_flags(project: Project, args) -> int:
+    from . import flags
+
+    items = flags.load(project)
+    if args.json:
+        print(json.dumps(items, indent=1))
+        return 0
+    if not items:
+        print("no flagged clips")
+    for f in items:
+        print(flags.describe(f))
+    return 0
+
+
+def cmd_unflag(project: Project, args) -> int:
+    from . import flags
+
+    f = flags.unflag(project, args.id)
+    print(f"removed {flags.describe(f)}")
+    return 0
+
+
 def cmd_show(project: Project, args) -> int:
     from .ingest import describe
     from .library import load_asset
@@ -922,6 +952,21 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("asset")
     s.add_argument("--reason")
     s.set_defaults(fn=cmd_skip)
+
+    s = sub.add_parser("flag", help="flag a clip (a footage range) to come back to; shows in the editor's Flagged list")
+    s.add_argument("asset")
+    s.add_argument("--in", dest="start", type=float, help="seconds (default: start of the clip)")
+    s.add_argument("--out", dest="end", type=float, help="seconds (default: end of the clip)")
+    s.add_argument("--note")
+    s.set_defaults(fn=cmd_flag)
+
+    s = sub.add_parser("flags", help="list flagged clips")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(fn=cmd_flags)
+
+    s = sub.add_parser("unflag", help="remove a flag by id")
+    s.add_argument("id")
+    s.set_defaults(fn=cmd_unflag)
 
     s = sub.add_parser("show", help="everything known about one asset")
     s.add_argument("asset")

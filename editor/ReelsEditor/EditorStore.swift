@@ -32,6 +32,7 @@ final class EditorStore {
     @ObservationIgnored var editTail: Task<Void, Never>?
     var plans: [JSONValue] = []
     var library: [JSONValue] = []
+    var flags: [ClipFlag] = []
     var searchHits: [SearchHit] = []
     var selectedIDs: Set<String> = []
     var recentlyChangedIDs: Set<String> = []
@@ -246,6 +247,7 @@ final class EditorStore {
                 workspaceInfo = try await service.call("workspace.info")
                 syncPermissions(from: workspaceInfo)
                 loadLibrary()
+                loadFlags()
                 await refreshPlans()
                 importer.refreshInbox()
                 if let launchPlanPath, !launchPlanPath.isEmpty {
@@ -1559,8 +1561,11 @@ final class EditorStore {
             music.handleSearchResults(payload)
         } else if name == "plans.changed" {
             Task { await refreshPlans() }
+        } else if name == "flags.changed" {
+            receiveFlags(payload)
         } else if name == "library.changed" {
             loadLibrary()
+            loadFlags()
             Task { await refreshPlans() }
             importer.refreshInbox()
         } else if name.hasPrefix("job.") {

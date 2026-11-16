@@ -92,6 +92,17 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Source video uses AVFoundation; still photos are images. Unsupported formats
   and 360 media use private proxies. Preparing a full 360 source can be expensive.
 
+### Flagging clips
+
+- In the Source monitor, **Flag** marks the selected clip to come back to: the
+  In–Out range (In + 5 s when only In is set, the whole clip when neither is),
+  with an optional note.
+- Flags appear under **Flagged** at the top of the Footage list (and a small
+  flag on the clip's row). Click one to open it in Source with its range marked
+  In/Out; right-click to edit the note or remove it.
+- Flags live in `flags.json`, shared with `./reels flag` / `./reels flags` and
+  Claude Code. They never change footage, tags or plans.
+
 ### Aiming 360 clips
 
 Select a 360 clip on the timeline and click **Aim 360°** in the Program header.
