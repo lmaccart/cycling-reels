@@ -36,6 +36,10 @@ Metricool can't take a file from this computer directly — the video must be re
    and fixes with `./reels review feedback`. The checkpoint preserves IDs, status, slots,
    lessons and experiments; it does not schedule anything or imply successful publication.
 
+### Scheduling from the Reels Editor app
+
+The editor's **Schedule…** sheet does steps 1-4 above for the open reel, and the user pressing its Schedule button is the approval. It renders if the plan changed, runs `./reels upload <slug>` (once, only without a fresh link), marks the reel approved, builds the exact payload in `scripts/reels/editor/scheduling.py` (Instagram REEL + TikTok + YouTube Short, blogId 7655493, no first comment, collaborators/people tags from post.json only, `videoThumbnailUrl` = `coverUrl`), then runs headless `claude -p` with `--allowedTools` limited to the Metricool create (or get + update, when post.json has a `metricoolId`) tool, and records the returned id with `mark scheduled --metricool-id`. Override the binary with `REELS_CLAUDE_BIN`. Close the weekly review afterwards as usual.
+
 ### Attaching the song (Instagram audio)
 
 Only when config `audio.attachSongs` is on (it's off by default: trending songs are mixed into `reel.mp4`, which needs nothing extra here). Then reels whose track was added with `--instagram` upload without the song (`reel.mp4` has ride audio only), so the song must be attached or the reel goes out without music. post.json's `instagramAudio` holds what to send:

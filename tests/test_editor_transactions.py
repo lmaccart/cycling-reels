@@ -426,6 +426,28 @@ class EditorTransactionsTests(unittest.TestCase):
         self.assertEqual(json.loads(transcript_path.read_text())["words"][0]["w"], "fixed")
         self.assertEqual(reopened.snapshot()["change"]["reason"], "combined edit")
 
+    def test_timeline_lease_replaces_stale_timeline_lease(self):
+        store, _ = self.make_store(compiler=fake_compile)
+        first = store.acquire_lease("timeline-reorder")
+        second = store.acquire_lease("timeline-trim")
+        self.assertNotEqual(first["token"], second["token"])
+        self.assertFalse(store.release_lease(first["token"]))
+        self.assertTrue(store.release_lease(second["token"]))
+
+    def test_non_timeline_lease_is_not_replaced(self):
+        store, _ = self.make_store(compiler=fake_compile)
+        held = store.acquire_lease("inspector")
+        with self.assertRaises(DocumentError) as caught:
+            store.acquire_lease("timeline-reorder")
+        self.assertEqual(caught.exception.code, "lease_held")
+        store.release_lease(held["token"])
+
+    def test_default_lease_ttl_is_short(self):
+        store, _ = self.make_store(compiler=fake_compile)
+        lease = store.acquire_lease("timeline-trim")
+        self.assertLessEqual(lease["expiresIn"], 6)
+        store.release_lease(lease["token"])
+
     def test_stale_revision_and_manual_lease_block_ai_commit(self):
         store, _ = self.make_store(compiler=fake_compile)
         before = store.snapshot()

@@ -109,4 +109,20 @@ final class InspectorSchemaSupportTests: XCTestCase {
             .array([.number(0), .number(0)])
         )
     }
+
+    func testSectionClassificationGroupsSchemaLabelsByFamily() {
+        func kind(_ id: String, _ label: String) -> InspectorSection {
+            InspectorSection.classify(groupID: id, label: label)
+        }
+        XCTAssertEqual(kind("source", "Source and framing"), .motion)
+        XCTAssertEqual(kind("colour", "Colour"), .colour)
+        XCTAssertEqual(kind("audio", "Clip audio"), .audio)
+        XCTAssertEqual(kind("rhythm", "Music and timing"), .audio)
+        XCTAssertEqual(kind("rhythm", "Beat rhythm"), .timing)
+        XCTAssertEqual(kind("content", "Text"), .text)
+        XCTAssertEqual(kind("copy", "Caption and accessibility"), .text)
+        XCTAssertEqual(kind("overlays", "Overlays"), .overlays)
+        XCTAssertEqual(kind("publishing", "Post metadata"), .post)
+        XCTAssertEqual(kind("sound", "Title card sounds"), .audio)
+    }
 }

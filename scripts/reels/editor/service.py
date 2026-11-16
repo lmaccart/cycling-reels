@@ -20,7 +20,7 @@ from typing import Any
 
 from .claude import ClaudeCLI
 from .http import CapabilityServer
-from . import live
+from . import live, music_service
 from .jobs import JobManager, atomic_json
 from .protocol import MAX_MESSAGE, ProtocolError, Writer, decode, error_value, respond
 from .relay import Relay
@@ -476,6 +476,14 @@ class EditorService:
             return live.list_plans(self.project, self.http)
         if method == "projects.create":
             return live.create_plan(self.project, params)
+        if method == "music.list":
+            return music_service.list_tracks(self.project)
+        if method == "music.search":
+            return music_service.search(self.project, params)
+        if method == "music.add":
+            args = music_service.validate_add(params)
+            job = self.jobs.submit("music", {}, music_service.add_work(self.project, args), self._music_added, independent=True)
+            return {"jobId": job["id"]}
         if method == "library.inbox":
             names = [str(path.relative_to(self.project.inbox)) for path in live.inbox_files(self.project)]
             return {"count": len(names), "files": names}
@@ -506,6 +514,9 @@ class EditorService:
             return self._changed(self.snapshot())
         if method == "document.snapshot":
             return self.snapshot()
+        if method == "audio.visual":
+            from .audio_visuals import audio_visual
+            return audio_visual(self.project, self.snapshot() if self.document is not None else None, params)
         if method == "document.read":
             from .ai_views import read_node
             return read_node(self.snapshot(), params.get("id", "document"), params.get("path", ""),
@@ -533,7 +544,7 @@ class EditorService:
             result = self._doc().reload_external()
             return self._changed(result) if result else self.snapshot()
         if method == "lease.acquire":
-            return self._doc().acquire_lease(str(params.get("owner", "native")), ttl=min(60, max(1, float(params.get("ttl", 15)))))
+            return self._doc().acquire_lease(str(params.get("owner", "native")), ttl=min(60, max(1, float(params.get("ttl", 6)))))
         if method == "lease.release":
             self._doc().release_lease(str(params.get("token", "")))
             return {"released": True}
@@ -672,6 +683,10 @@ class EditorService:
         if method == "renderer.submit":
             raise ProtocolError("renderer_changes_unavailable",
                                 "Ask Claude Code in the terminal to change renderer code.")
+        if method in ("schedule.prepare", "schedule.submit"):
+            from .scheduling import Scheduler
+            scheduler = Scheduler(self)
+            return scheduler.prepare() if method == "schedule.prepare" else scheduler.submit(params)
         if method == "shutdown":
             self.begin_close()
             return {"stopping": True}
@@ -754,6 +769,10 @@ class EditorService:
         env = dict(os.environ)
         env["REELS_HOME"] = str(self.workspace.data_root)
         return env
+
+    def _music_added(self, result):
+        self.emit("music.changed", {"track": result.get("track")}, {})
+        return result
 
     def _start_import(self, params):
         paths = params.get("paths")

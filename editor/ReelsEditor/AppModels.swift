@@ -101,6 +101,8 @@ struct EditorNode: Codable, Hashable, Identifiable, Sendable {
     var assetKind: String?
     var generated: Bool?
     var readOnly: Bool?
+    /// Stored track assignment ("V2", "A3", ...). nil = default mapping (see EditorStore.trackID(for:)).
+    var track: String?
 
     var title: String {
         if let text = raw["text"]?.stringValue, !text.isEmpty { return text }
@@ -137,6 +139,24 @@ enum NativeMediaKind {
     }
 }
 
+struct EditorTrack: Codable, Identifiable, Hashable, Sendable {
+    var id: String        // "V1", "A2", ...
+    var kind: String      // "video" | "audio"
+    var name: String
+    var index: Int
+    var locked: Bool
+    var userAdded: Bool
+
+    var isVideo: Bool { kind == "video" }
+
+    static var defaults: [EditorTrack] {
+        [("V1", "video", 1), ("V2", "video", 2), ("V3", "video", 3),
+         ("A1", "audio", 1), ("A2", "audio", 2), ("A3", "audio", 3)].map {
+            EditorTrack(id: $0.0, kind: $0.1, name: $0.0, index: $0.2, locked: false, userAdded: false)
+        }
+    }
+}
+
 struct EditorSnapshot: Codable, Hashable, Sendable {
     var documentId: String
     var revisions: Revisions
@@ -148,6 +168,32 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
     var preview: JSONValue
     var projectConfig: JSONValue?
     var inspectorSchema: JSONValue?
+    /// Organisational tracks (V1..., A1...). Absent in older services: derived default list.
+    var tracks: [EditorTrack] = EditorTrack.defaults
+
+    enum CodingKeys: String, CodingKey {
+        case documentId, revisions, plan, nodes, fps, durationFrames, warnings, preview
+        case projectConfig, inspectorSchema, tracks
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        documentId = try c.decode(String.self, forKey: .documentId)
+        revisions = try c.decode(Revisions.self, forKey: .revisions)
+        plan = try c.decode(JSONValue.self, forKey: .plan)
+        nodes = try c.decode([EditorNode].self, forKey: .nodes)
+        fps = try c.decode(Double.self, forKey: .fps)
+        durationFrames = try c.decode(Int.self, forKey: .durationFrames)
+        warnings = try c.decode([String].self, forKey: .warnings)
+        preview = try c.decode(JSONValue.self, forKey: .preview)
+        projectConfig = try c.decodeIfPresent(JSONValue.self, forKey: .projectConfig)
+        inspectorSchema = try c.decodeIfPresent(JSONValue.self, forKey: .inspectorSchema)
+        if let list = try? c.decodeIfPresent([EditorTrack].self, forKey: .tracks), !list.isEmpty {
+            tracks = list
+        } else {
+            tracks = EditorTrack.defaults
+        }
+    }
 
     static func decode(_ value: JSONValue) -> EditorSnapshot? {
         var normalized = value

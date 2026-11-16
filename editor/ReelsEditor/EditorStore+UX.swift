@@ -61,6 +61,18 @@ enum TimelineMetrics {
         return clamp(usable / Double(durationFrames))
     }
 
+    /// Frames visible in the lane area of a viewport at `zoom` (the track headers cover `gutter`).
+    static func visibleFrames(zoom: Double, viewportWidth: Double, gutter: Double) -> Double {
+        max(1, (viewportWidth - gutter) / max(zoom, minZoom))
+    }
+
+    /// Zoom that shows exactly `frames` frames in the lane area of the viewport.
+    static func zoom(forVisibleFrames frames: Double, viewportWidth: Double, gutter: Double) -> Double {
+        let usable = viewportWidth - gutter
+        guard usable > 0, frames > 0 else { return defaultZoom }
+        return clamp(usable / frames)
+    }
+
     /// Seconds between ruler ticks so labels never crowd (>= ~64 px apart).
     static func rulerStepSeconds(pixelsPerSecond: Double) -> Int {
         let steps = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600]

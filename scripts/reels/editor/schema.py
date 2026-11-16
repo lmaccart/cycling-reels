@@ -472,6 +472,19 @@ def _base_schema() -> dict[str, Any]:
             _field("style", "Style", "/hook/style", "enum", choices=["light", "dark", "plain"]),
         ]),
     ])
+    targets["music"] = _target("Music", "/music", [
+        _group("track", "Track", [
+            _field("track", "Track", "/music/track", "text", required=True,
+                   help="A track slug from the Music tab (music/ folder)."),
+            _field("start", "Start", "/music/start", "timing", min=0,
+                   timingDomain="music_seconds", unit="s",
+                   help="Seconds or m:ss into the song; empty uses the track's recommended start."),
+            _field("volume", "Volume", "/music/volume", "number", min=0, max=1.5, step=0.01,
+                   default=DEFAULTS["audio"]["musicVolume"],
+                   help="Leave at the default; 0.8 was too loud over ride sounds."),
+            _field("cutOnBeat", "Cut on beat", "/music/cutOnBeat", "boolean", default=False),
+        ]),
+    ])
     targets["endCard"] = _target("End card", "/endCard", [
         _group("content", "End card", [
             _field("seconds", "Duration", "/endCard/seconds", "timing",

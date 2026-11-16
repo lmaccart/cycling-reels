@@ -445,7 +445,8 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
 
 def editing_snapshot(plan: dict[str, Any], compiled: dict[str, Any], revisions: dict[str, str]) -> dict[str, Any]:
     """Wire-compatible renderer snapshot; raw plan is a separate deep copy."""
-    nodes = compiled_nodes(plan, compiled)
+    from .tracks import annotate_nodes, track_list
+    nodes = annotate_nodes(plan, compiled_nodes(plan, compiled))
     preview_ref = plan.get("_editor", {}).get("rendererPreview")
     if isinstance(preview_ref, dict):
         preview = deepcopy(preview_ref)
@@ -462,6 +463,7 @@ def editing_snapshot(plan: dict[str, Any], compiled: dict[str, Any], revisions: 
         "revisions": deepcopy(revisions),
         "plan": deepcopy(plan),
         "nodes": nodes,
+        "tracks": track_list(plan.get("_editor")),
         "fps": int(compiled["fps"]),
         "durationFrames": int(compiled["total"]),
         "warnings": list(compiled.get("warnings") or []),

@@ -11,6 +11,7 @@ final class EditorStore {
 
     let service = EditorService()
     let importer = ImportCoordinator()
+    let music = MusicLibraryModel()
     var planSummaries: [PlanSummary] = []
     var plansLoaded = false
     var showPicker = true
@@ -119,10 +120,16 @@ final class EditorStore {
             }
         }
         service.onEvent = { [weak self] event in self?.receive(event) }
+        AudioVisualCache.shared.configure(service: service)
         importer.call = { [weak self] method, params in
             guard let self else { throw ServiceFailure(code: "gone", message: "The app is closing.", details: nil) }
             return try await self.service.call(method, params: params)
         }
+        music.call = { [weak self] method, params in
+            guard let self else { throw ServiceFailure(code: "gone", message: "The app is closing.", details: nil) }
+            return try await self.service.call(method, params: params)
+        }
+        music.onToast = { [weak self] message in self?.showToast(message) }
         importer.onToast = { [weak self] message in self?.showToast(message) }
         importer.onLibraryNeedsReload = { [weak self] in
             self?.loadLibrary()
@@ -612,6 +619,11 @@ final class EditorStore {
             errorMessage = error.localizedDescription
             return nil
         }
+    }
+
+    /// Gives back a gesture lease that never turned into an edit (a click, or a trim that changed nothing).
+    func releaseTimelineLease(_ token: String) {
+        Task { _ = try? await service.call("lease.release", params: .object(["token": .string(token)])) }
     }
 
     func reorder(ids: [String], beforeID: String?, lease: String?) {
@@ -1344,6 +1356,8 @@ final class EditorStore {
             } else {
                 notice = "Render finished"
             }
+        } else if name == "music.changed" {
+            Task { await music.reload() }
         } else if name == "plans.changed" {
             Task { await refreshPlans() }
         } else if name == "library.changed" {
@@ -1353,6 +1367,10 @@ final class EditorStore {
         } else if name.hasPrefix("job.") {
             if payload["kind"]?.stringValue == "ingest" {
                 importer.handleJob(payload)
+            } else if payload["kind"]?.stringValue == "schedule" {
+                schedule.handleJob(payload)
+            } else if payload["kind"]?.stringValue == "music" {
+                music.handleJob(payload)
             } else {
                 notice = EventNotice.jobMessage(payload)
             }

@@ -5,14 +5,103 @@ struct RightRail: View {
     @Bindable var store: EditorStore
 
     var body: some View {
-        NativeSplitView(
-            views: [AnyView(InspectorPane(store: store)), AnyView(ChatPane(store: store))],
-            vertical: false,
-            autosaveName: "ReelsEditor.InspectorChat",
-            minimumSizes: [200, 170],
-            initialFractions: [0.5, 0.5]
-        )
+        InspectorPane(store: store)
     }
+}
+
+// MARK: - Section styling (Premiere "Effect Controls" look)
+
+private extension InspectorSection {
+    var tint: Color {
+        switch self {
+        case .motion: Color(red: 0.27, green: 0.55, blue: 0.98)
+        case .timing: Color(red: 0.98, green: 0.60, blue: 0.20)
+        case .colour: Color(red: 0.93, green: 0.35, blue: 0.67)
+        case .text: Color(red: 0.66, green: 0.42, blue: 0.92)
+        case .audio: Color(red: 0.30, green: 0.73, blue: 0.45)
+        case .overlays: Color(red: 0.20, green: 0.72, blue: 0.74)
+        case .post, .advanced: Color(red: 0.58, green: 0.60, blue: 0.64)
+        }
+    }
+}
+
+private struct InspectorTintKey: EnvironmentKey {
+    static let defaultValue: Color = EditorPalette.accent
+}
+
+private extension EnvironmentValues {
+    var inspectorTint: Color {
+        get { self[InspectorTintKey.self] }
+        set { self[InspectorTintKey.self] = newValue }
+    }
+}
+
+/// A collapsible section with a coloured accent bar and SF Symbol, like an Effect Controls group.
+private struct InspectorSectionBox<Content: View>: View {
+    let section: InspectorSection
+    let title: String
+    @State private var expanded = true
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeOut(duration: 0.12)) { expanded.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(expanded ? 90 : 0))
+                        .frame(width: 8)
+                    Image(systemName: section.symbol)
+                        .font(EditorType.section)
+                        .foregroundStyle(section.tint)
+                        .frame(width: 16)
+                    Text(title).font(EditorType.section)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(title)
+            .accessibilityValue(expanded ? "expanded" : "collapsed")
+            if expanded {
+                VStack(alignment: .leading, spacing: 7) { content() }
+                    .padding(.top, 8)
+            }
+        }
+        .padding(.vertical, 7)
+        .padding(.leading, 11)
+        .padding(.trailing, 9)
+        .background(EditorPalette.raised.opacity(0.55))
+        .overlay(alignment: .leading) { Rectangle().fill(section.tint).frame(width: 3) }
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .environment(\.inspectorTint, section.tint)
+    }
+}
+
+/// Label on the left, control right-aligned.
+private struct FieldRow<Control: View>: View {
+    let label: String
+    @ViewBuilder var control: () -> Control
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(label).font(EditorType.body).lineLimit(1).truncationMode(.tail)
+            Spacer(minLength: 4)
+            control()
+        }
+    }
+}
+
+private func kindChip(_ node: EditorNode) -> some View {
+    Text(humanize(node.kind))
+        .font(EditorType.bodyEmphasis)
+        .foregroundStyle(laneColor(node.lane))
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .background(laneColor(node.lane).opacity(0.18), in: Capsule())
 }
 
 private struct PermissionGrantSummary: View {
@@ -26,10 +115,10 @@ private struct PermissionGrantSummary: View {
                     ForEach(Array(store.currentGrants.enumerated()), id: \.offset) { _, grant in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(grant["kind"]?.stringValue ?? "Permission")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(EditorType.bodyEmphasis)
                             if let scope = grant["scope"] {
                                 Text(scope.displayValue)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(EditorType.timecode)
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -39,7 +128,7 @@ private struct PermissionGrantSummary: View {
                 .padding(.top, 4)
             } label: {
                 Label("Granted permissions", systemImage: "checkmark.shield")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(EditorType.section)
             }
             .tint(.secondary)
         }
@@ -51,18 +140,17 @@ private struct InspectorPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Inspector")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Spacer()
+            HStack(spacing: 8) {
+                PanelTitle("Effect Controls")
                 if let node = store.selectedNode {
-                    Text(humanize(node.kind))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(laneColor(node.lane))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(laneColor(node.lane).opacity(0.16), in: Capsule())
+                    Text(node.title)
+                        .font(EditorType.bodyEmphasis)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 4)
+                    kindChip(node)
+                } else {
+                    Spacer()
                 }
             }
             .padding(.horizontal, 12)
@@ -72,29 +160,8 @@ private struct InspectorPane: View {
 
             if let node = store.selectedNode {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(node.title)
-                                .font(.system(size: 13, weight: .semibold))
-                                .lineLimit(2)
-                            Text("Starts \(timeString(Double(node.startFrame) / store.fps))  ·  \(node.frames) frames")
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                            Text("ID  \(node.id)")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundStyle(.secondary.opacity(0.8))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                                .textSelection(.enabled)
-                                .help("Stable ID of this item. Claude Code can refer to it.")
-                            if node.isReadOnly {
-                                Label("Caption timing comes from the transcript and can't be moved", systemImage: "lock.fill")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.bottom, 2)
-
+                    VStack(alignment: .leading, spacing: 8) {
+                        clipProperties(node)
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
                             SchemaInspector(schema: store.inspectorSchema, fields: node.raw, nodeID: node.id, store: store)
                         } else {
@@ -108,19 +175,8 @@ private struct InspectorPane: View {
                 }
             } else if let snapshot = store.snapshot {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(store.reelTitle)
-                                .font(.system(size: 13, weight: .semibold))
-                                .lineLimit(2)
-                            Text("\(TimeFormat.clock(Double(snapshot.durationFrames) / max(snapshot.fps, 1))) long  ·  \(snapshot.fps.formatted()) fps  ·  \(snapshot.plan["format"]?.displayValue ?? "no format")")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            Label("Select a clip on the timeline to edit it. These are whole-reel settings.", systemImage: "cursorarrow.click")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 2)
-                        }
+                    VStack(alignment: .leading, spacing: 8) {
+                        reelProperties(snapshot)
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
                             SchemaInspector(schema: store.inspectorSchema,
                                             fields: snapshot.plan,
@@ -128,7 +184,7 @@ private struct InspectorPane: View {
                                             targetKeys: ["document", "post", "hook", "endCard", "titleCard"])
                             if snapshot.projectConfig == nil && store.workspaceInfo["config"] == nil {
                                 Text("Showing default values: this reel's saved settings haven't loaded yet.")
-                                    .font(.system(size: 10))
+                                    .font(EditorType.caption)
                                     .foregroundStyle(.tertiary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -148,11 +204,11 @@ private struct InspectorPane: View {
                         if !snapshot.warnings.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
                                 Label("Validation", systemImage: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(EditorType.section)
                                     .foregroundStyle(.orange)
                                 ForEach(Array(snapshot.warnings.enumerated()), id: \.offset) { _, warning in
                                     Text(warning)
-                                        .font(.system(size: 10))
+                                        .font(EditorType.caption)
                                         .foregroundStyle(.secondary)
                                         .textSelection(.enabled)
                                 }
@@ -169,6 +225,70 @@ private struct InspectorPane: View {
             }
         }
         .background(EditorPalette.panel)
+    }
+
+    private func clipProperties(_ node: EditorNode) -> some View {
+        let fps = store.fps
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("CLIP PROPERTIES")
+                    .font(EditorType.panelTitle).tracking(EditorType.panelTitleTracking)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                kindChip(node)
+            }
+            Text(node.title).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+            HStack(spacing: 14) {
+                timecodeCell("In", TimeFormat.timecode(node.startFrame, fps: fps))
+                timecodeCell("Out", TimeFormat.timecode(node.endFrame, fps: fps))
+                timecodeCell("Duration", TimeFormat.timecode(node.frames, fps: fps))
+            }
+            Text("ID  \(node.id)")
+                .font(EditorType.timecode)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+                .help("Stable ID of this item.")
+            if node.isReadOnly {
+                Label("Caption timing comes from the transcript and can't be moved", systemImage: "lock.fill")
+                    .font(EditorType.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(EditorPalette.raised.opacity(0.55), in: RoundedRectangle(cornerRadius: 5))
+    }
+
+    private func timecodeCell(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label).font(EditorType.caption).foregroundStyle(.secondary)
+            Text(value).font(EditorType.timecode).foregroundStyle(EditorPalette.accent)
+        }
+    }
+
+    private func reelProperties(_ snapshot: EditorSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("REEL PROPERTIES")
+                .font(EditorType.panelTitle).tracking(EditorType.panelTitleTracking)
+                .foregroundStyle(.secondary)
+            Text(store.reelTitle).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+            HStack(spacing: 14) {
+                timecodeCell("Duration", TimeFormat.timecode(snapshot.durationFrames, fps: snapshot.fps))
+                timecodeCell("Frame rate", "\(snapshot.fps.formatted(.number.precision(.fractionLength(0...2)))) fps")
+                timecodeCell("Format", snapshot.plan["format"]?.displayValue ?? "none")
+            }
+            Label("Nothing selected. Click a clip on the timeline to edit its effects. Below are the whole-reel settings: music, captions and post.",
+                  systemImage: "cursorarrow.click")
+                .font(EditorType.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
+        .padding(9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(EditorPalette.raised.opacity(0.55), in: RoundedRectangle(cornerRadius: 5))
     }
 }
 
@@ -213,7 +333,6 @@ private struct InspectorGroup: View {
     var excluding: [String] = []
     let nodeID: String
     @Bindable var store: EditorStore
-    @State private var expanded = true
 
     private var selectedFields: [(String, JSONValue)] {
         guard let object = fields.objectValue else { return [] }
@@ -228,27 +347,20 @@ private struct InspectorGroup: View {
 
     var body: some View {
         if !selectedFields.isEmpty {
-            DisclosureGroup(isExpanded: $expanded) {
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(selectedFields, id: \.0) { key, value in
-                        JSONFieldEditor(
-                            name: key,
-                            value: value,
-                            path: [key],
-                            nodeID: nodeID,
-                            store: store
-                        )
-                    }
+            InspectorSectionBox(
+                section: InspectorSection.classify(groupID: title, label: title),
+                title: title
+            ) {
+                ForEach(selectedFields, id: \.0) { key, value in
+                    JSONFieldEditor(
+                        name: key,
+                        value: value,
+                        path: [key],
+                        nodeID: nodeID,
+                        store: store
+                    )
                 }
-                .padding(.leading, 2)
-                .padding(.top, 5)
-            } label: {
-                Label(title, systemImage: icon)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.primary)
             }
-            .tint(.secondary)
-            .padding(.vertical, 3)
         }
     }
 }
@@ -332,8 +444,6 @@ private struct SchemaTargetGroups: View {
     let fields: JSONValue
     let nodeID: String
     @Bindable var store: EditorStore
-    @State private var collapsed: Set<String> = []
-
     private var target: JSONValue { schema["targets"]?[targetKey] ?? .object([:]) }
     private var scope: String { target["scopePath"]?.stringValue ?? "" }
     private var groups: [JSONValue] { target["groups"]?.arrayValue ?? [] }
@@ -348,13 +458,11 @@ private struct SchemaTargetGroups: View {
     var body: some View {
         ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
             let groupID = group["id"]?.stringValue ?? group["label"]?.stringValue ?? targetKey
-            DisclosureGroup(isExpanded: Binding(
-                get: { !collapsed.contains(groupID) },
-                set: { expanded in
-                    if expanded { collapsed.remove(groupID) } else { collapsed.insert(groupID) }
-                }
-            )) {
-                VStack(alignment: .leading, spacing: 6) {
+            let groupLabel = group["label"]?.stringValue ?? target["label"]?.stringValue ?? targetKey
+            InspectorSectionBox(
+                section: InspectorSection.classify(groupID: groupID, label: groupLabel),
+                title: groupLabel
+            ) {
                     ForEach(Array((group["fields"]?.arrayValue ?? []).enumerated()), id: \.offset) { _, descriptor in
                         let schemaPath = descriptor["path"]?.stringValue ?? ""
                         let path = scopedToSelectedNode
@@ -393,21 +501,13 @@ private struct SchemaTargetGroups: View {
                                 store: store
                             )
                             if let help = descriptor["help"]?.stringValue, !help.isEmpty {
-                                Text(help).font(.system(size: 10)).foregroundStyle(.tertiary)
-                                    .padding(.leading, 2)
+                                Text(help).font(EditorType.caption).foregroundStyle(.tertiary)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             }
                         }
                     }
-                }
-                .padding(.leading, 3)
-                .padding(.top, 5)
-            } label: {
-                Label(group["label"]?.stringValue ?? target["label"]?.stringValue ?? targetKey,
-                      systemImage: "slider.horizontal.3")
-                    .font(.system(size: 11, weight: .semibold))
             }
-            .tint(.secondary)
         }
     }
 }
@@ -433,12 +533,11 @@ private struct SchemaFieldEditor: View {
 
     var body: some View {
         if descriptor["readOnly"]?.boolValue == true || nodeReadOnly {
-            HStack {
-                Text(name).font(.system(size: 10))
-                Spacer()
+            FieldRow(label: name) {
                 Text(currentValue.displayValue)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(EditorType.timecode)
                     .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
             .accessibilityElement(children: .combine)
         } else {
@@ -458,14 +557,10 @@ private struct SchemaFieldEditor: View {
             case "keyframe", "keyframes":
                 KeyframeField(name: name, value: currentValue, path: path, nodeID: nodeID, store: store)
             case "boolean":
-                Toggle(isOn: Binding(
+                ToggleRow(label: name, isOn: Binding(
                     get: { currentValue.boolValue ?? false },
                     set: { commit(.bool($0)) }
-                )) {
-                    Text(name).font(.system(size: 10))
-                }
-                .toggleStyle(.switch)
-                .controlSize(.mini)
+                ))
             case "number" where descriptor["display"]?.stringValue == "slider"
                 && descriptor["min"]?.numberValue != nil && descriptor["max"]?.numberValue != nil:
                 SliderField(
@@ -530,9 +625,7 @@ private struct MomentPickerField: View {
 
     var body: some View {
         let selected = AssetPresentation.selectedMomentID(value, moments: moments)
-        HStack {
-        Text(name).font(.system(size: 10))
-        Spacer(minLength: 6)
+        FieldRow(label: name) {
         Picker(name, selection: Binding<String?>(
             get: { selected },
             set: { commit($0.map(JSONValue.string) ?? .string("")) }
@@ -546,8 +639,26 @@ private struct MomentPickerField: View {
         .labelsHidden()
         .controlSize(.small)
         .disabled(readOnly)
+        .fixedSize()
         .accessibilityLabel(name)
         }
+    }
+}
+
+private struct ToggleRow: View {
+    let label: String
+    @Binding var isOn: Bool
+    @Environment(\.inspectorTint) private var tint
+
+    var body: some View {
+        FieldRow(label: label) {
+            Toggle(label, isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .tint(tint)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -558,16 +669,20 @@ private struct SchemaEnumField: View {
     let commit: (JSONValue) -> Void
 
     var body: some View {
-        Picker(name, selection: Binding(
-            get: { choices.contains(value) ? value : (choices.first ?? value) },
-            set: { selected in commit(selected) }
-        )) {
-            ForEach(Array(choices.enumerated()), id: \.offset) { _, choice in
-                Text(choice.displayValue).tag(choice)
+        FieldRow(label: name) {
+            Picker(name, selection: Binding(
+                get: { choices.contains(value) ? value : (choices.first ?? value) },
+                set: { selected in commit(selected) }
+            )) {
+                ForEach(Array(choices.enumerated()), id: \.offset) { _, choice in
+                    Text(choice.displayValue).tag(choice)
+                }
             }
+            .labelsHidden()
+            .controlSize(.small)
+            .fixedSize()
+            .accessibilityLabel(name)
         }
-        .controlSize(.small)
-        .accessibilityLabel(name)
     }
 }
 
@@ -586,14 +701,10 @@ private struct SchemaGroupField: View {
     var body: some View {
         if case .bool(let enabled) = value {
             VStack(alignment: .leading, spacing: 5) {
-                Toggle(isOn: Binding(
+                ToggleRow(label: name, isOn: Binding(
                     get: { enabled },
                     set: { commit(.bool($0)) }
-                )) {
-                    Text(name).font(.system(size: 10))
-                }
-                .toggleStyle(.switch)
-                .controlSize(.mini)
+                ))
                 if enabled { childEditors }
             }
         } else if case .array = value {
@@ -610,9 +721,9 @@ private struct SchemaGroupField: View {
                 childEditors
             } label: {
                 HStack {
-                    Text(name).font(.system(size: 10, weight: .medium))
+                    Text(name).font(EditorType.bodyEmphasis)
                     Spacer()
-                    Text(value.displayValue).font(.system(size: 10)).foregroundStyle(.tertiary)
+                    Text(value.displayValue).font(EditorType.caption).foregroundStyle(.tertiary)
                 }
             }
             .tint(.secondary)
@@ -691,7 +802,7 @@ private struct SchemaCollectionField: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
                             Text(itemTitle(item, index: index))
-                                .font(.system(size: 10, weight: .medium))
+                                .font(EditorType.bodyEmphasis)
                                 .lineLimit(1)
                             Spacer()
                             if let child, targetKey?.hasPrefix("segment.") == true {
@@ -747,7 +858,7 @@ private struct SchemaCollectionField: View {
                                 )
                             }
                         } else if targetKey == nil || child == nil {
-                            Text(item.displayValue).font(.system(size: 10)).foregroundStyle(.secondary)
+                            Text(item.displayValue).font(EditorType.caption).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, 3)
@@ -759,9 +870,9 @@ private struct SchemaCollectionField: View {
             .padding(.top, 4)
         } label: {
             HStack {
-                Text(name).font(.system(size: 10, weight: .medium))
+                Text(name).font(EditorType.bodyEmphasis)
                 Spacer()
-                Text("\(values.count)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
+                Text("\(values.count)").font(EditorType.timecode).foregroundStyle(.tertiary)
             }
         }
         .tint(.secondary)
@@ -889,9 +1000,9 @@ private struct JSONFieldEditor: View {
                 .padding(.top, 4)
             } label: {
                 HStack {
-                    Text(humanize(name)).font(.system(size: 10, weight: .medium))
+                    Text(humanize(name)).font(EditorType.bodyEmphasis)
                     Spacer()
-                    Text("\(object.count) fields").font(.system(size: 10)).foregroundStyle(.tertiary)
+                    Text("\(object.count) fields").font(EditorType.caption).foregroundStyle(.tertiary)
                 }
             }
             .tint(.secondary)
@@ -926,21 +1037,17 @@ private struct JSONFieldEditor: View {
                 .padding(.top, 4)
             } label: {
                 HStack {
-                    Text(humanize(name)).font(.system(size: 10, weight: .medium))
+                    Text(humanize(name)).font(EditorType.bodyEmphasis)
                     Spacer()
-                    Text("\(values.count)").font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
+                    Text("\(values.count)").font(EditorType.timecode).foregroundStyle(.tertiary)
                 }
             }
             .tint(.secondary)
         case .bool(let current):
-            Toggle(isOn: Binding(
+            ToggleRow(label: humanize(name), isOn: Binding(
                 get: { current },
                 set: { commit(.bool($0)) }
-            )) {
-                Text(humanize(name)).font(.system(size: 10))
-            }
-            .toggleStyle(.switch)
-            .controlSize(.mini)
+            ))
         case .number(let current):
             NumberField(name: name, value: current) { commit(.number($0)) }
         case .string(let current):
@@ -951,9 +1058,9 @@ private struct JSONFieldEditor: View {
             }
         case .null:
             HStack {
-                Text(humanize(name)).font(.system(size: 10))
+                Text(humanize(name)).font(EditorType.caption)
                 Spacer()
-                Text("Not set").font(.system(size: 10)).foregroundStyle(.tertiary)
+                Text("Not set").font(EditorType.caption).foregroundStyle(.tertiary)
                 Button {
                     commit(.string(""))
                 } label: { Image(systemName: "plus.circle").foregroundStyle(.secondary) }
@@ -984,23 +1091,30 @@ private struct NumberField: View {
     var unit: String? = nil
     let commit: (Double) -> Void
     @State private var draft = ""
+    @State private var scrubStart: Double?
+    @Environment(\.inspectorTint) private var tint
 
     var body: some View {
         HStack(spacing: 5) {
             Text(humanize(name))
-                .font(.system(size: 10))
+                .font(EditorType.body)
                 .lineLimit(1)
+                .contentShape(Rectangle())
+                .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+                .gesture(scrub)
+                .help("Drag left or right to scrub the value")
             Spacer(minLength: 3)
             TextField("", text: $draft)
-                .font(.system(size: 10, design: .monospaced))
+                .font(EditorType.timecode)
+                .foregroundStyle(tint)
                 .multilineTextAlignment(.trailing)
                 .textFieldStyle(.roundedBorder)
-                .frame(width: 78)
+                .frame(width: 74)
                 .onSubmit(save)
-                .onChange(of: value) { _, newValue in draft = Self.format(newValue) }
+                .onChange(of: value) { _, newValue in if scrubStart == nil { draft = Self.format(newValue) } }
                 .accessibilityLabel(humanize(name))
             if let unit, !unit.isEmpty {
-                Text(unit).font(.system(size: 10)).foregroundStyle(.tertiary).lineLimit(1)
+                Text(unit).font(EditorType.caption).foregroundStyle(.tertiary).lineLimit(1)
             }
             Stepper("", onIncrement: { step(1) }, onDecrement: { step(-1) })
                 .labelsHidden()
@@ -1010,10 +1124,26 @@ private struct NumberField: View {
         .onAppear { draft = Self.format(value) }
     }
 
+    private var increment: Double {
+        let lower = name.lowercased()
+        return stepValue ?? (lower.contains("volume") ? 0.05
+            : (lower.contains("at") || name == "in" || name == "out" ? 0.1 : 1))
+    }
+
+    private var scrub: some Gesture {
+        DragGesture(minimumDistance: 3)
+            .onChanged { drag in
+                let start = scrubStart ?? (Double(draft) ?? value)
+                scrubStart = start
+                draft = Self.format(clamp(start + (drag.translation.width / 6).rounded() * increment))
+            }
+            .onEnded { _ in
+                scrubStart = nil
+                save()
+            }
+    }
+
     private func step(_ direction: Double) {
-        let fallback = name.lowercased().contains("volume") ? 0.05
-            : (name.lowercased().contains("at") || name == "in" || name == "out" ? 0.1 : 1)
-        let increment = stepValue ?? fallback
         let next = clamp((Double(draft) ?? value) + direction * increment)
         draft = Self.format(next)
         commit(next)
@@ -1022,7 +1152,7 @@ private struct NumberField: View {
         if let number = Double(draft) {
             let next = clamp(number)
             draft = Self.format(next)
-            commit(next)
+            if abs(next - value) > 1e-9 { commit(next) }
         }
     }
     private func clamp(_ number: Double) -> Double {
@@ -1044,15 +1174,16 @@ private struct SliderField: View {
     let commit: (Double) -> Void
     @State private var draft = 0.0
     @State private var dragging = false
+    @Environment(\.inspectorTint) private var tint
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 5) {
-                Text(humanize(name)).font(.system(size: 10)).lineLimit(1)
+                Text(humanize(name)).font(EditorType.body).lineLimit(1)
                 Spacer(minLength: 3)
                 Text(Self.format(draft) + (unit.map { " \($0)" } ?? ""))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(EditorType.timecode)
+                    .foregroundStyle(tint)
                 if let defaultValue, abs(draft - defaultValue) > 1e-9 {
                     Button {
                         draft = defaultValue
@@ -1067,6 +1198,7 @@ private struct SliderField: View {
                 }
             }
             slider
+                .tint(tint)
                 .controlSize(.mini)
                 .accessibilityLabel(humanize(name))
                 .accessibilityValue(Self.format(draft))
@@ -1099,41 +1231,50 @@ private struct StringField: View {
     @State private var draft = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(humanize(name)).font(.system(size: 10))
+        Group {
             if value.count > 70 || value.contains("\n") {
-                VStack(alignment: .trailing, spacing: 4) {
-                    TextEditor(text: $draft)
-                        .font(.system(size: 10))
-                        .frame(minHeight: 44, maxHeight: 96)
-                        .scrollContentBackground(.hidden)
-                        .padding(3)
-                        .background(EditorPalette.raised, in: RoundedRectangle(cornerRadius: 4))
-                        .onChange(of: value) { _, text in draft = text }
-                        .accessibilityLabel(humanize(name))
-                    if draft != value {
-                        Button("Apply") { commit(draft) }
-                            .controlSize(.mini)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(humanize(name)).font(EditorType.body)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        TextEditor(text: $draft)
+                            .font(EditorType.body)
+                            .frame(minHeight: 44, maxHeight: 96)
+                            .scrollContentBackground(.hidden)
+                            .padding(3)
+                            .background(EditorPalette.canvas, in: RoundedRectangle(cornerRadius: 4))
+                            .onChange(of: value) { _, text in draft = text }
+                            .accessibilityLabel(humanize(name))
+                        if draft != value {
+                            Button("Apply") { commit(draft) }
+                                .controlSize(.mini)
+                        }
                     }
                 }
             } else if let options = (options ?? optionsForName(name)), options.contains(value) {
-                Picker(humanize(name), selection: Binding(
-                    get: { value },
-                    set: { commit($0) }
-                )) {
-                    ForEach(options, id: \.self) { option in
-                        Text(humanize(option)).tag(option)
+                FieldRow(label: humanize(name)) {
+                    Picker(humanize(name), selection: Binding(
+                        get: { value },
+                        set: { commit($0) }
+                    )) {
+                        ForEach(options, id: \.self) { option in
+                            Text(humanize(option)).tag(option)
+                        }
                     }
+                    .labelsHidden()
+                    .controlSize(.small)
+                    .fixedSize()
                 }
-                .labelsHidden()
-                .controlSize(.small)
             } else {
-                TextField(humanize(name), text: $draft)
-                    .font(.system(size: 10))
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { commit(draft) }
-                    .onChange(of: value) { _, text in draft = text }
-                    .accessibilityLabel(humanize(name))
+                FieldRow(label: humanize(name)) {
+                    TextField(humanize(name), text: $draft)
+                        .font(EditorType.body)
+                        .multilineTextAlignment(.trailing)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(minWidth: 90, maxWidth: 170)
+                        .onSubmit { commit(draft) }
+                        .onChange(of: value) { _, text in draft = text }
+                        .accessibilityLabel(humanize(name))
+                }
             }
         }
         .onAppear { draft = value }
@@ -1159,7 +1300,7 @@ private struct ColorStringField: View {
 
     var body: some View {
         HStack {
-            Text(humanize(name)).font(.system(size: 10))
+            Text(humanize(name)).font(EditorType.body)
             Spacer()
             ColorPicker(humanize(name), selection: Binding(
                 get: { Color(nsColor: Self.color(value)) },
@@ -1200,7 +1341,7 @@ private struct KeyframeField: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Label(humanize(name), systemImage: "point.3.connected.trianglepath.dotted")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(EditorType.bodyEmphasis)
                 Spacer()
                 Button {
                     let time = Double(store.playheadFrame) / store.fps
@@ -1227,7 +1368,7 @@ private struct KeyframeField: View {
                 }
             }
             Text("Keyframe values are edited from the full format fields below.")
-                .font(.system(size: 10))
+                .font(EditorType.caption)
                 .foregroundStyle(.tertiary)
         }
         .padding(7)
@@ -1260,11 +1401,11 @@ private struct TranscriptWordEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Label("Transcript words", systemImage: "text.quote")
-                .font(.system(size: 11, weight: .semibold))
+                .font(EditorType.section)
             ForEach(Array(words.enumerated()), id: \.offset) { index, word in
                 HStack(spacing: 5) {
                     Text("\(word["s"]?.numberValue ?? 0, format: .number.precision(.fractionLength(1)))")
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(EditorType.timecode)
                         .foregroundStyle(.tertiary)
                         .frame(width: 30, alignment: .trailing)
                     TextField("Word", text: Binding(
@@ -1272,7 +1413,7 @@ private struct TranscriptWordEditor: View {
                         set: { if drafts.indices.contains(index) { drafts[index] = $0 } }
                     ))
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 10))
+                    .font(EditorType.caption)
                 }
             }
             Button("Correct words") { applyCorrections() }
@@ -1300,151 +1441,6 @@ private struct TranscriptWordEditor: View {
                 "corrections": .array(corrections)
             ])], reason: "Correct transcript words")
         }
-    }
-}
-
-private struct ChatPane: View {
-    @Bindable var store: EditorStore
-    @FocusState private var focused: Bool
-
-    private var canSend: Bool {
-        !store.chatDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.isChatWorking
-    }
-
-    private static let starters = ["Tighten the pacing", "Make the hook punchier", "Cut any dead air"]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "bubble.left.and.text.bubble.right")
-                    .foregroundStyle(EditorPalette.accent)
-                    .accessibilityHidden(true)
-                Text("Claude").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 34)
-            .background(EditorPalette.panel)
-            Divider()
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        if store.chatEntries.isEmpty { emptyState }
-                        ForEach(store.chatEntries) { entry in
-                            ChatMessage(entry: entry)
-                                .id(entry.id)
-                        }
-                        Color.clear.frame(height: 1).id("chat-bottom")
-                    }
-                    .padding(10)
-                }
-                .onChange(of: store.chatEntries.count) { _, _ in scrollToEnd(proxy) }
-                .onChange(of: store.chatEntries.last?.text.count) { _, _ in scrollToEnd(proxy, animated: false) }
-                .onChange(of: store.isChatWorking) { _, _ in scrollToEnd(proxy) }
-            }
-            if store.isChatWorking {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Claude is working…")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button { store.stopChat() } label: { Label("Stop", systemImage: "stop.fill") }
-                        .controlSize(.small)
-                        .help("Stop Claude. Edits already applied stay, and you can undo them.")
-                        .accessibilityLabel("Stop Claude")
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(EditorPalette.accent.opacity(0.12))
-                .accessibilityElement(children: .contain)
-            }
-            Divider()
-            HStack(alignment: .bottom, spacing: 8) {
-                TextField("Describe an edit…", text: $store.chatDraft, axis: .vertical)
-                    .lineLimit(1...5)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 12))
-                    .focused($focused)
-                    .onKeyPress(.return, phases: .down) { press in
-                        // Return sends; Shift-Return (or Option-Return) inserts a new line.
-                        if press.modifiers.contains(.shift) || press.modifiers.contains(.option) { return .ignored }
-                        if canSend { store.sendChat() }
-                        return .handled
-                    }
-                    .accessibilityLabel("Message Claude")
-                    .accessibilityHint("Return sends. Shift-Return adds a new line.")
-                Button { store.sendChat() } label: { Image(systemName: "arrow.up.circle.fill").font(.system(size: 22)) }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(canSend ? EditorPalette.accent : Color.secondary.opacity(0.5))
-                    .disabled(!canSend)
-                    .help("Send  ↩ (Shift-↩ for a new line)")
-                    .accessibilityLabel("Send message")
-            }
-            .padding(10)
-        }
-        .background(EditorPalette.panel)
-    }
-
-    private func scrollToEnd(_ proxy: ScrollViewProxy, animated: Bool = true) {
-        if animated {
-            withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo("chat-bottom", anchor: .bottom) }
-        } else {
-            proxy.scrollTo("chat-bottom", anchor: .bottom)
-        }
-    }
-
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Ask Claude to shape this reel")
-                .font(.system(size: 13, weight: .semibold))
-            Text("Changes save to \(store.planFileLabel ?? "plans/<file>.json"), the same file Claude Code and ./reels render use. Every edit can be undone with ⌘Z.")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            ForEach(Self.starters, id: \.self) { text in
-                Button(text) { store.chatDraft = text; focused = true }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(!store.hasDocument)
-            }
-        }
-        .padding(4)
-    }
-}
-
-private struct ChatMessage: View {
-    let entry: ChatEntry
-    private var isYou: Bool { entry.role == "you" }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(isYou ? "You" : entry.role.prefix(1).uppercased() + entry.role.dropFirst())
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(isYou ? EditorPalette.accent : .secondary)
-                Spacer()
-                Text(entry.timestamp, style: .time)
-                    .font(.system(size: 10))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Text(entry.text)
-                .font(.system(size: 12))
-                .lineSpacing(2)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if entry.state == "streaming" {
-                ProgressView().controlSize(.mini).frame(maxWidth: .infinity, alignment: .leading)
-            } else if entry.state == "error" {
-                Label("This message failed", systemImage: "exclamationmark.circle")
-                    .font(.system(size: 11)).foregroundStyle(.red)
-            }
-        }
-        .padding(9)
-        .background(isYou ? EditorPalette.accent.opacity(0.14) : EditorPalette.raised,
-                    in: RoundedRectangle(cornerRadius: 8))
-        .accessibilityElement(children: .combine)
     }
 }
 
