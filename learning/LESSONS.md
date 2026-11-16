@@ -8,7 +8,7 @@ Audience findings are observational, not causal. Review overdue lessons before r
 
 short 7-12 s reels with a person and payoff beat 15-16 s montages on watch-through; voice-led reels (30-40 s) have low watch-through % but the highest average watch seconds
 
-- Evidence: analytics/2026-11-14T200000.json: creatine 33.5 s 38.5% / 12.9 s avg, road-to-5-ep1 40 s 30.5% / 12.2 s avg (both <48 h); multitool 101.7%, elevator 78.7%
+- Evidence: analytics/2026-11-16T045153.json: creatine 33.5 s 38.9% / 13.0 s avg (3.2 d), road-to-5-ep1 40 s 32.1% / 12.8 s avg (2.5 d); multitool 102.1%, elevator 77.1%
 - Next action: keep montages 7-13 s; judge long talking reels on average watch seconds and likes/shares, re-check at 7 d
 - Review by: 2026-11-22
 
@@ -24,9 +24,9 @@ comments are starting but still tiny: 0-2 per reel
 
 a captioned in-point inside a transcript word puts a stray half-word caption on screen
 
-- Evidence: learning/feedback.jsonl: 2026-11-01T17:46:24+00:00 captions (intervals 'on', multitool 'left')
-- Next action: start captioned segments after the previous word's end; with PR #1 merged, fix every 'cuts into' warning ./reels check prints
-- Review by: 2026-11-15
+- Evidence: learning/feedback.jsonl: 2026-11-01T17:46:24+00:00 captions (intervals 'on', multitool 'left'); no recurrence logged 11-02..11-15
+- Next action: keep fixing every 'cuts into' warning from ./reels check; retire if still no recurrence by the next review
+- Review by: 2026-11-22
 
 ## aud-person-01 (audience, active, medium confidence)
 
@@ -36,12 +36,12 @@ a person or real voice in the first shot holds better than scenery openings
 - Next action: open on a face or voice; check why club-ride-downtown held only 56.6%
 - Review by: 2026-11-22
 
-## aud-overheard-01 (audience, tentative, low confidence)
+## aud-overheard-01 (audience, active, medium confidence)
 
-overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but get the lowest likes/reach and no shares
+overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but get the lowest likes/reach, no shares, and no visible follower bump
 
-- Evidence: analytics/2026-11-14T200000.json: how-is-it-in-maine reach 1460 hold 76.4% likes 0.9%; overheard-group-ride reach 1257 hold 76.6% likes 0.6%; regroup-confessions reach 567 hold 76.1% likes 0.7%
-- Next action: keep one overheard reel a week for reach; try ending on a payoff or a line that gives people something to send
+- Evidence: analytics/2026-11-16T045153.json: maine reach 1480 hold 76.2% likes 0.9% 0 shares (5.2 d); overheard reach 1274 hold 76.5% likes 0.6% 0 shares (4.2 d); regroup reach 571 hold 75.6% likes 0.9% (8.2 d); analytics/account/2026-11-16T045153.json: +4/+4/+3 followers on 11-10/11/12, same as quieter days
+- Next action: keep at most one overheard reel a week for reach; give it a payoff or a send-able line
 - Review by: 2026-11-22
 
 ## aud-tiktok-01 (audience, tentative, low confidence)
@@ -58,4 +58,20 @@ a short 360 group-ride story built on a group-ride rule got overheard-level reac
 
 - Evidence: analytics/2026-11-15T204950.json: every-bridge-sprint-zone 12.1 s, reach 1403, hold 76.8%, watch-through 75.2%, 5 shares (0.4%), 0.8 d old; overheard reels at similar reach had 0 shares
 - Next action: re-check at 7 d; plan another 10-13 s group-ride rule/story reel and compare shares with the overheard reel that week
+- Review by: 2026-11-22
+
+## aud-personal-01 (audience, tentative, low confidence)
+
+the rider's own talking/series reels get the highest likes, shares and saves per reach even with lower 3 s hold
+
+- Evidence: analytics/2026-11-16T045153.json: road-to-5-ep1 4.8% engagement (2.5 d), creatine 3.7% with 4 shares + 2 saves (3.2 d), club-ride-downtown 4.7% (7.2 d) vs overheard 0.6-0.9%
+- Next action: re-check at 7 d; tighten the first 3 s of talking reels (open on the line, not the setup)
+- Review by: 2026-11-22
+
+## aud-followers-01 (audience, tentative, low confidence)
+
+followers grow ~3-5 a day regardless of which reel posted; reach spikes don't show up as follower spikes
+
+- Evidence: analytics/account/2026-11-16T045153.json: 14 (11-08), 19, 23, 27, 30, 33, 36 (11-14); account reach 324-1612 those days
+- Next action: ask the user to open Metricool before the next pull so the count refreshes; compare against the profile number
 - Review by: 2026-11-22
