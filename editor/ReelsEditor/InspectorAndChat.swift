@@ -81,7 +81,14 @@ private struct InspectorSectionBox<Content: View>: View {
     }
 }
 
-/// Label on the left, control right-aligned.
+private enum FieldRowMetrics {
+    /// Dropdowns and text fields never grow past this, so a long value (a moment label,
+    /// a clip ID) truncates inside the control instead of widening the whole panel.
+    static let controlMaxWidth: CGFloat = 170
+}
+
+/// Label on the left, control right-aligned. The label keeps its width first and the
+/// control shrinks to whatever is left, so rows always fit the panel.
 private struct FieldRow<Control: View>: View {
     let label: String
     @ViewBuilder var control: () -> Control
@@ -89,9 +96,11 @@ private struct FieldRow<Control: View>: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(label).font(EditorType.body).lineLimit(1).truncationMode(.tail)
+                .layoutPriority(1)
             Spacer(minLength: 4)
             control()
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -172,6 +181,7 @@ private struct InspectorPane: View {
                         }
                     }
                     .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else if let snapshot = store.snapshot {
                 ScrollView {
@@ -218,6 +228,7 @@ private struct InspectorPane: View {
                         }
                     }
                     .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 ContentUnavailableView("Nothing to inspect", systemImage: "slider.horizontal.3",
@@ -639,7 +650,7 @@ private struct MomentPickerField: View {
         .labelsHidden()
         .controlSize(.small)
         .disabled(readOnly)
-        .fixedSize()
+        .frame(maxWidth: FieldRowMetrics.controlMaxWidth)
         .accessibilityLabel(name)
         }
     }
@@ -680,7 +691,7 @@ private struct SchemaEnumField: View {
             }
             .labelsHidden()
             .controlSize(.small)
-            .fixedSize()
+            .frame(maxWidth: FieldRowMetrics.controlMaxWidth)
             .accessibilityLabel(name)
         }
     }
@@ -1262,7 +1273,7 @@ private struct StringField: View {
                     }
                     .labelsHidden()
                     .controlSize(.small)
-                    .fixedSize()
+                    .frame(maxWidth: FieldRowMetrics.controlMaxWidth)
                 }
             } else {
                 FieldRow(label: humanize(name)) {
@@ -1270,7 +1281,7 @@ private struct StringField: View {
                         .font(EditorType.body)
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.roundedBorder)
-                        .frame(minWidth: 90, maxWidth: 170)
+                        .frame(minWidth: 60, maxWidth: FieldRowMetrics.controlMaxWidth)
                         .onSubmit { commit(draft) }
                         .onChange(of: value) { _, text in draft = text }
                         .accessibilityLabel(humanize(name))

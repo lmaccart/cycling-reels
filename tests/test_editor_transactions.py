@@ -442,6 +442,22 @@ class EditorTransactionsTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "lease_held")
         store.release_lease(held["token"])
 
+    def test_manual_edit_is_never_blocked_by_a_newer_timeline_lease(self):
+        # Back-to-back drags: the second drag's lease replaced the first one's
+        # before the first edit committed, which used to fail with lease_conflict.
+        store, _ = self.make_store(compiler=fake_compile)
+        before = store.snapshot()
+        node = next(n for n in before["nodes"] if n["kind"] == "segment")
+        first = store.acquire_lease("timeline-reorder")
+        second = store.acquire_lease("timeline-trim")
+        for lease in (first["token"], None):
+            batch = {"expected": store.snapshot()["revisions"], "origin": "manual", "reason": "drag",
+                     "operations": [{"op": "set_field", "id": node["id"], "path": "/speed", "value": 1.25}]}
+            if lease:
+                batch["lease"] = lease
+            store.apply(batch)
+        store.release_lease(second["token"])
+
     def test_default_lease_ttl_is_short(self):
         store, _ = self.make_store(compiler=fake_compile)
         lease = store.acquire_lease("timeline-trim")

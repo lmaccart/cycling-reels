@@ -443,11 +443,13 @@ class DocumentStore:
         # The candidate is private. Let a manual gesture/commit win while the
         # worker validates; callers recheck revisions and leases before HEAD.
         state = self._lock._release_save() if self._lock._is_owned() else None
+        self._compile_state.library_memo = None
         try:
             yield
         finally:
             if state is not None:
                 self._lock._acquire_restore(state)
+            self._compile_state.library_memo = None
 
     def _ensure_open(self) -> None:
         if self._closed:
@@ -481,6 +483,30 @@ class DocumentStore:
     # ---- revisions, paths and journal ---------------------------------
 
     def _library_revision(self) -> str:
+        # Inside one apply() the library revision is asked for many times (~65 ms of
+        # folder walking each). While the lock is held it is reused; releasing the lock
+        # for validation drops it, so the post-validation check is always fresh.
+        memo = getattr(self._compile_state, "library_memo", None)
+        if memo is not None:
+            return memo
+        value = self._read_library_revision()
+        if getattr(self._compile_state, "library_scope", False):
+            self._compile_state.library_memo = value
+        return value
+
+    @contextmanager
+    def _library_revision_scope(self):
+        state = self._compile_state
+        outer = getattr(state, "library_scope", False)
+        state.library_scope = True
+        try:
+            yield
+        finally:
+            state.library_scope = outer
+            if not outer:
+                state.library_memo = None
+
+    def _read_library_revision(self) -> str:
         value = getattr(self.workspace, "library_revision", None)
         if callable(value):
             try:
@@ -714,6 +740,9 @@ class DocumentStore:
         expected_revisions: dict[str, Any] | None = None,
         cancel_token: tuple[str, int] | None = None,
     ) -> str:
+        # Committing may write library inputs (transcripts, config): no reuse from here on.
+        state = self._compile_state
+        state.library_memo, state.library_scope = None, False
         revision = str(uuid.uuid4())
         renderer_revision = renderer_revision or self._head_renderer_revision() or self._working_renderer_revision()
         old_manifest = self._manifest() if self._head_revision() else {}
@@ -1113,11 +1142,13 @@ class DocumentStore:
         now = time.monotonic()
         if self._lease and self._lease["expires"] <= now:
             self._lease = None
-        if self._lease:
-            supplied = batch.get("lease")
-            if batch.get("origin", "ai") != "manual" or supplied != self._lease["token"]:
-                raise DocumentError("lease_conflict", "an active manual edit lease takes precedence",
-                                    {"owner": self._lease["owner"]})
+        # A lease protects the user's gesture from AI/external edits. The user's own
+        # edits (timeline, inspector) never conflict with it: back-to-back drags used to
+        # fail here when a new drag's lease replaced the one the previous edit carried.
+        # Their order is still guarded by the expected-revision check.
+        if self._lease and batch.get("origin", "ai") != "manual":
+            raise DocumentError("lease_conflict", "an active manual edit lease takes precedence",
+                                {"owner": self._lease["owner"]})
 
     # ---- operation application -----------------------------------------
 
@@ -1225,7 +1256,7 @@ class DocumentStore:
         if not isinstance(batch, dict):
             raise DocumentError("invalid_batch", "batch must be an object")
         expected = batch.get("expected")
-        with self._lock:
+        with self._lock, self._library_revision_scope():
             self._ensure_open()
             self._check_expected(expected)
             self._check_lease(batch)

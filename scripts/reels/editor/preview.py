@@ -10,6 +10,7 @@ import shutil
 import site
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import PurePosixPath
 from pathlib import Path
@@ -322,7 +323,26 @@ def _profile_text(
     return "\n".join(lines) + "\n"
 
 
+_BROWSER_CACHE: dict[tuple[str, str], tuple[float, Path | None]] = {}
+
+
 def _browser_executable(workspace) -> Path | None:
+    """The headless browser for Remotion. Searching the caches walks large folders
+    (~150 ms), and every compile asks, so the answer is kept while it still exists."""
+    key = (str(workspace.project.cfg("render", "browserExecutable") or ""), str(workspace.code_root))
+    cached = _BROWSER_CACHE.get(key)
+    if cached is not None:
+        found_at, path = cached
+        if path is not None and path.is_file() and os.access(path, os.X_OK):
+            return path
+        if path is None and time.monotonic() - found_at < 30:
+            return None
+    path = _find_browser_executable(workspace)
+    _BROWSER_CACHE[key] = (time.monotonic(), path)
+    return path
+
+
+def _find_browser_executable(workspace) -> Path | None:
     configured = workspace.project.cfg("render", "browserExecutable")
     if configured:
         path = Path(str(configured)).expanduser()

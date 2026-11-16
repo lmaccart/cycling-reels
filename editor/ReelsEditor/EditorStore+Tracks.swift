@@ -30,23 +30,16 @@ extension EditorStore {
                    reason: locked ? "Lock track \(id)" : "Unlock track \(id)")
     }
 
+    /// Timeline drag between tracks: shown on the new track at once, saved in the background.
     func moveNode(_ node: EditorNode, toTrack trackID: String) {
-        guard let target = tracks.first(where: { $0.id == trackID }) else { return }
-        if target.locked { notice = "Track \(trackID) is locked."; return }
-        runTrackOp(["op": .string("set_node_track"), "id": .string(node.id), "track": .string(trackID)],
-                   reason: "Move to \(trackID)")
-    }
-
-    /// Timeline drag between tracks: runs under the drag's edit lease and always hands it back.
-    func moveNode(_ node: EditorNode, toTrack trackID: String, lease: String?) {
+        guard let target = tracks.first(where: { $0.id == trackID }), !target.locked else {
+            notice = "Track \(trackID) is locked."
+            return
+        }
         Task {
-            if let target = tracks.first(where: { $0.id == trackID }), !target.locked {
-                await apply([.object(["op": .string("set_node_track"), "id": .string(node.id), "track": .string(trackID)])],
-                            reason: "Move to \(trackID)", lease: lease)
-            } else {
-                notice = "Track \(trackID) is locked."
-            }
-            if let lease { releaseTimelineLease(lease) }
+            await apply([.object(["op": .string("set_node_track"), "id": .string(node.id), "track": .string(trackID)])],
+                        reason: "Move to \(trackID)",
+                        predict: OptimisticTimeline.moveToTrack(id: node.id, track: trackID))
         }
     }
 
