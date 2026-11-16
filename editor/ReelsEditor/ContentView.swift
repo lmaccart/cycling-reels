@@ -674,7 +674,7 @@ private struct MonitorPanel: View {
             .frame(height: 32)
             .background(EditorPalette.panel)
             Divider()
-            SourceMonitor(store: store, model: sourceModel)
+            sourceMonitor
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             SourceControls(store: store, model: sourceModel)
         }
@@ -702,13 +702,22 @@ private struct MonitorPanel: View {
     private var selectedMonitor: some View {
         Group {
             if store.activeTab == "source" {
-                SourceMonitor(store: store, model: sourceModel)
+                sourceMonitor
             } else {
                 ProgramMonitor(store: store)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+    }
+
+    @ViewBuilder
+    private var sourceMonitor: some View {
+        if let assetID = store.selectedAssetID {
+            SourceMonitor(store: store, model: sourceModel).draggable(assetID)
+        } else {
+            SourceMonitor(store: store, model: sourceModel)
+        }
     }
 
     @ViewBuilder
@@ -772,7 +781,8 @@ private struct SourceControls: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 if let id = store.selectedAssetID {
-                    Button { store.insertDroppedItem(id) } label: {
+                    Button { _ = store.insertDroppedItem(id, atFrame: store.playheadFrame, trackID: "V1",
+                                                         sourceIn: store.sourceIn, sourceOut: store.sourceOut) } label: {
                         Label("Insert photo", systemImage: "arrow.down.to.line")
                     }
                 }

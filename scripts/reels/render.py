@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
 from . import grade as grading
 from . import overlay
+from .timeline import CAPABILITIES as TIMELINE_CAPABILITIES, positioned, requantize, place as place_timeline, duration as timeline_duration
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
 from .mix import music_drops, music_levels, nat_windows, quiet_nat, volume_keys
@@ -131,7 +133,8 @@ def footage_problem(project: Project, asset: dict, cache: dict[str, str | None])
 
 
 def _visual(
-    project: Project, s: dict, where: str, errors: list[str], warnings: list[str], verified: dict[str, str | None]
+    project: Project, s: dict, where: str, errors: list[str], warnings: list[str], verified: dict[str, str | None],
+    *, timeline_mode: bool = False,
 ) -> tuple[dict, dict, float] | None:
     """One clip or photo from the library — a segment or a cutaway: footage check, in/out (or a
     tagged moment), speed, framing and 360 camera. Returns (asset, spec, seconds on screen), or
@@ -146,6 +149,24 @@ def _visual(
         errors.append(f"{where}: {problem}")
         return None
     spec: dict[str, Any] = dict(s)
+    def camera(seconds):
+        window = spec.get("cameraWindow")
+        if window:
+            import math
+            if (not isinstance(window, dict)
+                    or not isinstance(window.get("durationSeconds"), (int, float))
+                    or not isinstance(window.get("offsetSeconds"), (int, float))
+                    or not math.isfinite(window["durationSeconds"]) or window["durationSeconds"] <= 0
+                    or not math.isfinite(window["offsetSeconds"])):
+                raise ReelsError("invalid source camera window")
+        camera_spec = {**spec, "path": window["path"]} if window else spec
+        result = plan_camera(camera_spec, tags, moment_view,
+                             window["durationSeconds"] if window else seconds,
+                             errors, warnings, where, s)
+        if window and result.get("path"):
+            for key in result["path"]:
+                key["at"] -= float(window["offsetSeconds"])
+        return result
     spec["asset"] = asset["id"]
     tags = asset.get("tags") or {}
     if asset.get("status") == "skip":
@@ -172,7 +193,7 @@ def _visual(
             return None
         spec["in"] = _num(spec, "in", 0, 0, dur, errors, where)
         spec["out"] = min(_num(spec, "out", dur, 0, dur + 0.05, errors, where), dur)
-        if spec["out"] - spec["in"] < 0.3:
+        if spec["out"] <= spec["in"] or (not timeline_mode and spec["out"] - spec["in"] < 0.3):
             errors.append(f"{where}: out must be at least 0.3 s after in")
             return None
         spec["speed"] = _num(spec, "speed", 1.0, 0.25, 4.0, errors, where)
@@ -185,9 +206,9 @@ def _visual(
             errors.append(f"{where}: captions=transcript but {asset['id']} has no transcript (./reels transcribe {asset['id']})")
         seconds = (spec["out"] - spec["in"]) / spec["speed"]
         if is_360:
-            spec["sphere"] = plan_camera(spec, tags, moment_view, seconds, errors, warnings, where, s)
+            spec["sphere"] = camera(seconds)
     else:
-        spec["duration"] = _num(spec, "duration", 2.5, 0.8, 12, errors, where)
+        spec["duration"] = _num(spec, "duration", 2.5, 1e-9 if timeline_mode else 0.8, 12, errors, where)
         spec["motion"] = _pick(spec, "motion", "zoom-in", MOTIONS, errors, where)
         spec["fit"] = _pick(spec, "fit", "cover", FITS, errors, where)
         spec["focusX"] = _num(spec, "focusX", tags.get("focusX", 0.5), 0, 1, errors, where)
@@ -197,7 +218,7 @@ def _visual(
         spec["captions"] = "none"
         seconds = spec["duration"]
         if is_360:
-            spec["sphere"] = plan_camera(spec, tags, None, seconds, errors, warnings, where, s)
+            spec["sphere"] = camera(seconds)
             spec["fit"] = "cover"
             if spec["sphere"]["path"]:
                 spec["motion"] = "none"  # the camera move is the motion
@@ -236,7 +257,8 @@ def _cutaways(
             errors.append(f"{cw}: {', '.join(misplaced)} belong on the segment — under a cutaway its own audio, captions and text keep going")
             continue
         at = _num(c, "at", 0, 0, 600, errors, cw)
-        got = _visual(project, {key: v for key, v in c.items() if key != "at"}, cw, errors, warnings, verified)
+        got = _visual(project, {key: v for key, v in c.items() if key != "at"}, cw, errors, warnings, verified,
+                      timeline_mode=bool(sg.spec.get("timeline")))
         if got is None:
             continue
         asset, spec, seconds = got
@@ -244,7 +266,7 @@ def _cutaways(
         spec.update(captions="none", transition="cut", nat=[], clean=False, payoff=False, bleep=None, _bleeps=[], punch=None, _punches=[])
         frames = max(1, round(seconds * fps))
         start = round(at * fps)
-        if frames < CUTAWAY_MIN_FRAMES:
+        if frames < CUTAWAY_MIN_FRAMES and not sg.spec.get("timeline"):
             errors.append(f"{cw}: {seconds:.2f}s is too short to register — make it at least {CUTAWAY_MIN_FRAMES / fps:.1f}s")
             continue
         if start + frames > sg.frames + 1:
@@ -270,9 +292,10 @@ def fit_cutaways(segs: list[Seg], fps: int, warnings: list[str]) -> None:
     longer fit are trimmed to its end, or dropped when too little is left."""
     for sg in segs:
         kept = []
+        minimum = 1 if sg.spec.get("timeline") else CUTAWAY_MIN_FRAMES
         for c in sg.spec.get("_cutaways") or []:
             room = sg.frames - c["start"]
-            if room < CUTAWAY_MIN_FRAMES:
+            if room < minimum:
                 warnings.append(f"{c['where']}: its segment got shorter when it was retimed to the music — the cutaway no longer fits, dropped")
                 continue
             if c["seg"].frames > room:
@@ -286,7 +309,7 @@ def cutaway_name(sg: Seg, k: int) -> str:
     return f"cut{sg.index}-{k}"
 
 
-def cutaway_props(sg: Seg) -> list[dict]:
+def cutaway_props(sg: Seg, fps: int = 30) -> list[dict]:
     """Template props for a segment's cutaways (frames relative to the segment start)."""
     out = []
     for k, c in enumerate(sg.spec.get("_cutaways") or []):
@@ -298,6 +321,11 @@ def cutaway_props(sg: Seg) -> list[dict]:
             p.update(kind="photo", src=f"{cutaway_name(sg, k)}.jpg", motion=cs.spec["motion"], fit=cs.spec["fit"],
                      focusX=cs.spec["focusX"], focusY=cs.spec["focusY"])  # fmt: skip
         out.append(p)
+    for result, cut in zip(out, sg.spec.get("_cutaways") or []):
+        window = cut["seg"].spec.get("motionWindow")
+        if window:
+            result.update(motionOffsetFrames=round(window["offsetSeconds"] * fps),
+                          motionDurationFrames=round(window["durationSeconds"] * fps))
     return out
 
 
@@ -337,7 +365,10 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", str(plan.get("slug") or "")):
         errors.append("slug must be lowercase letters, digits and dashes (e.g. 2026-10-26-climb-attack)")
     raw = plan.get("segments") or []
-    if not raw:
+    explicit = positioned(plan)
+    if plan.get("timeline") is not None and not explicit:
+        raise ReelsError("unsupported timeline version")
+    if not raw and not explicit:
         errors.append("plan needs at least one segment")
 
     segs: list[Seg] = []
@@ -346,7 +377,7 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
         if not isinstance(s, dict):
             errors.append(f"{where}: must be an object")
             continue
-        got = _visual(project, s, where, errors, warnings, verified)
+        got = _visual(project, s, where, errors, warnings, verified, timeline_mode=explicit)
         if got is None:
             continue
         asset, spec, seconds = got
@@ -366,6 +397,12 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
 
+    if explicit:
+        try:
+            place_timeline(plan, segs, fps)
+        except ValueError as exc:
+            raise ReelsError(str(exc)) from exc
+        return segs, warnings
     tf = int(project.cfg("render", "transitionFrames"))
     for i, sg in enumerate(segs):
         if i > 0 and sg.spec["transition"] == "fade":
@@ -444,10 +481,11 @@ def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[d
     return out
 
 
-def _trim(items: list[dict], limit: int, min_len: int = 8) -> list[dict]:
+def _trim(items: list[dict], limit: int, min_len: int = 8, *, keep_owned: bool = False) -> list[dict]:
     out = []
     for it in items:
-        if it["startFrame"] >= limit - min_len:
+        remaining = 0 if keep_owned and it.get("ownerSegmentIndex") is not None else min_len
+        if it["startFrame"] >= limit - remaining:
             continue
         it = dict(it)
         it["endFrame"] = min(it["endFrame"], limit)
@@ -537,13 +575,23 @@ def _beats(plan: dict, segs: list[Seg], total: int, fps: int, default_style: str
         if pos not in POSITIONS:
             warnings.append(f"{where}: position {pos!r} unknown — using 'lower'")
             pos = "lower"
+        owner = re.match(r"segment (\d+) text", where)
+        if positioned(plan) and owner:
+            host = segs[int(owner[1])-1]
+            s, e = max(s, host.start), min(e, host.end)
+            if e <= s:
+                return
         s = int(clamp(s, 0, total - 1))
         e = int(clamp(e, s + 1, total))
-        if e - s < 8:
+        if e - s < (1 if positioned(plan) and owner else 8):
             warnings.append(f"{where}: on screen for under 8 frames — dropped")
             return
         style = _style(b.get("style"), default_style, warnings, where)
         beats.append({"text": text, "startFrame": s, "endFrame": e, "position": pos, "style": style})
+        if positioned(plan) and owner:
+            raw_index = where.rsplit("[", 1)[1].rstrip("]")
+            beats[-1].update(ownerSegmentIndex=int(owner[1])-1,
+                             _editorPath=f"/segments/{int(owner[1])-1}/text/{raw_index}")
 
     for sg in segs:
         default_pos = "top" if sg.spec["captions"] == "transcript" else "lower"
@@ -586,10 +634,15 @@ def _stats(project: Project, segs: list[Seg], total: int, fps: int, warnings: li
             s = sg.start + round(at * fps)
             e = sg.end - round(0.15 * fps) if st.get("for") is None else s + round(float(st["for"]) * fps)
             s, e = int(clamp(s, 0, total - 1)), int(clamp(e, 0, total))
-            if e - s < 10:
+            if sg.spec.get("timeline"):
+                s, e = max(s, sg.start), min(e, sg.end)
+            if e - s < (1 if sg.spec.get("timeline") else 10):
                 warnings.append(f"{where}: too short to read — dropped")
                 continue
             chip: dict[str, Any] = {"label": label, "value": value, "startFrame": s, "endFrame": e}
+            if sg.spec.get("timeline"):
+                chip.update(endFrame=min(e, sg.end), ownerSegmentIndex=sg.index,
+                            _editorPath=f"/segments/{sg.index}/stats/{j}")
             if gps == "gps" and _strava_can(project, sg, "speed", s, e, fps):
                 errors.append(f"{where}: {sg.asset['id']} is linked to a Strava ride that covers this moment — use \"strava:speed\" "
                               "(Strava GPS first; GoPro GPS only where Strava has no data)")  # fmt: skip
@@ -808,12 +861,14 @@ def _routes(project: Project, segs: list[Seg], total: int, fps: int, limit: int)
         where = f"segment {sg.index + 1} route"
         if sg.spec.get("route") == "strava":
             s, e = sg.start, min(sg.end, limit)
-            if e - s < 10:
+            if e - s < (1 if sg.spec.get("timeline") else 10):
                 continue
             got = _strava_route(project, sg, s, e, fps, errors, where)
             if got:
+                if sg.spec.get("timeline"):
+                    got["ownerSegmentIndex"] = sg.index
                 prev = out[-1] if out else None
-                if prev and prev["_key"] == got["_key"] and s <= prev["endFrame"]:
+                if not sg.spec.get("timeline") and prev and prev["_key"] == got["_key"] and s <= prev["endFrame"]:
                     prev["dots"] = prev["dots"][: s - prev["startFrame"]] + got["dots"]
                     prev["endFrame"] = e
                 else:
@@ -830,7 +885,7 @@ def _routes(project: Project, segs: list[Seg], total: int, fps: int, limit: int)
         if tr is None:
             continue
         s, e = sg.start, min(sg.end, limit)
-        if e - s < 10:
+        if e - s < (1 if sg.spec.get("timeline") else 10):
             continue
         if _gap_error(project, tr, sg, _clip_time(sg, s, fps), _clip_time(sg, e, fps), errors, where):
             continue
@@ -877,11 +932,13 @@ def _routes(project: Project, segs: list[Seg], total: int, fps: int, limit: int)
             dots.append(norm(r["lat"], r["lon"]))
         else:
             prev = out[-1] if out else None
-            if prev and prev["_key"] == key and s <= prev["endFrame"]:
+            if not sg.spec.get("timeline") and prev and prev["_key"] == key and s <= prev["endFrame"]:
                 prev["dots"] = prev["dots"][: s - prev["startFrame"]] + dots
                 prev["endFrame"] = e
             else:
                 out.append({"_key": key, "startFrame": s, "endFrame": e, "paths": paths, "dots": dots})
+                if sg.spec.get("timeline"):
+                    out[-1]["ownerSegmentIndex"] = sg.index
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     for r in out:
@@ -1015,7 +1072,8 @@ def resolve_music(project: Project, plan: dict, segs: list[Seg], fps: int, warni
         grid = ensure_beats(project, path, meta)
         if grid:
             beats = [b - start for b in grid["beats"] if b >= start - 0.02]
-            music["beatSync"] = {"bpm": grid["bpm"], "cuts": snap_to_beats(segs, beats, 60 / grid["bpm"], fps, warnings)}
+            if not positioned(plan):
+                music["beatSync"] = {"bpm": grid["bpm"], "cuts": snap_to_beats(segs, beats, 60 / grid["bpm"], fps, warnings)}
         else:
             warnings.append("cutOnBeat: couldn't find a steady beat in this track — cuts left as planned")
     elif (loop or grid_for) and meta and meta.get("beats"):
@@ -1038,8 +1096,13 @@ def resolve_music(project: Project, plan: dict, segs: list[Seg], fps: int, warni
 
 def build(project: Project, plan: dict) -> dict:
     fps = int(project.cfg("render", "fps"))
+    if positioned(plan) and plan["timeline"].get("fps") != fps:
+        plan = deepcopy(plan)
+        requantize(plan, fps)
     errors: list[str] = []
     loop, on_beats = check_loop(plan, errors), check_beats_punch(plan, errors)
+    if positioned(plan):
+        loop = False  # explicit placements are never retimed to a loop/bar grid
     check_spine(plan, errors)
     grading.check("plan", plan.get("grade"), errors)
     for i, s in enumerate(plan.get("segments") or []):
@@ -1051,6 +1114,8 @@ def build(project: Project, plan: dict) -> dict:
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     segs, warnings = normalize(project, plan)
+    if positioned(plan) and (plan.get("loop") or isinstance(plan.get("music"), dict) and plan["music"].get("cutOnBeat")):
+        warnings.append("Explicit timeline placement keeps clip frames fixed; automatic beat/loop retiming is disabled.")
     acfg = project.config["audio"]
     brand = project.config["brand"]
     default_style = brand.get("textStyle") if brand.get("textStyle") in STYLES else "light"
@@ -1067,7 +1132,7 @@ def build(project: Project, plan: dict) -> dict:
             warnings.append("loop: a cutaway covers the seam, but the seam check measures the clip under it — start the first "
                             "cutaway after 0 s and end the last one before the reel does")  # fmt: skip
     baked = music if music and not music.get("instagram") else None
-    total = segs[-1].end
+    total = timeline_duration(plan, segs, fps)
     secs = total / fps
     if secs < 5:
         warnings.append(f"reel is only {secs:.1f}s — 7–30s performs best")
@@ -1098,6 +1163,9 @@ def build(project: Project, plan: dict) -> dict:
                 warnings.append(f"segment {sg.index + 1}: no transcript words between {sg.spec['in']}s and {sg.spec['out']}s")
             warnings += caption_cuts(sg, transcripts[aid].get("words") or [])
             pages += got
+            if positioned(plan):
+                for page in got:
+                    page["ownerSegmentIndex"] = sg.index
 
     words = {aid: t.get("words") or [] for aid, t in transcripts.items()}
     if on_beats and not music:
@@ -1131,7 +1199,7 @@ def build(project: Project, plan: dict) -> dict:
             zoom = punch_keys(sg, fps)
             if zoom:
                 seg_props[-1]["punch"] = zoom
-            cuts = cutaway_props(sg)
+            cuts = cutaway_props(sg, fps)
             if cuts:
                 seg_props[-1]["cutaways"] = cuts
             patches = blur_props(sg.spec.get("blur"), sg.frames, fps, f"segment {sg.index + 1}")
@@ -1155,6 +1223,12 @@ def build(project: Project, plan: dict) -> dict:
                 }
             )
 
+        if positioned(plan):
+            seg_props[-1].update(startFrame=sg.start, track=sg.spec["timeline"]["track"])
+            window = sg.spec.get("motionWindow")
+            if window:
+                seg_props[-1].update(motionOffsetFrames=round(window["offsetSeconds"] * fps),
+                                     motionDurationFrames=round(window["durationSeconds"] * fps))
     hook = plan.get("hook")
     hook = {"text": hook} if isinstance(hook, str) else hook
     hook_props = None
@@ -1220,8 +1294,8 @@ def build(project: Project, plan: dict) -> dict:
             end_props = {"handle": handle, "cta": cta, "startFrame": int(start), "endFrame": int(total), "style": style}
     limit = end_props["startFrame"] if end_props else total
 
-    pages = _trim(pages, limit, 4)
-    stats = _trim(_stats(project, segs, total, fps, warnings), limit)
+    pages = _trim(pages, limit, 4, keep_owned=positioned(plan))
+    stats = _trim(_stats(project, segs, total, fps, warnings), limit, keep_owned=positioned(plan))
     routes = _routes(project, segs, total, fps, limit)
     from .progress import bars as progress_bars, clashes
 
@@ -1231,16 +1305,19 @@ def build(project: Project, plan: dict) -> dict:
         top = top_offset(hook_props, stats, routes, bars)
         if top:
             hook_props["offsetTop"] = top
-    beats = place_beats(_trim(_beats(plan, segs, total, fps, default_style, warnings), limit), hook_props, pages, stats, warnings, routes, bars)
-    shown = [e for e in shown if e["props"]["startFrame"] < limit - MIN_EXHIBIT_FRAMES]  # the end card takes over
+    beats = _trim(_beats(plan, segs, total, fps, default_style, warnings), limit, keep_owned=positioned(plan))
+    if not positioned(plan):
+        beats = place_beats(beats, hook_props, pages, stats, warnings, routes, bars)
+    shown = [e for e in shown if e["props"]["startFrame"] < limit - (0 if positioned(plan) else MIN_EXHIBIT_FRAMES)]
     for e in shown:
         e["props"]["endFrame"] = min(e["props"]["endFrame"], limit)
-    make_room(shown, hook_props, beats, pages, warnings, fps)
+    make_room(shown, hook_props, beats, pages, warnings, fps, positioned=positioned(plan))
     exhibit_props = [e["props"] for e in shown]
     fg_props = foregrounds(shown, segs, fps)
-    warnings += retention_warnings(segs, pages, beats + exhibit_props, nat, hook_props, fps, total)
+    if segs:
+        warnings += retention_warnings(segs, pages, beats + exhibit_props, nat, hook_props, fps, total)
     try:
-        lin = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs, "props": {"segments": seg_props}, "music": music})
+        lin = lineage_from_built(str(plan.get("slug") or ""), {"fps": fps, "segs": segs, "props": {"segments": seg_props}, "music": music}) if segs else None
     except Exception:  # noqa: BLE001 — only the voice spine check needs it; the opener check is advice
         if plan.get("spine") == "voice":
             raise
@@ -1289,6 +1366,7 @@ def build(project: Project, plan: dict) -> dict:
         warnings.append("plan has no post.caption yet — add one before queueing")
 
     props = {
+        **({"timeline": dict(plan["timeline"])} if positioned(plan) else {}),
         "width": int(project.cfg("render", "width")),
         "height": int(project.cfg("render", "height")),
         "fps": fps,
@@ -1317,6 +1395,7 @@ def build(project: Project, plan: dict) -> dict:
     sound = {"nat": nat, "drops": drops, "cues": cues, "cleanNat": bool(acfg["cleanNat"]), "music": bool(music_props)}
     loop_info = {"swap": swap_halves(segs, fps), "bars": (music or {}).get("loop")} if loop else None  # as retimed
     return {"segs": segs, "props": props, "warnings": warnings, "music": music, "sound": sound, "total": int(total), "fps": fps,
+            "timelineCapabilities": dict(TIMELINE_CAPABILITIES),
             "loop": loop_info, "post": extras, "exhibits": shown, "grade": plan.get("grade")}  # fmt: skip
 
 
@@ -1389,7 +1468,7 @@ def stage_video(
             graph += f";[0:a:0]{','.join(af)}[am];{tone};[am][bt]amix=inputs=2:duration=first:normalize=0,{','.join(fades)}[a]"
         else:
             graph += f";[0:a:0]{','.join(af + fades)}[a]"
-    cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-ss", f"{spec['in']:.3f}", "-t", f"{spec['out'] - spec['in']:.3f}", "-i", src]
+    cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-ss", f"{spec['in']:.12f}", "-t", f"{spec['out'] - spec['in']:.12f}", "-i", src]
     cmd += ["-filter_complex", graph, "-map", "[v]"]
     cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"] if use_audio else ["-an"]
     graded = grade is not None and grading.active(grade)

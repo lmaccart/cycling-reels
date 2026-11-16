@@ -32,6 +32,8 @@ export type Cutaway = {
   /** Frames from the segment start. */
   startFrame: number;
   durationInFrames: number;
+  motionOffsetFrames?: number;
+  motionDurationFrames?: number;
   /** Photo only: slow move and framing, as on photo segments. */
   motion?: Motion;
   fit?: 'cover' | 'blurfill';
@@ -42,6 +44,11 @@ export type Cutaway = {
 /** Every segment is a clip or photo from the user's own footage library — nothing else can be shown. */
 export type Segment = {
   kind: 'video' | 'photo';
+  /** Present only in the explicitly positioned, layered timeline format. */
+  startFrame?: number;
+  track?: string;
+  motionOffsetFrames?: number;
+  motionDurationFrames?: number;
   /** Path relative to the render's public dir. */
   src: string;
   durationInFrames: number;
@@ -252,6 +259,7 @@ export type TitleCard = {
 };
 
 export type ReelProps = {
+  timeline?: { version: number; fps: number; durationFrames: number };
   width: number;
   height: number;
   fps: number;

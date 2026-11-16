@@ -4,8 +4,11 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from helpers import TempProject, live_workspace
 from reels import cli
@@ -75,6 +78,102 @@ class LiveWorkspaceTests(unittest.TestCase):
         (self.repo / "music").mkdir(exist_ok=True)
         write_json(self.repo / "music/song.json", {"slug": "song"})
         self.assertNotEqual(ws.library_revision(), before)
+
+    def _wait_for_library_change(self, before, timeout=3):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            current = self.workspace.library_revision()
+            if current != before:
+                return current
+            time.sleep(0.01)
+        self.fail("library watcher did not publish the input change")
+
+    def test_library_watcher_tracks_overwrite_add_delete_and_directory_move(self):
+        ws = self.workspace
+        self.assertTrue(ws.start_library_watcher(interval=0.02))
+        self.addCleanup(ws.stop_library_watcher)
+        initial = ws.library_revision()
+
+        nested = self.repo / "library/transcripts/nested"
+        nested.mkdir(parents=True)
+        entry = nested / "words.json"
+        entry.write_text('{"words":["before"]}\n', encoding="utf-8")
+        added = self._wait_for_library_change(initial)
+
+        entry.write_text('{"words":["after!"]}\n', encoding="utf-8")
+        overwritten = self._wait_for_library_change(added)
+
+        moved_dir = self.repo / "library/transcripts/renamed"
+        nested.rename(moved_dir)
+        moved = moved_dir / "words.json"
+        relocated = self._wait_for_library_change(overwritten)
+
+        moved.unlink()
+        deleted = self._wait_for_library_change(relocated)
+        self.assertNotEqual(len({initial, added, overwritten, relocated, deleted}), 1)
+
+    def test_refresh_is_fresh_and_stopped_or_unavailable_watcher_falls_back(self):
+        ws = self.workspace
+        path = self.repo / "library/transcripts/fresh.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"value":"before"}\n', encoding="utf-8")
+        before = ws.refresh_library_revision()
+        before_generation = ws.library_generation()
+        original_mtime = path.stat().st_mtime_ns
+        path.write_text('{"value":"after!"}\n', encoding="utf-8")
+        os.utime(path, ns=(original_mtime, original_mtime))
+        after = ws.refresh_library_revision()
+        self.assertNotEqual(after, before)
+        self.assertGreater(ws.library_generation(), before_generation)
+        self.assertIn("library/transcripts/fresh.json", ws.library_signatures())
+
+        self.assertTrue(ws.start_library_watcher(interval=0.02))
+        self.assertEqual(ws.library_revision(), after)
+        ws.stop_library_watcher()
+        path.write_text('{"value":"stopped"}\n', encoding="utf-8")
+        stopped = ws.library_revision()
+        self.assertNotEqual(stopped, after)
+
+        with patch.object(threading.Thread, "start", side_effect=RuntimeError("watcher unavailable")):
+            self.assertFalse(ws.start_library_watcher(interval=0.02))
+        path.write_text('{"value":"fallback"}\n', encoding="utf-8")
+        self.assertNotEqual(ws.library_revision(), stopped)
+
+    def test_retired_stalled_watcher_cannot_publish_into_restarted_generation(self):
+        ws = self.workspace
+        self.assertTrue(ws.start_library_watcher(interval=60))
+        old_signatures = ws.library_signatures()
+        ws.stop_library_watcher()
+
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+
+        def stalled_signature():
+            entered.set()
+            release.wait(3)
+            finished.set()
+            return old_signatures
+
+        try:
+            with patch.object(ws, "_input_watch_signature", side_effect=stalled_signature):
+                self.assertTrue(ws.start_library_watcher(interval=0.01))
+                self.assertTrue(entered.wait(2))
+                retired = ws._library_watch_thread
+                added = self.repo / "library/transcripts/new-generation.json"
+                added.write_text('{"words":["new"]}\n', encoding="utf-8")
+                ws.stop_library_watcher(join_timeout=0.01)
+                self.assertTrue(ws.start_library_watcher(interval=60))
+                current_revision = ws.library_revision()
+                current_signatures = ws.library_signatures()
+                release.set()
+                if retired is not None:
+                    retired.join(2)
+                self.assertTrue(finished.wait(2))
+                self.assertEqual(ws.library_revision(), current_revision)
+                self.assertEqual(ws._library_signatures, current_signatures)
+                self.assertFalse(ws._library_revision_dirty)
+        finally:
+            release.set()
+            ws.stop_library_watcher()
 
     def test_renderer_revision_follows_the_repo_source(self):
         ws = self.workspace

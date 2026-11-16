@@ -304,7 +304,17 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
         resolve(path, seg["spec"], start, end, assetId=seg["asset"]["id"], sourceIn=seg["spec"].get("in"),
             sourceOut=seg["spec"].get("out"), speed=seg["spec"].get("speed", 1),
             transitionInFrames=int(seg.get("trans", 0)), mediaKind=seg.get("kind"),
-            assetKind=seg.get("kind"))
+            assetKind=seg.get("kind"), sourceDuration=seg.get("sourceDuration"))
+        if ((compiled.get("timelineCapabilities") or {}).get("version") == 1
+                and seg.get("hasAudio") and seg["spec"].get("volume") != 0):
+            visual = (props.get("segments") or [])[i] if i < len(props.get("segments") or []) else {}
+            audio = {
+                "asset": seg["asset"]["id"], "in": seg["spec"].get("in"), "out": seg["spec"].get("out"),
+                "speed": seg["spec"].get("speed", 1), "volume": visual.get("volume", 0),
+                "volumeKeys": visual.get("volumeKeys"), "bleep": seg["spec"].get("_bleeps"),
+                "clean": seg["spec"].get("clean"), "cleanNat": sound.get("cleanNat"),
+            }
+            generated("source_audio", "audio", audio, node_id, start, end, assetId=seg["asset"]["id"])
         for cut in seg.get("cutaways") or []:
             cut_raws = raw.get("cutaways") or []
             j = cut.get("rawIndex")
@@ -378,6 +388,14 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
                 if (desc["kind"] == "camera_keyframe" and desc["path"].startswith(path + "/")
                         and isinstance(desc["raw"], dict) and desc["raw"].get("at") == key["at"]):
                     resolve(desc["path"], key, frame, frame)
+        if seg["spec"].get("cameraWindow"):
+            for desc in descriptors:
+                raw_key = desc["raw"]
+                if (desc["kind"] == "camera_keyframe" and desc["path"].startswith(path + "/")
+                        and isinstance(raw_key, dict) and isinstance(raw_key.get("at"), (int, float))
+                        and 0 <= raw_key["at"] <= seg["frames"] / fps):
+                    frame = start + seconds_to_frames(raw_key["at"], fps)
+                    resolve(desc["path"], {**raw_key, "windowed": True}, frame, frame)
 
     for kind, field in (("text", "beats"), ("stats", "stats"), ("exhibit", "exhibits"),
                         ("progress", "progress"), ("route", "routes")):
@@ -404,8 +422,10 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
             if not resolve("/" + field, value):
                 generated("generated_" + field, lanes.get(field, "overlay"), value)
     for page in props.get("captions") or []:
-        owner = next((i for i, sg in enumerate(segs)
-                      if sg["start"] <= page["startFrame"] < sg["start"] + sg["frames"]), None)
+        owner = page.get("ownerSegmentIndex")
+        if owner is None:
+            owner = next((i for i, sg in enumerate(segs)
+                          if sg["start"] <= page["startFrame"] < sg["start"] + sg["frames"]), None)
         parent = id_by_path.get(f"/segments/{owner}/captions", id_by_path.get(f"/segments/{owner}"))
         asset_id = segs[owner]["asset"]["id"] if owner is not None else None
         page_node = generated("caption_page", "captions", page, parent, assetId=asset_id)
@@ -446,7 +466,8 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
 def editing_snapshot(plan: dict[str, Any], compiled: dict[str, Any], revisions: dict[str, str]) -> dict[str, Any]:
     """Wire-compatible renderer snapshot; raw plan is a separate deep copy."""
     from .tracks import annotate_nodes, track_list
-    nodes = annotate_nodes(plan, compiled_nodes(plan, compiled))
+    capabilities = compiled.get("timelineCapabilities") or {}
+    nodes = annotate_nodes(plan, compiled_nodes(plan, compiled), render_timeline=capabilities.get("version") == 1)
     preview_ref = plan.get("_editor", {}).get("rendererPreview")
     if isinstance(preview_ref, dict):
         preview = deepcopy(preview_ref)
@@ -463,9 +484,10 @@ def editing_snapshot(plan: dict[str, Any], compiled: dict[str, Any], revisions: 
         "revisions": deepcopy(revisions),
         "plan": deepcopy(plan),
         "nodes": nodes,
-        "tracks": track_list(plan.get("_editor")),
+        "tracks": track_list(plan.get("_editor"), plan=plan),
         "fps": int(compiled["fps"]),
         "durationFrames": int(compiled["total"]),
         "warnings": list(compiled.get("warnings") or []),
+        "timelineCapabilities": deepcopy(capabilities),
         "preview": preview,
     }

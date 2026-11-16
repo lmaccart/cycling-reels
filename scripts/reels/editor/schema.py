@@ -231,8 +231,9 @@ def _base_schema() -> dict[str, Any]:
                        timingDomain="reel_seconds", unit="s"),
             ]),
             _group("composition", "Composition", [
-                _field("segments", "Segments", "/segments", "collection", required=True, minItems=1,
-                       itemTargets=["segment.video", "segment.photo"]),
+                _field("segments", "Segments", "/segments", "collection", required=True, minItems=0,
+                       itemTargets=["segment.video", "segment.photo"],
+                       help="Placed timelines may retain empty gaps; legacy renders need footage."),
                 _field("text", "Text beats", "/text", "collection", itemTarget="textBeat.reel"),
                 _field("exhibits", "Exhibits", "/exhibits", "collection", itemTarget="exhibit.reel"),
             ]),

@@ -7,8 +7,9 @@ the plan, so ``./reels check`` and ``./reels render`` cannot be affected.
 from __future__ import annotations
 
 from typing import Any
+import re
 
-AUDIO_KINDS = {"music", "music_drop", "sfx", "generated_sfx", "resolved_sfx", "nat", "bleep",
+AUDIO_KINDS = {"source_audio", "music", "music_drop", "sfx", "generated_sfx", "resolved_sfx", "nat", "bleep",
                "bleep_window", "generated_bleep"}
 SFX_KINDS = AUDIO_KINDS - {"music", "music_drop"}
 VIDEO_CUTAWAY_KINDS = {"cutaway", "generated_cutaway"}
@@ -23,6 +24,8 @@ def node_track_kind(node_kind: str) -> str:
 
 
 def default_track(node_kind: str) -> str:
+    if node_kind == "source_audio":
+        return "A1"
     if node_kind == "segment":
         return "V1"
     if node_kind in VIDEO_CUTAWAY_KINDS:
@@ -43,14 +46,20 @@ def _user_tracks(editor: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
-def track_list(editor: dict[str, Any] | None) -> list[dict[str, Any]]:
+def track_list(editor: dict[str, Any] | None, *, plan=None) -> list[dict[str, Any]]:
     editor = editor or {}
     overrides = {t["id"]: t for t in _user_tracks(editor)}
+    if plan:
+        for segment in plan.get("segments") or []:
+            tid = (segment.get("timeline") or {}).get("track")
+            if isinstance(tid, str) and re.fullmatch(r"V[1-9][0-9]*", tid):
+                overrides.setdefault(tid, {"id": tid, "kind": "video"})
     tracks = []
     for tid, kind, index in DEFAULT_TRACKS:
         o = overrides.pop(tid, {})
         tracks.append({"id": tid, "kind": kind, "name": o.get("name") or tid, "index": index,
-                       "locked": bool(o.get("locked")), "userAdded": False})
+                       "locked": bool(o.get("locked")), "userAdded": False,
+                       **({"canonicalId": tid} if kind == "video" else {})})
     for tid, o in overrides.items():
         try:
             index = int(tid[1:])
@@ -59,18 +68,21 @@ def track_list(editor: dict[str, Any] | None) -> list[dict[str, Any]]:
         if tid[0] != ("V" if o["kind"] == "video" else "A"):
             continue
         tracks.append({"id": tid, "kind": o["kind"], "name": o.get("name") or tid, "index": index,
-                       "locked": bool(o.get("locked")), "userAdded": True})
+                       "locked": bool(o.get("locked")), "userAdded": True,
+                       **({"canonicalId": tid} if o["kind"] == "video" else {})})
     tracks.sort(key=lambda t: (t["kind"] != "video", t["index"]))
     return tracks
 
 
-def annotate_nodes(plan: dict[str, Any], nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def annotate_nodes(plan: dict[str, Any], nodes: list[dict[str, Any]], *, render_timeline=False) -> list[dict[str, Any]]:
     """Set ``track`` on each node: stored assignment if its track still exists, else the default."""
     editor = plan.get("_editor") or {}
     stored = editor.get("nodes") if isinstance(editor.get("nodes"), dict) else {}
-    valid = {t["id"]: t for t in track_list(editor)}
+    valid = {t["id"]: t for t in track_list(editor, plan=plan)}
     for node in nodes:
         want = (stored.get(node["id"]) or {}).get("track")
+        if node["kind"] == "segment" and render_timeline:
+            want = (node.get("raw", {}).get("timeline") or {}).get("track", "V1")
         track = valid.get(want)
         if track is None or track["kind"] != node_track_kind(node["kind"]):
             want = default_track(node["kind"])
@@ -83,7 +95,7 @@ def _editor(plan: dict[str, Any]) -> dict[str, Any]:
 
 
 def _find(plan: dict[str, Any], tid: Any) -> dict[str, Any]:
-    for track in track_list(plan.get("_editor")):
+    for track in track_list(plan.get("_editor"), plan=plan):
         if track["id"] == tid:
             return track
     raise ValueError(f"unknown track: {tid!r}")
@@ -109,7 +121,11 @@ def effective_track(plan: dict[str, Any], node_id: str) -> str | None:
     if not entry:
         return None
     want = entry.get("track")
-    track = next((t for t in track_list(plan.get("_editor")) if t["id"] == want), None)
+    if entry.get("kind") == "segment":
+        from .document import pointer_get
+        raw = pointer_get(plan, entry["locator"])
+        want = (raw.get("timeline") or {}).get("track", want)
+    track = next((t for t in track_list(plan.get("_editor"), plan=plan) if t["id"] == want), None)
     if track is None or track["kind"] != node_track_kind(entry.get("kind", "")):
         return default_track(entry.get("kind", ""))
     return want
@@ -124,7 +140,7 @@ def locked_target(plan: dict[str, Any], operation: dict[str, Any]) -> str | None
         ids.extend(i for i in operation["ids"] if isinstance(i, str))
     if operation.get("op") == "insert_overlay" and isinstance(operation.get("parentId"), str):
         ids = [operation["parentId"]] if operation["parentId"] != "document" else []
-    locked = {t["id"] for t in track_list(plan.get("_editor")) if t["locked"]}
+    locked = {t["id"] for t in track_list(plan.get("_editor"), plan=plan) if t["locked"]}
     if not locked:
         return None
     for node_id in ids:
@@ -142,7 +158,7 @@ def apply_track_operation(plan: dict[str, Any], operation: dict[str, Any]) -> li
         kind = operation.get("kind")
         if kind not in ("video", "audio"):
             raise ValueError("kind must be video or audio")
-        used = [t["index"] for t in track_list(editor) if t["kind"] == kind]
+        used = [t["index"] for t in track_list(editor, plan=plan) if t["kind"] == kind]
         index = max(used) + 1
         tid = f"{'V' if kind == 'video' else 'A'}{index}"
         editor["tracks"] = _user_tracks(editor) + [{"id": tid, "kind": kind, "name": tid, "locked": False}]

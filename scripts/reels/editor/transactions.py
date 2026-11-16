@@ -137,12 +137,6 @@ def _worker_compile(
     All writes are confined by the trusted macOS profile to disposable worker
     data. Registered footage is resolved explicitly, never via a writable link.
     """
-    if not [segment for segment in plan.get("segments") or []]:
-        # A brand-new project has nothing to render yet. The renderer rejects
-        # an empty plan, so the editor opens it as an empty timeline instead.
-        return {"fps": int(project.cfg("render", "fps") or 30), "total": 0,
-                "warnings": ["No footage yet: add a clip from the library to start."],
-                "segs": [], "props": {}, "sound": {"cues": []}, "loop": None}
     code_root = project.code_root
     if not (code_root / "scripts/reels/render.py").is_file():
         if project.read_only_media or code_root != project.root:
@@ -237,7 +231,14 @@ for rel in json.loads(overrides_path.read_text(encoding="utf-8")).get("__editor_
 
 media = json.loads(overrides_path.read_text(encoding="utf-8")).get("__editor_media__", {})
 p = Project(scratch, code_root=Path(sys.argv[1]).parent, **media)
-built = build(p, json.loads(plan_path.read_text(encoding="utf-8")))
+plan = json.loads(plan_path.read_text(encoding="utf-8"))
+if not plan.get("segments") and not plan.get("timeline"):
+    result_path.write_text(json.dumps({"fps": int(p.cfg("render", "fps") or 30), "total": 0,
+        "warnings": ["No footage yet: add a clip from the library to start."],
+        "segs": [], "props": {}, "sound": {"cues": []}, "loop": None,
+        "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})}))
+    sys.exit(0)
+built = build(p, plan)
 segs = []
 for sg in built["segs"]:
     spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
@@ -250,12 +251,16 @@ for sg in built["segs"]:
                      "sourceDuration": cs.asset.get("probe", {}).get("duration"),
                      "spec": {k:v for k,v in cs.spec.items() if not k.startswith("_")}})
     segs.append({"index":sg.index, "kind":sg.kind, "asset":{"id":sg.asset["id"]},
+                 "sourceDuration":sg.asset.get("probe", {}).get("duration"),
+                 "hasAudio":bool(sg.asset.get("probe", {}).get("hasAudio")),
                  "spec":spec, "frames":sg.frames, "trans":sg.trans, "start":sg.start,
                  "cutaways":cuts})
 sound = dict(built.get("sound") or {})
 sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
 result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],
-          "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+           "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+if built.get("timelineCapabilities"):
+    result["timelineCapabilities"] = built["timelineCapabilities"]
 result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda value: sorted(value) if isinstance(value, set) else str(value)), encoding="utf-8")
 '''
     scratch_parent = project.root / ".cache/editor-compile"
@@ -382,24 +387,53 @@ class DocumentStore:
         self._compile_token: tuple[str, int] | None = None
         self._closed = False
         self._prepared_candidates: dict[str, dict[str, Any]] = {}
-        self.history.mkdir(parents=True, exist_ok=True)
-        self.objects.mkdir(parents=True, exist_ok=True)
-        self.manifests.mkdir(parents=True, exist_ok=True)
-        with self._lock:
-            self._recover_pending_histories()
-            self._open_or_initialize()
+        self._warm_pool = None
+        self._compile_pool_lease = None
+        if self._disk_compile_cache_enabled():
+            from .compile_worker import acquire_document_compiler
+            import weakref
+            self._compile_pool_lease = acquire_document_compiler(workspace)
+            weakref.finalize(self, self._compile_pool_lease.close)
+        try:
+            self.history.mkdir(parents=True, exist_ok=True)
+            self.objects.mkdir(parents=True, exist_ok=True)
+            self.manifests.mkdir(parents=True, exist_ok=True)
+            with self._lock:
+                self._recover_pending_histories()
+                self._open_or_initialize()
+        except BaseException:
+            self.close()
+            raise
+        if self._disk_compile_cache_enabled() and self._warm_pool is None:
+            self._start_warm_worker()
 
     def _run_worker_compiler(self, project: Project, plan: dict[str, Any], overrides: dict[str, Any],
                              renderer_revision: str | None = None) -> dict[str, Any]:
-        if hasattr(self.workspace, "code_root"):
-            source = self.root / "code/renderers" / str(renderer_revision) / "source"
-            if (not source.is_dir() or any(path.is_symlink() for path in
-                    (source, source.parent, source.parent.parent, source.parent.parent.parent))):
-                raise DocumentError("renderer_unavailable", f"recorded renderer source {renderer_revision} is missing")
-            project = copy(project)
-            project.code_root = source
+        project = self._project_for_renderer(renderer_revision, project)
         token = self._compile_token
-        origin = token[0] if token else "system"
+        origin = token[0] if token else getattr(self._compile_state, "origin", "system")
+        if (origin in ("manual", "system")
+                and not getattr(self._compile_state, "force_cold", False)
+                and (not self._head_revision() or renderer_revision == self._renderer_revision())):
+            from .compile_worker import WorkerUnavailable, WorkerRejected, WorkerCancelled
+            try:
+                return self._warm_compiler().compile(
+                    project, plan, overrides, str(renderer_revision), self._library_revision(),
+                    cancelled=lambda: self._closed or (token is not None and self._epoch(origin) != token[1]),
+                )
+            except WorkerUnavailable:
+                if self._closed or (token is not None and self._epoch(origin) != token[1]):
+                    raise DocumentError("cancelled", "validation was cancelled before cold fallback")
+                invalidate = getattr(self.workspace, "invalidate_library_revision", None)
+                if callable(invalidate):
+                    invalidate()
+                pass  # The unchanged cold sandbox is the infrastructure fallback.
+            except WorkerRejected as exc:
+                if self._closed or (token is not None and self._epoch(origin) != token[1]):
+                    raise DocumentError("cancelled", "validation was cancelled during renderer rejection") from exc
+                raise DocumentError(exc.code, str(exc), exc.details) from exc
+            except WorkerCancelled as exc:
+                raise DocumentError("cancelled", str(exc)) from exc
         def started(process: subprocess.Popen) -> None:
             with self._cancel_guard:
                 self._active_processes.setdefault(origin, []).append(process)
@@ -411,8 +445,50 @@ class DocumentStore:
                 current = self._active_processes.get(origin, [])
                 if process in current:
                     current.remove(process)
+        if self._closed or (token is not None and self._epoch(origin) != token[1]):
+            raise DocumentError("cancelled", "validation was cancelled before cold fallback")
         return _worker_compile(project, plan, overrides, process_started=started, process_finished=finished,
                                originals=getattr(self.workspace, "_originals", None))
+
+    def _warm_compiler(self):
+        # A store lock is deliberately not acquired here: validation released it.
+        with self._cancel_guard:
+            if self._closed:
+                raise DocumentError("cancelled", "document store is closed")
+            if self._warm_pool is None:
+                if self._compile_pool_lease is None:
+                    from .compile_worker import acquire_document_compiler
+                    import weakref
+                    self._compile_pool_lease = acquire_document_compiler(self.workspace)
+                    weakref.finalize(self, self._compile_pool_lease.close)
+                self._warm_pool = self._compile_pool_lease.pool
+            return self._warm_pool
+
+    def _start_warm_worker(self):
+        def start():
+            try:
+                with self._lock:
+                    if self._closed or self._offline_media(self._current_raw_plan()):
+                        return
+                    revision = self._renderer_revision()
+                    project = self._project_for_renderer(revision)
+                self._warm_compiler().prewarm(project, revision)
+            except Exception:
+                # Startup is speculative. The real validation still has the
+                # normal renderer availability checks and cold fallback.
+                return
+        threading.Thread(target=start, daemon=True, name="editor-compile-prewarm").start()
+
+    @contextmanager
+    def _compile_origin(self, origin):
+        prior = getattr(self._compile_state, "origin", "system")
+        prior_cold = getattr(self._compile_state, "force_cold", False)
+        self._compile_state.origin = origin
+        try:
+            yield
+        finally:
+            self._compile_state.origin = prior
+            self._compile_state.force_cold = prior_cold
 
     def _epoch(self, origin: str) -> int:
         with self._cancel_guard:
@@ -431,12 +507,77 @@ class DocumentStore:
         value = getattr(self, "_compiled_cache", None)
         if value is not None and getattr(self, "_compiled_revisions", None) == self._revisions():
             return value
+        if self._disk_compile_cache_enabled() and self._head_revision():
+            from .compiled_cache import read_cache
+            from .compile_worker import WorkerUnavailable
+            try:
+                plan = self._current_raw_plan()
+                if self._offline_media(plan):
+                    return None
+                self._assert_view_renderer(self._renderer_revision())
+                key = self._compiled_disk_key(plan)
+                value = read_cache(self.history / "COMPILED.json", key)
+                if value is not None:
+                    self._compiled_cache = value
+                    self._compiled_revisions = key["revisions"]
+                    return value
+            except (OSError, TypeError, ValueError, DocumentError, WorkerUnavailable):
+                pass
         return None
 
     @_current_compiled.setter
     def _current_compiled(self, value):
         self._compiled_cache = value
         self._compiled_revisions = self._revisions() if value is not None else None
+        if value is not None and self._disk_compile_cache_enabled() and self._head_revision():
+            from .compiled_cache import cache_record
+            from .compile_worker import WorkerUnavailable
+            try:
+                key = self._compiled_disk_key(self._current_raw_plan())
+                _atomic_bytes(self.history / "COMPILED.json", _json_bytes(cache_record(key, value)))
+            except (OSError, TypeError, ValueError, DocumentError, WorkerUnavailable):
+                pass
+
+    def _disk_compile_cache_enabled(self):
+        return (self.compiler == self._run_worker_compiler
+                and not callable(getattr(self.workspace, "compiler_for_renderer", None))
+                and not self._revision_compilers)
+
+    def _compiled_disk_key(self, plan):
+        # Include the actual capabilities as well as the three public revisions.
+        # A cached view is never eligible; only this independently keyed cache is.
+        from .compile_worker import _boundary, boundary_key
+        revision = self._renderer_revision()
+        project = self._project_for_renderer(revision)
+        scratch = self.project.root / ".cache/editor-compile/cache-identity"
+        reads, profile, _ = _boundary(self.workspace, project, project.code_root, scratch, make_env=False)
+        sources = hashlib.sha256()
+        for name in ("transactions.py", "compile_worker.py", "compile_runtime.py", "compiled_cache.py",
+                     "document.py", "overwrite.py", "timing.py", "tracks.py"):
+            sources.update(Path(__file__).with_name(name).read_bytes())
+        sources.update((Path(__file__).parent.parent / "timeline.py").read_bytes())
+        return {
+            "revisions": self._revisions(), "planHash": fingerprint(plan),
+            "boundary": boundary_key(revision, reads, profile, scratch, data_root=project.root,
+                                     media_root=project.media_dir if project.read_only_media else None,
+                                     canonical=True),
+            "originals": fingerprint(getattr(self.workspace, "_originals", {})),
+            "runner": sources.hexdigest(),
+        }
+
+    def _project_for_renderer(self, revision, project=None):
+        project = copy(project or self.project)
+        if hasattr(self.workspace, "code_root"):
+            source = self.root / "code/renderers" / str(revision) / "source"
+            if (not source.is_dir() or any(path.is_symlink() for path in
+                    (source, source.parent, source.parent.parent, source.parent.parent.parent))):
+                raise DocumentError("renderer_unavailable", f"recorded renderer source {revision} is missing")
+            project.code_root = source
+        elif not (project.code_root / "scripts/reels/render.py").is_file():
+            if project.read_only_media or project.code_root != project.root:
+                raise DocumentError("renderer_unavailable", "recorded renderer source is incomplete")
+            project.code_root = Path(__file__).resolve().parents[3]
+        return project
 
     @contextmanager
     def _validation_unlocked(self):
@@ -452,7 +593,7 @@ class DocumentStore:
             self._compile_state.library_memo = None
 
     def _ensure_open(self) -> None:
-        if self._closed:
+        if self._closed or (self._compile_pool_lease is not None and self._compile_pool_lease.owner.closed):
             raise DocumentError("closed", "document store is closed")
 
     def cancel_pending(self, origin: str = "ai") -> dict[str, Any]:
@@ -479,6 +620,8 @@ class DocumentStore:
     def close(self) -> None:
         self.cancel_pending("all")
         self._closed = True
+        if self._compile_pool_lease is not None:
+            self._compile_pool_lease.close()
 
     # ---- revisions, paths and journal ---------------------------------
 
@@ -605,6 +748,17 @@ class DocumentStore:
         if top in (("library",), ("plans",), ("out",), ("inbox",)):
             return  # guarantee: the editor never deletes library/plans/out/inbox files
         path.unlink(missing_ok=True)
+        self._invalidate_library_for(relative)
+
+    def _invalidate_library_for(self, relative):
+        from .compile_runtime import INPUT_DIRS, INPUT_FILES
+        if relative in INPUT_FILES or any(relative.startswith(root + "/") for root in INPUT_DIRS):
+            invalidate = getattr(getattr(self, "workspace", None), "invalidate_library_revision", None)
+            if callable(invalidate):
+                invalidate()
+            state = getattr(self, "_compile_state", None)
+            if state is not None:
+                state.library_memo = None
 
     def _manifest_files(self, manifest: dict[str, Any]) -> dict[str, Any]:
         return {rel: self._object_value(digest) for rel, digest in manifest.get("files", {}).items()}
@@ -630,7 +784,13 @@ class DocumentStore:
     def _write_materialized(self, rel: str, value: Any) -> None:
         path = self._safe_data_path(rel)
         if not (_is_plan_rel(rel) and isinstance(value, dict)):
+            try:
+                if _same_json(read_json(path), value):
+                    return
+            except (OSError, ValueError):
+                pass
             _atomic_bytes(path, _json_bytes(value))
+            self._invalidate_library_for(rel)
             return
         meta = value.get(EDITOR_KEY)
         if isinstance(meta, dict):
@@ -855,6 +1015,7 @@ class DocumentStore:
             files[config_rel] = read_json(config_path)
         self._commit_files(files, origin="system", reason="initialize document", affected_ids=[],
                            parent=None, undo_target=None, renderer_revision=initial_renderer)
+        self._current_compiled = compiled
 
     # ---- raw plan compilation and snapshots ----------------------------
 
@@ -1165,7 +1326,7 @@ class DocumentStore:
         }
         expected = batch.get("expected", expected)
         operations = batch.get("operations") or []
-        with self._lock:
+        with self._lock, self._compile_origin("ai"):
             self._ensure_open()
             self._check_expected(expected)
             self._check_lease(batch)
@@ -1256,7 +1417,7 @@ class DocumentStore:
         if not isinstance(batch, dict):
             raise DocumentError("invalid_batch", "batch must be an object")
         expected = batch.get("expected")
-        with self._lock, self._library_revision_scope():
+        with self._lock, self._library_revision_scope(), self._compile_origin(batch.get("origin", "ai")):
             self._ensure_open()
             self._check_expected(expected)
             self._check_lease(batch)
@@ -1287,13 +1448,31 @@ class DocumentStore:
                 raise DocumentError("cancelled", f"pending {origin} edit was cancelled during validation")
             self._compile_token = None
             context = {"plan": plan, "files": files, "aux": aux, "compiled": compiled_before,
-                       "fps": int(compiled_before["fps"]), "affected": set(), "origin": origin}
+                       "fps": int(compiled_before["fps"]), "affected": set(), "origin": origin,
+                       "cancelToken": (origin, epoch)}
             operations = batch.get("operations")
             if not isinstance(operations, list) or not operations:
                 raise DocumentError("invalid_batch", "operations must be a non-empty array")
-            for n, operation in enumerate(operations):
+            for index, operation in enumerate(operations):
                 if not isinstance(operation, dict):
-                    raise DocumentError("invalid_operation", f"operation {n} must be an object")
+                    raise DocumentError("invalid_operation", f"operation {index} must be an object")
+            prepared = None
+            if (origin == "manual" and self._disk_compile_cache_enabled()
+                    and (compiled_before.get("timelineCapabilities") or {}).get("version") == 1
+                    and any(isinstance(op, dict) and (
+                        op.get("op") in ("reorder_segments", "trim_segment", "split_segment",
+                                         "insert_segment", "remove_segments", "move_segments", "set_node_track")
+                        or (op.get("op") == "set_field" and op.get("path") in (
+                            "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap",
+                            "/music", "/render/fps",
+                        ))) for op in operations)):
+                prepared = self._prepare_warm_batch(plan, aux, operations, compiled_before,
+                                                    current_renderer, expected, epoch)
+                if prepared is not None:
+                    context["timingResults"] = iter(prepared["timingResults"])
+            for n, operation in enumerate(operations):
+                if self._closed or self._epoch(origin) != epoch:
+                    raise DocumentError("cancelled", f"pending {origin} edit was cancelled")
                 try:
                     self._apply_edit_operation(context, operation)
                 except DocumentError as exc:
@@ -1305,7 +1484,15 @@ class DocumentStore:
             # Compile and validate candidate entirely before touching HEAD.
             self._compile_token = (origin, epoch)
             try:
-                candidate_compiled = self._compile(plan, aux, current_renderer)
+                if prepared is None:
+                    candidate_compiled = self._compile(plan, aux, current_renderer)
+                else:
+                    from .compile_runtime import content_hash
+                    if content_hash(plan, aux) != prepared.get("candidateHash"):
+                        raise DocumentError("worker_protocol", "timing replay did not match validated candidate")
+                    if next(context["timingResults"], None) is not None:
+                        raise DocumentError("worker_protocol", "unused compiler timing evidence")
+                    candidate_compiled = normalize_compiled(prepared["result"])
             except DocumentError:
                 if self._epoch(origin) != epoch:
                     raise DocumentError("cancelled", f"pending {origin} edit was cancelled during validation",
@@ -1323,6 +1510,7 @@ class DocumentStore:
                 raise DocumentError("conflict", "document changed during validation",
                                     {"current": self._revisions()})
             self._check_lease(batch)
+            self._check_compiled_locks(files[self.plan_rel], compiled_before, plan, candidate_compiled, operations)
             files[self.plan_rel] = plan
             files.update(aux)
             revision = self._commit_files(
@@ -1335,21 +1523,151 @@ class DocumentStore:
             self._current_compiled = candidate_compiled
             return self._snapshot_result(plan, candidate_compiled, self._revisions(revision))
 
+    def _check_compiled_locks(self, before_plan, before_compiled, after_plan, after_compiled, operations):
+        """Protect implicit linked audio and renderer-generated owned items too."""
+        from .tracks import track_list
+        old = {row["id"] for row in track_list(before_plan.get("_editor"), plan=before_plan) if row["locked"]}
+        new = {row["id"] for row in track_list(after_plan.get("_editor"), plan=after_plan) if row["locked"]}
+        unlocked = {op.get("id") for op in operations
+                    if op.get("op") == "set_track_locked" and op.get("locked") is False}
+        protected = old & new - unlocked
+        if not protected:
+            return
+        before = editing_snapshot(before_plan, before_compiled, self._revisions())["nodes"]
+        after = editing_snapshot(after_plan, after_compiled, self._revisions())["nodes"]
+        def state(node):
+            return {key: node.get(key) for key in ("kind", "parentId", "track", "startFrame", "endFrame", "raw")}
+        left = {node["id"]: state(node) for node in before if node["track"] in protected}
+        right = {node["id"]: state(node) for node in after if node["track"] in protected}
+        if left != right:
+            raise DocumentError("track_locked", "The edit changes a locked track or one of its linked/owned items",
+                                {"tracks": sorted(protected)})
+
+    def _prepare_warm_batch(self, plan, aux, operations, compiled_before, renderer, expected, epoch):
+        from .compile_worker import WorkerUnavailable, WorkerRejected, WorkerCancelled
+        try:
+            project = self._project_for_renderer(renderer)
+            with self._validation_unlocked():
+                response = self._warm_compiler().compile(
+                    project, deepcopy(plan), deepcopy(aux), renderer, expected["library"],
+                    cancelled=lambda: self._closed or self._epoch("manual") != epoch,
+                    batch={"operations": deepcopy(operations), "compiledBefore": deepcopy(compiled_before),
+                           "revisions": deepcopy(expected)},
+                )
+            if not isinstance(response.get("timingResults"), list):
+                raise DocumentError("worker_protocol", "compiler omitted timing evidence")
+            return response
+        except WorkerUnavailable:
+            # Reapply in the broker using the existing isolated compiler path.
+            # No remote candidate was committed, even if the worker died late.
+            if self._closed or self._epoch("manual") != epoch:
+                raise DocumentError("cancelled", "timing validation was cancelled before cold fallback")
+            self._compile_state.force_cold = True
+            invalidate = getattr(self.workspace, "invalidate_library_revision", None)
+            if callable(invalidate):
+                invalidate()
+            return None
+        except WorkerRejected as exc:
+            if self._closed or self._epoch("manual") != epoch:
+                raise DocumentError("cancelled", "timing validation was cancelled during rejection") from exc
+            raise DocumentError(exc.code, str(exc), exc.details) from exc
+        except WorkerCancelled as exc:
+            raise DocumentError("cancelled", str(exc)) from exc
+
     def _apply_edit_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
         """Preserve IDs by object identity and ripple against renderer positions."""
         plan = ctx["plan"]
         from .tracks import TRACK_OPS, apply_track_operation, locked_target
         ensure_node_ids(plan)
+        from ..timeline import positioned, requantize
+        from .overwrite import apply_overwrite, positioned_source_edit, video_source_bounds
+        op = operation.get("op")
+        capable = (ctx["compiled"].get("timelineCapabilities") or {}).get("version") == 1
+        if positioned(plan):
+            requantize(plan, ctx["fps"])
+        transformed = operation
+        entry = plan["_editor"]["nodes"].get(str(operation.get("id")), {})
+        source_kind = entry.get("kind")
+        if ((capable and op == "set_node_track" and entry.get("kind") in ("segment", "cutaway"))
+                or (positioned(plan) and op in ("insert_segment", "reorder_segments"))):
+            edit = str(uuid.uuid5(uuid.NAMESPACE_URL, canonical_json({
+                "operation": operation, "document": self._revisions()["document"]})))
+            if op == "set_node_track":
+                node = next(item for item in editing_snapshot(plan, ctx["compiled"], self._revisions())["nodes"]
+                            if item["id"] == operation["id"])
+                placements = [{"id": operation["id"], "track": operation["track"], "atFrame": node["startFrame"]}]
+            elif op == "insert_segment":
+                value = deepcopy(operation["value"])
+                value.pop("timeline", None)
+                before = operation.get("beforeId")
+                at = (node_location(plan, before)[1]["timeline"]["startFrame"] if before
+                      else plan["timeline"]["durationFrames"])
+                placements = [{"insert": value, "track": "V1", "atFrame": at}]
+            else:
+                ids = operation.get("ids") or []
+                clips = [node_location(plan, key)[1] for key in ids]
+                start = min(value["timeline"]["startFrame"] for value in clips)
+                before = operation.get("beforeId")
+                at = (node_location(plan, before)[1]["timeline"]["startFrame"] if before
+                      else plan["timeline"]["durationFrames"])
+                placements = [{"id": key, "track": value["timeline"]["track"],
+                               "atFrame": at + value["timeline"]["startFrame"] - start}
+                              for key, value in zip(ids, clips)]
+            transformed = {"op": "move_segments", "editId": edit, "mode": "overwrite", "placements": placements}
+        if transformed.get("op") == "move_segments":
+            if not capable:
+                raise DocumentError("unsupported_operation", "selected renderer does not support placed footage")
+            if positioned(plan):
+                requantize(plan, ctx["fps"])
+            try:
+                apply_overwrite(ctx, transformed, self.project)
+            except ValueError as exc:
+                if "locked" in str(exc).lower():
+                    raise DocumentError("track_locked", str(exc)) from exc
+                raise
+            self._refresh_edit_timing(ctx)
+            return
+        if positioned(plan) and op in ("trim_segment", "split_segment"):
+            try:
+                handled = positioned_source_edit(ctx, operation, self.project, self._revisions())
+            except ValueError as exc:
+                if "locked" in str(exc).lower():
+                    raise DocumentError("track_locked", str(exc)) from exc
+                raise
+            if handled:
+                self._refresh_edit_timing(ctx)
+                return
         if operation.get("op") in TRACK_OPS:
             ctx["affected"].update(apply_track_operation(plan, operation))
             return
         locked = locked_target(plan, operation)
         if locked:
             raise DocumentError("track_locked", locked)
+        if operation.get("op") == "remove_segments":
+            for source in operation.get("ids") or []:
+                entry = plan["_editor"]["nodes"].get(source)
+                if entry:
+                    for child, record in plan["_editor"]["nodes"].items():
+                        if record["locator"].startswith(entry["locator"] + "/"):
+                            message = locked_target(plan, {"id": child})
+                            if message:
+                                raise DocumentError("track_locked", message)
         metadata = deepcopy(ensure_node_ids(plan))
         objects = {node_id: pointer_get(plan, entry["locator"]) for node_id, entry in metadata.items()}
         old_snapshot = editing_snapshot(plan, ctx["compiled"], self._revisions())
         self._apply_operation(ctx, operation)
+        if positioned(plan) and op == "set_field" and operation.get("path") in (
+                "/speed", "/duration", "/in", "/out", "/transition"):
+            _, clip = node_location(plan, str(operation.get("id")))
+            if isinstance(clip, dict) and isinstance(clip.get("timeline"), dict):
+                if "in" in clip and "out" in clip:
+                    from ..library import load_asset, resolve_id
+                    asset = load_asset(self.project, resolve_id(self.project, clip["asset"]))
+                    video_source_bounds(asset, clip["in"], clip["out"], clip.get("speed", 1))
+                frames = max(1, round(source_duration(clip) * plan["timeline"]["fps"]))
+                clip["timeline"].update(durationFrames=frames, transitionInFrames=0)
+                plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
+                                                        clip["timeline"]["startFrame"] + frames)
         # Moving identical clips must preserve identities, not just fingerprints.
         from .document import _descriptors
         descriptors = _descriptors(plan)
@@ -1377,18 +1695,27 @@ class DocumentStore:
                 metadata[node_id] = entry
         plan["_editor"]["nodes"] = metadata
         ensure_node_ids(plan)
+        if source_kind == "cutaway":
+            # Promotion and later cutaway edits resolve through compiled specs
+            # and rawIndex. Refresh after removal too, before indexes can shift.
+            # Warm batches record/replay this timing prefix within the same RPC.
+            self._refresh_edit_timing(ctx)
+            return
         op = operation.get("op")
         edited_kind = metadata.get(str(operation.get("id")), {}).get("kind")
         timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments")
         timing_changed |= op == "trim_segment" and edited_kind == "segment"
         timing_changed |= op == "set_field" and operation.get("path") in (
-            "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps",
+            "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps", "/render",
         )
         if edited_kind == "cutaway":
             timing_changed = False
         if not timing_changed:
             return
-        compiled = self._compile(plan, ctx["aux"])
+        self._refresh_edit_timing(ctx)
+        compiled = ctx["compiled"]
+        if positioned(plan):
+            return  # absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
         old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment"]
         new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
@@ -1435,9 +1762,25 @@ class DocumentStore:
                     event["endAt"] = round(max(at, end), 6)
                 kept.append(event)
             plan[collection] = kept
+        ensure_node_ids(plan)
+
+    def _refresh_edit_timing(self, ctx):
+        if "timingResults" in ctx:
+            try:
+                compiled = next(ctx["timingResults"])
+            except StopIteration as exc:
+                raise DocumentError("worker_protocol", "compiler omitted an intermediate timing result") from exc
+            if not isinstance(compiled, dict) or not {"fps", "total", "segs"}.issubset(compiled):
+                raise DocumentError("worker_protocol", "invalid compiler timing evidence")
+        else:
+            prior_token = self._compile_token
+            self._compile_token = ctx.get("cancelToken", prior_token)
+            try:
+                compiled = self._compile(ctx["plan"], ctx["aux"])
+            finally:
+                self._compile_token = prior_token
         ctx["compiled"] = compiled
         ctx["fps"] = int(compiled["fps"])
-        ensure_node_ids(plan)
 
     def _apply_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
         plan: dict[str, Any] = ctx["plan"]
@@ -1507,7 +1850,7 @@ class DocumentStore:
                 source_in, source_out = float(operation["sourceIn"]), float(operation["sourceOut"])
                 if resolved.get("sourceDuration") is not None and source_out > resolved["sourceDuration"]:
                     raise ValueError("cutaway sourceOut exceeds the original source duration")
-                trim_local_source(segment, source_in, source_out)
+                trim_local_source(segment, source_in, source_out, precision=12 if plan.get("timeline") else 3)
                 affected.add(node_id)
                 return
             if entry["kind"] != "segment" or op == "trim_cutaway":
@@ -1665,6 +2008,8 @@ class DocumentStore:
                     raise ValueError("generated events must be moved/resized to materialize an override")
             if not path.startswith("/") or path == "/_editor" or path.startswith("/_editor/"):
                 raise ValueError("path must be a JSON pointer outside reserved _editor metadata")
+            if path == "/timeline" or path.startswith("/timeline/"):
+                raise ValueError("timeline placement is edited atomically with move_segments")
             if node_id is None and (path == "/segments" or path.startswith("/segments/")):
                 raise ValueError("primary segments must be edited through stable node IDs")
             if node_id is None and (path == "/render" or path.startswith("/render/")):
@@ -1685,6 +2030,8 @@ class DocumentStore:
                 raise ValueError("array elements must be edited through stable node IDs")
             else:
                 parent[key] = value
+            if isinstance(target, dict) and path.split("/")[1] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection"):
+                target.pop("cameraWindow", None)
             if node_id:
                 affected.add(str(node_id))
             return
@@ -1765,6 +2112,18 @@ class DocumentStore:
                 raise ValueError(f"config path component {component!r} is not an object")
             cursor = next_value
         cursor[parts[-1]] = deepcopy(value)
+        from ..timeline import positioned, requantize
+        if positioned(ctx["plan"]) and section == "render":
+            fps = int(deep_merge(deepcopy(DEFAULTS), config)["render"]["fps"])
+            if fps != ctx["plan"]["timeline"]["fps"]:
+                from .tracks import track_list, locked_target
+                locked_rows = {row["id"] for row in track_list(ctx["plan"].get("_editor")) if row["locked"]}
+                for node_id, entry in ensure_node_ids(ctx["plan"]).items():
+                    message = locked_target(ctx["plan"], {"id": node_id})
+                    raw = pointer_get(ctx["plan"], entry["locator"])
+                    if message or (isinstance(raw, dict) and raw.get("timeline", {}).get("track") in locked_rows):
+                        raise DocumentError("track_locked", message or "FPS change affects a locked track")
+                requantize(ctx["plan"], fps)
         if section == "units" and config.get("units") not in (None, "imperial", "metric"):
             raise DocumentError("invalid_config", "units must be 'imperial' or 'metric'")
         ctx["aux"][config_rel] = config

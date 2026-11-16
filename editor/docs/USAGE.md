@@ -84,13 +84,34 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
   undoable edit; the arrow button resets it. Clip settings override the reel's,
   which override the project default (`config.json` `render.grade`). The preview
   re-stages the clips you changed.
-- Drag the red timeline playhead or ruler to scrub: the Program preview updates
+- Drag the timeline playhead or ruler to scrub: the Program preview updates
   while the mouse is held down. The final playhead position is saved on release.
 - Each validated gesture or operation batch autosaves as one transaction.
   Undo/redo covers both manual and Claude changes. Failed edits leave the last
   committed revision intact.
 - Source video uses AVFoundation; still photos are images. Unsupported formats
   and 360 media use private proxies. Preparing a full 360 source can be expensive.
+
+### Footage dragging
+
+- Drag footage horizontally to a frame position or vertically between V1, V2,
+  and other video tracks. Higher video tracks appear above lower footage.
+- A normal drop is an **overwrite** on the destination track: covered footage is
+  removed from that interval, with surviving heads and tails kept as editable clips.
+  Footage on other video tracks keeps its placement.
+- The moved clip leaves a gap at its old position. Moving past the endpoint
+  extends the reel; surrounding clips keep their timing.
+- With snapping enabled, a vertical move snaps back to the clip's original time.
+  The drag ghost shows the destination and affected interval before release.
+- Drop Library or Source footage directly onto the desired video row and time.
+  Source-monitor drops carry the chosen source range.
+- Locked tracks reject changes. Source audio stays linked to its footage; an A1
+  lock also protects edits that would change that audio.
+- One drop is one validated autosave and one undo step. Command-drag insert mode
+  is currently unavailable; ordinary footage dragging uses overwrite mode.
+
+See [Premiere-style timeline behavior and research](PREMIERE-TIMELINE.md) for the
+editing rules and source references.
 
 ### Claude
 

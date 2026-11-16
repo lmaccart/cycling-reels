@@ -136,7 +136,10 @@ def bars(project: Project, segs: list, total: int, fps: int, limit: int, warning
         s = sg.start + round(at * fps)
         e = sg.end - round(0.15 * fps) if raw.get("for") is None else s + round(float(raw["for"]) * fps)
         s, e = int(max(0, min(s, total - 1))), int(max(0, min(e, total, limit)))
-        if e - s < 15:
+        explicit = bool(sg.spec.get("timeline"))
+        if explicit:
+            s, e = max(s, sg.start), min(e, sg.end)
+        if e - s < (1 if explicit else 15):
             warnings.append(f"{where}: too short to read — dropped")
             continue
         label = str(raw.get("label") or f"road to {goal:g} w/kg").strip().lower()
@@ -150,6 +153,8 @@ def bars(project: Project, segs: list, total: int, fps: int, limit: int, warning
             "fillFrames": FILL_FRAMES if prev is not cur else 0,
             "asOf": cur["date"],
         })  # fmt: skip
+        if explicit:
+            out[-1].update(ownerSegmentIndex=sg.index)
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     return out
@@ -158,6 +163,9 @@ def bars(project: Project, segs: list, total: int, fps: int, limit: int, warning
 def clashes(bar_props: list[dict], stats: list[dict], routes: list[dict], fps: int) -> list[str]:
     """The bar spans the top of the frame where stat pills and the route map sit."""
     def hit(a: dict, b: dict) -> bool:
+        if (a.get("ownerSegmentIndex") is not None and b.get("ownerSegmentIndex") is not None
+                and a["ownerSegmentIndex"] != b["ownerSegmentIndex"]):
+            return False  # only the visible host's overlays are composited
         return a["startFrame"] < b["endFrame"] and b["startFrame"] < a["endFrame"]
 
     out = []

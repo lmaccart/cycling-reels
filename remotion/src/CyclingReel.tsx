@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Sequence } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
 import './fonts';
@@ -9,13 +9,15 @@ import { ProgressBarView } from './components/ProgressBar';
 import { RouteMapView } from './components/RouteMap';
 import { SafeArea, Vignette } from './components/Overlays';
 import { SegmentAudio, SegmentView } from './components/SegmentView';
+import { GlobalForegrounds, PlacedSegments, inOwnedForegroundRange, ownerProps } from './components/PlacedSegments';
 import { SfxTrack } from './components/SfxTrack';
 import { StatChips } from './components/StatChips';
 import { TextLayers } from './components/TextLayers';
 import { TitleCardView } from './components/TitleCard';
 import type { ReelProps } from './types';
 
-export const CyclingReel: React.FC<ReelProps> = (p) => {
+const OverlayLayers: React.FC<{p: ReelProps; vignette?: boolean; globalForegrounds?: ReelProps}> = ({p, vignette, globalForegrounds}) => {
+  const frame = useCurrentFrame();
   const exhibits = (depth: 'front' | 'behind') =>
     (p.exhibits ?? [])
       .filter((e) => e.depth === depth)
@@ -25,31 +27,16 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
         </Sequence>
       ));
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      <TransitionSeries>
-        {p.segments.map((seg, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && seg.transitionInFrames > 0 ? (
-              <TransitionSeries.Transition
-                presentation={fade()}
-                timing={linearTiming({ durationInFrames: seg.transitionInFrames })}
-              />
-            ) : null}
-            <TransitionSeries.Sequence durationInFrames={seg.durationInFrames}>
-              <SegmentView seg={seg} />
-            </TransitionSeries.Sequence>
-          </React.Fragment>
-        ))}
-      </TransitionSeries>
-
+    <>
       {/* Exhibits: 'behind' ones sit under the rider's cut-out; all of them under the text. */}
       {exhibits('behind')}
-      {(p.foregrounds ?? []).map((fg, i) => (
+      {globalForegrounds ? <GlobalForegrounds p={globalForegrounds}/> : null}
+      {(p.foregrounds ?? []).filter((fg) => inOwnedForegroundRange(fg, frame)).map((fg, i) => (
         <Sequence key={`fg-${i}`} from={fg.startFrame} durationInFrames={fg.durationInFrames}>
           <ForegroundView fg={fg} />
         </Sequence>
       ))}
-      <Vignette />
+      {vignette ? <Vignette /> : null}
       {exhibits('front')}
       <StatChips stats={p.stats} />
       {(p.routes ?? []).map((r, i) => (
@@ -71,7 +58,39 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
       ) : null}
 
       <TextLayers {...p} />
+    </>
+  );
+};
 
+export const CyclingReel: React.FC<ReelProps> = (p) => {
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#000' }}>
+      {p.timeline ? (
+        <>
+          <PlacedSegments segments={p.segments}
+            renderOverlays={(index) => <OverlayLayers p={ownerProps(p, index)} vignette/>}/>
+          <OverlayLayers p={ownerProps(p, null)} globalForegrounds={p}/>
+        </>
+      ) : (
+        <>
+          <TransitionSeries>
+            {p.segments.map((seg, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && seg.transitionInFrames > 0 ? (
+                  <TransitionSeries.Transition
+                    presentation={fade()}
+                    timing={linearTiming({ durationInFrames: seg.transitionInFrames })}
+                  />
+                ) : null}
+                <TransitionSeries.Sequence durationInFrames={seg.durationInFrames}>
+                  <SegmentView seg={seg} />
+                </TransitionSeries.Sequence>
+              </React.Fragment>
+            ))}
+          </TransitionSeries>
+          <OverlayLayers p={p} vignette/>
+        </>
+      )}
       {p.music ? <MusicTrack music={p.music} totalFrames={p.totalFrames} /> : null}
       {p.sfx?.length ? <SfxTrack cues={p.sfx} /> : null}
       {p.safeArea ? <SafeArea /> : null}
@@ -93,7 +112,7 @@ export const ReelOverlay: React.FC<ReelProps> = (p) => (
 // sound effects, with no pictures, so an audio-only render doesn't decode every video frame.
 export const ReelAudio: React.FC<ReelProps> = (p) => (
   <AbsoluteFill>
-    <TransitionSeries>
+    {p.timeline ? <PlacedSegments segments={p.segments} audioOnly/> : <TransitionSeries>
       {p.segments.map((seg, i) => (
         <React.Fragment key={i}>
           {i > 0 && seg.transitionInFrames > 0 ? (
@@ -107,7 +126,7 @@ export const ReelAudio: React.FC<ReelProps> = (p) => (
           </TransitionSeries.Sequence>
         </React.Fragment>
       ))}
-    </TransitionSeries>
+    </TransitionSeries>}
     {p.music ? <MusicTrack music={p.music} totalFrames={p.totalFrames} /> : null}
     {p.sfx?.length ? <SfxTrack cues={p.sfx} /> : null}
   </AbsoluteFill>

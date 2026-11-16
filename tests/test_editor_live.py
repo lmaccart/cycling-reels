@@ -31,9 +31,13 @@ class DestructiveCallAuditTests(unittest.TestCase):
     """Every delete/rename/replace in the editor package was reviewed: none may target library/ or plans/.
 
     Add to this table only after confirming the new call works on private editor state, a
-    scratch/job folder, out/<slug>/ or inbox/ temporaries, never on library/ or plans/."""
+    scratch/job folder, out/<slug>/ or inbox/ temporaries, never on library/ or plans/.
+    The benchmark alone removes its own newly created zz-bench-* plan."""
 
     EXPECTED = {
+        "bench.py": {"rmtree": 1, "unlink": 3},           # its own temporary plan, sidecar, compiled cache and guarded history
+        "compile_runtime.py": {"unlink": 2, "rmtree": 1}, # copied/overridden/generated inputs in private scratch only
+        "compile_worker.py": {"remove": 2},             # list.remove on worker objects, never filesystem paths
         "exporting.py": {"unlink": 2, "replace": 1},      # save-as temp files next to the chosen destination
         "jobs.py": {"replace": 1, "unlink": 1},            # atomic write of private job records
         "live.py": {"unlink": 1},                          # the import's own .part temp inside inbox/

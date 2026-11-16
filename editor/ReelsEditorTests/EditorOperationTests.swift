@@ -1,6 +1,7 @@
 import XCTest
 @testable import ReelsEditor
 
+@MainActor
 final class EditorOperationTests: XCTestCase {
     func testBrollInsertUsesPrimaryStableIDAndLocalTime() {
         let operation = BrollOperationBuilder.insert(
@@ -54,5 +55,53 @@ final class EditorOperationTests: XCTestCase {
         )
         XCTAssertEqual(replace.map { $0["path"]?.stringValue }, ["/asset", "/duration"])
         XCTAssertEqual(replace[1]["value"]?.numberValue, 5)
+    }
+
+    func testTimelinePhotoDropUsesDefaultDurationWithoutVideoBounds() throws {
+        let photo: JSONValue = .object(["kind": .string("photo"), "filename": .string("still.jpg")])
+        let value = try XCTUnwrap(EditorStore.timelineInsertSpec(
+            assetID: "still", metadata: photo, sourceIn: nil, sourceOut: nil
+        ))
+        XCTAssertEqual(value["duration"]?.numberValue, 2.5)
+        XCTAssertNil(value["in"])
+        XCTAssertNil(value["out"])
+        let marked = try XCTUnwrap(EditorStore.timelineInsertSpec(
+            assetID: "still", metadata: photo, sourceIn: 1, sourceOut: 4
+        ))
+        XCTAssertEqual(marked["duration"]?.numberValue, 3)
+        XCTAssertNil(EditorStore.timelineInsertSpec(
+            assetID: "video", metadata: .object(["kind": .string("video")]),
+            sourceIn: nil, sourceOut: nil
+        ))
+    }
+
+    func testLockedAudioDetectsAudibleInsertOnEmptyVideoTrack() {
+        let insert: JSONValue = .object([
+            "asset": .string("source"), "in": .number(0), "out": .number(2)
+        ])
+        let placements = [TimelinePlacement.inserting(insert, track: "V2", atFrame: 90)]
+        let audible: JSONValue = .object([
+            "kind": .string("video"), "probe": .object(["hasAudio": .bool(true)])
+        ])
+        let silent: JSONValue = .object([
+            "kind": .string("video"), "probe": .object(["hasAudio": .bool(false)])
+        ])
+        XCTAssertTrue(EditorStore.overwriteChangesLockedAudio(
+            placements: placements, regions: [], nodes: [], assets: ["source": audible]
+        ))
+        XCTAssertFalse(EditorStore.overwriteChangesLockedAudio(
+            placements: placements, regions: [], nodes: [], assets: ["source": silent]
+        ))
+        XCTAssertTrue(EditorStore.overwriteChangesLockedAudio(
+            placements: placements, regions: [], nodes: []
+        ))
+        XCTAssertFalse(EditorStore.overwriteChangesLockedAudio(
+            placements: [.inserting(.object(["asset": .string("still"), "duration": .number(2.5)]),
+                                     track: "V2", atFrame: 90)],
+            regions: [], nodes: [], assets: ["still": .object(["kind": .string("photo")])]
+        ))
+        XCTAssertFalse(EditorStore.insertionHasAudio(
+            .object(["asset": .string("source"), "volume": .number(0)]), metadata: audible
+        ) ?? true)
     }
 }

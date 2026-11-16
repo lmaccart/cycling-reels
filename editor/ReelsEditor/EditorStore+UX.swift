@@ -194,7 +194,7 @@ extension EditorStore {
         if sourceIn != nil, sourceOut != nil {
             insertSourceSelection()
         } else if let id = selectedAssetID {
-            insertDroppedItem(id)
+            _ = insertDroppedItem(id, atFrame: playheadFrame, trackID: "V1")
         } else {
             notice = "Select footage in the Library first."
         }

@@ -18,6 +18,8 @@ Native macOS editing workspace. Operate mode: precision, scanability, consistenc
 
 - Left project/library browser; center Source and Program monitors; right Effect Controls inspector (no chat panel).
 - A useful, persistent AppKit timeline occupies the lower workspace.
+- Footage drags land at an exact frame on the destination video track. Default drops overwrite covered footage on that track, preserving surviving heads/tails and the source gap. Higher-numbered video tracks appear above lower ones.
+- During a footage drag, show the ghost on its destination row, the affected interval, and the frame-accurate drop time. Snap vertical moves to the original time when snapping is enabled. Locked or incompatible drops are visibly blocked.
 - Split dividers resize and persist independently. At narrow widths, monitors may tab rather than collapse editing controls.
 - Native keyboard focus, selection, text input, dialogs, and reduced-motion behavior.
 - AI changes use a textual source label and visible highlight in addition to color.

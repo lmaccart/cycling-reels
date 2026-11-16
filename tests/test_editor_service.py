@@ -10,12 +10,15 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from helpers import TempProject
+from reels.editor.delta import snapshot_token
 from reels.editor.protocol import ProtocolError
 from reels.editor.service import EditorService
 
@@ -42,6 +45,68 @@ class ServiceBoundaryTests(unittest.TestCase):
             EditorService(self.workspace, lambda *args, **kwargs: None)
         self.assertEqual(error.exception.code, "workspace_in_use")
         self.service.close()
+        reopened = EditorService(self.workspace, lambda *args, **kwargs: None)
+        reopened.close()
+
+    def test_compile_session_closes_after_document_and_repeated_service_close_is_safe(self):
+        session = self.service._compile_session
+        events = []
+        original_close = session.close
+        session.close = lambda: (events.append("session"), original_close())
+        self.service.document = SimpleNamespace(
+            close=lambda: events.append("document"),
+            cancel_pending=lambda **_kwargs: None,
+        )
+
+        self.service.close()
+        self.service.close()
+
+        self.assertEqual(events, ["document", "session"])
+        self.assertTrue(session.closed)
+
+    def test_constructor_failure_releases_compile_session_and_workspace_lock(self):
+        from unittest.mock import Mock, patch
+
+        self.service.close()
+        session = Mock()
+        with (
+            patch("reels.editor.compile_worker.begin_compile_session", return_value=session),
+            patch("reels.editor.service.JobManager", side_effect=RuntimeError("job manager failed")),
+            self.assertRaisesRegex(RuntimeError, "job manager failed"),
+        ):
+            EditorService(self.workspace, lambda *args, **kwargs: None)
+
+        session.close.assert_called_once()
+        reopened = EditorService(self.workspace, lambda *args, **kwargs: None)
+        reopened.close()
+
+    def test_service_watcher_start_failure_retires_session_and_releases_lock(self):
+        from reels.editor.compile_worker import begin_compile_session
+
+        self.service.close()
+        sessions = []
+
+        def create_session(workspace):
+            session = begin_compile_session(workspace)
+            sessions.append(session)
+            return session
+
+        class FailingThread(threading.Thread):
+            def start(self):
+                raise RuntimeError("watcher thread start failed")
+
+        watcher = FailingThread()
+        with (
+            patch("reels.editor.compile_worker.begin_compile_session", side_effect=create_session),
+            patch.object(EditorService, "_new_service_watcher", return_value=watcher),
+            self.assertRaisesRegex(RuntimeError, "watcher thread start failed"),
+        ):
+            EditorService(self.workspace, lambda *args, **kwargs: None)
+
+        self.assertFalse(watcher.is_alive(), "cleanup must tolerate the unstarted thread")
+        self.assertEqual(len(sessions), 1)
+        self.assertTrue(sessions[0].closed)
+        self.assertTrue(sessions[0].owner.closed)
         reopened = EditorService(self.workspace, lambda *args, **kwargs: None)
         reopened.close()
 
@@ -195,6 +260,124 @@ class ServiceBoundaryTests(unittest.TestCase):
             release.set()
             self.service.document = None
 
+    def test_timeline_burst_defers_preview_until_gesture_lease_releases(self):
+        timers = []
+
+        class FakeTimer:
+            def __init__(self, interval, function):
+                self.interval, self.function = interval, function
+                self.cancelled = False
+                timers.append(self)
+
+            def start(self):
+                pass
+
+            def cancel(self):
+                self.cancelled = True
+
+        revisions = {"document": "d1", "library": "l", "renderer": "r"}
+        snapshot = {"documentId": "doc", "revisions": revisions, "plan": {"segments": []}, "nodes": []}
+        self.service.document = SimpleNamespace(snapshot=lambda: snapshot)
+        self.service._timeline_leases["gesture"] = time.monotonic() + 5
+        self.service._start_preview = Mock(return_value={"id": "one"})
+        try:
+            with patch("reels.editor.service.threading.Timer", FakeTimer):
+                self.service._changed(snapshot)
+                first = timers[-1]
+                snapshot["revisions"] = {**revisions, "document": "d2"}
+                self.service._changed(snapshot)
+                second = timers[-1]
+                self.assertTrue(first.cancelled, "the burst replaces the earlier debounce timer")
+
+                second.function()
+                self.assertEqual(self.service._start_preview.call_count, 0)
+                self.service._timeline_leases.clear()
+                self.service._manual_apply_inflight = 1  # the next queued apply is now validating
+                deferred = timers[-1]
+                deferred.function()
+                self.assertEqual(self.service._start_preview.call_count, 0)
+                self.service._manual_apply_inflight = 0
+                timers[-1].function()
+                self.assertEqual(self.service._start_preview.call_count, 1)
+        finally:
+            self.service.document = None
+
+    def test_replaced_timeline_lease_release_unblocks_one_preview(self):
+        from concurrent.futures import ThreadPoolExecutor
+
+        timers = []
+        active_lease = {"token": None}
+        first_entered, release_first, second_entered = threading.Event(), threading.Event(), threading.Event()
+        lease_number = [0]
+
+        class FakeTimer:
+            def __init__(self, interval, function):
+                self.interval, self.function = interval, function
+                timers.append(self)
+
+            def start(self):
+                pass
+
+            def cancel(self):
+                pass
+
+        def acquire_lease(_owner, ttl):
+            lease_number[0] += 1
+            token = f"timeline-{lease_number[0]}"
+            active_lease["token"] = token
+            if token == "timeline-1":
+                first_entered.set()
+                release_first.wait(3)
+            else:
+                second_entered.set()
+            return {"token": token, "expiresIn": ttl}
+
+        def release_lease(token):
+            if active_lease["token"] == token:
+                active_lease["token"] = None
+                return True
+            return False
+
+        snapshot = {
+            "documentId": "doc",
+            "revisions": {"document": "d1", "library": "l", "renderer": "r"},
+            "plan": {"segments": []}, "nodes": [],
+        }
+        self.service.document = SimpleNamespace(
+            snapshot=lambda: snapshot, acquire_lease=acquire_lease, release_lease=release_lease,
+        )
+        self.service._start_preview = Mock(return_value={"id": "preview"})
+        try:
+            with patch("reels.editor.service.threading.Timer", FakeTimer):
+                with ThreadPoolExecutor(max_workers=2) as callers:
+                    first_call = callers.submit(
+                        self.service.dispatch, "lease.acquire", {"owner": "timeline-trim"}
+                    )
+                    self.assertTrue(first_entered.wait(2))
+                    second_call = callers.submit(
+                        self.service.dispatch, "lease.acquire", {"owner": "timeline-reorder"}
+                    )
+                    self.assertFalse(
+                        second_entered.wait(0.05),
+                        "the later acquire must not pass an earlier acquire before tracking it",
+                    )
+                    release_first.set()
+                    first = first_call.result(timeout=2)
+                    second = second_call.result(timeout=2)
+                self.assertTrue(second_entered.is_set())
+                self.assertEqual(active_lease["token"], second["token"])
+                self.assertEqual(set(self.service._timeline_leases), {second["token"]})
+                self.service._changed(snapshot)
+                self.service.dispatch("lease.release", {"token": first["token"]})
+                self.assertEqual(set(self.service._timeline_leases), {second["token"]})
+                self.service.dispatch("lease.release", {"token": second["token"]})
+                self.assertFalse(self.service._timeline_leases)
+                timers[-1].function()
+                self.assertEqual(self.service._start_preview.call_count, 1)
+        finally:
+            release_first.set()
+            self.service.document = None
+
     def test_preview_reservation_and_submission_are_one_coalescing_step(self):
         from concurrent.futures import ThreadPoolExecutor
         from unittest.mock import patch
@@ -295,6 +478,175 @@ class ServiceBoundaryTests(unittest.TestCase):
                 self.service._relay_dispatch("document.read", {"id": "stable"}, "search")
         finally:
             self.service.document = None
+
+    def test_apply_delta_is_complete_small_and_falls_back_on_stale_base(self):
+        revisions = {"document": "d1", "library": "l1", "renderer": "r1"}
+        nodes = [
+            {"id": f"node-{index}", "kind": "text", "lane": "text", "startFrame": index,
+             "endFrame": index + 10, "frames": 10, "raw": {"text": str(index)}}
+            for index in range(42)
+        ]
+        before = {
+            "documentId": "doc", "revisions": revisions,
+            "plan": {"segments": [{"asset": f"asset-{index}"} for index in range(42)]},
+            "nodes": nodes, "fps": 30, "durationFrames": 420, "warnings": [],
+            "preview": {"state": "ready"}, "tracks": [], "config": {}, "projectConfig": {},
+            "change": {"origin": "system"}, "selection": {"ids": []}, "permissions": [],
+        }
+        before["snapshotToken"] = snapshot_token(before)
+        after = deepcopy(before)
+        after["revisions"]["document"] = "d2"
+        after["plan"]["segments"][7]["volume"] = .5
+        after["plan"]["segments"].pop()
+        after["nodes"][7]["raw"]["volume"] = .5
+        after["nodes"].pop()
+        after["durationFrames"] = 390
+        after["warnings"] = ["fixture warning"]
+        after["preview"] = {"state": "stale"}
+        after["change"] = {"origin": "manual", "affectedIds": ["node-7"]}
+        self.service.preview = {"state": "stale"}
+        self.service._announced_snapshot = before
+        self.service.document = SimpleNamespace(snapshot=lambda: after)
+        delta = self.service._changed(
+            after, prepare_preview=False, delta_base=revisions,
+            delta_snapshot_token=before["snapshotToken"],
+        )
+
+        self.assertEqual(delta["type"], "document.delta")
+        self.assertEqual(delta["baseSnapshotToken"], before["snapshotToken"])
+        wire_after = {
+            **after, "preview": dict(self.service.preview),
+            "selection": dict(self.service.selection),
+            "permissions": list(self.service.permissions.values()),
+        }
+        self.assertEqual(delta["snapshotToken"], snapshot_token(wire_after))
+        self.assertEqual(delta["removedIds"], ["node-41"])
+        self.assertEqual(delta["nodeOrder"], [f"node-{index}" for index in range(41)])
+        self.assertEqual([node["id"] for node in delta["changedNodes"]], ["node-7"])
+        self.assertEqual(delta["revisions"]["document"], "d2")
+        self.assertEqual(delta["fields"]["durationFrames"], 390)
+        self.assertEqual(delta["fields"]["warnings"], ["fixture warning"])
+        self.assertEqual(delta["fields"]["preview"], {"state": "stale"})
+        self.assertTrue(any(item["path"] == "/segments" for item in delta["planPatch"]))
+        self.assertLess(len(json.dumps(delta, separators=(",", ":")).encode()), 5_000)
+        self.assertFalse(any(args[0] == "document.changed" for args, _ in self.events))
+
+        stale = deepcopy(after)
+        stale["revisions"]["document"] = "d3"
+        self.events.clear()
+        full = self.service._changed(
+            stale, prepare_preview=False, delta_base=revisions,
+            delta_snapshot_token=before["snapshotToken"],
+        )
+        self.assertNotIn("type", full)
+        wire_stale = {
+            **stale, "preview": dict(self.service.preview),
+            "selection": dict(self.service.selection),
+            "permissions": list(self.service.permissions.values()),
+        }
+        self.assertEqual(full["snapshotToken"], snapshot_token(wire_stale))
+        self.assertTrue(any(args[0] == "document.changed" for args, _ in self.events))
+        self.service.document = None
+
+    def test_same_revision_metadata_mismatch_forces_full_snapshot(self):
+        revisions = {"document": "d1", "library": "l1", "renderer": "r1"}
+        announced = {
+            "documentId": "doc", "revisions": revisions, "plan": {"segments": []}, "nodes": [],
+            "fps": 30, "durationFrames": 0, "warnings": [], "preview": {"state": "empty"},
+            "tracks": [], "selection": {"ids": [], "playhead": 0}, "permissions": [],
+        }
+        announced["snapshotToken"] = snapshot_token(announced)
+        fetched_at_b = deepcopy(announced)
+        fetched_at_b["selection"] = {"ids": ["b"], "playhead": 0}
+        fetched_at_b["snapshotToken"] = snapshot_token(fetched_at_b)
+        after_selection_returns_to_a = deepcopy(announced)
+        after_selection_returns_to_a["revisions"] = {**revisions, "document": "d2"}
+        self.service._announced_snapshot = announced
+        self.service.document = SimpleNamespace(snapshot=lambda: after_selection_returns_to_a)
+        self.events.clear()
+
+        response = self.service._changed(
+            after_selection_returns_to_a,
+            prepare_preview=False,
+            delta_base=revisions,
+            delta_snapshot_token=fetched_at_b["snapshotToken"],
+        )
+
+        self.assertNotIn("type", response)
+        self.assertEqual(response["selection"]["ids"], [])
+        self.assertTrue(any(args[0] == "document.changed" for args, _ in self.events))
+        self.service.document = None
+
+    def test_delta_response_is_opt_in_to_native_manual_apply_only(self):
+        before = {
+            "documentId": "doc", "revisions": {"document": "d1", "library": "l1", "renderer": "r1"},
+            "plan": {"segments": []}, "nodes": [], "fps": 30, "durationFrames": 0,
+            "warnings": [], "preview": {"state": "empty"}, "tracks": [],
+        }
+        before["selection"] = dict(self.service.selection)
+        before["permissions"] = list(self.service.permissions.values())
+        before["snapshotToken"] = snapshot_token(before)
+        after = deepcopy(before)
+        after["revisions"]["document"] = "d2"
+        after["plan"]["note"] = "saved"
+        self.service._announced_snapshot = before
+        self.service.document = SimpleNamespace(apply=lambda _batch: after)
+        self.service.shutdown_requested.set()  # avoid the delayed preview in this protocol test
+        params = {
+            "batch": {
+                "expected": before["revisions"],
+                "responseMode": "delta",
+                "baseRevisions": before["revisions"],
+                "baseSnapshotToken": before["snapshotToken"],
+                "operations": [{"op": "set_field", "path": "/note", "value": "saved"}],
+            }
+        }
+
+        result = self.service.dispatch("document.apply", params, source="native")
+        self.assertEqual(result["type"], "document.delta")
+        self.assertFalse(any(args[0] == "document.changed" for args, _ in self.events))
+
+        self.events.clear()
+        full = self.service.dispatch("document.apply", {
+            "batch": {
+                "expected": after["revisions"],
+                "operations": [{"op": "set_field", "path": "/note", "value": "saved"}],
+            }
+        }, source="native")
+        self.assertNotIn("type", full)
+        self.assertTrue(any(args[0] == "document.changed" for args, _ in self.events))
+        self.service.document = None
+
+    def test_library_revision_change_invalidates_search_and_emits_fresh_revision(self):
+        current = ["library-before"]
+        self.workspace.library_revision = lambda: current[0]
+        self.service._observed_library_revision = current[0]
+        self.events.clear()
+
+        current[0] = "library-after"
+        self.service._check_library_revision()
+
+        self.assertEqual(self.service._observed_library_revision, "library-after")
+        self.assertTrue(any(
+            args[0] == "library.changed" and args[1]["libraryRevision"] == "library-after"
+            for args, _ in self.events
+        ))
+        self.assertIsNone(self.service._index)
+
+    def test_library_producer_refreshes_after_its_write(self):
+        calls = []
+        self.workspace.invalidate_library_revision = lambda: calls.append("invalidate")
+        self.workspace.refresh_library_revision = lambda: calls.append("refresh") or "fresh-library"
+        self.events.clear()
+
+        revision = self.service._refresh_library_inputs()
+
+        self.assertEqual(revision, "fresh-library")
+        self.assertEqual(calls, ["invalidate", "refresh"])
+        self.assertTrue(any(
+            args[0] == "library.changed" and args[1]["libraryRevision"] == "fresh-library"
+            for args, _ in self.events
+        ))
 
     def test_invalid_plan_symlink_not_listed(self):
         external = self.fixture.root / "outside.json"

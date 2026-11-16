@@ -25,8 +25,9 @@ export const ExhibitView: React.FC<{ exhibit: Exhibit; accent: string }> = ({ ex
     y = interpolate(frame, fs, e.path.map((k) => k[2]), clamp);
   }
 
-  const inP = e.enter === 'none' ? 1 : interpolate(frame, [0, IN], [0, 1], clamp);
-  const outP = e.exit === 'none' ? 1 : interpolate(frame, [dur - OUT, dur], [1, 0], clamp);
+  const shortOwned = dur < 8 && (e as Exhibit & {ownerSegmentIndex?: number}).ownerSegmentIndex !== undefined;
+  const inP = shortOwned || e.enter === 'none' ? 1 : interpolate(frame, [0, IN], [0, 1], clamp);
+  const outP = shortOwned || e.exit === 'none' ? 1 : interpolate(frame, [dur - OUT, dur], [1, 0], clamp);
   let opacity = 1;
   let scale = 1;
   let dy = 0;

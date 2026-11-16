@@ -549,7 +549,9 @@ class PreviewManager:
 
     def _copy_inputs(self, snapshot: dict, job_root: Path) -> Path:
         expected = str((snapshot.get("revisions") or {}).get("library", ""))
-        before = self.workspace.library_revision()
+        refresh_revision = getattr(self.workspace, "refresh_library_revision", None)
+        fresh_revision = refresh_revision if callable(refresh_revision) else self.workspace.library_revision
+        before = str(fresh_revision())
         if expected and before != expected:
             raise ReelsError("preview snapshot library revision is stale; prepare the latest snapshot")
         data = job_root / "data"
@@ -558,7 +560,7 @@ class PreviewManager:
         only = (*INPUT_DIRS, *CLONE_EXTRA_DIRS, *INPUT_FILES) if getattr(self.workspace, "live_mode", False) else None
         _copy_input_tree(Path(self.workspace.data_root), data, only)
         _apply_snapshot_overrides(snapshot, data)
-        after = self.workspace.library_revision()
+        after = str(fresh_revision())
         if before != after or (expected and after != expected):
             raise ReelsError("library metadata changed while its preview snapshot was frozen")
         return data
