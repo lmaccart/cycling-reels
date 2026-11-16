@@ -526,7 +526,9 @@ class EditorService:
             return read_node(self.snapshot(), params.get("id", "document"), params.get("path", ""),
                              params.get("offset", 0), params.get("limit", 20))
         if method == "document.apply":
-            batch = copy.deepcopy(params)
+            # The native app sends {"batch": {...}}; MCP/AI callers send the batch itself.
+            wrapped = params.get("batch") if isinstance(params, dict) else None
+            batch = copy.deepcopy(wrapped if isinstance(wrapped, dict) and "operations" in wrapped else params)
             batch["origin"] = "ai" if source == "ai" else "manual"
             if source == "ai":
                 batch.pop("lease", None)

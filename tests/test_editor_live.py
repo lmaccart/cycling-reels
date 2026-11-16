@@ -131,6 +131,12 @@ class LiveServiceTests(unittest.TestCase):
         self.assertEqual(applied["durationFrames"], 60)
         # The real plan file changed, not a private copy.
         self.assertEqual(json.loads(plan_file.read_text())["segments"][0]["asset"], "a")
+        # The native app wraps the batch: {"batch": {...}} (EditorStore.apply).
+        wrapped = self.service.dispatch("document.apply", {"batch": {
+            "expected": applied["revisions"], "reason": "trim", "origin": "manual",
+            "operations": [{"op": "trim_segment", "id": applied["nodes"][0]["id"], "sourceIn": 0, "sourceOut": 1}]}})
+        self.assertEqual(wrapped["durationFrames"], 30)
+        self.service.dispatch("document.undo", {})
         undone = self.service.dispatch("document.undo", {})
         self.assertEqual(undone["durationFrames"], 0)
         self.assertEqual(json.loads(plan_file.read_text())["segments"], [])
