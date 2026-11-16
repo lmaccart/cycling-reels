@@ -60,6 +60,10 @@ Every reel also goes to TikTok (Metricool account `leif`, connected 2026-11-11, 
 - Adding TikTok to an already scheduled post is an update: the id changes, so re-record it with `./reels mark <slug> scheduled --metricool-id <new id>`.
 - Analytics: network `tiktok`, connector `posts` (`TKPO…`) and `evolution` (`TKEV…`). `./reels stats import` doesn't read these yet.
 
+### YouTube Shorts
+
+Every reel also goes to YouTube as a Short (channel added to Metricool 2026-11-15, user's call), as a third provider on the same post: `{"network":"youtube"}` plus `youtubeData`: `{"title": "<first line of the caption, no hashtags>", "type": "short", "privacy": "public", "tags": [<the hashtags without #>], "category": "SPORTS", "madeForKids": false, "isAiGeneratedContent": false}`. Title and `madeForKids` are required. Mixed-in trending songs can draw Content ID claims (ads/monetisation go to the label, or the Short is blocked in some countries); check the first ones after they post.
+
 ### Trial reels
 
 Instagram Trial Reels are shown to non-followers first, and can be shared to everyone afterwards. That makes them the cleanest hook test available: the same footage with a second hook goes out as a trial without followers seeing the reel twice. Leif wants to experiment with them (2026-11-10).
