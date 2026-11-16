@@ -55,7 +55,7 @@ DEFAULTS: dict[str, Any] = {
     },
     "sfx": {
         "gain": 0.7,
-        "auto": True,
+        "auto": False,  # user 2026-11-16: no automatic sound effects unless asked for (plan "autoSfx": true)
         "autoSpacing": 1.5,  # seconds: at most one automatic cue this often
         "autoMax": 4,  # automatic cues per reel (a payoff riser doesn't count)
         # event -> sound slug (or {"sound", "gain"}); null turns that event off

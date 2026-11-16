@@ -53,7 +53,7 @@
   },
   "sfx": {
     "gain": 0.7,
-    "auto": true,
+    "auto": false,
     "autoSpacing": 1.5,
     "autoMax": 4,
     "autoRules": {

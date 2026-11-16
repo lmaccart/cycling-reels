@@ -53,6 +53,32 @@ class EditorSandboxTests(unittest.TestCase):
         with patch.object(preview.Path, "home", return_value=self.root / "unused-home"):
             self.assertEqual(preview._browser_executable(self.workspace), local.resolve())
 
+    def test_browser_lookup_is_remembered_until_the_binary_disappears(self):
+        local = self.checkout / "remotion/node_modules/.remotion/chrome-headless-shell/mac-arm64/chrome-headless-shell"
+        home = self.root / "unused-home"
+        with patch.object(preview.Path, "home", return_value=home):
+            self.assertIsNone(preview._browser_executable(self.workspace))  # not found isn't remembered
+            local.parent.mkdir(parents=True)
+            local.write_text("#!/bin/sh\nexit 0\n")
+            local.chmod(0o700)
+            self.assertEqual(preview._browser_executable(self.workspace), local.resolve())
+            with patch.object(preview, "_find_browser", side_effect=AssertionError("walked the cache again")):
+                self.assertEqual(preview._browser_executable(self.workspace), local.resolve())
+            local.unlink()
+            self.assertIsNone(preview._browser_executable(self.workspace))
+
+    def test_shared_browser_cache_walk_is_remembered_until_a_binary_disappears(self):
+        cache = self.root / "puppeteer"
+        binary = cache / "chrome/mac-1/chrome"
+        binary.parent.mkdir(parents=True)
+        binary.write_text("#!/bin/sh\nexit 0\n")
+        binary.chmod(0o700)
+        self.assertEqual(preview._cached_browser_binaries(cache), [binary.resolve()])
+        with patch.object(preview.Path, "rglob", side_effect=AssertionError("walked the cache again")):
+            self.assertEqual(preview._cached_browser_binaries(cache), [binary.resolve()])
+        binary.unlink()
+        self.assertEqual(preview._cached_browser_binaries(cache), [])
+
     def _record_worker(self, revision="renderer-A", *, action="prepare", mode="interactive"):
         job_root = self.manager.worker_root / f"job-{len(list(self.manager.worker_root.iterdir()))}"
         job_root.mkdir()

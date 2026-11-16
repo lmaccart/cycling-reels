@@ -10,7 +10,7 @@ Who is typing matters as much as how: [character.md](character.md) describes Lei
 - **Talk, don't announce.** First person, casual, specific to this ride. Fragments are fine.
 - **Funny > hype.** Self-deprecating, relatable, a little dry. Cyclists laugh at suffering, coffee stops, gear obsession, Strava, the group ride that was "supposed to be chill".
 - **One thought per line.** Short. Minimal punctuation; no period at the end of a single line.
-- **No hype words or ad copy:** epic, conquer, crush, beast mode, unleash, journey, elevate, unstoppable, "Ride or Die", "No Days Off", exclamation marks everywhere, ALL CAPS.
+- **No hype words or ad copy:** epic, conquer, crush, beast mode, unleash, journey, elevate, unstoppable, "Ride or Die", "No Days Off", exclamation marks everywhere, ALL CAPS (a reel copying a trend keeps that trend's own styling, caps included — recipes.md).
 - **Emoji: zero or one**, and only the ones people actually use like this (💀 😭 🫠 ☕ 🚴). Never as decoration on every line.
 - **Never invent facts.** Numbers, places, results and names come from the user, the footage (bike computer, signs) or a transcript. If you don't know the grade, don't say "12%" — say "this hill".
 
@@ -59,9 +59,11 @@ Come straight from the transcript; just fix misheard words in the transcript JSO
 
 ## Instagram caption (`post.caption`)
 
-- 1–2 short lines in the same voice. The first line can echo or extend the hook; don't repeat it word for word.
+- **Short and dry by default** (user, 2026-11-16). A few words, flat, a little deadpan — the joke is in what's left unsaid. The user's own rewrites: "leaving free power gains on the table / smh" (creatine), "a&m throwback", "j'suis artiste" (route-map art), "heart rate drifted to the moon smh / i need to buy a better fan" (Zwift on the balcony). Don't explain the reel, don't spoil a reveal, no exclamation marks.
+- A question is fine when it's short and dry too: "who calls it in your group?", not "what's the dumbest thing your group has ever stopped for on a ride?". A reel doesn't need a question; when one doesn't fit, leave the dry line on its own.
+- The first line can echo or extend the hook; don't repeat it word for word.
 - Work in the plain words someone would search for — Instagram search reads captions: "group ride", "road bike", "first century", a place name the user gave you. Only true ones.
-- One reason to respond — a light question ("where's your quiet loop?"), a send prompt when the reel is about a type of riding buddy ("send this to whoever says 'easy pace'"), a pick, or a series hook. See [Give people a reason to answer](#give-people-a-reason-to-answer).
+- At most one reason to respond, and only when it stays short and dry — a light question ("where's your quiet loop?"), a send prompt when the reel is about a type of riding buddy ("send this to whoever says 'easy pace'"), a pick, or a series hook. See [Give people a reason to answer](#give-people-a-reason-to-answer).
 - Under ~200 characters. No essays, no "link in bio" unless the user asks.
 - Music credits are added automatically from the track's record — don't write them yourself. Trending songs (added with `--instagram`) get no credit line — Instagram shows the song on the reel.
 

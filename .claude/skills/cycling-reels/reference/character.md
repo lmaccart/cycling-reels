@@ -21,7 +21,7 @@ Three registers, all picked by Leif on 2026-11-10:
 | Register | From the footage | Use it for |
 | --- | --- | --- |
 | Hyped and earnest | "let's get it, baby" · "we made it happen" · "one left, let's make it happen" · "today's gonna be a good day" · "see y'all out there" | Openers, the start of a workout, the end of a good one |
-| Dry and self-deprecating | "at least it's pretty. well, I'm suffering" · "try my best not to throw up, I'm gonna lay down for a bit" · "episode one is me failing a workout" | The turn of a story, punchlines, captions |
+| Dry and self-deprecating | "at least it's pretty. well, I'm suffering" · "try my best not to throw up, I'm gonna lay down for a bit" · "episode one is me failing a workout" · captions Leif wrote: "smh" · "a&m throwback" · "j'suis artiste" | The turn of a story, punchlines, captions (always the caption's default register — short, dry, a question only if it stays short) |
 | Chaotic with the crew | Group-ride banter, where the speaker isn't always Leif: "every bridge up is a sprint zone" · "say hello, Shrek. they can see you" · "I took like a nice 300 watt pull and then I was like, oh my god, why did I do that" | Group-ride reels, overheard reels, the roommate |
 
 Habits worth keeping because they recur in the footage:

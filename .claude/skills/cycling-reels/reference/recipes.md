@@ -47,7 +47,7 @@ People follow an account to see what happens next, so the week is built around a
 
 | Recipe | Length | Shape | Needs | Example hook |
 | --- | --- | --- | --- | --- |
-| **This week's trend** | 7–20 s | A trend from [music.md](music.md)'s lists, done with ride footage: the song, its format, our footage. Fit it to cycling (Later's notes help) | Whatever that trend's format needs | (the trend's own text format) |
+| **This week's trend** | 7–20 s | A trend from [music.md](music.md)'s lists, done with ride footage: the song, its format, our footage. Fit it to cycling (Later's notes help). **Copy the trend's own styling** (see below) | Whatever that trend's format needs | (the trend's own text format) |
 | **Ride vlog timestamps** | 12–25 s | 5–8 shots, each with a time label: alarm, coffee, roll-out, the climb, café, home. Time labels come from each clip's real recording time (`created` in `./reels show`, local wall-clock) | Kit-up, roll-out, mid-ride, café, end | "6:12 am · legs not awake yet" |
 | **Story with stakes** (make it a series) | 15–35 s | Setup → the effort → honest result. Same title each episode so people follow along | The before, the face during, the result | "can i hold the fast group's wheel · ep 2" |
 | **Tips from your own riding** | 15–30 s | 3 tips, each over the shot that shows it: one talking clip with captions and a `cutaway` per tip (the voice keeps going), or text beats over ride shots | Talking clip or illustrating shots | "3 things that made group rides less scary" |
@@ -62,6 +62,8 @@ People follow an account to see what happens next, so the week is built around a
 | **Bike check / gear** | 7–12 s | 3–5 static details, alternating zoom/pan; labels as beats | Bike details | "rate the bike" |
 | **Scenery breather** | 6–10 s | 1–2 wide shots (`blurfill` for landscape), minimal text | A held view | "this is why i get up at 5am" |
 | **Just the bike** | 7–10 s | No music: 2–4 shots with the best ride sounds, each a `nat` window, hard cuts — see below | Tagged sounds (`./reels library --sounds`) | "no music. just the freehub" |
+
+**Copying a trend (user, 2026-11-16):** when a reel is built off a trend, match the original, not the house style. Same text styling — ALL CAPS if the original is in caps, its size (`"size": "big"`), stacked one word per line if it stacks, no background box if it has none; captions.md's lowercase rule gives way here. Same song moment: set `music.start` to where the trend uses the song (e.g. FRAGMENTS from 0:00 for "this is my art"), not the loudest part. Same beat timing for the reveal. Only the footage and the cycling twist are ours. Not off a trend? House style as usual.
 
 **Speed ramps** without a new feature: split one moment into two back-to-back segments with a hard cut on the beat, normal speed into it and `speed: 0.5` after (slow-mo needs 60 fps footage — the GoPro MAX 360 files are 60 fps; current iPhone clips are 30 fps).
 
@@ -93,7 +95,7 @@ Sound is half of a reel that people rewatch. All of it is in [plan-schema.md](pl
 
 - **Ride-sound moments.** One or two `nat` windows per reel where the bike gets the stage: a car or rider passing, freehub buzz while coasting, clipping in at the start, a shift on the climb. Find them with `./reels library --sounds` (tagged sounds, best first) or `./reels sounds <id>` on a clip you're using. Keep each 0.8–2 s, right on the sound; if `check` says it's quiet, raise its `volume` (freehub ticks often need 2–4).
 - **One drop at most**, right before the payoff: `musicDrops` ending exactly where the payoff shot starts (0.3–0.6 s). Two drops is a gimmick.
-- **2–5 sound effects per reel**, never one on every cut. Whoosh on a fade or a 360 camera swing, a soft pop when text appears, a hit on the payoff (mark the segment `"payoff": true`; with a long enough shot before it, a riser lands on it too). The automatic rules do this sparsely — check the cue sheet in `./reels check` and add, move or replace cues there (a manual cue near an auto one replaces it). Talking reels: no whooshes over the voice (the auto rules already skip them).
+- **No sound effects by default** (user, 2026-11-16): music plus the clips' own audio. Automatic cues are off (config `sfx.auto: false`) and plans don't add `sfx` cues unless the user asks for them on that reel. When they do: a few at most, never one on every cut — a whoosh on a fade or a 360 swing, a soft pop when text appears, a hit on the payoff (`"payoff": true`); `"autoSfx": true` on that plan turns the automatic rules back on for it. Exceptions that stay: a title card's own sting/nail sound (Down Week) and bleeps.
 - **Trending songs stay on top most of the time.** Instagram has to recognize the song — nat windows and the drop together under a quarter of the reel (`check` warns), the song's hook untouched.
 - Wind is the enemy on iPhone clips: `"clean": true` on a windy segment you still want to hear (nat windows get it automatically). If it's still mostly wind, use the shot without its audio.
 
