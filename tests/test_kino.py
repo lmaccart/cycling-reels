@@ -29,7 +29,7 @@ class ProjectExportTests(unittest.TestCase):
         self.t.asset("clip", duration=3.0, width=360, height=640, media=clip)
         self.plan = self.t.plan("export-me", [{"asset": "clip", "in": 0.0, "out": 1.5},
                                               {"asset": "clip", "in": 1.5, "out": 3.0, "cutaways": [{"at": 0.2, "asset": "clip", "in": 0.0, "out": 0.8}]}],
-                                hook={"text": "pov: editable"}, post={"caption": "x"})  # fmt: skip
+                                hook={"text": "pov: editable"}, post={"caption": "x"}, grade="none")  # fmt: skip  (colour is test_grade's job)
 
     def test_folder_is_a_remotion_project_of_exactly_this_reel(self):
         dest = export_project(self.t.project, self.plan)

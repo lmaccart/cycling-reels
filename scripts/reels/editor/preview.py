@@ -322,8 +322,26 @@ def _profile_text(
     return "\n".join(lines) + "\n"
 
 
+_BROWSER_CACHE: dict[str, Path] = {}
+
+
 def _browser_executable(workspace) -> Path | None:
+    """The Remotion browser binary. Finding it walks the browser caches (tens of thousands of folders), so the
+    answer is kept per code root for the life of the process and looked up again if that file disappears."""
     configured = workspace.project.cfg("render", "browserExecutable")
+    if configured:
+        return _find_browser(workspace, configured)
+    key = str(Path(workspace.code_root).resolve())
+    hit = _BROWSER_CACHE.get(key)
+    if hit is not None and hit.is_file() and os.access(hit, os.X_OK):
+        return hit
+    found = _find_browser(workspace, None)
+    if found is not None:  # not found is looked up again next time: setup may install it meanwhile
+        _BROWSER_CACHE[key] = found
+    return found
+
+
+def _find_browser(workspace, configured) -> Path | None:
     if configured:
         path = Path(str(configured)).expanduser()
         if path.is_file() and os.access(path, os.X_OK):
@@ -405,11 +423,29 @@ def _executables(
         Path.home() / "Library/Caches/ms-playwright",
     ):
         if root.is_dir() and not root.is_symlink():
-            for pattern in ("chrome", "chrome-headless-shell", "Chromium", "Google Chrome for Testing"):
-                for item in root.rglob(pattern):
-                    if item.is_file() and os.access(item, os.X_OK):
-                        found.add(item.resolve())
+            found.update(_cached_browser_binaries(root))
     return found
+
+
+_BINARY_CACHE: dict[str, list[Path]] = {}
+
+
+def _cached_browser_binaries(root: Path) -> list[Path]:
+    """Browser binaries under a shared browser cache. The walk is slow and the sandbox profile asks for it on
+    every preview job, so it's kept for the process and redone when a remembered binary is gone."""
+    key = str(root)
+    hit = _BINARY_CACHE.get(key)
+    if hit and all(item.is_file() for item in hit):
+        return hit
+    items = [
+        item.resolve()
+        for pattern in ("chrome", "chrome-headless-shell", "Chromium", "Google Chrome for Testing")
+        for item in root.rglob(pattern)
+        if item.is_file() and os.access(item, os.X_OK)
+    ]
+    if items:  # none found is looked up again next time: a browser may be installed meanwhile
+        _BINARY_CACHE[key] = items
+    return items
 
 
 def _safe_env(workspace, job_root: Path, code_root: Path, node: str | None = None) -> dict[str, str]:

@@ -89,7 +89,9 @@ Experiments stay inconclusive until enough comparable results exist. Permanent s
 recipe, shot-list or code changes are proposed for your approval, not silently applied.
 See [.claude/skills/cycling-reels/reference/learning.md](.claude/skills/cycling-reels/reference/learning.md)
 for input schemas, safeguards and missing-connector behavior. Run the unit tests (no network;
-a few use ffmpeg) with `PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests` —
+a few use ffmpeg) with `.venv/bin/python scripts/run_tests.py` (parallel, ~10 s; `-j N` workers, or a
+pattern like `editor` to run only matching tests) or one at a time with
+`PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests` (~50 s) —
 GitHub Actions runs them, plus a typecheck of the Remotion template, on every pull request.
 
 ### Music
