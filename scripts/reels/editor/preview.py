@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import math
 import os
 import platform
 import shutil
@@ -889,6 +890,84 @@ class PreviewManager:
             if any(not isinstance(key, str) or not isinstance(value, list) for key, value in values.items()):
                 raise ReelsError("export usage delta contains an invalid field value")
         return commit_private_updates(updates, expected_revisions)
+
+    def prepare_sphere(self, asset_id: str, start: float, end: float, stabilize=None, context=None) -> dict:
+        """An equirectangular proxy of [start, end] of a 360 clip for the live 360 viewer,
+        with the stabilization rotations for `stabilize` (a plan's stabilize value)."""
+        import hashlib
+
+        from ..util import quick_hash, read_json
+
+        asset_path = self.workspace.project.assets_dir / f"{asset_id}.json"
+        if asset_path.is_symlink() or not asset_path.is_file():
+            raise ReelsError("360 asset is not present in the private editor library")
+        asset = read_json(asset_path)
+        if asset.get("id") != asset_id:
+            raise ReelsError("360 asset identity does not match its private library record")
+        registered = self.workspace._originals.get(str(asset.get("media") or ""))
+        if not registered:
+            raise ReelsError("360 media is not registered in this editor workspace")
+        path = Path(registered["path"])
+        if not path.is_file() or path.is_symlink():
+            return {"status": "offline", "assetId": asset_id, "reason": "The registered original is offline."}
+        actual = _stable_signature(path)
+        identity = registered.get("identity") or {
+            "dev": actual[0], "ino": actual[1], "size": actual[2],
+            "mtime_ns": actual[3], "ctime_ns": actual[4], "quick_hash": quick_hash(path),
+        }
+        if actual != (identity.get("dev"), identity.get("ino"), identity.get("size"), identity.get("mtime_ns"), identity.get("ctime_ns")):
+            return {"status": "offline", "assetId": asset_id, "reason": "The registered original changed identity."}
+        probe = asset.get("probe") or {}
+        if not isinstance(probe.get("sphere"), dict) or asset.get("kind") != "video":
+            return {"status": "unsupported", "assetId": asset_id, "reason": "Only 360 video has a live 360 view."}
+        # proxies cover whole 5 s blocks around the clip, so small trims reuse them
+        duration = float(probe.get("duration") or end)
+        lo = max(0.0, math.floor(max(0.0, float(start) - 1.0) / 5.0) * 5.0)
+        hi = min(duration, math.ceil((float(end) + 1.0) / 5.0) * 5.0)
+        from .renderer import RendererManager
+
+        renderer_manager = RendererManager(self.workspace)
+        renderer_revision = renderer_manager._active_revision()
+        key = hashlib.sha256(json.dumps(
+            {"asset": asset_id, "identity": identity, "start": lo, "end": hi, "renderer": renderer_revision},
+            sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        job_root = self.worker_root / f"sphere-{uuid.uuid4().hex}"
+        job_root.mkdir(parents=True, mode=0o700)
+        proxy_root = self.preview_root / "spheres" / key
+        proxy_root.parent.mkdir(parents=True, exist_ok=True, mode=0o700)  # the sandbox may write only inside proxy_root
+        revisions = {"document": "source", "library": str(self.workspace.library_revision()), "renderer": renderer_revision}
+        try:
+            result = self._run_worker(
+                {
+                    "action": "sphere_proxy",
+                    "jobPath": str(job_root / "job.json"),
+                    "jobRoot": str(job_root),
+                    "revisionDir": str(proxy_root),
+                    "resultPath": str(job_root / "result.json"),
+                    "sourcePath": str(path),
+                    "sourceIdentity": identity,
+                    "assetId": asset_id,
+                    "probe": copy.deepcopy(probe),
+                    "start": lo,
+                    "end": hi,
+                    "stabilize": copy.deepcopy(stabilize),
+                    "mediaRoot": str(self.workspace.project.media_dir.resolve()),
+                    "workspaceRoot": str(Path(self.workspace.root).resolve()),
+                    "revisions": revisions,
+                },
+                context=context,
+                code_root=renderer_manager.resolve_renderer(renderer_revision),
+                timeout=1800,
+            )
+        finally:
+            shutil.rmtree(job_root, ignore_errors=True)
+        if result.get("status", "ready") != "ready":
+            return {"status": result.get("status", "unsupported"), "assetId": asset_id,
+                    "reason": result.get("reason") or "The 360 proxy could not be prepared."}
+        proxy = Path(result.get("path", "")).resolve(strict=True)
+        if not _inside(proxy, self.preview_root.resolve()):
+            raise ReelsError("360 proxy escaped the private preview workspace")
+        return {**result, "status": "ready", "assetId": asset_id, "path": str(proxy)}
 
     def prepare_source(self, asset_id: str, view: dict | None = None, context=None) -> dict:
         """Return a playable original or a private view-specific proxy."""

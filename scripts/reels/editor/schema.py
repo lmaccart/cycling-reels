@@ -197,6 +197,10 @@ def _sphere_fields(path: str) -> list[dict[str, Any]]:
     return [
         _field("projection", "Projection", path + "/projection", "enum", default="flat",
                choices=["flat", "tiny-planet"]),
+        _field("stabilize", "Stabilize", path + "/stabilize", "enum", default="off",
+               choices=["off", "light", "medium", "strong", "lock"],
+               help="Cancels camera shake using the camera's own orientation data (GoPro MAX). "
+                    "Light/medium/strong follow turns more or less loosely; lock holds the starting direction."),
         _field("view", "Default view", path + "/view", "group", default={"yaw": 0, "pitch": 0, "fov": 75, "roll": 0},
                fields=[
                    _field("yaw", "Yaw", path + "/view/yaw", "number", default=0, min=-360, max=360, unit="°"),
@@ -213,6 +217,8 @@ def _sphere_fields(path: str) -> list[dict[str, Any]]:
                    _field("pitch", "Pitch", path + "/path/{item}/pitch", "number", min=-90, max=90, unit="°"),
                    _field("fov", "Field of view", path + "/path/{item}/fov", "number", min=20, max=150, unit="°"),
                    _field("roll", "Roll", path + "/path/{item}/roll", "number", min=-180, max=180, unit="°"),
+                   _field("cut", "Hard cut", path + "/path/{item}/cut", "boolean", default=False,
+                          help="Jump to this view instead of easing into it."),
                ]),
     ]
 

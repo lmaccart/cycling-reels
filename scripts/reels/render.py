@@ -219,6 +219,9 @@ def _visual(
         seconds = spec["duration"]
         if is_360:
             spec["sphere"] = camera(seconds)
+            if spec["sphere"].get("stabilize"):
+                warnings.append(f"{where}: stabilize only applies to 360 video, not photos")
+                spec["sphere"]["stabilize"] = None
             spec["fit"] = "cover"
             if spec["sphere"]["path"]:
                 spec["motion"] = "none"  # the camera move is the motion
@@ -1425,7 +1428,14 @@ def stage_video(
     if spec.get("sphere"):
         # 360: rebuild the sphere, then point a virtual camera (fixed, or moving along a path)
         src_graph, pad, inproj = source_graph(probe)
-        cam = camera_filter(spec["sphere"], inproj, tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"))
+        stab = None
+        if spec["sphere"].get("stabilize"):
+            from .stabilize import segment_corrections
+
+            stab = segment_corrections(src, spec["in"], speed, fps, sg.frames, spec["sphere"]["stabilize"])
+            if stab is None:
+                log(f"  segment {sg.index + 1}: no camera orientation data in {src.name} — not stabilized")
+        cam = camera_filter(spec["sphere"], inproj, tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"), stab=stab)
         graph = f"{src_graph};[{pad}]setpts=(PTS-STARTPTS)/{speed:g},fps={fps},{cam},{tail}"
     elif spec["frame"] == "crop":
         zoom = spec["zoom"]
@@ -1870,7 +1880,11 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
             else:
                 cam_txt = f"360 yaw {v['yaw']:g} pitch {v['pitch']:g} fov {v['fov']:g}"
             if cam["path"]:
-                cam_txt += " → path " + " → ".join(f"{k['at']:g}s:{k['yaw']:g}°" for k in cam["path"])
+                cam_txt += " → path " + " → ".join(f"{k['at']:g}s:{'cut ' if k.get('cut') else ''}{k['yaw']:g}°" for k in cam["path"])
+            if cam.get("stabilize"):
+                from .stabilize import describe as describe_stab
+
+                cam_txt += " " + describe_stab(cam["stabilize"])
         if sg.kind == "video":
             src = f"{fmt_ts(sg.spec['in'])}-{fmt_ts(sg.spec['out'])}"
             frame = cam_txt or (sg.spec["frame"] + (f"@{sg.spec['focusX']:.2f}" if sg.spec["frame"] == "crop" else ""))

@@ -1119,6 +1119,115 @@ def prepare_source_proxy(job: dict) -> dict:
     }
 
 
+SPHERE_PROXY_FPS = 30
+SPHERE_PROXY_WIDTH = 2048  # equirectangular, 2:1
+SPHERE_PROXY_MAX = 180.0  # s of source per proxy
+
+
+def prepare_sphere_proxy(job: dict) -> dict:
+    """An equirectangular proxy of part of a 360 video for the editor's live 360 viewer,
+    plus the per-frame stabilization rotations (and gravity) for that range.
+
+    The picture is the whole sphere with no view applied, so aiming, keyframes and
+    stabilization strength change instantly in the app without re-encoding."""
+    source = Path(job["sourcePath"]).resolve(strict=True)
+    media_root = Path(job["mediaRoot"]).resolve(strict=True)
+    workspace_root = Path(job["workspaceRoot"]).resolve(strict=True)
+    revision_dir = Path(job["revisionDir"]).resolve()
+    if not source.is_relative_to(media_root) or source.is_symlink() or not source.is_file():
+        raise ReelsError("360 proxy input is not a registered original-media file")
+    if not revision_dir.is_relative_to(workspace_root):
+        raise ReelsError("360 proxy output escaped the private editor workspace")
+    expected_identity = job.get("sourceIdentity")
+    if not isinstance(expected_identity, dict) or _stat_identity(source) != expected_identity:
+        raise ReelsError("registered original changed before 360 proxy preparation")
+    probe = job.get("probe") if isinstance(job.get("probe"), dict) else {}
+    if not isinstance(probe.get("sphere"), dict):
+        return {"status": "unsupported", "reason": "This clip isn't 360 footage."}
+    duration = float(probe.get("duration") or 0)
+    start = max(0.0, float(job["start"]))
+    end = float(job["end"])
+    if duration > 0:
+        end = min(end, duration)
+    if not end > start or end - start > SPHERE_PROXY_MAX + 1e-6:
+        return {"status": "unsupported", "reason": f"A 360 proxy covers up to {SPHERE_PROXY_MAX:g} s of a clip."}
+
+    from ..sphere import source_graph
+    from ..stabilize import correction_quats, margin, parse_setting, read_orientation
+
+    errors: list[str] = []
+    setting = parse_setting(job.get("stabilize"), errors, "stabilize")
+    if errors:
+        return {"status": "unsupported", "reason": errors[0]}
+
+    width, height = SPHERE_PROXY_WIDTH, SPHERE_PROXY_WIDTH // 2
+    revision_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if revision_dir.is_symlink():
+        raise ReelsError("360 proxy output directory cannot be a symlink")
+    output = revision_dir / "sphere.mp4"
+    marker = revision_dir / "sphere.json"
+    if output.is_symlink() or marker.is_symlink():
+        raise ReelsError("360 proxy cache contains a symlink")
+    expected_marker = {
+        "version": 1, "assetId": str(job.get("assetId", "")), "sourceIdentity": expected_identity,
+        "start": round(start, 3), "end": round(end, 3), "fps": SPHERE_PROXY_FPS, "width": width, "height": height,
+        "rendererRevision": str((job.get("revisions") or {}).get("renderer") or ""),
+    }
+    reused = False
+    if output.is_file() and marker.is_file():
+        try:
+            reused = json.loads(marker.read_text(encoding="utf-8")) == expected_marker
+        except (OSError, ValueError):
+            reused = False
+    if not reused:
+        from ..media import run
+
+        graph, pad, inproj = source_graph(probe)
+        temporary = revision_dir / f".sphere-{uuid.uuid4().hex}.mp4"
+        try:
+            run([
+                "ffmpeg", "-v", "error", "-y", "-ss", f"{start:.3f}", "-t", f"{end - start:.3f}", "-i", source,
+                "-filter_complex",
+                f"{graph};[{pad}]fps={SPHERE_PROXY_FPS},v360=input={inproj}:output=e:w={width}:h={height}:interp=linear[sphere]",
+                "-map", "[sphere]", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                "-g", str(SPHERE_PROXY_FPS), "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart", temporary,
+            ], timeout=1800)  # fmt: skip
+            if not temporary.is_file() or temporary.stat().st_size <= 0:
+                raise ReelsError("360 proxy encoder produced no file")
+            if _stat_identity(source) != expected_identity:
+                raise ReelsError("registered original changed during 360 proxy preparation")
+            os.replace(temporary, output)
+            output.chmod(0o400)
+            if marker.exists():
+                marker.chmod(0o600)
+            _atomic_json(marker, expected_marker)
+            marker.chmod(0o400)
+        except (ReelsError, OSError, subprocess.SubprocessError) as exc:
+            return {"status": "unsupported", "reason": f"Could not prepare the 360 proxy: {exc}"}
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+
+    frames = max(1, int(round((end - start) * SPHERE_PROXY_FPS)))
+    pad_s = margin(setting) if setting else 0.5
+    ori = read_orientation(source, max(0.0, start - pad_s), end + pad_s)
+    stabilization = None
+    if setting and ori is not None:
+        times = [start + n / SPHERE_PROXY_FPS for n in range(frames)]
+        stabilization = {
+            "start": start, "fps": SPHERE_PROXY_FPS,
+            "quats": [[round(c, 6) for c in q] for q in correction_quats(ori, times, setting)],
+        }
+    return {
+        "status": "ready", "path": str(output), "reused": reused,
+        "start": start, "end": end, "fps": SPHERE_PROXY_FPS, "width": width, "height": height,
+        "hasOrientation": ori is not None,
+        "gravity": list(ori.gravity) if ori is not None and ori.gravity else None,
+        "stabilize": setting, "stabilization": stabilization,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) == 2 and args[0] == "--sandbox-probe":
@@ -1133,6 +1242,8 @@ def main(argv: list[str] | None = None) -> int:
             result = validate_candidate(job)
         elif job.get("action") == "source_proxy":
             result = prepare_source_proxy(job)
+        elif job.get("action") == "sphere_proxy":
+            result = prepare_sphere_proxy(job)
         elif job.get("action") == "export":
             result = export(job)
         else:

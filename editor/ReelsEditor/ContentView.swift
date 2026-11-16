@@ -692,7 +692,7 @@ private struct MonitorPanel: View {
             .frame(height: 32)
             .background(EditorPalette.panel)
             Divider()
-            ProgramMonitor(store: store)
+            programMonitor
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             ProgramControls(store: store)
         }
@@ -704,11 +704,20 @@ private struct MonitorPanel: View {
             if store.activeTab == "source" {
                 sourceMonitor
             } else {
-                ProgramMonitor(store: store)
+                programMonitor
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+    }
+
+    @ViewBuilder
+    private var programMonitor: some View {
+        if store.sphereAim.isActive {
+            SphereAimPanel(store: store, aim: store.sphereAim)
+        } else {
+            ProgramMonitor(store: store)
+        }
     }
 
     @ViewBuilder
@@ -755,6 +764,16 @@ private struct MonitorPanel: View {
                 .help("Lay this clip over the selected clip as a cutaway. Select a clip on the timeline first.")
             }
         } else {
+            if store.sphereAim.isActive {
+                Text("360° aim")
+                    .font(EditorType.bodyEmphasis)
+                    .foregroundStyle(EditorPalette.accent)
+            } else if store.selectedSphereNode != nil {
+                Button { store.openSphereAim() } label: {
+                    Label("Aim 360°", systemImage: "rotate.3d")
+                }
+                .help("Aim the selected 360 clip: drag to look around, scroll to zoom, set keyframes and stabilization")
+            }
             Text(PreviewModeLabel.title(store.currentPreviewMode))
                 .font(EditorType.bodyEmphasis)
                 .foregroundStyle(.secondary)

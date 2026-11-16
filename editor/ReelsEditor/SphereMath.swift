@@ -1,0 +1,191 @@
+import Foundation
+import simd
+
+/// A camera aim in v360 terms. Degrees; `fov` is the horizontal fov of the 9:16 frame.
+struct SphereView: Equatable, Sendable {
+    var yaw: Double
+    var pitch: Double
+    var fov: Double
+    var roll: Double
+}
+
+/// A keyframe on the camera path. `cut` holds the previous view until `at`, then jumps.
+struct SphereKey: Equatable, Sendable {
+    var at: Double
+    var view: SphereView
+    var cut: Bool
+}
+
+enum SphereProjection: Sendable { case flat, tinyPlanet }
+
+/// Pure math mirroring ffmpeg's v360 filter. Coordinates: x right, y DOWN, z forward.
+enum SphereMath {
+    /// Builds a matrix from rows (simd is column-major).
+    static func rows(_ r0: simd_double3, _ r1: simd_double3, _ r2: simd_double3) -> simd_double3x3 {
+        simd_double3x3(rows: [r0, r1, r2])
+    }
+
+    /// Element at (row, column).
+    static func element(_ m: simd_double3x3, _ r: Int, _ c: Int) -> Double { m[c][r] }
+
+    /// Unit-quaternion rotation matrix.
+    static func matrix(quaternion w: Double, x: Double, y: Double, z: Double) -> simd_double3x3 {
+        let n = (w * w + x * x + y * y + z * z).squareRoot()
+        let (w, x, y, z) = n > 0 ? (w / n, x / n, y / n, z / n) : (1, 0, 0, 0)
+        return rows(
+            simd_double3(1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)),
+            simd_double3(2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)),
+            simd_double3(2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)))
+    }
+
+    private static func hamilton(_ a: (Double, Double, Double, Double),
+                                 _ b: (Double, Double, Double, Double)) -> (Double, Double, Double, Double) {
+        (a.0 * b.0 - a.1 * b.1 - a.2 * b.2 - a.3 * b.3,
+         a.0 * b.1 + a.1 * b.0 + a.2 * b.3 - a.3 * b.2,
+         a.0 * b.2 - a.1 * b.3 + a.2 * b.0 + a.3 * b.1,
+         a.0 * b.3 + a.1 * b.2 - a.2 * b.1 + a.3 * b.0)
+    }
+
+    /// v360's rotation: input ray = M · output ray. Angles in degrees.
+    static func v360Matrix(yaw: Double, pitch: Double, roll: Double) -> simd_double3x3 {
+        let a = yaw * .pi / 360, b = pitch * .pi / 360, c = roll * .pi / 360
+        let qy = (cos(a), 0.0, sin(a), 0.0)
+        let qp = (cos(b), sin(b), 0.0, 0.0)
+        let qr = (cos(c), 0.0, 0.0, sin(c))
+        let q = hamilton(hamilton(qy, qp), qr)
+        return matrix(quaternion: q.0, x: q.1, y: q.2, z: q.3)
+    }
+
+    /// Inverse of `v360Matrix`, degrees.
+    static func v360Angles(_ m: simd_double3x3) -> (yaw: Double, pitch: Double, roll: Double) {
+        let sp = min(1, max(-1, -element(m, 1, 2)))
+        let pitch = asin(sp)
+        let yaw: Double, roll: Double
+        if abs(sp) < 0.99999 {
+            yaw = atan2(element(m, 0, 2), element(m, 2, 2))
+            roll = atan2(element(m, 1, 0), element(m, 1, 1))
+        } else {
+            roll = 0
+            yaw = atan2(-element(m, 2, 0), element(m, 0, 0))
+        }
+        let d = 180 / Double.pi
+        return (yaw * d, pitch * d, roll * d)
+    }
+
+    static func matrix(for view: SphereView) -> simd_double3x3 {
+        v360Matrix(yaw: view.yaw, pitch: view.pitch, roll: view.roll)
+    }
+
+    static func wrapYaw(_ y: Double) -> Double {
+        let m = (y + 180).truncatingRemainder(dividingBy: 360)
+        return (m < 0 ? m + 360 : m) - 180
+    }
+
+    /// Smootherstep on u clamped to [0, 1].
+    static func ease(_ u: Double) -> Double {
+        let u = min(1, max(0, u))
+        return u * u * u * (u * (u * 6 - 15) + 10)
+    }
+
+    /// Camera path value at time `t`. `keys` sorted by `at`, non-empty.
+    static func pathValue(_ keys: [SphereKey], at t: Double) -> SphereView {
+        guard let first = keys.first else { return SphereView(yaw: 0, pitch: 0, fov: 90, roll: 0) }
+        if t <= first.at { return first.view }
+        for i in 0..<(keys.count - 1) {
+            let a = keys[i], b = keys[i + 1]
+            if b.cut {
+                if t < b.at { return a.view }
+                continue
+            }
+            if t <= b.at {
+                let e = ease((t - a.at) / max(1e-6, b.at - a.at))
+                let dy = wrapYaw(b.view.yaw - a.view.yaw)
+                return SphereView(
+                    yaw: wrapYaw(a.view.yaw + dy * e),
+                    pitch: a.view.pitch + (b.view.pitch - a.view.pitch) * e,
+                    fov: a.view.fov + (b.view.fov - a.view.fov) * e,
+                    roll: a.view.roll + (b.view.roll - a.view.roll) * e)
+            }
+        }
+        return keys[keys.count - 1].view
+    }
+
+    /// Tiny planet always looks straight down (pitch -90); yaw and roll come from the view.
+    static func effectiveView(_ view: SphereView, projection: SphereProjection) -> SphereView {
+        var v = view
+        if projection == .tinyPlanet { v.pitch = -90 }
+        return v
+    }
+
+    /// Output ray for a pixel at (u, v) in [0,1] (v top to bottom); `aspect` = height / width.
+    static func ray(u: Double, v: Double, fov: Double, aspect: Double,
+                    projection: SphereProjection) -> simd_double3 {
+        switch projection {
+        case .flat:
+            let tx = tan(fov * .pi / 360)
+            return simd_normalize(simd_double3(tx * (2 * u - 1), tx * aspect * (2 * v - 1), 1))
+        case .tinyPlanet:
+            let x = 1.25 * (2 * u - 1), y = 1.25 * aspect * (2 * v - 1)
+            let r = (x * x + y * y).squareRoot()
+            if r == 0 { return simd_double3(0, 0, 1) }
+            let th = 2 * atan(r)
+            return simd_double3(x / r * sin(th), y / r * sin(th), cos(th))
+        }
+    }
+
+    /// Sampling direction in the sphere for an output pixel, given the full matrix (stabilization · view).
+    static func sampleDirection(matrix m: simd_double3x3, u: Double, v: Double, fov: Double,
+                                aspect: Double, projection: SphereProjection) -> simd_double3 {
+        m * ray(u: u, v: v, fov: fov, aspect: aspect, projection: projection)
+    }
+
+    /// Equirectangular texture coordinates (v = 0 is the top row).
+    static func equirectUV(_ d: simd_double3) -> (u: Double, v: Double) {
+        let phi = atan2(d.x, d.z)
+        let theta = asin(min(1, max(-1, d.y)))
+        return ((phi / .pi + 1) / 2, (theta / (.pi / 2) + 1) / 2)
+    }
+
+    /// Axis-angle rotation (right-handed), angle in degrees.
+    static func rotation(axis: simd_double3, degrees: Double) -> simd_double3x3 {
+        let n = simd_normalize(axis)
+        let h = degrees * .pi / 360
+        return matrix(quaternion: cos(h), x: n.x * sin(h), y: n.y * sin(h), z: n.z * sin(h))
+    }
+
+    private static func view(_ m: simd_double3x3, fov: Double) -> SphereView {
+        let a = v360Angles(m)
+        return SphereView(yaw: a.yaw, pitch: a.pitch, fov: fov, roll: a.roll)
+    }
+
+    /// Turns the camera: positive `right` looks further right, positive `up` looks further up.
+    /// `upAxis` is the sphere's up direction (unit, sphere coords); nil uses the view's own up.
+    static func turn(_ view0: SphereView, right a: Double, up b: Double,
+                     upAxis: simd_double3? = nil) -> SphereView {
+        let v = matrix(for: view0)
+        let up = upAxis ?? v * simd_double3(0, -1, 0)
+        let r = rotation(axis: -up, degrees: a)
+        return view(r * v * v360Matrix(yaw: 0, pitch: b, roll: 0), fov: view0.fov)
+    }
+
+    /// Rolls about the view's forward axis so the horizon is level against `upAxis`.
+    static func level(_ view0: SphereView, upAxis: simd_double3) -> SphereView {
+        let v = matrix(for: view0)
+        let u = simd_normalize(upAxis)
+        let r = v * simd_double3(1, 0, 0), d = v * simd_double3(0, 1, 0)
+        let probe = v360Matrix(yaw: 0, pitch: 0, roll: 30)
+        let k: Double = element(probe, 1, 0) > 0 ? 1 : -1
+        var phi = atan2(-simd_dot(u, r), k * simd_dot(u, d))
+        func downDot(_ p: Double) -> Double {
+            -k * sin(p) * simd_dot(u, r) + cos(p) * simd_dot(u, d)
+        }
+        if downDot(phi) > 0 { phi += .pi }
+        let m = v * v360Matrix(yaw: 0, pitch: 0, roll: phi * 180 / .pi)
+        return view(m, fov: view0.fov)
+    }
+
+    /// Degrees of camera turn per screen point so dragged content roughly follows the cursor.
+    static func degreesPerPoint(fov: Double, viewWidthPoints: Double) -> Double {
+        fov / max(1, viewWidthPoints)
+    }
+}

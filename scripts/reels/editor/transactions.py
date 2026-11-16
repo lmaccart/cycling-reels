@@ -688,7 +688,7 @@ class DocumentStore:
             return str(value)
         code_root = Path(getattr(self.workspace, "code_root", Path(__file__).resolve().parents[3]))
         digest = hashlib.sha256()
-        for name in ("render.py", "mix.py", "music.py", "punch.py", "sphere.py", "exhibits.py"):
+        for name in ("render.py", "mix.py", "music.py", "punch.py", "sphere.py", "stabilize.py", "exhibits.py"):
             path = code_root / "scripts" / "reels" / name
             try:
                 digest.update(path.read_bytes())

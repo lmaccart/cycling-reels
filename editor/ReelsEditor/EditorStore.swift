@@ -12,6 +12,7 @@ final class EditorStore {
     let service = EditorService()
     let importer = ImportCoordinator()
     let music = MusicLibraryModel()
+    let sphereAim = SphereAimModel()
     var planSummaries: [PlanSummary] = []
     var plansLoaded = false
     var showPicker = true
@@ -555,6 +556,23 @@ final class EditorStore {
     /// A saved snapshot plus the edits still on their way, so queued moves don't flick back.
     func withPendingPredictions(_ next: EditorSnapshot) -> EditorSnapshot {
         pendingPredictions.reduce(next) { OptimisticTimeline.apply($1.change, to: $0) }
+    }
+
+    /// The selected timeline clip, when it is 360 video that the aim mode can open.
+    var selectedSphereNode: EditorNode? {
+        guard let node = selectedNode, SphereAimModel.isSphereClip(node, library: library) else { return nil }
+        return node
+    }
+
+    func openSphereAim() {
+        guard let node = selectedSphereNode else {
+            notice = "Select a 360 clip on the timeline first."
+            return
+        }
+        if playheadFrame < node.startFrame || playheadFrame >= node.endFrame {
+            setPlayhead(node.startFrame)
+        }
+        Task { await sphereAim.open(nodeID: node.id, store: self) }
     }
 
     func editField(nodeID: String, path: String, value: JSONValue) {
@@ -1512,6 +1530,8 @@ final class EditorStore {
                 }
                 Task { await refreshSnapshot() }
             }
+        } else if name == "sphere.ready" || name == "sphere.unavailable" {
+            sphereAim.receive(name: name, payload: payload)
         } else if name == "source.ready" {
             let assetID = payload["assetId"]?.stringValue ?? payload["id"]?.stringValue
             let url = Self.registeredURL(from: payload["asset"] ?? payload)

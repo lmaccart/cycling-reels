@@ -41,11 +41,11 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "exporting.py": {"unlink": 2, "replace": 1},      # save-as temp files next to the chosen destination
         "jobs.py": {"replace": 1, "unlink": 1},            # atomic write of private job records
         "live.py": {"unlink": 1},                          # the import's own .part temp inside inbox/
-        "preview.py": {"replace": 2, "rmtree": 9, "unlink": 2},  # private job/export dirs; out/<slug>/ publish
+        "preview.py": {"replace": 2, "rmtree": 10, "unlink": 2},  # private job/export dirs (incl. the 360 proxy job); out/<slug>/ publish
         "relay.py": {"unlink": 3, "rmdir": 1},             # this launch's capability files
         "renderer.py": {"rmtree": 2, "unlink": 1},         # candidate renderer snapshots under .cache/editor/live
         "transactions.py": {"replace": 1, "unlink": 2, "remove": 1},  # temp files, scratch clone, guarded _delete_private
-        "worker.py": {"replace": 5, "rmtree": 5, "unlink": 2},        # inside the sandboxed worker's own job folder
+        "worker.py": {"replace": 6, "rmtree": 5, "unlink": 3},        # inside the sandboxed worker's own job folder / private 360 proxy cache
         "document.py": {"remove": 1},
     }
     NAMES = {"unlink", "rmtree", "remove", "rename", "renames", "rmdir", "move", "removedirs", "truncate", "replace"}
