@@ -140,13 +140,14 @@ class LiveServiceTests(unittest.TestCase):
         self.assertTrue((self.repo / "library/assets/a.json").is_file())
 
     def test_projects_create_never_overwrites_and_defaults(self):
-        first = self.service.dispatch("projects.create", {"title": "Same", "postDate": "2026-11-15"})["path"]
-        second = self.service.dispatch("projects.create", {"title": "Same", "postDate": "2026-11-15"})["path"]
-        third = self.service.dispatch("projects.create", {"postDate": "2026-11-15"})["path"]
-        self.assertEqual([first, second, third], ["plans/2026-11-15-same.json", "plans/2026-11-15-same-2.json",
-                                                  "plans/2026-11-15-untitled.json"])
+        # A past date, so the explicit plans can never collide with the "today" default below.
+        first = self.service.dispatch("projects.create", {"title": "Same", "postDate": "2026-01-02"})["path"]
+        second = self.service.dispatch("projects.create", {"title": "Same", "postDate": "2026-01-02"})["path"]
+        third = self.service.dispatch("projects.create", {"postDate": "2026-01-02"})["path"]
+        self.assertEqual([first, second, third], ["plans/2026-01-02-same.json", "plans/2026-01-02-same-2.json",
+                                                  "plans/2026-01-02-untitled.json"])
         today = self.service.dispatch("projects.create", {})["path"]
-        self.assertRegex(today, r"^plans/\d{4}-\d{2}-\d{2}-untitled\.json$")
+        self.assertEqual(today, f"plans/{live.today(self.service.project)}-untitled.json")
         with self.assertRaises(ProtocolError):
             self.service.dispatch("projects.create", {"postDate": "tomorrow"})
 
