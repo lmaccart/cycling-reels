@@ -29,6 +29,7 @@ from .relay import Relay
 class EditorService:
     def __init__(self, workspace, emit):
         self.workspace, self.project, self.emit = workspace, workspace.project, emit
+        self.music_search = music_service.BackgroundSearch(self.project, lambda *a: self.emit(*a))
         lock_path = Path(workspace.root) / "service.lock"
         fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
         try:
@@ -479,7 +480,10 @@ class EditorService:
         if method == "music.list":
             return music_service.list_tracks(self.project)
         if method == "music.search":
-            return music_service.search(self.project, params)
+            return self.music_search.start(params)
+        if method == "music.searchCancel":
+            self.music_search.cancel()
+            return {"cancelled": True}
         if method == "music.add":
             args = music_service.validate_add(params)
             job = self.jobs.submit("music", {}, music_service.add_work(self.project, args), self._music_added, independent=True)

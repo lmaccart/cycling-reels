@@ -213,14 +213,6 @@ struct ServiceFailure: Error, LocalizedError {
     var errorDescription: String? { message }
 }
 
-struct ChatEntry: Identifiable, Hashable {
-    let id = UUID()
-    var role: String
-    var text: String
-    var state: String = "complete"
-    var timestamp = Date()
-}
-
 struct SearchHit: Identifiable, Hashable {
     var id: String
     var title: String

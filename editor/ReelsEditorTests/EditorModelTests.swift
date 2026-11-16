@@ -207,22 +207,6 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(TimelineLaneClassifier.category(for: page), "B-roll")
     }
 
-    func testChatHistoryReadsRecordsAndOmitsReasoning() {
-        let history: JSONValue = .object([
-            "sessionId": .string("session-1"),
-            "records": .array([
-                .object(["role": .string("user"), "text": .string("Find the laundry clips"), "state": .string("complete")]),
-                .object(["role": .string("assistant"), "text": .string("I found a match."), "state": .string("complete")]),
-                .object(["role": .string("tool"), "text": .string("Searched 136 assets"), "state": .string("complete")]),
-                .object(["role": .string("assistant"), "text": .string("private reasoning"), "state": .string("reasoning")])
-            ])
-        ])
-
-        let entries = EditorStore.chatHistory(from: history)
-        XCTAssertEqual(entries.map(\.role), ["you", "Claude", "Tool"])
-        XCTAssertEqual(entries.map(\.text), ["Find the laundry clips", "I found a match.", "Searched 136 assets"])
-    }
-
     func testSemanticEnrichmentKeepsRegexIdentityAndAddsSourceRangeChildren() throws {
         let regexRow: JSONValue = .object([
             "id": .string("regex-row-1"),

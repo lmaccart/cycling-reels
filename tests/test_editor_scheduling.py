@@ -85,6 +85,11 @@ class PayloadTests(unittest.TestCase):
         update = sch.claude_args({**payload, "id": "9"}, update=True, claude_bin="/bin/claude")
         self.assertEqual(update[update.index("--allowedTools") + 1], f"{sch.GET_TOOL},{sch.UPDATE_TOOL}")
         self.assertIn("updateScheduledPost", update[2])
+        for args in (create, update):
+            denied = args[args.index("--disallowedTools") + 1].split(",")
+            self.assertIn("Bash", denied)
+            self.assertIn("WebFetch", denied)
+            self.assertIn("PAYLOAD START", args[2])
 
     def test_parse_output(self):
         self.assertEqual(sch.parse_claude_output(json.dumps({"result": '{"id": 123}'})), "123")

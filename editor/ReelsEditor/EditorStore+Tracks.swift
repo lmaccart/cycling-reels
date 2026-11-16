@@ -37,6 +37,19 @@ extension EditorStore {
                    reason: "Move to \(trackID)")
     }
 
+    /// Timeline drag between tracks: runs under the drag's edit lease and always hands it back.
+    func moveNode(_ node: EditorNode, toTrack trackID: String, lease: String?) {
+        Task {
+            if let target = tracks.first(where: { $0.id == trackID }), !target.locked {
+                await apply([.object(["op": .string("set_node_track"), "id": .string(node.id), "track": .string(trackID)])],
+                            reason: "Move to \(trackID)", lease: lease)
+            } else {
+                notice = "Track \(trackID) is locked."
+            }
+            if let lease { releaseTimelineLease(lease) }
+        }
+    }
+
     /// Stored assignment, else the default mapping.
     func trackID(for node: EditorNode) -> String {
         if let stored = node.track, !stored.isEmpty { return stored }

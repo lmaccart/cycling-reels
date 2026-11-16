@@ -206,6 +206,7 @@ struct TimelinePanel: View {
                         onReorder: { node, frame, beforeID, lease in
                             store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID, lease: lease)
                         },
+                        onMoveToTrack: { node, trackID, lease in store.moveNode(node, toTrack: trackID, lease: lease) },
                         onDelete: { store.deleteSelection() },
                         onSplit: { store.splitAtPlayhead() },
                         onScroll: { x in if abs(x - scrollX) > 0.5 { scrollX = x } },
@@ -425,6 +426,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let onScrub: (Int, Bool) -> Void
     let onTrim: (EditorNode, Double, Double, String?) -> Void
     let onReorder: (EditorNode, Int, String?, String?) -> Void
+    let onMoveToTrack: (EditorNode, String, String?) -> Void
     let onDelete: () -> Void
     let onSplit: () -> Void
     let onScroll: (CGFloat) -> Void
@@ -449,7 +451,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
             scrollRequest: scrollRequest,
             callbacks: TimelineCanvas.Callbacks(
                 onSelect: onSelect, onBeginGesture: onBeginGesture, onEndGesture: onEndGesture,
-                onScrub: onScrub, onTrim: onTrim, onReorder: onReorder, onDelete: onDelete, onSplit: onSplit,
+                onScrub: onScrub, onTrim: onTrim, onReorder: onReorder, onMoveToTrack: onMoveToTrack, onDelete: onDelete, onSplit: onSplit,
                 onScroll: onScroll, onToggleLock: onToggleLock, onAddTrack: onAddTrack,
                 onRenameTrack: onRenameTrack, onDeleteTrack: onDeleteTrack, onDropMusic: onDropMusic
             )
@@ -466,6 +468,7 @@ private final class TimelineCanvas: NSView {
         var onScrub: (Int, Bool) -> Void
         var onTrim: (EditorNode, Double, Double, String?) -> Void
         var onReorder: (EditorNode, Int, String?, String?) -> Void
+        var onMoveToTrack: (EditorNode, String, String?) -> Void
         var onDelete: () -> Void
         var onSplit: () -> Void
         var onScroll: (CGFloat) -> Void
@@ -507,6 +510,8 @@ private final class TimelineCanvas: NSView {
     private var ghostStart: Int?
     private var ghostEnd: Int?
     private var targetNodeID: String?
+    /// Track a clip is being dragged onto (vertical drag), nil when the drag stays on its own track.
+    private var moveTargetTrackID: String?
     private var playheadLayer: PlayheadLayer?
     private var dropTrackID: String?
 
@@ -525,7 +530,7 @@ private final class TimelineCanvas: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
         setAccessibilityLabel("Reel timeline")
-        setAccessibilityHelp("Select a clip, drag its edges to trim, drag a clip to reorder, or click the ruler to move the playhead.")
+        setAccessibilityHelp("Select a clip, drag its edges to trim, drag a clip sideways to reorder or up/down to another track, or click the ruler to move the playhead.")
         let overlay = PlayheadLayer(frame: bounds)
         overlay.autoresizingMask = [.width, .height]
         overlay.setAccessibilityElement(false)
@@ -878,6 +883,31 @@ private final class TimelineCanvas: NSView {
                 drawClip(node, linked: linked, in: rect, row: row)
             }
         }
+        if let node = activeNode, let trackID = moveTargetTrackID,
+           let row = rows.first(where: { $0.track.id == trackID }) {
+            let rect = clipRect(node, in: row)
+            clipColor(for: node).withAlphaComponent(0.35).setFill()
+            let ghost = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
+            ghost.fill()
+            NSColor.white.withAlphaComponent(0.9).setStroke()
+            ghost.setLineDash([4, 3], count: 2, phase: 0)
+            ghost.lineWidth = 1.5
+            ghost.stroke()
+        }
+    }
+
+    /// The track under a vertical drag, if the active clip may move there: mostly-vertical drag,
+    /// same kind of track (video/audio), not locked, not its current track. Main clips stay on V1
+    /// (they are the reel's spine; tracks only organise overlays, b-roll and sound).
+    private func trackMoveTarget(at point: CGPoint) -> String? {
+        guard let node = activeNode, node.kind.lowercased() != "segment",
+              abs(point.y - downPoint.y) > abs(point.x - downPoint.x),
+              let target = row(at: point) else { return nil }
+        let currentID = resolvedTrackID(for: node)
+        guard let current = rows.first(where: { $0.track.id == currentID }),
+              target.track.id != currentID, target.track.isVideo == current.track.isVideo,
+              !target.track.locked else { return nil }
+        return target.track.id
     }
 
     private func drawClip(_ node: EditorNode, linked: Bool, in rect: NSRect, row: TimelineLayout.Row) {
@@ -1284,7 +1314,8 @@ private final class TimelineCanvas: NSView {
         case .move:
             guard hypot(point.x - downPoint.x, point.y - downPoint.y) > 12 else { return }
             beginLease(owner: "timeline-reorder")
-            targetNodeID = hit(at: point)?.0.id
+            moveTargetTrackID = trackMoveTarget(at: point)
+            targetNodeID = moveTargetTrackID == nil ? hit(at: point)?.0.id : nil
             needsDisplay = true
         }
     }
@@ -1296,6 +1327,7 @@ private final class TimelineCanvas: NSView {
             ghostStart = nil
             ghostEnd = nil
             targetNodeID = nil
+            moveTargetTrackID = nil
             snapGuideFrame = nil
             gestureLeaseTask = nil
             needsDisplay = true
@@ -1340,7 +1372,9 @@ private final class TimelineCanvas: NSView {
                 send { [callbacks] token in callbacks?.onTrim(node, 0, 0, token) }
             }
         case .move:
-            if let node = activeNode, hypot(point.x - downPoint.x, point.y - downPoint.y) > 12 {
+            if let node = activeNode, let trackID = moveTargetTrackID {
+                send { [callbacks] token in callbacks?.onMoveToTrack(node, trackID, token) }
+            } else if let node = activeNode, hypot(point.x - downPoint.x, point.y - downPoint.y) > 12 {
                 let target = targetNodeID == node.id ? nil : targetNodeID
                 let frame = Int(((point.x - Self.labelWidth) / max(scale, 0.05)).rounded())
                 send { [callbacks] token in callbacks?.onReorder(node, max(0, frame), target, token) }

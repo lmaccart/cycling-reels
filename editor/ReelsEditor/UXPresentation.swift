@@ -140,17 +140,3 @@ enum EventNotice {
         }
     }
 }
-
-enum ExportPolicy {
-    static func needsConfirmation(status: String?) -> Bool { status == "scheduled" || status == "posted" }
-
-    static func outputPath(slug: String) -> String { "out/\(slug)/reel.mp4" }
-
-    static func confirmationMessage(status: String, slug: String) -> String {
-        "This reel is already \(status). Re-rendering replaces \(outputPath(slug: slug)) and it will need approval and re-scheduling. Render anyway?"
-    }
-
-    static func slug(planPath: String) -> String {
-        URL(fileURLWithPath: planPath).deletingPathExtension().lastPathComponent
-    }
-}

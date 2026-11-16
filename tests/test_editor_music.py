@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import unittest
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -82,8 +83,16 @@ class MusicServiceTests(unittest.TestCase):
         service = EditorService(workspace, lambda *a, **k: events.append((a, k)))
         self.addCleanup(service.close)
         self.assertEqual({t["slug"] for t in service.dispatch("music.list", {})["tracks"]}, {"song", "loose"})
-        with patch("reels.music.search", return_value=[{"title": "A", "url": "https://youtu.be/a"}]):
-            self.assertEqual(service.dispatch("music.search", {"query": "a"})["results"][0]["id"], "https://youtu.be/a")
+        with patch("reels.editor.music_service.fast_search", return_value=[{"title": "A", "url": "https://youtu.be/a"}]):
+            started = service.dispatch("music.search", {"query": "a"})
+            self.assertIn("searchId", started)
+            for _ in range(100):
+                found = [a for a, _k in events if a and a[0] == "music.searchResults"]
+                if found:
+                    break
+                time.sleep(0.02)
+        self.assertEqual(found[0][1]["searchId"], started["searchId"])
+        self.assertEqual(found[0][1]["results"][0]["id"], "https://youtu.be/a")
         with patch("reels.music.add", return_value={"slug": "n", "file": "music/n.mp3"}) as add:
             job = service.dispatch("music.add", {"url": "https://youtu.be/a"})
             for _ in range(100):
@@ -97,3 +106,62 @@ class MusicServiceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BackgroundSearchTests(unittest.TestCase):
+    def _wait(self, events, n=1):
+        for _ in range(200):
+            if len(events) >= n:
+                return
+            time.sleep(0.01)
+
+    def test_start_returns_before_a_slow_search_finishes(self):
+        gate = threading.Event()
+        events = []
+
+        def slow(project, query, **kw):
+            gate.wait(5)
+            return [{"title": query, "url": "https://youtu.be/x"}]
+
+        search = music_service.BackgroundSearch(None, lambda *a: events.append(a), searcher=slow)
+        began = time.monotonic()
+        started = search.start({"query": "pump it"})
+        self.assertLess(time.monotonic() - began, 0.2)
+        self.assertEqual(events, [])
+        gate.set()
+        self._wait(events)
+        self.assertEqual(events[0][0], "music.searchResults")
+        self.assertEqual(events[0][1]["searchId"], started["searchId"])
+
+    def test_superseded_search_never_reports(self):
+        gates = {"old": threading.Event(), "new": threading.Event()}
+        events = []
+
+        def fake(project, query, **kw):
+            gates[query].wait(5)
+            return [{"title": query, "url": f"https://youtu.be/{query}"}]
+
+        search = music_service.BackgroundSearch(None, lambda *a: events.append(a), searcher=fake)
+        search.start({"query": "old"})
+        newer = search.start({"query": "new"})
+        gates["new"].set()
+        self._wait(events)
+        gates["old"].set()
+        time.sleep(0.1)
+        self.assertEqual([e[1]["searchId"] for e in events], [newer["searchId"]])
+
+    def test_failure_is_reported_as_an_event(self):
+        events = []
+
+        def boom(project, query, **kw):
+            raise RuntimeError("yt-dlp broke")
+
+        search = music_service.BackgroundSearch(None, lambda *a: events.append(a), searcher=boom)
+        search.start({"query": "x"})
+        self._wait(events)
+        self.assertEqual(events[0][1]["error"], "yt-dlp broke")
+
+    def test_empty_query_rejected(self):
+        search = music_service.BackgroundSearch(None, lambda *a: None)
+        with self.assertRaises(ProtocolError):
+            search.start({"query": "  "})

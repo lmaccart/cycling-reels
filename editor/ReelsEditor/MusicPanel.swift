@@ -84,22 +84,46 @@ final class MusicLibraryModel {
         tracks = (value["tracks"]?.arrayValue ?? []).compactMap(MusicTrack.init)
     }
 
+    @ObservationIgnored private var searchID: String?
+
+    /// Starts a YouTube search in the service's background thread and returns at once; results
+    /// arrive as a `music.searchResults` event (`handleSearchResults`). A newer search replaces it.
     func search(_ query: String) {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let call else { return }
         isSearching = true
         searchError = nil
+        searchID = nil
         Task {
-            defer { isSearching = false }
             do {
                 let value = try await call("music.search", .object(["query": .string(trimmed)]))
-                results = (value["results"]?.arrayValue ?? []).compactMap(MusicResult.init)
-                if results.isEmpty { searchError = "No results." }
+                searchID = value["searchId"]?.stringValue
             } catch {
-                results = []
+                isSearching = false
                 searchError = error.localizedDescription
             }
         }
+    }
+
+    func cancelSearch() {
+        searchID = nil
+        isSearching = false
+        if let call { Task { _ = try? await call("music.searchCancel", .object([:])) } }
+    }
+
+    func handleSearchResults(_ payload: JSONValue) {
+        let id = payload["searchId"]?.stringValue
+        // The event can beat the request's reply; accept it if no newer search has replied yet.
+        if let current = searchID, current != id { return }
+        if searchID == nil, !isSearching { return }
+        isSearching = false
+        if let error = payload["error"]?.stringValue {
+            results = []
+            searchError = error
+            return
+        }
+        results = (payload["results"]?.arrayValue ?? []).compactMap(MusicResult.init)
+        if results.isEmpty { searchError = "No results." }
     }
 
     func add(_ result: MusicResult, trending: Bool) {
