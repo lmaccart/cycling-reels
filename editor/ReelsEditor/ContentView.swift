@@ -42,24 +42,11 @@ struct ContentView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
-        .alert("Render again?", isPresented: Binding(
-            get: { store.exportConfirmation != nil },
-            set: { if !$0 { store.exportConfirmation = nil } }
+        .sheet(isPresented: Binding(
+            get: { store.schedule.isPresented },
+            set: { store.schedule.isPresented = $0 }
         )) {
-            Button("Render Anyway", role: .destructive) { store.exportConfirmation = nil; store.export() }
-            Button("Cancel", role: .cancel) { store.exportConfirmation = nil }
-        } message: {
-            Text(store.exportConfirmation ?? "")
-        }
-        .alert("Render finished", isPresented: Binding(
-            get: { store.exportOutcome != nil },
-            set: { if !$0 { store.exportOutcome = nil } }
-        )) {
-            Button("Show in Finder") { store.showExportInFinder(); store.exportOutcome = nil }
-            Button("Save a Copy…") { store.exportOutcome = nil; store.saveCopyOfLastExport() }
-            Button("OK", role: .cancel) { store.exportOutcome = nil }
-        } message: {
-            Text("Saved to \(store.exportOutcome?.displayPath ?? "out/"). Nothing was approved, scheduled or posted.")
+            ScheduleSheet(store: store)
         }
         .alert("Permission request", isPresented: Binding(
             get: { store.isPermissionPromptPresented && store.activePermission != nil },
@@ -181,16 +168,15 @@ private struct EditorToolbar: View {
                 }
                 .help("Review a pending permission request")
             }
-            Button { store.openInClaudeCode() } label: {
-                Label("Claude Code", systemImage: "terminal")
-            }
-            .disabled(store.repositoryRoot == nil)
-            .help("Open Terminal in your cycling folder and start Claude Code")
-            Button { store.requestExport() } label: {
-                Label("Export", systemImage: "square.and.arrow.up")
+            Button { store.beginSchedule() } label: {
+                Label("Schedule…", systemImage: "calendar.badge.clock")
+                    .font(EditorType.bodyEmphasis)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(EditorPalette.accent, in: RoundedRectangle(cornerRadius: 6))
+                    .foregroundStyle(.white)
             }
             .disabled(!store.hasDocument)
-            .help("Render this reel to out/, the same as ./reels render. Nothing is scheduled or posted.")
+            .help("Send this reel to Instagram, TikTok and YouTube through Metricool. Nothing posts until you confirm.")
         }
         .buttonStyle(.borderless)
         .controlSize(.regular)
@@ -261,6 +247,7 @@ private struct LibraryPane: View {
                 Picker("Browser", selection: $section) {
                     Text("Footage").tag("Footage")
                     Text("Reels").tag("Projects")
+                    Text("Music").tag("Music")
                 }
                 .labelsHidden()
                 .pickerStyle(.segmented)
@@ -306,6 +293,9 @@ private struct LibraryPane: View {
                 } else {
                     searchList
                 }
+            } else if section == "Music" {
+                Divider()
+                MusicPanel(store: store)
             } else {
                 Divider()
                 plansList
@@ -731,9 +721,7 @@ private struct MonitorPanel: View {
     }
 
     private func monitorTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(.secondary)
+        PanelTitle(title)
     }
 
     @ViewBuilder
@@ -759,7 +747,7 @@ private struct MonitorPanel: View {
             }
         } else {
             Text(PreviewModeLabel.title(store.currentPreviewMode))
-                .font(.system(size: 11, weight: .medium))
+                .font(EditorType.bodyEmphasis)
                 .foregroundStyle(.secondary)
                 .help(PreviewModeLabel.help(store.currentPreviewMode))
             Button { store.preparePreview(mode: store.currentPreviewMode) } label: {
@@ -797,11 +785,11 @@ private struct SourceControls: View {
                 Button("Set In") { setMark(in: true) }
                     .help("Mark In at the current position  I")
                 Text(store.sourceIn.map(TimeFormat.precise) ?? "—")
-                    .monospacedDigit()
+                    .font(EditorType.timecode)
                 Button("Set Out") { setMark(in: false) }
                     .help("Mark Out at the current position  O")
                 Text(store.sourceOut.map(TimeFormat.precise) ?? "—")
-                    .monospacedDigit()
+                    .font(EditorType.timecode)
                 if model.durationSeconds > 0 {
                     Slider(value: Binding(
                         get: { model.currentSeconds },
@@ -810,8 +798,8 @@ private struct SourceControls: View {
                     .frame(minWidth: 60, maxWidth: 140)
                     .accessibilityLabel("Source position")
                     Text(TimeFormat.precise(model.currentSeconds))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .font(EditorType.timecodeLarge)
+                        .foregroundStyle(EditorPalette.accent)
                 }
                 Spacer(minLength: 0)
                 Button { store.insertFromSource() } label: { Image(systemName: "arrow.down.to.line") }
@@ -820,7 +808,7 @@ private struct SourceControls: View {
                     .disabled(store.selectedAssetID == nil || !store.hasDocument)
             }
         }
-        .font(.system(size: 11))
+        .font(EditorType.body)
         .buttonStyle(.borderless)
         .controlSize(.small)
         .lineLimit(1)
@@ -859,8 +847,9 @@ private struct ProgramControls: View {
                 .help("Next frame  →")
                 .accessibilityLabel("Next frame")
             Text(TimeFormat.timecode(store.playheadFrame, fps: store.fps))
-                .font(.system(size: 12, design: .monospaced))
-                .monospacedDigit()
+                .font(EditorType.timecodeLarge)
+                .foregroundStyle(EditorPalette.accent)
+                .padding(.horizontal, 4)
                 .help("Playhead timecode (hours:minutes:seconds:frames)")
             Picker("Playback speed", selection: Binding(
                 get: { store.playbackRate },
@@ -890,7 +879,7 @@ private struct ProgramControls: View {
                 }
             }
         }
-        .font(.system(size: 11, weight: .medium))
+        .font(EditorType.bodyEmphasis)
         .buttonStyle(.borderless)
         .controlSize(.small)
         .lineLimit(1)
@@ -924,11 +913,11 @@ struct StatusBar: View {
             Spacer()
             if let snapshot = store.snapshot {
                 Text("\(TimeFormat.clock(Double(snapshot.durationFrames) / max(snapshot.fps, 1))) long")
-                    .monospacedDigit()
+                    .font(EditorType.timecode)
                 Text("\(snapshot.fps.formatted(.number.precision(.fractionLength(0...2)))) fps")
             }
         }
-        .font(.system(size: 11))
+        .font(EditorType.body)
         .foregroundStyle(.secondary)
         .padding(.horizontal, 12)
         .frame(height: 24)

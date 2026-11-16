@@ -248,11 +248,6 @@ struct ProjectPicker: View {
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(PickerPalette.row, in: RoundedRectangle(cornerRadius: 8))
-                Button { store.openInClaudeCode() } label: {
-                    Label("Claude Code", systemImage: "terminal")
-                }
-                .help("Open Terminal in your cycling folder and start Claude Code")
-                .disabled(store.repositoryRoot == nil)
             }
             .background(WindowDragArea())
             .padding(.horizontal, 24)

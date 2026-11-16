@@ -151,6 +151,26 @@ does not approve, schedule or publish it; use the normal pipeline for that.
 **Save Reel** / **Save Review** copy a completed export elsewhere (not into this
 folder); replacement requires confirmation.
 
+## Schedule
+
+The toolbar's **Schedule…** button (also File > Schedule…, Shift-Cmd-S) replaces the old
+Export and Claude Code buttons. The sheet walks through: caption (editable, saved into
+`post.caption`), the networks (Instagram Reel, TikTok and YouTube Short, all on), the
+time (America/Chicago, starting at the next open daily slot from `config.json`, at least
+15 minutes ahead), then a live checklist: Render (skipped when the reel hasn't changed
+since `out/<slug>/reel.mp4`), Upload to R2 (this one reel, only when there is no fresh
+link), Send to Metricool, Marked scheduled. Pressing **Schedule** is your approval for
+this reel; the line above the button says exactly when and where it will post. If the
+reel already has a Metricool post, the button reads **Update scheduled post**.
+
+The Metricool step runs headless Claude Code in the background (`claude -p`, found at
+`~/.local/bin/claude`, or set `REELS_CLAUDE_BIN`) using your claude.ai Metricool
+connector, so Claude Code must be signed in with your account. The app is not sandboxed
+and its service PATH includes `~/.local/bin`, so it can reach the network and login.
+Errors from Claude or Metricool appear in the sheet word for word; "Try again" is safe
+(a failed run leaves the reel approved, not scheduled). If a run times out, check
+Metricool before retrying in case the post exists.
+
 ## Recovery
 
 - **Service interrupted:** reopen the app. Journal recovery restores

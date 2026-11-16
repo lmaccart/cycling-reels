@@ -11,6 +11,7 @@ final class EditorStore {
 
     let service = EditorService()
     let importer = ImportCoordinator()
+    let music = MusicLibraryModel()
     var planSummaries: [PlanSummary] = []
     var plansLoaded = false
     var showPicker = true
@@ -38,9 +39,6 @@ final class EditorStore {
     var sourceOut: Double?
     var searchText = ""
     var semanticSearchPending = false
-    var chatEntries: [ChatEntry] = []
-    var chatDraft = ""
-    var isChatWorking = false
     var notice: String? {
         didSet {
             noticeTask?.cancel()
@@ -57,9 +55,6 @@ final class EditorStore {
     var openPlanPath: String?
     var errorMessage: String?
     /// Set when exporting would overwrite a scheduled/posted reel; the view shows a confirmation.
-    var exportConfirmation: String?
-    var exportOutcome: ExportOutcome?
-    @ObservationIgnored var lastExportReceipt: JSONValue?
     var workspaceInfo: JSONValue = .object([:])
     var inspectorSchema: JSONValue = .object([:])
     var previewManifest: JSONValue?
@@ -68,9 +63,6 @@ final class EditorStore {
     var isPreparingPreview = false
     var displayedPreviewRevision: String?
     var previewFailureMessage: String?
-    var exportJobID: String?
-    var pendingExportReceipt: JSONValue?
-    var isSavingExport = false
     var pendingPermissions: [JSONValue] = []
     var currentGrants: [JSONValue] = []
     var isPermissionPromptPresented = false
@@ -81,7 +73,6 @@ final class EditorStore {
     private var semanticGeneration = 0
     private var libraryLoadGeneration = 0
     private var expectedSearchFilterHash: String?
-    private var chatOutputStartIndex: Int?
     private var launchPlanPath: String?
     private var capturePreviewAttempted = false
     private var connectGeneration = 0
@@ -119,10 +110,16 @@ final class EditorStore {
             }
         }
         service.onEvent = { [weak self] event in self?.receive(event) }
+        AudioVisualCache.shared.configure(service: service)
         importer.call = { [weak self] method, params in
             guard let self else { throw ServiceFailure(code: "gone", message: "The app is closing.", details: nil) }
             return try await self.service.call(method, params: params)
         }
+        music.call = { [weak self] method, params in
+            guard let self else { throw ServiceFailure(code: "gone", message: "The app is closing.", details: nil) }
+            return try await self.service.call(method, params: params)
+        }
+        music.onToast = { [weak self] message in self?.showToast(message) }
         importer.onToast = { [weak self] message in self?.showToast(message) }
         importer.onLibraryNeedsReload = { [weak self] in
             self?.loadLibrary()
@@ -241,8 +238,6 @@ final class EditorStore {
             do {
                 workspaceInfo = try await service.call("workspace.info")
                 syncPermissions(from: workspaceInfo)
-                let history = try? await service.call("chat.history")
-                chatEntries = Self.chatHistory(from: history ?? .null)
                 loadLibrary()
                 await refreshPlans()
                 importer.refreshInbox()
@@ -612,6 +607,11 @@ final class EditorStore {
             errorMessage = error.localizedDescription
             return nil
         }
+    }
+
+    /// Gives back a gesture lease that never turned into an edit (a click, or a trim that changed nothing).
+    func releaseTimelineLease(_ token: String) {
+        Task { _ = try? await service.call("lease.release", params: .object(["token": .string(token)])) }
     }
 
     func reorder(ids: [String], beforeID: String?, lease: String?) {
@@ -1022,30 +1022,6 @@ final class EditorStore {
         preparePreview(mode: "exact")
     }
 
-    func sendChat() {
-        let text = chatDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isChatWorking else { return }
-        chatEntries.append(ChatEntry(role: "you", text: text))
-        chatOutputStartIndex = chatEntries.count
-        chatDraft = ""
-        isChatWorking = true
-        Task {
-            do {
-                _ = try await service.call("chat.send", params: .object(["text": .string(text)]))
-            } catch {
-                chatEntries.append(ChatEntry(role: "service", text: error.localizedDescription, state: "error"))
-                isChatWorking = false
-            }
-        }
-    }
-
-    func stopChat() {
-        Task {
-            _ = try? await service.call("chat.stop")
-            isChatWorking = false
-        }
-    }
-
     func stopServiceForCapture() {
         service.stopSynchronously(grace: 1)
     }
@@ -1077,142 +1053,6 @@ final class EditorStore {
         }
     }
 
-    /// Export button: confirm first when the reel is already scheduled or posted.
-    func requestExport() {
-        guard hasDocument else { return }
-        if let path = openPlanPath, let status = planSummaries.first(where: { $0.path == path })?.status,
-           ExportPolicy.needsConfirmation(status: status) {
-            exportConfirmation = ExportPolicy.confirmationMessage(status: status, slug: ExportPolicy.slug(planPath: path))
-            return
-        }
-        export()
-    }
-
-    private func makeExportOutcome(for receipt: JSONValue) -> ExportOutcome {
-        var relative = openPlanPath.map { ExportPolicy.outputPath(slug: ExportPolicy.slug(planPath: $0)) }
-        var absolute: URL?
-        if let reel = receipt["reelPath"]?.stringValue {
-            let url = reel.hasPrefix("/") ? URL(fileURLWithPath: reel) : repositoryRoot?.appendingPathComponent(reel)
-            absolute = url
-            if let root = repositoryRoot?.path, let url, url.path.hasPrefix(root + "/") {
-                relative = String(url.path.dropFirst(root.count + 1))
-            }
-        } else if let relative, let root = repositoryRoot {
-            absolute = root.appendingPathComponent(relative)
-        }
-        return ExportOutcome(displayPath: relative ?? "out/", fileURL: absolute)
-    }
-
-    func showExportInFinder() {
-        guard let url = exportOutcome?.fileURL else { return }
-        if FileManager.default.fileExists(atPath: url.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([url])
-        } else {
-            NSWorkspace.shared.open(url.deletingLastPathComponent())
-        }
-    }
-
-    func saveCopyOfLastExport() {
-        if let receipt = lastExportReceipt { presentExportSave(for: receipt) }
-    }
-
-    func export() {
-        Task {
-            do {
-                exportJobID = nil
-                pendingExportReceipt = nil
-                let result = try await service.call("export.start")
-                exportJobID = result["id"]?.stringValue
-                notice = "Rendering…"
-                if let receipt = pendingExportReceipt {
-                    pendingExportReceipt = nil
-                    presentExportSave(for: receipt)
-                }
-            } catch { errorMessage = error.localizedDescription }
-        }
-    }
-
-    private func presentExportSave(for receipt: JSONValue) {
-        guard let exportJobID else {
-            let path = receipt["reelPath"]?.stringValue
-                ?? receipt["previewVideoPath"]?.stringValue
-            if let path { saveExportCopy(path) }
-            else { notice = "Export ready in the out folder" }
-            return
-        }
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.mpeg4Movie, .quickTimeMovie]
-        panel.canCreateDirectories = true
-        panel.nameFieldStringValue = URL(fileURLWithPath: receipt["reelPath"]?.stringValue ?? "reel.mp4").lastPathComponent
-        panel.message = "Save a copy of the export. Your original footage is never touched."
-        let selector = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 180, height: 24), pullsDown: false)
-        selector.addItems(withTitles: ["Reel", "Review copy"])
-        panel.accessoryView = selector
-        panel.begin { [weak self] response in
-            guard response == .OK, let destination = panel.url, let self else { return }
-            let target = destination.standardizedFileURL.resolvingSymlinksInPath()
-            guard self.isAllowedExportDestination(target) else {
-                self.errorMessage = "Don't save into the library folder. Choose another destination."
-                return
-            }
-            let artifact = selector.indexOfSelectedItem == 1 ? "review" : "reel"
-            let overwrite = FileManager.default.fileExists(atPath: target.path)
-            self.isSavingExport = true
-            Task {
-                do {
-                    let result = try await self.service.call("export.save", params: .object([
-                        "id": .string(exportJobID),
-                        "destination": .string(target.path),
-                        "artifact": .string(artifact),
-                        "overwrite": .bool(overwrite)
-                    ]))
-                    self.notice = "Saved \(artifact == "review" ? "review copy" : "reel") to \(target.lastPathComponent)"
-                    self.errorMessage = nil
-                    _ = result
-                } catch {
-                    self.errorMessage = "Could not save export: \(error.localizedDescription)"
-                }
-                self.isSavingExport = false
-            }
-        }
-    }
-
-    func saveExportCopy(_ sourcePath: String) {
-        guard let repositoryRoot else { return }
-        let source = URL(fileURLWithPath: sourcePath).standardizedFileURL.resolvingSymlinksInPath()
-        guard source.path.hasPrefix(repositoryRoot.path + "/"),
-              FileManager.default.fileExists(atPath: source.path) else {
-            errorMessage = "The export is not a file inside your cycling folder."
-            return
-        }
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = source.lastPathComponent
-        panel.allowedContentTypes = [.mpeg4Movie, .quickTimeMovie]
-        panel.canCreateDirectories = true
-        panel.message = "Save a copy of the export. The original stays in your out folder."
-        panel.begin { [weak self] response in
-            guard response == .OK, let destination = panel.url, let self else { return }
-            let target = destination.standardizedFileURL.resolvingSymlinksInPath()
-            guard self.isAllowedExportDestination(target) else {
-                self.errorMessage = "Don't save into the library folder. Choose another destination."
-                return
-            }
-            do {
-                if FileManager.default.fileExists(atPath: target.path) { try FileManager.default.removeItem(at: target) }
-                try FileManager.default.copyItem(at: source, to: target)
-                self.notice = "Saved a copy to \(target.lastPathComponent)"
-            } catch {
-                self.errorMessage = "Could not save export copy: \(error.localizedDescription)"
-            }
-        }
-    }
-
-    private func isAllowedExportDestination(_ target: URL) -> Bool {
-        guard let repositoryRoot else { return true }
-        let library = repositoryRoot.appending(path: "library").path
-        return !(target.path == library || target.path.hasPrefix(library + "/"))
-    }
-
     private func persistState() async {
         _ = try? await service.call("state.save", params: .object([
             "selection": .array(selectedIDs.sorted().map(JSONValue.string)),
@@ -1223,42 +1063,7 @@ final class EditorStore {
     private func receive(_ event: JSONValue) {
         let name = event["event"]?.stringValue ?? ""
         let payload = event["payload"] ?? .object([:])
-        if name == "chat.record" {
-            Self.appendChatRecord(payload, to: &chatEntries)
-        } else if name == "chat.delta" {
-            let role = Self.chatRole(payload["role"]?.stringValue ?? "assistant")
-            let text = payload["text"]?.stringValue ?? ""
-            guard role == "Claude", !text.isEmpty else { return }
-            if let index = streamingAssistantIndex(in: chatEntries) {
-                chatEntries[index].text += text
-            } else {
-                chatEntries.append(ChatEntry(role: "Claude", text: text, state: "streaming"))
-            }
-        } else if name == "chat.done" {
-            isChatWorking = false
-            let resultText = payload["result"]?["text"]?.stringValue
-                ?? payload["result"]?.stringValue
-                ?? payload["text"]?.stringValue
-                ?? ""
-            let responseStart = min(chatOutputStartIndex ?? chatEntries.count, chatEntries.count)
-            let hasAssistantResponse = chatEntries.dropFirst(responseStart)
-                .contains { $0.role == "Claude" && !$0.text.isEmpty }
-            if !resultText.isEmpty && !hasAssistantResponse {
-                chatEntries.append(ChatEntry(role: "Claude", text: resultText))
-            }
-            if let index = streamingAssistantIndex(in: chatEntries) {
-                chatEntries[index].state = "complete"
-            }
-            chatOutputStartIndex = nil
-        } else if name == "chat.error" || name == "chat.failed" {
-            isChatWorking = false
-            chatEntries.append(ChatEntry(
-                role: "service",
-                text: Self.errorMessage(from: payload, fallback: "Chat request failed."),
-                state: "error"
-            ))
-            chatOutputStartIndex = nil
-        } else if name == "search.results" {
+        if name == "search.results" {
             let generation = Int(payload["generation"]?.numberValue ?? -1)
             guard generation == semanticGeneration else { return }
             let eventLibraryRevision = payload["libraryRevision"]?.stringValue
@@ -1334,16 +1139,12 @@ final class EditorStore {
             isPermissionPromptPresented = true
             notice = "Permission requested: \(payload["kind"]?.stringValue ?? "review required")"
         } else if name == "export.ready" {
-            exportJobID = payload["jobId"]?.stringValue ?? payload["id"]?.stringValue ?? exportJobID
-            pendingExportReceipt = payload
-            if exportJobID != nil {
-                pendingExportReceipt = nil
-                lastExportReceipt = payload
-                exportOutcome = makeExportOutcome(for: payload)
-                Task { await refreshPlans() }
-            } else {
-                notice = "Render finished"
-            }
+            notice = "Render finished"
+            Task { await refreshPlans() }
+        } else if name == "music.changed" {
+            Task { await music.reload() }
+        } else if name == "music.searchResults" {
+            music.handleSearchResults(payload)
         } else if name == "plans.changed" {
             Task { await refreshPlans() }
         } else if name == "library.changed" {
@@ -1353,6 +1154,10 @@ final class EditorStore {
         } else if name.hasPrefix("job.") {
             if payload["kind"]?.stringValue == "ingest" {
                 importer.handleJob(payload)
+            } else if payload["kind"]?.stringValue == "schedule" {
+                schedule.handleJob(payload)
+            } else if payload["kind"]?.stringValue == "music" {
+                music.handleJob(payload)
             } else {
                 notice = EventNotice.jobMessage(payload)
             }
@@ -1470,64 +1275,6 @@ final class EditorStore {
         return output
     }
 
-    nonisolated static func chatHistory(from value: JSONValue) -> [ChatEntry] {
-        let records = value["records"]?.arrayValue
-            ?? items(from: value, keys: ["messages", "history", "items"])
-        return records.compactMap { item in
-            guard let rawRole = item["role"]?.stringValue,
-                  let text = item["text"]?.stringValue ?? item["content"]?.stringValue,
-                  !text.isEmpty,
-                  let role = displayChatRole(rawRole),
-                  !isReasoningRecord(role: rawRole, state: item["state"]?.stringValue) else { return nil }
-            return ChatEntry(role: role, text: text, state: item["state"]?.stringValue ?? "complete")
-        }
-    }
-
-    nonisolated static func displayChatRole(_ role: String) -> String? {
-        switch role.lowercased() {
-        case "user", "you": "you"
-        case "assistant", "claude": "Claude"
-        case "tool": "Tool"
-        case "system", "reasoning", "analysis", "thinking": nil
-        default: nil
-        }
-    }
-
-    nonisolated private static func chatRole(_ role: String) -> String {
-        displayChatRole(role) ?? ""
-    }
-
-    nonisolated private static func isReasoningRecord(role: String, state: String?) -> Bool {
-        let value = role.lowercased()
-        let status = state?.lowercased() ?? ""
-        return ["reasoning", "analysis", "thinking"].contains(value)
-            || ["reasoning", "analysis", "thinking"].contains(status)
-    }
-
-    nonisolated private static func appendChatRecord(_ record: JSONValue, to entries: inout [ChatEntry]) {
-        let rawRole = record["role"]?.stringValue ?? ""
-        guard let role = displayChatRole(rawRole),
-              !isReasoningRecord(role: rawRole, state: record["state"]?.stringValue),
-              let text = record["text"]?.stringValue ?? record["content"]?.stringValue,
-              !text.isEmpty else { return }
-
-        if role == "you", entries.last?.role == "you", entries.last?.text == text { return }
-        if role == "Claude",
-           let index = entries.indices.reversed().first(where: { entries[$0].role == "Claude" && entries[$0].state == "streaming" }) {
-            entries[index].text = text
-            entries[index].state = record["state"]?.stringValue ?? "complete"
-        } else {
-            entries.append(ChatEntry(role: role, text: text, state: record["state"]?.stringValue ?? "complete"))
-        }
-    }
-
-    private func streamingAssistantIndex(in entries: [ChatEntry]) -> Int? {
-        let start = min(chatOutputStartIndex ?? 0, entries.count)
-        return entries.indices.reversed().first {
-            $0 >= start && entries[$0].role == "Claude" && entries[$0].state == "streaming"
-        }
-    }
-
     nonisolated private static func searchRangeEvidence(_ value: JSONValue) -> SearchRangeEvidence? {
         let range = value["range"]
         let start = value["sourceIn"]?.numberValue ?? value["in"]?.numberValue
@@ -1603,7 +1350,3 @@ actor LoginPathBox {
     }
 }
 
-struct ExportOutcome: Equatable {
-    var displayPath: String
-    var fileURL: URL?
-}

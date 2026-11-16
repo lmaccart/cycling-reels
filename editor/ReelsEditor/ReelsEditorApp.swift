@@ -28,6 +28,10 @@ struct ReelsEditorApp: App {
                 Button("Import Footage…") { store.importer.chooseFiles() }
                     .keyboardShortcut("i", modifiers: .command)
                 Divider()
+                Button("Schedule…") { store.beginSchedule() }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+                    .disabled(!store.hasDocument)
+                Divider()
                 Button("Open in Claude Code") { store.openInClaudeCode() }
                     .keyboardShortcut("c", modifiers: [.command, .option])
                     .disabled(store.repositoryRoot == nil)

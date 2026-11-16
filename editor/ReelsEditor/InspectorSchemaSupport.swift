@@ -31,6 +31,7 @@ enum InspectorSchemaSupport {
                 case "punch": keys = ["punch.manual"]
                 case "blur": keys = ["blur.patch"]
                 case "bleep": keys = ["bleep.window"]
+                case "music", "generatedmusic": keys = ["music"]
                 case "musicdrop": keys = ["musicDrop"]
                 case "sfx", "generatedsfx": keys = [node.parentId == nil ? "sfxCue.reel" : "sfxCue.segment"]
                 case "path", "route": keys = ["route"]
@@ -159,5 +160,51 @@ enum InspectorSchemaSupport {
             value = value.setting(item, at: path)
         }
         return value
+    }
+}
+
+/// Premiere-style "Effect Controls" section families. Each schema group maps to one,
+/// which decides its accent colour and SF Symbol (colours are applied in the view layer).
+enum InspectorSection: String, CaseIterable, Sendable {
+    case motion, timing, colour, text, audio, overlays, post, advanced
+
+    var title: String {
+        switch self {
+        case .motion: "Video"
+        case .timing: "Speed & Timing"
+        case .colour: "Colour"
+        case .text: "Text & Captions"
+        case .audio: "Audio"
+        case .overlays: "Overlays & B-roll"
+        case .post: "Post"
+        case .advanced: "Advanced"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .motion: "crop.rotate"
+        case .timing: "speedometer"
+        case .colour: "paintpalette.fill"
+        case .text: "textformat"
+        case .audio: "waveform"
+        case .overlays: "rectangle.on.rectangle"
+        case .post: "paperplane.fill"
+        case .advanced: "curlybraces"
+        }
+    }
+
+    /// Classifies a schema group by its id and label, using plain keyword matching.
+    static func classify(groupID: String, label: String) -> InspectorSection {
+        let text = (groupID + " " + label).lowercased()
+        func has(_ words: [String]) -> Bool { words.contains { text.contains($0) } }
+        if has(["post", "publish", "people", "brand", "project", "extension"]) { return .post }
+        if has(["colour", "color", "grade"]) { return .colour }
+        if has(["audio", "sound", "mix", "music", "sfx", "mute", "silence", "cue"]) { return .audio }
+        if has(["timing", "speed", "rhythm", "placement"]) { return .timing }
+        if has(["overlay", "b-roll", "broll", "exhibit", "chart", "stat"]) { return .overlays }
+        if has(["text", "caption", "title", "hook", "end card", "transcript", "word", "copy", "layout", "content"]) { return .text }
+        if has(["other settings", "advanced"]) { return .advanced }
+        return .motion
     }
 }

@@ -54,14 +54,4 @@ final class UXPresentationTests: XCTestCase {
         XCTAssertEqual(EventNotice.jobMessage(try json(#"{"kind":"export","state":"running","progress":0.4}"#)), "Rendering… 40%")
         XCTAssertEqual(EventNotice.jobMessage(try json(#"{"kind":"export","state":"failed"}"#)), "Render failed")
     }
-
-    func testExportPolicy() {
-        XCTAssertTrue(ExportPolicy.needsConfirmation(status: "scheduled"))
-        XCTAssertTrue(ExportPolicy.needsConfirmation(status: "posted"))
-        XCTAssertFalse(ExportPolicy.needsConfirmation(status: "rendered"))
-        XCTAssertFalse(ExportPolicy.needsConfirmation(status: nil))
-        XCTAssertEqual(ExportPolicy.slug(planPath: "plans/2026-11-15-x.json"), "2026-11-15-x")
-        XCTAssertEqual(ExportPolicy.confirmationMessage(status: "scheduled", slug: "s"),
-                       "This reel is already scheduled. Re-rendering replaces out/s/reel.mp4 and it will need approval and re-scheduling. Render anyway?")
-    }
 }

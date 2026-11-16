@@ -103,9 +103,38 @@ class CorrectWords(OperationModel):
     corrections: list[WordCorrection] = Field(min_length=1)
 
 
+class AddTrack(OperationModel):
+    """Add an organisational V/A track (next free number). Never changes the render."""
+    op: Literal["add_track"]
+    kind: Literal["video", "audio"]
+
+
+class TrackRef(OperationModel):
+    op: Literal["remove_track", "set_track_locked", "rename_track"]
+    id: str = Field(pattern=r"^[VA][0-9]+$")
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    locked: bool | None = None
+
+    @model_validator(mode="after")
+    def has_fields(self):
+        if self.op == "rename_track" and self.name is None:
+            raise ValueError("rename_track needs name")
+        if self.op == "set_track_locked" and self.locked is None:
+            raise ValueError("set_track_locked needs locked")
+        return self
+
+
+class SetNodeTrack(OperationModel):
+    """Assign an item to a track of its own kind (video items to V, audio items to A)."""
+    op: Literal["set_node_track"]
+    id: str
+    track: str = Field(pattern=r"^[VA][0-9]+$")
+
+
 EditingOperation = Annotated[
     Union[SetField, InsertSegment, RemoveSegments, ReorderSegments, TrimSegment,
-          SplitSegment, InsertOverlay, RemoveOverlay, MoveOverlay, ResizeOverlay, CorrectWords],
+          SplitSegment, InsertOverlay, RemoveOverlay, MoveOverlay, ResizeOverlay, CorrectWords,
+          AddTrack, TrackRef, SetNodeTrack],
     Field(discriminator="op"),
 ]
 

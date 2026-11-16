@@ -29,6 +29,14 @@ final class EditorUXHelpersTests: XCTestCase {
         XCTAssertEqual(TimelineMetrics.fitZoom(durationFrames: 0, viewportWidth: 1000, gutter: 112), TimelineMetrics.defaultZoom)
     }
 
+    func testVisibleFramesAndZoomRoundTrip() {
+        let zoom = TimelineMetrics.zoom(forVisibleFrames: 600, viewportWidth: 1000, gutter: 100)
+        XCTAssertEqual(zoom, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(TimelineMetrics.visibleFrames(zoom: zoom, viewportWidth: 1000, gutter: 100), 600, accuracy: 0.001)
+        XCTAssertEqual(TimelineMetrics.zoom(forVisibleFrames: 0, viewportWidth: 1000, gutter: 100), TimelineMetrics.defaultZoom)
+        XCTAssertEqual(TimelineMetrics.zoom(forVisibleFrames: 1, viewportWidth: 1000, gutter: 100), TimelineMetrics.maxZoom)
+    }
+
     func testRulerStepKeepsLabelsApart() {
         XCTAssertEqual(TimelineMetrics.rulerStepSeconds(pixelsPerSecond: 100), 1)
         XCTAssertEqual(TimelineMetrics.rulerStepSeconds(pixelsPerSecond: 20), 5)

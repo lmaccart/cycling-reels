@@ -1084,10 +1084,16 @@ class DocumentStore:
             raise DocumentError("external_changes", "private files changed; reload before editing",
                                 {"current": current})
 
-    def acquire_lease(self, owner: str, ttl: float = 15) -> dict[str, Any]:
+    def acquire_lease(self, owner: str, ttl: float = 6) -> dict[str, Any]:
         with self._lock:
             now = time.monotonic()
             if self._lease and self._lease["expires"] <= now:
+                self._lease = None
+            # The native timeline only ever has one gesture in flight; a lease left
+            # behind by an earlier timeline gesture (e.g. a click that never became a
+            # drag) is stale, so a new timeline gesture replaces it instead of failing.
+            if (self._lease and str(owner).startswith("timeline-")
+                    and str(self._lease["owner"]).startswith("timeline-")):
                 self._lease = None
             if self._lease:
                 raise DocumentError("lease_held", "another edit gesture holds the document lease",
@@ -1301,6 +1307,14 @@ class DocumentStore:
     def _apply_edit_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
         """Preserve IDs by object identity and ripple against renderer positions."""
         plan = ctx["plan"]
+        from .tracks import TRACK_OPS, apply_track_operation, locked_target
+        ensure_node_ids(plan)
+        if operation.get("op") in TRACK_OPS:
+            ctx["affected"].update(apply_track_operation(plan, operation))
+            return
+        locked = locked_target(plan, operation)
+        if locked:
+            raise DocumentError("track_locked", locked)
         metadata = deepcopy(ensure_node_ids(plan))
         objects = {node_id: pointer_get(plan, entry["locator"]) for node_id, entry in metadata.items()}
         old_snapshot = editing_snapshot(plan, ctx["compiled"], self._revisions())
