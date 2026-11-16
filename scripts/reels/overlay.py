@@ -30,6 +30,8 @@ CAPTION_IN = 2  # captions: 0.4 -> 1 opacity over 2 frames
 
 def why_not(props: dict) -> str | None:
     """None when the reel can take the fast path; otherwise what needs the full render."""
+    if props.get("timeline"):
+        return "explicit video tracks and gaps require the full layered composition"
     for i, s in enumerate(props["segments"]):
         if s["kind"] != "video":
             return f"segment {i + 1} is a photo"

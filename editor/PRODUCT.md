@@ -21,7 +21,7 @@ The user works locally with private project data and a shared, read-only origina
 ## Capabilities and Constraints
 
 - Native SwiftUI and AppKit macOS app, macOS 14+, Swift 6.
-- Edit the existing reel format: source ranges, primary segments, cutaways, captions/text, audio, effects, preview, history, and export.
+- Edit the existing reel format: source ranges, primary segments, cutaways, captions/text, audio, effects, preview, history, and export. Video editing includes exact-frame track placement, gaps, and non-ripple overwrite edits.
 - Timeline and inspector operations use the service's version-1 NDJSON protocol and expected revisions. The app must not normalize or replace the service-owned plan.
 - Interactive editing is local and single-user. No publishing, scheduling, pruning, or production-target export controls.
 - At 1280×800, keep transport, undo, and a useful timeline visible. Persist resizable panel dividers.
@@ -30,6 +30,6 @@ The user works locally with private project data and a shared, read-only origina
 ## Product Principles
 
 1. Keep the editor native, direct, and familiar to a category-fluent video editor.
-2. Show the timing and layered structure of the actual reel format instead of pretending it is an arbitrary-track NLE.
+2. Make displayed video-track placements, gaps, and overwrite cuts real, undoable plan edits that agree with preview and export.
 3. Make revision, preview readiness, and edit provenance visible.
 4. Preserve the last committed project and working preview when work is pending or fails.

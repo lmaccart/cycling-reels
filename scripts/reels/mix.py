@@ -272,7 +272,7 @@ def build_cues(
     # manual cues
     manual: list[dict] = []
 
-    def add_manual(items: Any, base: int, where: str, source: str) -> None:
+    def add_manual(items: Any, base: int, where: str, source: str, host=None) -> None:
         if items is None:
             return
         if not isinstance(items, list):
@@ -294,6 +294,14 @@ def build_cues(
             cue = make(str(c["sound"]), w, start=f if "at" in c else None, end=f if "endAt" in c else None, gain=gain,
                        source=source, manual=True)  # fmt: skip
             if cue:
+                if host is not None and host.spec.get("timeline"):
+                    cue["trimBefore"] = round(float(c.get("_timelineOffset", 0)) * fps)
+                    cue["durationInFrames"] = min(
+                        round(float(c.get("_timelineDuration", cue["durationInFrames"] / fps)) * fps),
+                        host.end-cue["startFrame"])
+                    cue["ownerSegmentIndex"] = host.index
+                    if cue["durationInFrames"] <= 0:
+                        continue
                 manual.append(cue)
 
     from .titlecard import card_sfx
@@ -301,7 +309,7 @@ def build_cues(
     add_manual(card_sfx(plan), 0, "titleCard sound", "title card")
     add_manual(plan.get("sfx"), 0, "sfx", "plan")
     for sg in segs:
-        add_manual(sg.spec.get("sfx"), sg.start, f"segment {sg.index + 1} sfx", f"segment {sg.index + 1}")
+        add_manual(sg.spec.get("sfx"), sg.start, f"segment {sg.index + 1} sfx", f"segment {sg.index + 1}", host=sg)
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
 
@@ -387,6 +395,8 @@ def cue_props(cues: list[dict]) -> list[dict]:
         p: dict[str, Any] = {"src": f"sfx/{c['path'].name}", "startFrame": max(0, s), "durationInFrames": c["durationInFrames"] - max(0, -s), "volume": c["gain"]}
         if s < 0:
             p["trimBefore"] = -s
+        if c.get("trimBefore"):
+            p["trimBefore"] = p.get("trimBefore", 0) + c["trimBefore"]
         out.append(p)
     return out
 

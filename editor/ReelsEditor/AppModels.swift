@@ -98,7 +98,10 @@ struct EditorNode: Codable, Hashable, Identifiable, Sendable {
     var assetId: String?
     var sourceIn: Double?
     var sourceOut: Double?
+    var sourceDuration: Double?
+    var speed: Double?
     var assetKind: String?
+    var mediaKind: String?
     var generated: Bool?
     var readOnly: Bool?
     /// Stored track assignment ("V2", "A3", ...). nil = default mapping (see EditorStore.trackID(for:)).
@@ -141,6 +144,7 @@ enum NativeMediaKind {
 
 struct EditorTrack: Codable, Identifiable, Hashable, Sendable {
     var id: String        // "V1", "A2", ...
+    var canonicalId: String? = nil
     var kind: String      // "video" | "audio"
     var name: String
     var index: Int
@@ -155,6 +159,17 @@ struct EditorTrack: Codable, Identifiable, Hashable, Sendable {
             EditorTrack(id: $0.0, kind: $0.1, name: $0.0, index: $0.2, locked: false, userAdded: false)
         }
     }
+}
+
+struct TimelineCapabilities: Codable, Hashable, Sendable {
+    var version: Int
+    var overwrite: Bool
+    var crossTrack: Bool
+    var libraryInsert: Bool
+    var multiMove: Bool
+    var cutawayPromotion: Bool
+    var insert: Bool
+    var idAlgorithm: String
 }
 
 private struct AnyCodingKey: CodingKey {
@@ -192,6 +207,10 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
     /// Unknown service fields survive delta merges and future protocol additions.
     var extraFields: [String: JSONValue] = [:]
     var snapshotToken: String? { extraFields["snapshotToken"]?.stringValue }
+    var timelineCapabilities: TimelineCapabilities? {
+        guard let data = extraFields["timelineCapabilities"]?.jsonData() else { return nil }
+        return try? JSONDecoder().decode(TimelineCapabilities.self, from: data)
+    }
 
     enum CodingKeys: String, CodingKey {
         case documentId, revisions, plan, nodes, fps, durationFrames, warnings, preview

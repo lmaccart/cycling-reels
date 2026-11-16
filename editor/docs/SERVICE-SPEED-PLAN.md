@@ -1,6 +1,6 @@
 # Editor service speed plan
 
-Status: phases 0–3 and 5–6 implemented and verified (2026-11-16), on `perf/editor-service-speed`. Cold broker startup remains above the 400 ms opening goal; measured results are below.
+Status: phases 0–3 and 5–6 implemented and verified (2026-11-16), on `perf/editor-service-speed`. The measurements below record milestone `b9d0b8c`, before the [Premiere-style dragging follow-up](PREMIERE-TIMELINE.md). Cold broker startup exceeded the 400 ms opening goal in that run.
 Implementation: one Sol and one Luna subagent, with integration and acceptance checks in the parent session.
 
 ## Decisions
@@ -155,7 +155,7 @@ The reviewer questions above resolve to A+B1, sandboxed timing preparation, vali
 
 ## Measured result
 
-Final controlled run: **20 samples per repeated path**, on the same Python/macOS environment and 3-segment, 16-node fixture as the baseline. The shared broker session stays alive across document opens. No builds or test suites ran alongside the benchmark.
+Service-speed milestone `b9d0b8c`: **20 samples per repeated path**, on the same Python/macOS environment and 3-segment, 16-node fixture as the baseline. The shared broker session stays alive across document opens. No builds or test suites ran alongside the benchmark.
 
 ```sh
 PYTHONPATH=scripts .venv/bin/python scripts/reels/editor/bench.py \

@@ -454,7 +454,18 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
 
         at = _number(raw, "at", 0.3 if sg else 0.0, 0, 600, errors, where)
         start = (sg.start if sg else 0) + round(at * fps)
-        host = sg or next((s for s in segs if s.start <= start < s.end), None)
+        active = [s for s in segs if s.start <= start < s.end]
+        if sg:
+            host = sg
+        elif plan.get("timeline") and active:
+            from .timeline import video_track
+            visible = [s for s in active if not s.trans or start > s.start]
+            host = max(visible or active, key=lambda s: (video_track(s.spec["timeline"]["track"]), s.start, s.index))
+        else:
+            host = next(iter(active), None)
+        if host is None and seg_i is None and plan.get("timeline"):
+            from types import SimpleNamespace
+            host = SimpleNamespace(index=-1, kind="gap", start=0, end=total, frames=total, spec={}, asset={})
         if host is None or start >= total:
             errors.append(f"{where}: starts at {start / fps:.2f}s, after the reel ends ({total / fps:.2f}s)")
             continue
@@ -464,9 +475,9 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
         if raw.get("for") is None:
             end = host.end - round(0.1 * fps)
         else:
-            end = start + round(_number(raw, "for", 3.0, 0.3, 600, errors, where) * fps)
-        end = min(end, total)
-        if end - start < MIN_FRAMES:
+            end = start + round(_number(raw, "for", 3.0, 1 / fps if plan.get("timeline") else 0.3, 600, errors, where) * fps)
+        end = min(end, total, sg.end if sg and plan.get("timeline") else total)
+        if end - start < (1 if plan.get("timeline") else MIN_FRAMES):
             errors.append(f"{where}: on screen for {(end - start) / fps:.2f}s — too short to read, give it at least {MIN_FRAMES / fps:.1f}s")
             continue
 
@@ -574,6 +585,8 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
             continue
 
         props.update(x=round(cx, 1), y=round(cy, 1), width=round(w, 1), height=round(h, 1))
+        if sg and plan.get("timeline"):
+            props["ownerSegmentIndex"] = sg.index
         if path:
             props["path"] = path
         if source is not None:
@@ -584,21 +597,29 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
     for k, e in enumerate(out):  # staged names follow the final order
         if e["source"] is not None:
             e["props"]["src"] = f"exhibit{k}.png"
-    _check_depth(out, segs, fps, errors)
+    _check_depth(out, segs, fps, errors, positioned=bool(plan.get("timeline")))
     return out
 
 
-def _check_depth(exhibits: list[dict], segs: list, fps: int, errors: list[str]) -> None:
+def _check_depth(exhibits: list[dict], segs: list, fps: int, errors: list[str], *, positioned: bool = False) -> None:
     """depth=behind lays the rider back over the exhibit: that needs the clip itself on screen."""
     for e in exhibits:
         p = e["props"]
         if p["depth"] != "behind":
             continue
+        global_gap = positioned and e["host"] < 0 and p.get("ownerSegmentIndex") is None
+        if e["host"] < 0 and not global_gap:
+            errors.append(f"{e['where']}: depth=behind needs footage, not an empty timeline gap")
+            continue
+        if global_gap and not any(sg.start < p["endFrame"] and p["startFrame"] < sg.end for sg in segs):
+            continue  # No subject to cut out while the global exhibit sits over black.
         why = vision.available()
         if why:
             errors.append(f"{e['where']}: {why} — use \"depth\": \"front\"")
             continue
         for sg in segs:
+            if p.get("ownerSegmentIndex") is not None and sg.index != p["ownerSegmentIndex"]:
+                continue
             if not (sg.start < p["endFrame"] and p["startFrame"] < sg.end):
                 continue
             if sg.kind != "video":
@@ -628,14 +649,23 @@ def foregrounds(exhibits: list[dict], segs: list, fps: int) -> list[dict]:
 
     out = []
     for sg in segs:
-        spans = [(max(e["props"]["startFrame"], sg.start), min(e["props"]["endFrame"], sg.end))
-                 for e in exhibits if e["props"]["depth"] == "behind"]  # fmt: skip
-        spans = [(a, b) for a, b in spans if b > a]
+        owned_spans, global_spans = [], []
+        for e in exhibits:
+            p = e["props"]
+            owner = p.get("ownerSegmentIndex")
+            if p["depth"] != "behind" or owner is not None and owner != sg.index:
+                continue
+            a, b = max(p["startFrame"], sg.start), min(p["endFrame"], sg.end)
+            if b > a:
+                (global_spans if owner is None else owned_spans).append((a, b))
+        spans = owned_spans + global_spans
         if not spans or sg.kind != "video":
             continue
         a, b = min(s[0] for s in spans), max(s[1] for s in spans)
         fg: dict[str, Any] = {"src": f"fg{sg.index}.webm", "startFrame": int(a), "durationInFrames": int(b - a),
-                              "offset": int(a - sg.start), "seg": sg.index}  # fmt: skip
+                               "offset": int(a - sg.start), "seg": sg.index}  # fmt: skip
+        if sg.spec.get("timeline"):
+            fg.update(ownerSegmentIndex=sg.index, ownedBehindRanges=owned_spans, globalBehindRanges=global_spans)
         keys = punch_keys(sg, fps)
         if keys:
             fg["punch"] = keys
@@ -668,17 +698,24 @@ def _band(item: dict, kind: str) -> tuple[float, float]:
     return top, top + hgt
 
 
-def make_room(exhibits: list[dict], hook: dict | None, beats: list[dict], pages: list[dict], warnings: list[str], fps: int) -> None:
+def make_room(exhibits: list[dict], hook: dict | None, beats: list[dict], pages: list[dict], warnings: list[str], fps: int,
+              *, positioned: bool = False) -> None:
     """Moves captions, the hook and text beats (in place) above or below any exhibit they would
     sit on while it's up. Text is centred and nearly frame-wide, so only height matters."""
     if not exhibits:
         return
-    obstacles = [(e["props"]["startFrame"], e["props"]["endFrame"], *bounds(e["props"])[1::2]) for e in exhibits]
+    obstacles = [(e["props"]["startFrame"], e["props"]["endFrame"], *bounds(e["props"])[1::2],
+                  e["props"].get("ownerSegmentIndex")) for e in exhibits]
+
+    def shares_layer(item: dict, owner: int | None) -> bool:
+        item_owner = item.get("ownerSegmentIndex")
+        return not positioned or owner is None or item_owner is None or owner == item_owner
 
     def place(item: dict, kind: str, name: str) -> None:
         top, bottom = _band(item, kind)
         hgt = bottom - top
-        busy = sorted((t - PAD, b + PAD) for s, e, t, b in obstacles if s < item["endFrame"] and item["startFrame"] < e)
+        busy = sorted((t - PAD, b + PAD) for s, e, t, b, owner in obstacles
+                      if shares_layer(item, owner) and s < item["endFrame"] and item["startFrame"] < e)
         if not any(t < bottom and top < b for t, b in busy):
             return
         # the free stretches of the frame's height while this text is up; take the nearest one it fits in
@@ -698,14 +735,16 @@ def make_room(exhibits: list[dict], hook: dict | None, beats: list[dict], pages:
         else:
             item["position"] = "top"
             item["offsetTop"] = int(round(top))
-        obstacles.append((item["startFrame"], item["endFrame"], top, bottom))
+        obstacles.append((item["startFrame"], item["endFrame"], top, bottom, item.get("ownerSegmentIndex")))
 
     for pg in pages:
         place(pg, "caption", f"captions at {pg['startFrame'] / fps:.1f}s")
     # Captions that hop for a page or two read as a glitch: neighbours within a moved run share its place.
     for prev, pg in zip(pages, pages[1:]):
-        if "offsetBottom" in prev and "offsetBottom" not in pg and pg["startFrame"] - prev["endFrame"] <= 8:
-            if any(s < pg["endFrame"] + fps and pg["startFrame"] - fps < e for s, e, *_ in obstacles[: len(exhibits)]):
+        if (shares_layer(pg, prev.get("ownerSegmentIndex")) and "offsetBottom" in prev
+                and "offsetBottom" not in pg and pg["startFrame"] - prev["endFrame"] <= 8):
+            if any(shares_layer(pg, owner) and s < pg["endFrame"] + fps and pg["startFrame"] - fps < e
+                   for s, e, _, _, owner in obstacles[: len(exhibits)]):
                 pg["offsetBottom"] = prev["offsetBottom"]
     if hook and hook.get("size") != "big":  # a big hook is the statement on top of the pile: it stays put
         place(hook, "hook", "the hook")

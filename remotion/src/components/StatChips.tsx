@@ -18,7 +18,8 @@ export const StatChips: React.FC<{ stats: StatChip[] }> = ({ stats }) => {
         {visible.map((s) => {
           const local = frame - s.startFrame;
           const dur = s.endFrame - s.startFrame;
-          const opacity = Math.min(interpolate(local, [0, 4], [0, 1], clamp), interpolate(local, [dur - 4, dur], [1, 0], clamp));
+          const shortOwned = dur < 8 && (s as StatChip & {ownerSegmentIndex?: number}).ownerSegmentIndex !== undefined;
+          const opacity = shortOwned ? 1 : Math.min(interpolate(local, [0, 4], [0, 1], clamp), interpolate(local, [dur - 4, dur], [1, 0], clamp));
           return (
             <div
               key={`${s.label}-${s.startFrame}`}

@@ -533,7 +533,7 @@ class EditorService:
         snapshot = copy.deepcopy(self.snapshot())
         if snapshot.get("viewOnly"):
             raise ProtocolError("offline_media", "This is an offline, read-only snapshot. The last good preview is retained; reconnect registered originals to prepare another.")
-        if not (snapshot.get("plan") or {}).get("segments"):
+        if not (snapshot.get("plan") or {}).get("segments") and not (snapshot.get("plan") or {}).get("timeline"):
             # Nothing to render yet (a new project); the monitor shows its empty state.
             with self.lock:
                 self.preview = {"state": "empty", "reason": "Add footage to preview this reel."}

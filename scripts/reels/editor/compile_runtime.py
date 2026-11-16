@@ -244,12 +244,17 @@ def timing_build(renderer, project, plan: dict) -> dict:
     it starts laying out reel-level overlays. Beat retiming and loop seam
     protection therefore remain authoritative. A full build always follows.
     """
-    if not plan.get("segments"):
+    from reels.timeline import positioned, duration, requantize
+    if positioned(plan):
+        requantize(plan, int(project.cfg("render", "fps")))
+    if not plan.get("segments") and not positioned(plan):
         return {"fps": int(project.cfg("render", "fps")), "total": 0, "segs": [],
                 "props": {}, "sound": {}, "warnings": []}
     fps = int(project.cfg("render", "fps"))
     errors: list[str] = []
     loop = renderer.check_loop(plan, errors)
+    if positioned(plan):
+        loop = False
     on_beats = renderer.check_beats_punch(plan, errors)
     segments, warnings = renderer.normalize(project, plan)
     swap = renderer.swap_halves(segments, fps) if loop else (False, "")
@@ -258,8 +263,10 @@ def timing_build(renderer, project, plan: dict) -> dict:
     renderer.resolve_music(project, plan, segments, fps, warnings, loop=loop,
                            grid_for="punchOnBeats" if on_beats else "")
     renderer.fit_cutaways(segments, fps, warnings)
-    return serialize({"fps": fps, "total": segments[-1].end, "segs": segments,
-                      "props": {}, "sound": {}, "warnings": warnings})
+    return serialize({"fps": fps, "total": duration(plan, segments, fps), "segs": segments,
+                      "props": {"timeline": plan["timeline"]} if positioned(plan) else {},
+                      "sound": {}, "warnings": warnings,
+                      "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})})
 
 
 class UnsupportedBatch(Exception):
@@ -384,6 +391,8 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
             })
         segments.append({
             "index": segment.index, "kind": segment.kind, "asset": {"id": segment.asset["id"]},
+            "sourceDuration": segment.asset.get("probe", {}).get("duration"),
+            "hasAudio": bool(segment.asset.get("probe", {}).get("hasAudio")),
             "spec": {key: value for key, value in segment.spec.items() if key != "_cutaways"},
             "frames": segment.frames, "trans": segment.trans, "start": segment.start, "cutaways": cuts,
         })
@@ -395,6 +404,7 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
     return {
         "fps": built["fps"], "total": built["total"], "warnings": built["warnings"],
         "segs": segments, "props": built["props"], "sound": sound, "loop": built.get("loop"),
+        **({"timelineCapabilities": built["timelineCapabilities"]} if built.get("timelineCapabilities") else {}),
     }
 
 
@@ -437,11 +447,12 @@ def main() -> None:
                     mirror.apply(overrides)
                     project = Project(Path(private), code_root=Path(package).parent,
                                       **({"media_root": media} if media else {}))
-                if not plan.get("segments"):
+                if not plan.get("segments") and not plan.get("timeline"):
                     result = {
                         "fps": int(project.cfg("render", "fps") or 30), "total": 0,
                         "warnings": ["No footage yet: add a clip from the library to start."],
                         "segs": [], "props": {}, "sound": {"cues": []}, "loop": None,
+                        "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {}),
                     }
                 else:
                     result = serialize(renderer.build(project, deepcopy(plan)))

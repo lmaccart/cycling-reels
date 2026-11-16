@@ -42,6 +42,54 @@ class ReorderSegments(OperationModel):
     beforeId: str | None = None
 
 
+class FootageInsert(BaseModel):
+    """Renderer segment settings, with an explicit asset and no editor metadata."""
+    model_config = ConfigDict(extra="allow", allow_inf_nan=False, json_schema_extra={
+        "not": {"anyOf": [{"required": ["timeline"]}, {"required": ["_editor"]}]},
+    })
+    asset: str = Field(min_length=1, pattern=r"^[^\x00]+$")
+
+    @model_validator(mode="after")
+    def renderer_fields_only(self):
+        if any(key in (self.model_extra or {}) for key in ("timeline", "_editor")):
+            raise ValueError("insert cannot supply timeline/_editor metadata")
+        return self
+
+
+class FootagePlacement(OperationModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, json_schema_extra={
+        "oneOf": [{"required": ["id"], "properties": {"id": {"type": "string"}},
+                   "not": {"required": ["insert"]}},
+                  {"required": ["insert"], "properties": {"insert": {"type": "object"}},
+                   "not": {"required": ["id"]}}],
+    })
+    track: str = Field(pattern=r"^V[1-9][0-9]*$")
+    atFrame: int = Field(ge=0)
+    id: str | None = Field(default=None, min_length=1, pattern=r"^[^\x00]+$")
+    insert: FootageInsert | None = None
+
+    @model_validator(mode="after")
+    def source(self):
+        if (("id" in self.model_fields_set) == ("insert" in self.model_fields_set)
+                or (self.id is None) == (self.insert is None)):
+            raise ValueError("provide exactly one of id or insert")
+        return self
+
+
+class MoveSegments(OperationModel):
+    """One non-ripple, destination-track-only footage overwrite."""
+    op: Literal["move_segments"]
+    editId: str = Field(json_schema_extra={"format": "uuid"})
+    mode: Literal["overwrite"]
+    placements: list[FootagePlacement] = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def valid_edit_id(self):
+        from ..timeline import edit_id
+        self.editId = edit_id(self.editId)
+        return self
+
+
 class TrimSegment(OperationModel):
     op: Literal["trim_segment", "trim_cutaway"]
     id: str
@@ -132,7 +180,7 @@ class SetNodeTrack(OperationModel):
 
 
 EditingOperation = Annotated[
-    Union[SetField, InsertSegment, RemoveSegments, ReorderSegments, TrimSegment,
+    Union[SetField, InsertSegment, RemoveSegments, ReorderSegments, MoveSegments, TrimSegment,
           SplitSegment, InsertOverlay, RemoveOverlay, MoveOverlay, ResizeOverlay, CorrectWords,
           AddTrack, TrackRef, SetNodeTrack],
     Field(discriminator="op"),

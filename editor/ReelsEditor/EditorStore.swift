@@ -731,6 +731,167 @@ final class EditorStore {
         }
     }
 
+    @discardableResult
+    func overwriteTimeline(_ placements: [TimelinePlacement], editID: String,
+                           insertionAssets: [String: JSONValue] = [:]) -> Bool {
+        // Placements may refer to deterministic survivor IDs from a queued
+        // prediction, so validate node identity/geometry against the visible view.
+        let state = snapshot ?? authoritativeSnapshot
+        guard let state, let capabilities = (authoritativeSnapshot ?? state).timelineCapabilities,
+              capabilities.version == 1, capabilities.idAlgorithm == "sha256-v1",
+              capabilities.overwrite else {
+            notice = "Overwrite editing is unavailable for this renderer."
+            return false
+        }
+        let availableTracks = state.tracks
+        guard (1...500).contains(placements.count), !editID.contains("\0") else {
+            notice = "This overwrite selection is not valid."
+            return false
+        }
+        guard let placements = Self.canonicalizeOverwritePlacements(placements, tracks: availableTracks),
+              placements.allSatisfy({ $0.atFrame >= 0 && !$0.track.contains("\0") }) else {
+            notice = "This overwrite placement is not valid."
+            return false
+        }
+        if placements.count > 1 && !capabilities.multiMove {
+            notice = "Multi-clip overwrite is unavailable for this renderer."
+            return false
+        }
+        let nodesByID = Dictionary(uniqueKeysWithValues: state.nodes.map { ($0.id, $0) })
+        for placement in placements {
+            guard !placement.track.contains("\0"),
+                  let target = availableTracks.first(where: {
+                      ($0.canonicalId ?? $0.id) == placement.track || $0.id == placement.track
+                  }),
+                  target.isVideo, !target.locked else {
+                notice = "The destination video track is locked or unavailable."
+                return false
+            }
+            if let id = placement.id {
+                guard !id.contains("\0"), let node = nodesByID[id],
+                      ["segment", "cutaway"].contains(node.kind.lowercased()), !node.isReadOnly else {
+                    notice = "A selected source clip cannot be moved."
+                    return false
+                }
+                let sourceID = node.track ?? Self.defaultTrackID(kind: node.kind)
+                guard let source = availableTracks.first(where: {
+                    ($0.canonicalId ?? $0.id) == sourceID || $0.id == sourceID
+                }), source.isVideo, !source.locked else {
+                    notice = "A selected source track is locked or unavailable."
+                    return false
+                }
+                if (source.canonicalId ?? source.id) != placement.track && !capabilities.crossTrack {
+                    notice = "Cross-track overwrite is unavailable for this renderer."
+                    return false
+                }
+                if node.kind.lowercased() == "cutaway",
+                   placement.track == "V1", (source.canonicalId ?? source.id) != "V1",
+                   !capabilities.cutawayPromotion {
+                    notice = "Cutaway promotion is unavailable for this renderer."
+                    return false
+                }
+            } else {
+                guard let insert = placement.insert, capabilities.libraryInsert,
+                      let asset = insert["asset"]?.stringValue, !asset.isEmpty, !asset.contains("\0") else {
+                    notice = "Library insertion is unavailable or invalid for this renderer."
+                    return false
+                }
+            }
+        }
+        let fps = max(1, Int(state.fps.rounded(.toNearestOrEven)))
+        let regions = OptimisticTimeline.overwriteRegions(placements: placements, nodes: state.nodes, fps: fps)
+        if regions.contains(where: { region in
+            state.nodes.first(where: { $0.id == region.nodeID })?.isReadOnly != false
+        }) {
+            notice = "An affected destination clip cannot be overwritten."
+            return false
+        }
+        var assets = Dictionary(library.compactMap { item -> (String, JSONValue)? in
+            guard let id = item["id"]?.stringValue ?? item["assetId"]?.stringValue else { return nil }
+            return (id, item)
+        }, uniquingKeysWith: { _, newer in newer })
+        if let selectedAssetID, let selectedAsset { assets[selectedAssetID] = selectedAsset }
+        assets.merge(insertionAssets, uniquingKeysWith: { _, newer in newer })
+        if availableTracks.first(where: { ($0.canonicalId ?? $0.id) == "A1" })?.locked == true,
+           Self.overwriteChangesLockedAudio(
+               placements: placements, regions: regions, nodes: state.nodes, assets: assets
+           ) {
+            notice = "This edit would change linked source audio on locked track A1."
+            return false
+        }
+        guard !OptimisticTimeline.hasSameTrackPlacementOverlap(placements, nodes: state.nodes, fps: fps) else {
+            notice = "Selected clips overlap each other on the destination track."
+            return false
+        }
+        let stableEditID = editID.lowercased()
+        let operation = Self.overwriteOperation(placements: placements, editID: stableEditID)
+        Task {
+            await apply([operation], reason: "Overwrite timeline clips",
+                        predict: OptimisticTimeline.overwrite(placements: placements,
+                                                              editID: stableEditID, fps: fps))
+        }
+        return true
+    }
+
+    static func canonicalizeOverwritePlacements(_ placements: [TimelinePlacement],
+                                                tracks: [EditorTrack]) -> [TimelinePlacement]? {
+        var result: [TimelinePlacement] = []
+        result.reserveCapacity(placements.count)
+        for placement in placements {
+            guard let track = tracks.first(where: {
+                ($0.canonicalId ?? $0.id) == placement.track || $0.id == placement.track
+            }) else { return nil }
+            var canonical = placement
+            canonical.track = track.canonicalId ?? track.id
+            result.append(canonical)
+        }
+        return result
+    }
+
+    static func overwriteOperation(placements: [TimelinePlacement], editID: String) -> JSONValue {
+        .object([
+            "op": .string("move_segments"),
+            "editId": .string(editID.lowercased()),
+            "mode": .string("overwrite"),
+            "placements": .array(placements.map(\.wireValue)),
+        ])
+    }
+
+    static func overwriteChangesLockedAudio(placements: [TimelinePlacement],
+                                            regions: [TimelineOverwriteRegion],
+                                            nodes: [EditorNode],
+                                            assets: [String: JSONValue] = [:]) -> Bool {
+        let audioOwners = Set(nodes.compactMap { node -> String? in
+            guard node.kind.lowercased() == "source_audio", node.isReadOnly else { return nil }
+            return node.parentId
+        })
+        let nodesByID = Dictionary(uniqueKeysWithValues: nodes.map { ($0.id, $0) })
+        if placements.contains(where: { placement in
+            if let insert = placement.insert {
+                let metadata = insert["asset"]?.stringValue.flatMap { assets[$0] }
+                return insertionHasAudio(insert, metadata: metadata) ?? true
+            }
+            guard let id = placement.id, audioOwners.contains(id), let owner = nodesByID[id] else { return false }
+            return placement.atFrame != owner.startFrame
+        }) {
+            return true
+        }
+        return regions.contains { audioOwners.contains($0.nodeID) }
+    }
+
+    static func insertionHasAudio(_ insert: JSONValue, metadata: JSONValue?) -> Bool? {
+        if insert["volume"]?.numberValue == 0 { return false }
+        let path = metadata?["media"]?.stringValue ?? metadata?["filename"]?.stringValue
+            ?? insert["asset"]?.stringValue
+        let kind = metadata?["kind"]?.stringValue ?? metadata?["type"]?.stringValue
+            ?? metadata?["mimeType"]?.stringValue
+        if NativeMediaKind.isPhoto(kind: kind, path: path) { return false }
+        if let probe = metadata?["probe"], case .object = probe {
+            return probe["hasAudio"]?.boolValue ?? false
+        }
+        return metadata?["hasAudio"]?.boolValue
+    }
+
     func trim(node: EditorNode, sourceIn: Double, sourceOut: Double, ghost: TimelineGhost) {
         let operation: JSONValue
         let reason: String
@@ -801,17 +962,51 @@ final class EditorStore {
     }
 
     func insertSearchHit(_ hit: SearchHit, beforeID: String? = nil) {
-        var value: [String: JSONValue] = [
-            "asset": .string(hit.assetId),
-            "in": .number(hit.sourceIn),
-            "out": .number(hit.sourceOut)
-        ]
-        if let moment = hit.raw["moment"]?.stringValue { value["moment"] = .string(moment) }
-        Task {
-            var op: [String: JSONValue] = ["op": .string("insert_segment"), "value": .object(value)]
-            if let beforeID { op["beforeId"] = .string(beforeID) }
-            await apply([.object(op)], reason: "Insert source range")
+        _ = beforeID // Kept for source compatibility; placement is now explicit, never selection-relative.
+        _ = insertDroppedItem(hit.id, atFrame: playheadFrame, trackID: "V1",
+                              sourceIn: hit.sourceIn, sourceOut: hit.sourceOut)
+    }
+
+    func previewTimelineDrop(_ id: String, atFrame: Int, trackID: String,
+                             commandInsert: Bool) -> TimelineDropResolution {
+        guard let state = authoritativeSnapshot ?? snapshot,
+              let capabilities = state.timelineCapabilities,
+              capabilities.version == 1, capabilities.idAlgorithm == "sha256-v1",
+              capabilities.overwrite else {
+            return .rejected("Timeline overwrite is unavailable for this renderer.")
         }
+        if commandInsert {
+            return .rejected(capabilities.insert
+                ? "Insert mode is not supported by this editor yet."
+                : "Command-drag insert is unavailable; drag normally to overwrite.")
+        }
+        guard capabilities.libraryInsert else {
+            return .rejected("Library footage drops are unavailable for this renderer.")
+        }
+        guard let target = state.tracks.first(where: {
+            ($0.canonicalId ?? $0.id) == trackID || $0.id == trackID
+        }), target.isVideo, !target.locked else {
+            return .rejected("Drop footage on an unlocked video track.")
+        }
+
+        let value: JSONValue?
+        if let hit = hit(for: id) {
+            value = Self.timelineInsertSpec(
+                assetID: hit.assetId, metadata: hit.raw,
+                sourceIn: hit.sourceIn, sourceOut: hit.sourceOut, moment: hit.raw["moment"]
+            )
+        } else if let metadata = (id == selectedAssetID ? selectedAsset : nil)
+                    ?? library.first(where: { $0["id"]?.stringValue == id }) {
+            value = Self.timelineInsertSpec(
+                assetID: id, metadata: metadata,
+                sourceIn: id == selectedAssetID ? sourceIn : nil,
+                sourceOut: id == selectedAssetID ? sourceOut : nil
+            )
+        } else {
+            return .rejected("That footage is no longer in the library.")
+        }
+        guard let value else { return .rejected("The selected source range is invalid.") }
+        return .accepted(.inserting(value, track: target.canonicalId ?? target.id, atFrame: max(0, atFrame)))
     }
 
     func addSearchHitAsBroll(_ hit: SearchHit) {
@@ -912,22 +1107,138 @@ final class EditorStore {
         )
     }
 
-    func insertDroppedItem(_ id: String) {
-        if let hit = hit(for: id) {
-            insertSearchHit(hit, beforeID: selectedNode?.id)
-            return
+    @discardableResult
+    func insertDroppedItem(_ id: String, atFrame: Int, trackID: String,
+                           sourceIn: Double? = nil, sourceOut: Double? = nil,
+                           commandInsert: Bool = false) -> Bool {
+        guard let state = authoritativeSnapshot ?? snapshot,
+              let capabilities = state.timelineCapabilities,
+              capabilities.version == 1, capabilities.overwrite else {
+            notice = "Timeline overwrite is unavailable for this renderer."
+            return false
         }
-        guard library.contains(where: { $0["id"]?.stringValue == id }) || selectedAssetID == id else { return }
+        if commandInsert {
+            notice = capabilities.insert
+                ? "Insert mode is not supported by this editor yet."
+                : "Command-drag insert is unavailable; drag normally to overwrite."
+            return false
+        }
+        guard capabilities.libraryInsert else {
+            notice = "Library footage drops are unavailable for this renderer."
+            return false
+        }
+        guard let target = state.tracks.first(where: {
+            ($0.canonicalId ?? $0.id) == trackID || $0.id == trackID
+        }), target.isVideo, !target.locked else {
+            notice = "Drop footage on an unlocked video track."
+            return false
+        }
+        let startFrame = max(0, atFrame)
+        if let hit = hit(for: id) {
+            guard let value = Self.timelineInsertSpec(
+                assetID: hit.assetId, metadata: hit.raw,
+                sourceIn: sourceIn ?? hit.sourceIn, sourceOut: sourceOut ?? hit.sourceOut,
+                moment: hit.raw["moment"]
+            ) else {
+                notice = "The selected source range is invalid."
+                return false
+            }
+            return submitTimelineInsert(
+                value, assetID: hit.assetId, metadata: hit.raw,
+                trackID: target.canonicalId ?? target.id, atFrame: startFrame
+            )
+        }
+        guard library.contains(where: { $0["id"]?.stringValue == id }) || selectedAssetID == id else {
+            notice = "That footage is no longer in the library."
+            return false
+        }
+        let markedIn: Double? = id == selectedAssetID
+            ? (sourceIn != nil ? sourceIn : self.sourceIn) : sourceIn
+        let markedOut: Double? = id == selectedAssetID
+            ? (sourceOut != nil ? sourceOut : self.sourceOut) : sourceOut
+        let documentID = state.documentId
         Task {
             do {
                 let asset = try await service.call("library.asset", params: .object(["id": .string(id)]))
-                let duration = asset["duration"]?.numberValue ?? asset["seconds"]?.numberValue ?? asset["durationSeconds"]?.numberValue ?? 10
-                let hit = SearchHit(id: id, title: asset["name"]?.stringValue ?? id, evidence: "Library source",
-                                   assetId: id, sourceIn: 0, sourceOut: max(0.1, duration),
-                                   related: false, raw: asset)
-                insertSearchHit(hit, beforeID: selectedNode?.id)
-            } catch { errorMessage = error.localizedDescription }
+                guard (snapshot ?? authoritativeSnapshot)?.documentId == documentID else { return }
+                guard let value = Self.timelineInsertSpec(
+                    assetID: id, metadata: asset, sourceIn: markedIn, sourceOut: markedOut
+                ) else {
+                    notice = "The selected source range is invalid."
+                    return
+                }
+                _ = overwriteTimeline(
+                    [.inserting(value, track: target.canonicalId ?? target.id, atFrame: startFrame)],
+                    editID: UUID().uuidString.lowercased(), insertionAssets: [id: asset]
+                )
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
+        return true
+    }
+
+    private func submitTimelineInsert(_ value: JSONValue, assetID: String, metadata: JSONValue,
+                                      trackID: String, atFrame: Int) -> Bool {
+        let placements = [TimelinePlacement.inserting(value, track: trackID, atFrame: atFrame)]
+        let editID = UUID().uuidString.lowercased()
+        let state = snapshot ?? authoritativeSnapshot
+        let audioLocked = state?.tracks.contains { ($0.canonicalId ?? $0.id) == "A1" && $0.locked } == true
+        if audioLocked, Self.insertionHasAudio(value, metadata: metadata) == nil {
+            let documentID = state?.documentId
+            Task {
+                do {
+                    let asset = try await service.call("library.asset", params: .object(["id": .string(assetID)]))
+                    guard (snapshot ?? authoritativeSnapshot)?.documentId == documentID else { return }
+                    _ = overwriteTimeline(placements, editID: editID, insertionAssets: [assetID: asset])
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            }
+            return true
+        }
+        return overwriteTimeline(placements, editID: editID, insertionAssets: [assetID: metadata])
+    }
+
+    static func timelineInsertSpec(assetID: String, metadata: JSONValue,
+                                   sourceIn: Double?, sourceOut: Double?,
+                                   moment: JSONValue? = nil) -> JSONValue? {
+        let mediaPath = metadata["media"]?.stringValue ?? metadata["filename"]?.stringValue ?? assetID
+        let mediaType = metadata["kind"]?.stringValue ?? metadata["type"]?.stringValue
+            ?? metadata["mimeType"]?.stringValue
+        let isPhoto = NativeMediaKind.isPhoto(kind: mediaType, path: mediaPath)
+        let assetDuration = metadata["probe"]?["duration"]?.numberValue
+            ?? metadata["sourceDuration"]?.numberValue
+            ?? metadata["duration"]?.numberValue
+            ?? metadata["seconds"]?.numberValue
+            ?? metadata["durationSeconds"]?.numberValue
+        let boundedDuration = assetDuration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        let requestedStart = sourceIn ?? metadata["in"]?.numberValue ?? 0
+        guard requestedStart.isFinite else { return nil }
+        let start = max(0, requestedStart)
+        var value: [String: JSONValue] = ["asset": .string(assetID)]
+        if isPhoto {
+            if let requestedEnd = sourceOut ?? metadata["out"]?.numberValue {
+                guard requestedEnd.isFinite else { return nil }
+                let end = boundedDuration.map { min(requestedEnd, $0) } ?? requestedEnd
+                guard end > start else { return nil }
+                value["duration"] = .number(end - start)
+            } else {
+                value["duration"] = .number(boundedDuration ?? 2.5)
+            }
+        } else {
+            guard let requestedEnd = sourceOut ?? metadata["out"]?.numberValue ?? boundedDuration,
+                  requestedEnd.isFinite else { return nil }
+            let end = boundedDuration.map { min(requestedEnd, $0) } ?? requestedEnd
+            guard end > start else { return nil }
+            value["in"] = .number(start)
+            value["out"] = .number(end)
+            if let speed = metadata["speed"]?.numberValue, speed.isFinite, speed > 0 {
+                value["speed"] = .number(speed)
+            }
+        }
+        if let moment, moment.stringValue != nil { value["moment"] = moment }
+        return .object(value)
     }
 
     func loadLibrary() {
@@ -1078,12 +1389,8 @@ final class EditorStore {
             errorMessage = "Mark a source In and Out range before inserting."
             return
         }
-        let hit = SearchHit(
-            id: selectedAssetID, title: selectedAssetID, evidence: "Source In / Out",
-            assetId: selectedAssetID, sourceIn: sourceIn, sourceOut: sourceOut,
-            related: false, raw: selectedAsset ?? .object([:])
-        )
-        insertSearchHit(hit, beforeID: selectedNode?.id)
+        _ = insertDroppedItem(selectedAssetID, atFrame: playheadFrame, trackID: "V1",
+                              sourceIn: sourceIn, sourceOut: sourceOut)
     }
 
     func preparePreview(mode: String) {

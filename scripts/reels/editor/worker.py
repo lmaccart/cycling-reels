@@ -161,10 +161,12 @@ def _cache_identity(project: Project, built: dict, snapshot: dict, code_root: Pa
     renderer_revision = _revision(snapshot, "renderer")
     used: list[dict] = []
     for seg in built["segs"]:
-        used.append({"source": _source_record(project, seg), "spec": _stage_spec(seg.spec), "kind": seg.kind})
+        used.append({"source": _source_record(project, seg), "spec": _stage_spec(seg.spec), "kind": seg.kind,
+                     "frames": int(seg.frames)})
         for cut in seg.spec.get("_cutaways") or []:
             cseg = cut["seg"]
-            used.append({"source": _source_record(project, cseg), "spec": _stage_spec(cseg.spec), "kind": cseg.kind})
+            used.append({"source": _source_record(project, cseg), "spec": _stage_spec(cseg.spec), "kind": cseg.kind,
+                         "frames": int(cseg.frames)})
     exhibits = []
     for exhibit in built.get("exhibits") or []:
         source = exhibit.get("source")

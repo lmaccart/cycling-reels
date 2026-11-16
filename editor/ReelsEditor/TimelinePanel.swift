@@ -26,6 +26,22 @@ enum TimelineLaneClassifier {
         // in the Inspector without drawing overlapping duplicate clip strips.
         !["caption_word", "caption_settings"].contains(node.kind.lowercased())
     }
+
+    static func shouldDrawLinkedAudio(for node: EditorNode, nodes: [EditorNode]) -> Bool {
+        guard node.kind.lowercased() == "segment", !node.isPhoto else { return false }
+        return !nodes.contains {
+            $0.kind.lowercased() == "source_audio" && $0.generated == true && $0.isReadOnly
+                && $0.parentId == node.id
+        }
+    }
+
+    static func interactionNode(for node: EditorNode, nodes: [EditorNode]) -> EditorNode? {
+        guard node.kind.lowercased() == "source_audio", node.isReadOnly else { return node }
+        guard let parentID = node.parentId,
+              let owner = nodes.first(where: { $0.id == parentID }),
+              owner.kind.lowercased() == "segment", !owner.isReadOnly else { return nil }
+        return owner
+    }
 }
 
 
@@ -65,6 +81,48 @@ private enum TimelineLayout {
 
     static func contentHeight(tracks: [EditorTrack]) -> CGFloat {
         topInset + addStripOffset(tracks: tracks) + addStrip + 14
+    }
+}
+
+struct TimelineDropLocation: Equatable {
+    var track: String
+    var atFrame: Int
+
+    static func resolve(_ point: CGPoint, canvasSize: CGSize, zoom: Double,
+                        tracks: [EditorTrack]) -> TimelineDropLocation? {
+        guard zoom > 0, point.x >= TimelineLayout.labelWidth, point.x < canvasSize.width,
+              point.y >= TimelineLayout.topInset else { return nil }
+        let target = TimelineLayout.rows(tracks: tracks).first { row in
+            let top = TimelineLayout.topInset + row.offset
+            return point.y >= top && point.y < top + row.height
+        }
+        guard let target, target.track.isVideo, !target.track.locked else { return nil }
+        let rawFrame = Double(point.x - TimelineLayout.labelWidth) / zoom
+        guard rawFrame.isFinite else { return nil }
+        return TimelineDropLocation(
+            track: target.track.canonicalId ?? target.track.id,
+            atFrame: max(0, Int(rawFrame.rounded(.toNearestOrEven)))
+        )
+    }
+
+    /// Uses canvas/document coordinates after NSView conversion, so horizontal scroll is
+    /// already reflected in point.x. Vertical cross-track drags preserve the anchor frame.
+    static func overwriteFrame(at point: CGPoint, downPoint: CGPoint, anchorFrame: Int,
+                               grabOffset: Int, zoom: Double, snapping: Bool) -> (frame: Int, verticalSameTime: Bool) {
+        let horizontal = abs(point.x - downPoint.x)
+        let vertical = abs(point.y - downPoint.y)
+        let verticalSameTime = snapping && vertical > horizontal
+        if verticalSameTime { return (anchorFrame, true) }
+        let scale = CGFloat(max(zoom, 0.05))
+        let frameAtX = Int(((point.x - TimelineLayout.labelWidth) / scale).rounded(.toNearestOrEven))
+        return (max(0, frameAtX - grabOffset), false)
+    }
+
+    static func resolveAppKit(_ point: CGPoint, canvasSize: CGSize, zoom: Double,
+                              tracks: [EditorTrack]) -> TimelineDropLocation? {
+        // NSView.convert(_:from:) returns document-space x even when its clip view is scrolled.
+        resolve(CGPoint(x: point.x, y: canvasSize.height - point.y),
+                canvasSize: canvasSize, zoom: zoom, tracks: tracks)
     }
 }
 
@@ -203,10 +261,14 @@ struct TimelinePanel: View {
                             store.setPlayhead(frame, final: final)
                         },
                         onTrim: { node, sourceIn, sourceOut, ghost in store.trim(node: node, sourceIn: sourceIn, sourceOut: sourceOut, ghost: ghost) },
-                        onReorder: { node, frame, beforeID in
-                            store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID)
-                        },
-                        onMoveToTrack: { node, trackID in store.moveNode(node, toTrack: trackID) },
+                         onReorder: { node, frame, beforeID in
+                             store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID)
+                         },
+                         onOverwrite: { placements, editID in
+                             store.overwriteTimeline(placements, editID: editID)
+                         },
+                         onDropRejected: { store.notice = $0 },
+                         onMoveToTrack: { node, trackID in store.moveNode(node, toTrack: trackID) },
                         onDelete: { store.deleteSelection() },
                         onSplit: { store.splitAtPlayhead() },
                         onScroll: { x in if abs(x - scrollX) > 0.5 { scrollX = x } },
@@ -214,14 +276,15 @@ struct TimelinePanel: View {
                         onAddTrack: { kind in store.addTrack(kind: kind) },
                         onRenameTrack: { id in promptRename(trackID: id) },
                         onDeleteTrack: { id in store.removeTrack(id: id) },
-                        onDropMusic: { slug, trackID in dropMusic(slug: slug, onTrack: trackID) }
-                    )
+                         onDropMusic: { slug, trackID in dropMusic(slug: slug, onTrack: trackID) },
+                         onPreviewDrop: { id, frame, trackID, command in
+                             store.previewTimelineDrop(id, atFrame: frame, trackID: trackID, commandInsert: command)
+                         },
+                         onDropItem: { id, frame, trackID, command in
+                             store.insertDroppedItem(id, atFrame: frame, trackID: trackID, commandInsert: command)
+                         }
+                     )
                     .frame(width: max(contentWidth, proxy.size.width), height: max(trackHeight, proxy.size.height))
-                    .dropDestination(for: String.self) { items, _ in
-                        guard let first = items.first else { return false }
-                        store.insertDroppedItem(first)
-                        return true
-                    }
                 }
                 .scrollIndicators(.hidden)
                 .onAppear { viewportWidth = proxy.size.width; fitIfPending() }
@@ -426,6 +489,8 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let onScrub: (Int, Bool) -> Void
     let onTrim: (EditorNode, Double, Double, TimelineGhost) -> Void
     let onReorder: (EditorNode, Int, String?) -> Void
+    let onOverwrite: ([TimelinePlacement], String) -> Bool
+    let onDropRejected: (String) -> Void
     let onMoveToTrack: (EditorNode, String) -> Void
     let onDelete: () -> Void
     let onSplit: () -> Void
@@ -435,6 +500,8 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let onRenameTrack: (String) -> Void
     let onDeleteTrack: (String) -> Void
     let onDropMusic: (String, String) -> Void
+    let onPreviewDrop: (String, Int, String, Bool) -> TimelineDropResolution
+    let onDropItem: (String, Int, String, Bool) -> Bool
 
     func makeNSView(context: Context) -> TimelineCanvas {
         let view = TimelineCanvas()
@@ -451,9 +518,11 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
             scrollRequest: scrollRequest,
             callbacks: TimelineCanvas.Callbacks(
                 onSelect: onSelect, onBeginGesture: onBeginGesture, onEndGesture: onEndGesture,
-                onScrub: onScrub, onTrim: onTrim, onReorder: onReorder, onMoveToTrack: onMoveToTrack, onDelete: onDelete, onSplit: onSplit,
+                onScrub: onScrub, onTrim: onTrim, onReorder: onReorder, onOverwrite: onOverwrite,
+                onDropRejected: onDropRejected, onMoveToTrack: onMoveToTrack, onDelete: onDelete, onSplit: onSplit,
                 onScroll: onScroll, onToggleLock: onToggleLock, onAddTrack: onAddTrack,
-                onRenameTrack: onRenameTrack, onDeleteTrack: onDeleteTrack, onDropMusic: onDropMusic
+                onRenameTrack: onRenameTrack, onDeleteTrack: onDeleteTrack, onDropMusic: onDropMusic,
+                onPreviewDrop: onPreviewDrop, onDropItem: onDropItem
             )
         )
     }
@@ -468,6 +537,8 @@ private final class TimelineCanvas: NSView {
         var onScrub: (Int, Bool) -> Void
         var onTrim: (EditorNode, Double, Double, TimelineGhost) -> Void
         var onReorder: (EditorNode, Int, String?) -> Void
+        var onOverwrite: ([TimelinePlacement], String) -> Bool
+        var onDropRejected: (String) -> Void
         var onMoveToTrack: (EditorNode, String) -> Void
         var onDelete: () -> Void
         var onSplit: () -> Void
@@ -477,6 +548,8 @@ private final class TimelineCanvas: NSView {
         var onRenameTrack: (String) -> Void
         var onDeleteTrack: (String) -> Void
         var onDropMusic: (String, String) -> Void
+        var onPreviewDrop: (String, Int, String, Bool) -> TimelineDropResolution
+        var onDropItem: (String, Int, String, Bool) -> Bool
     }
 
     private static let labelWidth = TimelineLayout.labelWidth
@@ -515,8 +588,17 @@ private final class TimelineCanvas: NSView {
     private var grabOffset = 0
     /// Track a clip is being dragged onto (vertical drag), nil when the drag stays on its own track.
     private var moveTargetTrackID: String?
+    private var overwriteDrag = false
+    private var dragNodes: [EditorNode] = []
+    private var overwritePlacements: [TimelinePlacement] = []
+    private var overwriteRegions: [TimelineOverwriteRegion] = []
+    private var overwriteBlockedReason: String?
+    private var overwriteDropTrackID: String?
+    private var dragAnchorStart = 0
     private var playheadLayer: PlayheadLayer?
     private var dropTrackID: String?
+    private var dropItemID: String?
+    private var dropItemCommandInsert = false
 
     private enum DragMode: Equatable { case scrub, trimStart, trimEnd, move }
     /// The edit lease is requested only once a drag really starts, and always handed back
@@ -539,7 +621,7 @@ private final class TimelineCanvas: NSView {
         overlay.setAccessibilityElement(false)
         addSubview(overlay)
         playheadLayer = overlay
-        registerForDraggedTypes([.reelsMusicTrack])
+        registerForDraggedTypes([.reelsMusicTrack, .string])
         audioObserver = NotificationCenter.default.addObserver(
             forName: .reelsAudioVisualReady, object: nil, queue: .main
         ) { [weak self] _ in
@@ -631,9 +713,186 @@ private final class TimelineCanvas: NSView {
     private func resolvedTrackID(for node: EditorNode) -> String {
         var id = trackMap[node.id] ?? node.track ?? EditorStore.defaultTrackID(kind: node.kind)
         if node.track == nil, category(for: node) == "Audio", id.hasPrefix("V") { id = "A3" }
-        if rows.contains(where: { $0.track.id == id }) { return id }
+        if let row = row(forTrack: id) { return row.track.id }
         let fallback = EditorStore.defaultTrackID(kind: node.kind)
-        return rows.contains(where: { $0.track.id == fallback }) ? fallback : (rows.first?.track.id ?? "V1")
+        return row(forTrack: fallback)?.track.id ?? (rows.first?.track.id ?? "V1")
+    }
+
+    private func row(forTrack id: String) -> TimelineLayout.Row? {
+        rows.first { $0.track.id == id || $0.track.canonicalId == id }
+    }
+
+    private func canonicalTrackID(_ track: EditorTrack) -> String {
+        track.canonicalId ?? track.id
+    }
+
+    private func videoTrack(for node: EditorNode) -> EditorTrack? {
+        let resolved = resolvedTrackID(for: node)
+        return rows.first(where: { $0.track.id == resolved })?.track
+    }
+
+    private func updateOverwriteDrag(_ point: CGPoint) {
+        guard let snapshot, let anchor = activeNode,
+              let capabilities = snapshot.timelineCapabilities,
+              capabilities.version == 1, capabilities.idAlgorithm == "sha256-v1",
+              capabilities.overwrite else {
+            overwriteBlockedReason = "Overwrite editing is unavailable for this renderer."
+            overwritePlacements = []
+            overwriteRegions = []
+            overwriteDropTrackID = nil
+            return
+        }
+        guard let targetRow = row(at: point) else {
+            overwriteBlockedReason = "Drop on a video track."
+            overwritePlacements = []
+            overwriteRegions = []
+            overwriteDropTrackID = nil
+            return
+        }
+        overwriteDropTrackID = targetRow.track.id
+        guard targetRow.track.isVideo else {
+            overwriteBlockedReason = "Drop on a video track."
+            overwritePlacements = []
+            overwriteRegions = []
+            return
+        }
+        let destination = targetRow.track
+        let destinationID = canonicalTrackID(destination)
+        let moving = dragNodes.isEmpty ? [anchor] : dragNodes
+        let anchorSourceTrack = videoTrack(for: anchor)
+        guard let anchorSourceTrack else {
+            overwriteBlockedReason = "The source clip has no video track assignment."
+            overwritePlacements = []
+            overwriteRegions = []
+            return
+        }
+        if canonicalTrackID(anchorSourceTrack) != destinationID && !capabilities.crossTrack {
+            overwriteBlockedReason = "Cross-track overwrite is unavailable for this renderer."
+            overwritePlacements = []
+            overwriteRegions = []
+            return
+        }
+        guard !destination.locked else {
+            overwriteBlockedReason = "Track \(destination.name) is locked."
+            overwritePlacements = []
+            overwriteRegions = []
+            return
+        }
+        if moving.count > 1 && !capabilities.multiMove {
+            overwriteBlockedReason = "Multi-clip overwrite is unavailable for this renderer."
+            overwritePlacements = []
+            overwriteRegions = []
+            return
+        }
+        for node in moving {
+            guard ["segment", "cutaway"].contains(node.kind.lowercased()), !node.isReadOnly,
+                  let sourceTrack = videoTrack(for: node), !sourceTrack.locked else {
+                overwriteBlockedReason = "A selected source clip is locked or cannot be moved."
+                overwritePlacements = []
+                overwriteRegions = []
+                return
+            }
+            if node.kind.lowercased() == "cutaway"
+                && destinationID == "V1" && !capabilities.cutawayPromotion {
+                overwriteBlockedReason = "Cutaway promotion is unavailable for this renderer."
+                overwritePlacements = []
+                overwriteRegions = []
+                return
+            }
+        }
+
+        let videoTracks = tracks.filter(\.isVideo).sorted { $0.index < $1.index }
+        guard let anchorRank = videoTracks.firstIndex(where: { canonicalTrackID($0) == canonicalTrackID(anchorSourceTrack) }),
+              let destinationRank = videoTracks.firstIndex(where: { canonicalTrackID($0) == destinationID }) else {
+            overwriteBlockedReason = "The destination track is unavailable."
+            overwritePlacements = []
+            overwriteRegions = []
+            return
+        }
+        let dropFrame = TimelineDropLocation.overwriteFrame(
+            at: point, downPoint: downPoint, anchorFrame: dragAnchorStart,
+            grabOffset: grabOffset, zoom: zoom, snapping: snapping
+        )
+        let verticalSameTime = dropFrame.verticalSameTime
+        var anchorFrame = dropFrame.frame
+        let movingIDs = Set(moving.map(\.id))
+        let targetNodes = snapshot.nodes.filter {
+            !movingIDs.contains($0.id)
+                && ["segment", "cutaway"].contains($0.kind.lowercased())
+                && canonicalTrackID(for: $0) == destinationID
+        }
+        let candidateFrames = TimelineMetrics.snapCandidates(nodes: targetNodes, excluding: nil,
+                                                              playhead: playheadFrame)
+        snapGuideFrame = nil
+        if snapping {
+            if verticalSameTime {
+                snapGuideFrame = dragAnchorStart
+            } else if let snapped = TimelineMetrics.snap(frame: anchorFrame, candidates: candidateFrames, zoom: zoom) {
+                anchorFrame = snapped
+                snapGuideFrame = snapped
+            }
+        }
+
+        var placements: [TimelinePlacement] = []
+        for node in moving {
+            guard let sourceTrack = videoTrack(for: node),
+                  let sourceRank = videoTracks.firstIndex(where: { canonicalTrackID($0) == canonicalTrackID(sourceTrack) }) else {
+                overwriteBlockedReason = "A selected source clip has no video track assignment."
+                overwritePlacements = []
+                overwriteRegions = []
+                return
+            }
+            let targetRank = destinationRank + sourceRank - anchorRank
+            guard videoTracks.indices.contains(targetRank) else {
+                overwriteBlockedReason = "The selected clips will not fit on the destination tracks."
+                overwritePlacements = []
+                overwriteRegions = []
+                return
+            }
+            let target = videoTracks[targetRank]
+            guard !target.locked else {
+                overwriteBlockedReason = "Track \(target.name) is locked."
+                overwritePlacements = []
+                overwriteRegions = []
+                return
+            }
+            let frame = max(0, anchorFrame + node.startFrame - dragAnchorStart)
+            placements.append(.moving(id: node.id, track: canonicalTrackID(target), atFrame: frame))
+        }
+        guard !OptimisticTimeline.hasSameTrackPlacementOverlap(placements, nodes: snapshot.nodes,
+                                                                fps: Int(snapshot.fps.rounded(.toNearestOrEven))) else {
+            overwriteBlockedReason = "Selected clips would overlap each other on the destination track."
+            overwritePlacements = placements
+            overwriteRegions = []
+            return
+        }
+        let regions = OptimisticTimeline.overwriteRegions(
+            placements: placements, nodes: snapshot.nodes,
+            fps: Int(snapshot.fps.rounded(.toNearestOrEven))
+        )
+        let lockedLinkedAudio = rows.first(where: { ($0.track.canonicalId ?? $0.track.id) == "A1" })?.track.locked == true
+            && EditorStore.overwriteChangesLockedAudio(
+                placements: placements, regions: regions, nodes: snapshot.nodes
+            )
+        if lockedLinkedAudio || regions.contains(where: { region in
+            guard let node = snapshot.nodes.first(where: { $0.id == region.nodeID }) else { return true }
+            return node.isReadOnly || rows.first(where: {
+                $0.track.id == resolvedTrackID(for: node)
+            })?.track.locked == true
+        }) {
+            overwriteBlockedReason = "An affected destination clip is locked."
+            overwritePlacements = placements
+            overwriteRegions = regions
+            return
+        }
+        overwriteBlockedReason = nil
+        overwritePlacements = placements
+        overwriteRegions = regions
+    }
+
+    private func canonicalTrackID(for node: EditorNode) -> String {
+        if let row = videoTrack(for: node) { return canonicalTrackID(row) }
+        return node.track ?? EditorStore.defaultTrackID(kind: node.kind)
     }
 
     /// Nodes drawn on a row; A1 also shows the linked ride audio of video segments.
@@ -642,8 +901,10 @@ private final class TimelineCanvas: NSView {
         var result: [(EditorNode, Bool)] = []
         for node in snapshot.nodes where TimelineLaneClassifier.visibleInTimeline(node) {
             let id = resolvedTrackID(for: node)
-            if id == row.track.id { result.append((node, false)) }
-            else if row.track.id == "A1", node.kind.lowercased() == "segment", !node.isPhoto,
+            if id == row.track.id {
+                result.append((node, node.kind.lowercased() == "source_audio"))
+            } else if row.track.id == "A1",
+                    TimelineLaneClassifier.shouldDrawLinkedAudio(for: node, nodes: snapshot.nodes),
                     rows.first(where: { $0.track.id == id })?.track.isVideo == true {
                 result.append((node, true))
             }
@@ -678,6 +939,11 @@ private final class TimelineCanvas: NSView {
             rect.fill()
             if dropTrackID == row.track.id {
                 NSColor.white.withAlphaComponent(0.10).setFill()
+                rect.fill()
+            }
+            if overwriteDropTrackID == row.track.id {
+                let tint = overwriteBlockedReason == nil ? TimelineColors.playhead : NSColor.systemRed
+                tint.withAlphaComponent(overwriteBlockedReason == nil ? 0.13 : 0.18).setFill()
                 rect.fill()
             }
             if row.track.locked {
@@ -878,6 +1144,21 @@ private final class TimelineCanvas: NSView {
     }
 
     private func drawClips(_ dirtyRect: NSRect) {
+        if overwriteDrag {
+            let hideSources = overwriteBlockedReason == nil && !overwritePlacements.isEmpty
+            let movingIDs = hideSources ? Set(dragNodes.map(\.id)) : []
+            for row in rows {
+                for (node, linked) in clips(in: row) {
+                    guard !movingIDs.contains(node.id) else { continue }
+                    let rect = clipRect(node, in: row)
+                    guard rect.intersects(dirtyRect) else { continue }
+                    drawClip(node, linked: linked, in: rect, row: row)
+                }
+            }
+            drawOverwriteGhosts()
+            drawOverwriteRegions()
+            return
+        }
         for row in rows {
             for (node, linked) in clips(in: row) {
                 let active = node.id == activeNode?.id
@@ -899,6 +1180,107 @@ private final class TimelineCanvas: NSView {
         }
     }
 
+    private func drawOverwriteRegions() {
+        for region in overwriteRegions {
+            guard let row = row(forTrack: region.track),
+                  let node = snapshot?.nodes.first(where: { $0.id == region.nodeID }) else { continue }
+            let rect = clipRect(node, in: row, start: region.startFrame, end: region.endFrame)
+            let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 3, yRadius: 3)
+            NSColor.systemOrange.withAlphaComponent(0.40).setFill()
+            shape.fill()
+            NSColor.systemYellow.withAlphaComponent(0.95).setStroke()
+            shape.setLineDash([3, 2], count: 2, phase: 0)
+            shape.lineWidth = 1.3
+            shape.stroke()
+            if rect.width > 66 {
+                NSAttributedString(string: "OVERWRITE", attributes: [
+                    .font: EditorType.nsClipLabel,
+                    .foregroundColor: NSColor.white,
+                ]).draw(at: CGPoint(x: rect.minX + 4, y: rect.midY - 5))
+            }
+            if node.kind.lowercased() == "segment", !node.isPhoto,
+               let linkedAudio = rows.first(where: { $0.track.id == "A1" }) {
+                drawOverwriteTint(node, in: linkedAudio, start: region.startFrame, end: region.endFrame)
+            }
+        }
+    }
+
+    private func drawOverwriteTint(_ node: EditorNode, in row: TimelineLayout.Row, start: Int, end: Int) {
+        let rect = clipRect(node, in: row, start: start, end: end)
+        let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 3, yRadius: 3)
+        NSColor.systemOrange.withAlphaComponent(0.40).setFill()
+        shape.fill()
+        NSColor.systemYellow.withAlphaComponent(0.95).setStroke()
+        shape.setLineDash([3, 2], count: 2, phase: 0)
+        shape.lineWidth = 1.3
+        shape.stroke()
+    }
+
+    private func drawOverwriteGhosts() {
+        guard let snapshot else { return }
+        for (index, placement) in overwritePlacements.enumerated() {
+            guard let row = row(forTrack: placement.track),
+                  let duration = OptimisticTimeline.placementDuration(
+                    placement, nodes: snapshot.nodes, fps: Int(snapshot.fps.rounded(.toNearestOrEven))
+                  ) else { continue }
+            let node = placement.id.flatMap { id in snapshot.nodes.first { $0.id == id } }
+                ?? insertionGhost(placement, index: index, duration: duration)
+            let rect = clipRect(node, in: row, start: placement.atFrame, end: placement.atFrame + duration)
+            let color = overwriteBlockedReason == nil ? clipColor(for: node) : NSColor.systemRed
+            let shape = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
+            color.withAlphaComponent(overwriteBlockedReason == nil ? 0.34 : 0.25).setFill()
+            shape.fill()
+            color.withAlphaComponent(0.95).setStroke()
+            shape.setLineDash([4, 3], count: 2, phase: 0)
+            shape.lineWidth = 1.5
+            shape.stroke()
+            let labelHeight: CGFloat = min(15, rect.height * 0.4)
+            let labelRect = NSRect(
+                x: rect.minX, y: rect.maxY - labelHeight, width: rect.width, height: labelHeight
+            )
+            color.withAlphaComponent(overwriteBlockedReason == nil ? 0.86 : 0.78).setFill()
+            labelRect.fill()
+            if rect.width > 44 {
+                NSAttributedString(string: overwriteBlockedReason == nil ? displayName(node) : "Blocked", attributes: [
+                    .font: EditorType.nsClipLabel,
+                    .foregroundColor: NSColor.white,
+                ]).draw(at: CGPoint(x: rect.minX + 5, y: labelRect.midY - 5))
+            }
+            if rect.width > 64 {
+                let position = NSAttributedString(string: "@\(timecode(placement.atFrame, fps: snapshot.fps))", attributes: [
+                    .font: NSFont.monospacedSystemFont(ofSize: 8, weight: .medium),
+                    .foregroundColor: NSColor.white.withAlphaComponent(0.9),
+                ])
+                position.draw(at: CGPoint(x: rect.minX + 5, y: rect.minY + 5))
+            }
+            if node.kind.lowercased() == "segment", !node.isPhoto,
+               let linkedAudio = rows.first(where: { $0.track.id == "A1" }) {
+                let linkedRect = clipRect(node, in: linkedAudio,
+                                          start: placement.atFrame, end: placement.atFrame + duration)
+                let linked = NSBezierPath(roundedRect: linkedRect, xRadius: 4, yRadius: 4)
+                TimelineColors.audio.withAlphaComponent(overwriteBlockedReason == nil ? 0.28 : 0.16).setFill()
+                linked.fill()
+                NSColor.white.withAlphaComponent(0.75).setStroke()
+                linked.setLineDash([4, 3], count: 2, phase: 0)
+                linked.lineWidth = 1
+                linked.stroke()
+            }
+        }
+    }
+
+    private func insertionGhost(_ placement: TimelinePlacement, index: Int, duration: Int) -> EditorNode {
+        let raw = placement.insert ?? .object([:])
+        let photo = raw["duration"] != nil || raw["assetKind"]?.stringValue == "photo"
+        return EditorNode(
+            id: "pending-insert-\(index)", kind: "segment", lane: "primary", parentId: nil,
+            startFrame: placement.atFrame, endFrame: placement.atFrame + duration, frames: duration,
+            raw: raw, assetId: raw["asset"]?.stringValue, sourceIn: raw["in"]?.numberValue,
+            sourceOut: raw["out"]?.numberValue, sourceDuration: raw["sourceDuration"]?.numberValue,
+            speed: raw["speed"]?.numberValue ?? 1, assetKind: photo ? "photo" : "video",
+            mediaKind: photo ? "photo" : "video", generated: false, readOnly: false, track: placement.track
+        )
+    }
+
     /// The track under a vertical drag, if the active clip may move there: mostly-vertical drag,
     /// same kind of track (video/audio), not locked, not its current track. Main clips stay on V1
     /// (they are the reel's spine; tracks only organise overlays, b-roll and sound).
@@ -915,6 +1297,7 @@ private final class TimelineCanvas: NSView {
 
     private func drawClip(_ node: EditorNode, linked: Bool, in rect: NSRect, row: TimelineLayout.Row) {
         let selected = selectedIDs.contains(node.id)
+            || (node.kind.lowercased() == "source_audio" && node.parentId.map(selectedIDs.contains) == true)
         let isAudioClip = linked || category(for: node) == "Audio"
         let base = isAudioClip ? TimelineColors.audio : clipColor(for: node)
         let shape = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
@@ -1118,9 +1501,13 @@ private final class TimelineCanvas: NSView {
                 let element = NSAccessibilityElement()
                 element.setAccessibilityParent(self)
                 element.setAccessibilityRole(.button)
-                let start = timecode(node.startFrame, fps: snapshot?.fps ?? 30)
-                element.setAccessibilityLabel("\(node.title), \(row.track.id)\(linked ? " linked audio" : ""), \(category(for: node)), \(start), \(node.frames) frames")
-                element.setAccessibilityHelp("Clip handle: drag the left or right edge to trim; drag inside to reorder.")
+                let owner = TimelineLaneClassifier.interactionNode(for: node, nodes: snapshot?.nodes ?? [])
+                let accessibleNode = owner ?? node
+                let start = timecode(accessibleNode.startFrame, fps: snapshot?.fps ?? 30)
+                element.setAccessibilityLabel("\(accessibleNode.title), \(row.track.id)\(linked ? " linked audio" : ""), \(category(for: node)), \(start), \(accessibleNode.frames) frames")
+                element.setAccessibilityHelp(owner?.id == node.id
+                    ? "Clip handle: drag the left or right edge to trim; drag inside to move."
+                    : "Read-only linked audio; interact with its owning video clip.")
                 let rect = clipRect(node, in: row)
                 element.setAccessibilityFrame(window?.convertToScreen(convert(rect, to: nil)) ?? .zero)
                 elements.append(element)
@@ -1136,6 +1523,11 @@ private final class TimelineCanvas: NSView {
         return (value?.isEmpty == false) ? value : nil
     }
 
+    private func timelineItemID(_ sender: NSDraggingInfo) -> String? {
+        let value = sender.draggingPasteboard.string(forType: .string)
+        return (value?.isEmpty == false) ? value : nil
+    }
+
     private func audioRow(for sender: NSDraggingInfo) -> TimelineLayout.Row? {
         let point = convert(sender.draggingLocation, from: nil)
         guard let row = row(at: point), !row.track.isVideo, !row.track.locked else { return nil }
@@ -1145,24 +1537,99 @@ private final class TimelineCanvas: NSView {
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { draggingUpdated(sender) }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard musicSlug(sender) != nil, let row = audioRow(for: sender) else {
-            if dropTrackID != nil { dropTrackID = nil; needsDisplay = true }
+        if musicSlug(sender) != nil {
+            guard let row = audioRow(for: sender) else {
+                dropTrackID = nil
+                overwriteDrag = false
+                overwriteDropTrackID = nil
+                overwritePlacements = []
+                overwriteRegions = []
+                overwriteBlockedReason = nil
+                return []
+            }
+            dropTrackID = row.track.id
+            overwriteDrag = false
+            overwriteDropTrackID = nil
+            overwritePlacements = []
+            overwriteRegions = []
+            overwriteBlockedReason = nil
+            needsDisplay = true
+            return .copy
+        }
+        guard let itemID = timelineItemID(sender) else {
+            draggingExited(sender)
             return []
         }
-        if dropTrackID != row.track.id { dropTrackID = row.track.id; needsDisplay = true }
+        overwriteDrag = true
+        let point = convert(sender.draggingLocation, from: nil)
+        guard let target = TimelineDropLocation.resolveAppKit(
+            point, canvasSize: bounds.size, zoom: zoom, tracks: tracks
+        ), let row = row(forTrack: target.track) else {
+            overwriteDropTrackID = nil
+            overwritePlacements = []
+            overwriteRegions = []
+            overwriteBlockedReason = "Drop footage on a video track."
+            NSCursor.operationNotAllowed.set()
+            needsDisplay = true
+            return .copy
+        }
+        dropTrackID = nil
+        dropItemID = itemID
+        dropItemCommandInsert = NSApp.currentEvent?.modifierFlags.contains(.command) == true
+        overwriteDropTrackID = row.track.id
+        let resolution = callbacks?.onPreviewDrop(
+            itemID, target.atFrame, target.track, dropItemCommandInsert
+        ) ?? .rejected("Timeline drop is unavailable.")
+        overwriteBlockedReason = resolution.rejection
+        overwritePlacements = resolution.placement.map { [$0] } ?? []
+        overwriteRegions = resolution.placement.map {
+            OptimisticTimeline.overwriteRegions(
+                placements: [$0], nodes: snapshot?.nodes ?? [],
+                fps: Int((snapshot?.fps ?? 30).rounded(.toNearestOrEven))
+            )
+        } ?? []
+        if overwriteBlockedReason != nil {
+            NSCursor.operationNotAllowed.set()
+        } else {
+            NSCursor.arrow.set()
+        }
+        needsDisplay = true
         return .copy
     }
 
     override func draggingExited(_ sender: NSDraggingInfo?) {
         dropTrackID = nil
+        dropItemID = nil
+        overwriteDrag = false
+        overwriteDropTrackID = nil
+        overwritePlacements = []
+        overwriteRegions = []
+        overwriteBlockedReason = nil
         needsDisplay = true
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        defer { dropTrackID = nil; needsDisplay = true }
-        guard let slug = musicSlug(sender), let row = audioRow(for: sender) else { return false }
-        callbacks?.onDropMusic(slug, row.track.id)
-        return true
+        defer { draggingExited(sender) }
+        if let slug = musicSlug(sender), let row = audioRow(for: sender) {
+            callbacks?.onDropMusic(slug, row.track.id)
+            return true
+        }
+        guard let itemID = timelineItemID(sender) ?? dropItemID else { return false }
+        let point = convert(sender.draggingLocation, from: nil)
+        guard let target = TimelineDropLocation.resolveAppKit(
+            point, canvasSize: bounds.size, zoom: zoom, tracks: tracks
+        ) else {
+            callbacks?.onDropRejected(overwriteBlockedReason ?? "Drop footage on a video track.")
+            return false
+        }
+        if let overwriteBlockedReason {
+            callbacks?.onDropRejected(overwriteBlockedReason)
+            return false
+        }
+        return callbacks?.onDropItem(
+            itemID, target.atFrame, target.track,
+            NSApp.currentEvent?.modifierFlags.contains(.command) ?? dropItemCommandInsert
+        ) ?? false
     }
 
     // MARK: mouse
@@ -1237,7 +1704,7 @@ private final class TimelineCanvas: NSView {
     private static let moveThreshold: CGFloat = 4
 
     private func frame(atX x: CGFloat) -> Int {
-        Int(((x - Self.labelWidth) / max(scale, 0.05)).rounded())
+        Int(((x - Self.labelWidth) / max(scale, 0.05)).rounded(.toNearestOrEven))
     }
 
     private func beginLease(owner: String) {
@@ -1259,6 +1726,12 @@ private final class TimelineCanvas: NSView {
         mode = nil
         activeNode = nil
         releaseLease()
+        overwriteDrag = false
+        dragNodes = []
+        overwritePlacements = []
+        overwriteRegions = []
+        overwriteBlockedReason = nil
+        overwriteDropTrackID = nil
         if isHeaderPoint(point) {
             handleHeaderClick(point)
             return
@@ -1276,10 +1749,27 @@ private final class TimelineCanvas: NSView {
         }
         let additive = event.modifierFlags.contains(.command) || event.modifierFlags.contains(.shift)
         callbacks?.onSelect(node.id, additive)
-        guard !node.isReadOnly, !row.track.locked else { return }
+        let overwriteNode = ["segment", "cutaway"].contains(node.kind.lowercased())
+        if node.isReadOnly || row.track.locked {
+            guard overwriteNode, snapshot?.timelineCapabilities != nil else { return }
+            activeNode = node
+            originalStart = node.startFrame
+            originalEnd = node.endFrame
+            dragAnchorStart = node.startFrame
+            grabOffset = frame(atX: point.x) - node.startFrame
+            mode = .move
+            overwriteDrag = true
+            dragNodes = [node]
+            overwriteBlockedReason = node.isReadOnly
+                ? "This source clip is read-only."
+                : "Source track \(row.track.name) is locked."
+            overwriteDropTrackID = row.track.id
+            return
+        }
         activeNode = node
         originalStart = node.startFrame
         originalEnd = node.endFrame
+        dragAnchorStart = node.startFrame
         grabOffset = frame(atX: point.x) - node.startFrame
         ghostStart = nil
         ghostEnd = nil
@@ -1291,6 +1781,14 @@ private final class TimelineCanvas: NSView {
         else if abs(point.x - clipStart) <= zone { mode = .trimStart }
         else if abs(point.x - clipEnd) <= zone { mode = .trimEnd }
         else { mode = .move }
+        if snapshot?.timelineCapabilities != nil && overwriteNode {
+            overwriteDrag = true
+            let selected = selectedIDs.contains(node.id) ? selectedIDs : [node.id]
+            dragNodes = snapshot?.nodes.filter {
+                selected.contains($0.id) && ["segment", "cutaway"].contains($0.kind.lowercased())
+            } ?? [node]
+            if !dragNodes.contains(where: { $0.id == node.id }) { dragNodes.insert(node, at: 0) }
+        }
         // No lease yet: a plain click must never hold the document. It is requested on the first real drag.
     }
 
@@ -1302,7 +1800,7 @@ private final class TimelineCanvas: NSView {
             autoscroll(with: event)
             scrub(point, final: false)
         case .trimStart, .trimEnd:
-            let delta = Int(((point.x - downPoint.x) / max(scale, 0.05)).rounded())
+            let delta = Int(((point.x - downPoint.x) / max(scale, 0.05)).rounded(.toNearestOrEven))
             if delta != 0 { beginLease(owner: "timeline-trim") }
             let candidates = snapping
                 ? TimelineMetrics.snapCandidates(nodes: snapshot?.nodes ?? [], excluding: activeNode?.id, playhead: playheadFrame)
@@ -1324,6 +1822,15 @@ private final class TimelineCanvas: NSView {
             needsDisplay = true
         case .move:
             guard hypot(point.x - downPoint.x, point.y - downPoint.y) > Self.moveThreshold else { return }
+            if overwriteDrag {
+                if overwriteBlockedReason == nil { beginLease(owner: "timeline-overwrite") }
+                updateOverwriteDrag(point)
+                if overwriteBlockedReason == nil { NSCursor.closedHand.set() }
+                else { NSCursor.operationNotAllowed.set() }
+                autoscroll(with: event)
+                needsDisplay = true
+                return
+            }
             beginLease(owner: "timeline-reorder")
             moveTargetTrackID = trackMoveTarget(at: point)
             targetNodeID = moveTargetTrackID == nil ? hit(at: point)?.0.id : nil
@@ -1350,11 +1857,26 @@ private final class TimelineCanvas: NSView {
             targetNodeID = nil
             moveTargetTrackID = nil
             snapGuideFrame = nil
+            overwriteDrag = false
+            dragNodes = []
+            overwritePlacements = []
+            overwriteRegions = []
+            overwriteBlockedReason = nil
+            overwriteDropTrackID = nil
             gestureLeaseTask = nil
             needsDisplay = true
         }
         guard let mode else { releaseLease(); return }
         let point = convert(event.locationInWindow, from: nil)
+        if overwriteDrag && mode == .move {
+            if let reason = overwriteBlockedReason {
+                callbacks?.onDropRejected(reason)
+            } else if !overwritePlacements.isEmpty {
+                callbacks?.onOverwrite(overwritePlacements, UUID().uuidString.lowercased())
+            }
+            releaseLease()
+            return
+        }
         // The edit goes out immediately: the app shows it at once and the service saves it
         // in order. The gesture's lease only keeps AI edits out; it is handed back right away.
         func send(_ edit: () -> Void) { edit() }
@@ -1422,7 +1944,10 @@ private final class TimelineCanvas: NSView {
         let frame = Double(point.x - Self.labelWidth) / max(scale, 0.05)
         for (node, _) in clips(in: row)
         where frame >= Double(node.startFrame) && frame <= Double(node.endFrame) {
-            return (node, row)
+            guard let interactionNode = TimelineLaneClassifier.interactionNode(
+                for: node, nodes: snapshot?.nodes ?? []
+            ) else { continue }
+            return (interactionNode, row)
         }
         return nil
     }
@@ -1433,6 +1958,58 @@ private final class TimelineCanvas: NSView {
             || kind.contains("text") || kind.contains("cutaway")
             || kind.contains("b-roll") || kind.contains("broll")
     }
+}
+
+/// Instantiates the production AppKit canvas for offscreen visual regression tests.
+/// It has no service, library, or media dependencies.
+@MainActor
+func makeTimelineCanvasCaptureView(
+    snapshot: EditorSnapshot,
+    tracks: [EditorTrack],
+    trackMap: [String: String],
+    selectedIDs: Set<String> = [],
+    changedIDs: Set<String> = [],
+    playheadFrame: Int = 0,
+    zoom: Double = TimelineMetrics.defaultZoom,
+    snapping: Bool = true,
+    onOverwrite: (([TimelinePlacement], String) -> Bool)? = nil,
+    onDropRejected: ((String) -> Void)? = nil
+) -> NSView {
+    let view = TimelineCanvas(frame: .zero)
+    view.update(
+        snapshot: snapshot,
+        tracks: tracks,
+        trackMap: trackMap,
+        selectedIDs: selectedIDs,
+        changedIDs: changedIDs,
+        sourceURLs: [:],
+        playheadFrame: playheadFrame,
+        zoom: zoom,
+        snapping: snapping,
+        scrollRequest: nil,
+        callbacks: TimelineCanvas.Callbacks(
+            onSelect: { _, _ in },
+            onBeginGesture: { _ in nil },
+            onEndGesture: { _ in },
+            onScrub: { _, _ in },
+            onTrim: { _, _, _, _ in },
+            onReorder: { _, _, _ in },
+            onOverwrite: onOverwrite ?? { _, _ in true },
+            onDropRejected: onDropRejected ?? { _ in },
+            onMoveToTrack: { _, _ in },
+            onDelete: {},
+            onSplit: {},
+            onScroll: { _ in },
+            onToggleLock: { _, _ in },
+            onAddTrack: { _ in },
+            onRenameTrack: { _ in },
+            onDeleteTrack: { _ in },
+            onDropMusic: { _, _ in },
+            onPreviewDrop: { _, _, _, _ in .rejected("Preview unavailable") },
+            onDropItem: { _, _, _, _ in false }
+        )
+    )
+    return view
 }
 
 @MainActor

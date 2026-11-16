@@ -137,12 +137,6 @@ def _worker_compile(
     All writes are confined by the trusted macOS profile to disposable worker
     data. Registered footage is resolved explicitly, never via a writable link.
     """
-    if not [segment for segment in plan.get("segments") or []]:
-        # A brand-new project has nothing to render yet. The renderer rejects
-        # an empty plan, so the editor opens it as an empty timeline instead.
-        return {"fps": int(project.cfg("render", "fps") or 30), "total": 0,
-                "warnings": ["No footage yet: add a clip from the library to start."],
-                "segs": [], "props": {}, "sound": {"cues": []}, "loop": None}
     code_root = project.code_root
     if not (code_root / "scripts/reels/render.py").is_file():
         if project.read_only_media or code_root != project.root:
@@ -237,7 +231,14 @@ for rel in json.loads(overrides_path.read_text(encoding="utf-8")).get("__editor_
 
 media = json.loads(overrides_path.read_text(encoding="utf-8")).get("__editor_media__", {})
 p = Project(scratch, code_root=Path(sys.argv[1]).parent, **media)
-built = build(p, json.loads(plan_path.read_text(encoding="utf-8")))
+plan = json.loads(plan_path.read_text(encoding="utf-8"))
+if not plan.get("segments") and not plan.get("timeline"):
+    result_path.write_text(json.dumps({"fps": int(p.cfg("render", "fps") or 30), "total": 0,
+        "warnings": ["No footage yet: add a clip from the library to start."],
+        "segs": [], "props": {}, "sound": {"cues": []}, "loop": None,
+        "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})}))
+    sys.exit(0)
+built = build(p, plan)
 segs = []
 for sg in built["segs"]:
     spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
@@ -250,12 +251,16 @@ for sg in built["segs"]:
                      "sourceDuration": cs.asset.get("probe", {}).get("duration"),
                      "spec": {k:v for k,v in cs.spec.items() if not k.startswith("_")}})
     segs.append({"index":sg.index, "kind":sg.kind, "asset":{"id":sg.asset["id"]},
+                 "sourceDuration":sg.asset.get("probe", {}).get("duration"),
+                 "hasAudio":bool(sg.asset.get("probe", {}).get("hasAudio")),
                  "spec":spec, "frames":sg.frames, "trans":sg.trans, "start":sg.start,
                  "cutaways":cuts})
 sound = dict(built.get("sound") or {})
 sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
 result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],
-          "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+           "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+if built.get("timelineCapabilities"):
+    result["timelineCapabilities"] = built["timelineCapabilities"]
 result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda value: sorted(value) if isinstance(value, set) else str(value)), encoding="utf-8")
 '''
     scratch_parent = project.root / ".cache/editor-compile"
@@ -548,8 +553,9 @@ class DocumentStore:
         reads, profile, _ = _boundary(self.workspace, project, project.code_root, scratch, make_env=False)
         sources = hashlib.sha256()
         for name in ("transactions.py", "compile_worker.py", "compile_runtime.py", "compiled_cache.py",
-                     "document.py"):
+                     "document.py", "overwrite.py", "timing.py", "tracks.py"):
             sources.update(Path(__file__).with_name(name).read_bytes())
+        sources.update((Path(__file__).parent.parent / "timeline.py").read_bytes())
         return {
             "revisions": self._revisions(), "planHash": fingerprint(plan),
             "boundary": boundary_key(revision, reads, profile, scratch, data_root=project.root,
@@ -1452,9 +1458,10 @@ class DocumentStore:
                     raise DocumentError("invalid_operation", f"operation {index} must be an object")
             prepared = None
             if (origin == "manual" and self._disk_compile_cache_enabled()
+                    and (compiled_before.get("timelineCapabilities") or {}).get("version") == 1
                     and any(isinstance(op, dict) and (
                         op.get("op") in ("reorder_segments", "trim_segment", "split_segment",
-                                         "insert_segment", "remove_segments")
+                                         "insert_segment", "remove_segments", "move_segments", "set_node_track")
                         or (op.get("op") == "set_field" and op.get("path") in (
                             "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap",
                             "/music", "/render/fps",
@@ -1503,6 +1510,7 @@ class DocumentStore:
                 raise DocumentError("conflict", "document changed during validation",
                                     {"current": self._revisions()})
             self._check_lease(batch)
+            self._check_compiled_locks(files[self.plan_rel], compiled_before, plan, candidate_compiled, operations)
             files[self.plan_rel] = plan
             files.update(aux)
             revision = self._commit_files(
@@ -1514,6 +1522,26 @@ class DocumentStore:
             )
             self._current_compiled = candidate_compiled
             return self._snapshot_result(plan, candidate_compiled, self._revisions(revision))
+
+    def _check_compiled_locks(self, before_plan, before_compiled, after_plan, after_compiled, operations):
+        """Protect implicit linked audio and renderer-generated owned items too."""
+        from .tracks import track_list
+        old = {row["id"] for row in track_list(before_plan.get("_editor"), plan=before_plan) if row["locked"]}
+        new = {row["id"] for row in track_list(after_plan.get("_editor"), plan=after_plan) if row["locked"]}
+        unlocked = {op.get("id") for op in operations
+                    if op.get("op") == "set_track_locked" and op.get("locked") is False}
+        protected = old & new - unlocked
+        if not protected:
+            return
+        before = editing_snapshot(before_plan, before_compiled, self._revisions())["nodes"]
+        after = editing_snapshot(after_plan, after_compiled, self._revisions())["nodes"]
+        def state(node):
+            return {key: node.get(key) for key in ("kind", "parentId", "track", "startFrame", "endFrame", "raw")}
+        left = {node["id"]: state(node) for node in before if node["track"] in protected}
+        right = {node["id"]: state(node) for node in after if node["track"] in protected}
+        if left != right:
+            raise DocumentError("track_locked", "The edit changes a locked track or one of its linked/owned items",
+                                {"tracks": sorted(protected)})
 
     def _prepare_warm_batch(self, plan, aux, operations, compiled_before, renderer, expected, epoch):
         from .compile_worker import WorkerUnavailable, WorkerRejected, WorkerCancelled
@@ -1551,16 +1579,95 @@ class DocumentStore:
         plan = ctx["plan"]
         from .tracks import TRACK_OPS, apply_track_operation, locked_target
         ensure_node_ids(plan)
+        from ..timeline import positioned, requantize
+        from .overwrite import apply_overwrite, positioned_source_edit, video_source_bounds
+        op = operation.get("op")
+        capable = (ctx["compiled"].get("timelineCapabilities") or {}).get("version") == 1
+        if positioned(plan):
+            requantize(plan, ctx["fps"])
+        transformed = operation
+        entry = plan["_editor"]["nodes"].get(str(operation.get("id")), {})
+        source_kind = entry.get("kind")
+        if ((capable and op == "set_node_track" and entry.get("kind") in ("segment", "cutaway"))
+                or (positioned(plan) and op in ("insert_segment", "reorder_segments"))):
+            edit = str(uuid.uuid5(uuid.NAMESPACE_URL, canonical_json({
+                "operation": operation, "document": self._revisions()["document"]})))
+            if op == "set_node_track":
+                node = next(item for item in editing_snapshot(plan, ctx["compiled"], self._revisions())["nodes"]
+                            if item["id"] == operation["id"])
+                placements = [{"id": operation["id"], "track": operation["track"], "atFrame": node["startFrame"]}]
+            elif op == "insert_segment":
+                value = deepcopy(operation["value"])
+                value.pop("timeline", None)
+                before = operation.get("beforeId")
+                at = (node_location(plan, before)[1]["timeline"]["startFrame"] if before
+                      else plan["timeline"]["durationFrames"])
+                placements = [{"insert": value, "track": "V1", "atFrame": at}]
+            else:
+                ids = operation.get("ids") or []
+                clips = [node_location(plan, key)[1] for key in ids]
+                start = min(value["timeline"]["startFrame"] for value in clips)
+                before = operation.get("beforeId")
+                at = (node_location(plan, before)[1]["timeline"]["startFrame"] if before
+                      else plan["timeline"]["durationFrames"])
+                placements = [{"id": key, "track": value["timeline"]["track"],
+                               "atFrame": at + value["timeline"]["startFrame"] - start}
+                              for key, value in zip(ids, clips)]
+            transformed = {"op": "move_segments", "editId": edit, "mode": "overwrite", "placements": placements}
+        if transformed.get("op") == "move_segments":
+            if not capable:
+                raise DocumentError("unsupported_operation", "selected renderer does not support placed footage")
+            if positioned(plan):
+                requantize(plan, ctx["fps"])
+            try:
+                apply_overwrite(ctx, transformed, self.project)
+            except ValueError as exc:
+                if "locked" in str(exc).lower():
+                    raise DocumentError("track_locked", str(exc)) from exc
+                raise
+            self._refresh_edit_timing(ctx)
+            return
+        if positioned(plan) and op in ("trim_segment", "split_segment"):
+            try:
+                handled = positioned_source_edit(ctx, operation, self.project, self._revisions())
+            except ValueError as exc:
+                if "locked" in str(exc).lower():
+                    raise DocumentError("track_locked", str(exc)) from exc
+                raise
+            if handled:
+                self._refresh_edit_timing(ctx)
+                return
         if operation.get("op") in TRACK_OPS:
             ctx["affected"].update(apply_track_operation(plan, operation))
             return
         locked = locked_target(plan, operation)
         if locked:
             raise DocumentError("track_locked", locked)
+        if operation.get("op") == "remove_segments":
+            for source in operation.get("ids") or []:
+                entry = plan["_editor"]["nodes"].get(source)
+                if entry:
+                    for child, record in plan["_editor"]["nodes"].items():
+                        if record["locator"].startswith(entry["locator"] + "/"):
+                            message = locked_target(plan, {"id": child})
+                            if message:
+                                raise DocumentError("track_locked", message)
         metadata = deepcopy(ensure_node_ids(plan))
         objects = {node_id: pointer_get(plan, entry["locator"]) for node_id, entry in metadata.items()}
         old_snapshot = editing_snapshot(plan, ctx["compiled"], self._revisions())
         self._apply_operation(ctx, operation)
+        if positioned(plan) and op == "set_field" and operation.get("path") in (
+                "/speed", "/duration", "/in", "/out", "/transition"):
+            _, clip = node_location(plan, str(operation.get("id")))
+            if isinstance(clip, dict) and isinstance(clip.get("timeline"), dict):
+                if "in" in clip and "out" in clip:
+                    from ..library import load_asset, resolve_id
+                    asset = load_asset(self.project, resolve_id(self.project, clip["asset"]))
+                    video_source_bounds(asset, clip["in"], clip["out"], clip.get("speed", 1))
+                frames = max(1, round(source_duration(clip) * plan["timeline"]["fps"]))
+                clip["timeline"].update(durationFrames=frames, transitionInFrames=0)
+                plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
+                                                        clip["timeline"]["startFrame"] + frames)
         # Moving identical clips must preserve identities, not just fingerprints.
         from .document import _descriptors
         descriptors = _descriptors(plan)
@@ -1588,31 +1695,27 @@ class DocumentStore:
                 metadata[node_id] = entry
         plan["_editor"]["nodes"] = metadata
         ensure_node_ids(plan)
+        if source_kind == "cutaway":
+            # Promotion and later cutaway edits resolve through compiled specs
+            # and rawIndex. Refresh after removal too, before indexes can shift.
+            # Warm batches record/replay this timing prefix within the same RPC.
+            self._refresh_edit_timing(ctx)
+            return
         op = operation.get("op")
         edited_kind = metadata.get(str(operation.get("id")), {}).get("kind")
         timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments")
         timing_changed |= op == "trim_segment" and edited_kind == "segment"
         timing_changed |= op == "set_field" and operation.get("path") in (
-            "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps",
+            "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps", "/render",
         )
         if edited_kind == "cutaway":
             timing_changed = False
         if not timing_changed:
             return
-        if "timingResults" in ctx:
-            try:
-                compiled = next(ctx["timingResults"])
-            except StopIteration as exc:
-                raise DocumentError("worker_protocol", "compiler omitted an intermediate timing result") from exc
-            if not isinstance(compiled, dict) or not {"fps", "total", "segs"}.issubset(compiled):
-                raise DocumentError("worker_protocol", "invalid compiler timing evidence")
-        else:
-            prior_token = self._compile_token
-            self._compile_token = ctx.get("cancelToken", prior_token)
-            try:
-                compiled = self._compile(plan, ctx["aux"])
-            finally:
-                self._compile_token = prior_token
+        self._refresh_edit_timing(ctx)
+        compiled = ctx["compiled"]
+        if positioned(plan):
+            return  # absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
         old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment"]
         new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
@@ -1659,9 +1762,25 @@ class DocumentStore:
                     event["endAt"] = round(max(at, end), 6)
                 kept.append(event)
             plan[collection] = kept
+        ensure_node_ids(plan)
+
+    def _refresh_edit_timing(self, ctx):
+        if "timingResults" in ctx:
+            try:
+                compiled = next(ctx["timingResults"])
+            except StopIteration as exc:
+                raise DocumentError("worker_protocol", "compiler omitted an intermediate timing result") from exc
+            if not isinstance(compiled, dict) or not {"fps", "total", "segs"}.issubset(compiled):
+                raise DocumentError("worker_protocol", "invalid compiler timing evidence")
+        else:
+            prior_token = self._compile_token
+            self._compile_token = ctx.get("cancelToken", prior_token)
+            try:
+                compiled = self._compile(ctx["plan"], ctx["aux"])
+            finally:
+                self._compile_token = prior_token
         ctx["compiled"] = compiled
         ctx["fps"] = int(compiled["fps"])
-        ensure_node_ids(plan)
 
     def _apply_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
         plan: dict[str, Any] = ctx["plan"]
@@ -1731,7 +1850,7 @@ class DocumentStore:
                 source_in, source_out = float(operation["sourceIn"]), float(operation["sourceOut"])
                 if resolved.get("sourceDuration") is not None and source_out > resolved["sourceDuration"]:
                     raise ValueError("cutaway sourceOut exceeds the original source duration")
-                trim_local_source(segment, source_in, source_out)
+                trim_local_source(segment, source_in, source_out, precision=12 if plan.get("timeline") else 3)
                 affected.add(node_id)
                 return
             if entry["kind"] != "segment" or op == "trim_cutaway":
@@ -1889,6 +2008,8 @@ class DocumentStore:
                     raise ValueError("generated events must be moved/resized to materialize an override")
             if not path.startswith("/") or path == "/_editor" or path.startswith("/_editor/"):
                 raise ValueError("path must be a JSON pointer outside reserved _editor metadata")
+            if path == "/timeline" or path.startswith("/timeline/"):
+                raise ValueError("timeline placement is edited atomically with move_segments")
             if node_id is None and (path == "/segments" or path.startswith("/segments/")):
                 raise ValueError("primary segments must be edited through stable node IDs")
             if node_id is None and (path == "/render" or path.startswith("/render/")):
@@ -1909,6 +2030,8 @@ class DocumentStore:
                 raise ValueError("array elements must be edited through stable node IDs")
             else:
                 parent[key] = value
+            if isinstance(target, dict) and path.split("/")[1] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection"):
+                target.pop("cameraWindow", None)
             if node_id:
                 affected.add(str(node_id))
             return
@@ -1989,6 +2112,18 @@ class DocumentStore:
                 raise ValueError(f"config path component {component!r} is not an object")
             cursor = next_value
         cursor[parts[-1]] = deepcopy(value)
+        from ..timeline import positioned, requantize
+        if positioned(ctx["plan"]) and section == "render":
+            fps = int(deep_merge(deepcopy(DEFAULTS), config)["render"]["fps"])
+            if fps != ctx["plan"]["timeline"]["fps"]:
+                from .tracks import track_list, locked_target
+                locked_rows = {row["id"] for row in track_list(ctx["plan"].get("_editor")) if row["locked"]}
+                for node_id, entry in ensure_node_ids(ctx["plan"]).items():
+                    message = locked_target(ctx["plan"], {"id": node_id})
+                    raw = pointer_get(ctx["plan"], entry["locator"])
+                    if message or (isinstance(raw, dict) and raw.get("timeline", {}).get("track") in locked_rows):
+                        raise DocumentError("track_locked", message or "FPS change affects a locked track")
+                requantize(ctx["plan"], fps)
         if section == "units" and config.get("units") not in (None, "imperial", "metric"):
             raise DocumentError("invalid_config", "units must be 'imperial' or 'metric'")
         ctx["aux"][config_rel] = config

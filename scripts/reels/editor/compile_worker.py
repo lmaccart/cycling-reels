@@ -49,7 +49,7 @@ def boundary_key(renderer_revision: str, reads: list[Path], profile: str,
     scratch_text = str(scratch.resolve())
     payload = {
         "version": PROTOCOL_VERSION,
-        "runner": hashlib.sha256(Path(__file__).with_name("compile_runtime.py").read_bytes()).hexdigest(),
+        "runner": _runner_digest(),
         "renderer": renderer_revision,
         "dataRoot": str(data_root.resolve()),
         "mediaRoot": str(media_root.resolve()) if media_root else None,
@@ -58,6 +58,15 @@ def boundary_key(renderer_revision: str, reads: list[Path], profile: str,
         "profile": profile.replace(scratch_text, "$SCRATCH"),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def _runner_digest():
+    digest = hashlib.sha256()
+    for name in ("compile_runtime.py", "transactions.py", "overwrite.py", "timing.py",
+                 "tracks.py", "document.py"):
+        digest.update(Path(__file__).with_name(name).read_bytes())
+    digest.update((Path(__file__).parent.parent / "timeline.py").read_bytes())
+    return digest.hexdigest()
 
 
 def _boundary(workspace, project, code_root: Path, scratch: Path, *, make_env=True):

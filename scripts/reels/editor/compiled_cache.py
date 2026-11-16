@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +34,25 @@ def valid_result(result: Any) -> bool:
                 return False
         if segment["frames"] <= 0 or segment["start"] + segment["frames"] > total:
             return False
-    if total != (segments[-1]["start"] + segments[-1]["frames"] if segments else 0):
+    props = result.get("props", {})
+    header = props.get("timeline") if isinstance(props, dict) else None
+    if header is not None:
+        if (not isinstance(header, dict) or type(header.get("version")) is not int or header["version"] != 1
+                or type(header.get("fps")) is not int or header["fps"] != fps
+                or type(header.get("durationFrames")) is not int or header["durationFrames"] != total
+                or total < 1):
+            return False
+        for segment in segments:
+            placement = segment["spec"].get("timeline")
+            if (not isinstance(placement, dict)
+                    or not isinstance(placement.get("track"), str)
+                    or re.fullmatch(r"V[1-9][0-9]*", placement["track"]) is None
+                    or type(placement.get("startFrame")) is not int
+                    or type(placement.get("durationFrames")) is not int
+                    or placement["startFrame"] != segment["start"]
+                    or placement["durationFrames"] != segment["frames"]):
+                return False
+    elif total != (segments[-1]["start"] + segments[-1]["frames"] if segments else 0):
         return False
     return (isinstance(result.get("props", {}), dict)
             and isinstance(result.get("sound", {}), dict)

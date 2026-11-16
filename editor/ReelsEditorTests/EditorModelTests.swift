@@ -1,8 +1,252 @@
 import Foundation
+import AppKit
 import XCTest
 @testable import ReelsEditor
 
 final class EditorModelTests: XCTestCase {
+    @MainActor
+    func testOffscreenTimelineCaptureWritesFinalGestureStates() throws {
+        func node(_ id: String, kind: String, lane: String, start: Int, end: Int,
+                  parent: String? = nil, title: String) -> JSONValue {
+            var raw: [String: JSONValue] = ["text": .string(title)]
+            if kind == "segment" || kind == "cutaway" { raw["asset"] = .string("synthetic-\(id)") }
+            return .object([
+                "id": .string(id), "kind": .string(kind), "lane": .string(lane),
+                "parentId": parent.map(JSONValue.string) ?? .null,
+                "startFrame": .number(Double(start)), "endFrame": .number(Double(end)),
+                "frames": .number(Double(end - start)), "raw": .object(raw),
+                "assetId": .string("synthetic-\(id)"), "generated": .bool(false),
+                "readOnly": .bool(false),
+            ])
+        }
+        let tracks = [
+            EditorTrack(id: "V1", kind: "video", name: "V1", index: 1, locked: false, userAdded: false),
+            EditorTrack(id: "V2", kind: "video", name: "V2", index: 2, locked: false, userAdded: false),
+            EditorTrack(id: "V3", kind: "video", name: "V3", index: 3, locked: false, userAdded: false),
+            EditorTrack(id: "A1", kind: "audio", name: "A1", index: 1, locked: false, userAdded: false),
+            EditorTrack(id: "A2", kind: "audio", name: "A2", index: 2, locked: false, userAdded: false),
+        ]
+        let nodes = [
+            node("clip-a", kind: "segment", lane: "primary", start: 0, end: 60, title: "SOURCE A"),
+            .object([
+                "id": .string("source-audio-a"), "kind": .string("source_audio"), "lane": .string("audio"),
+                "parentId": .string("clip-a"), "startFrame": .number(0), "endFrame": .number(60),
+                "frames": .number(60), "raw": .object([
+                    "text": .string("SOURCE A AUDIO"), "asset": .string("synthetic-audio"),
+                    "in": .number(0), "out": .number(2), "speed": .number(1), "volume": .number(1),
+                ]),
+                "assetId": .string("synthetic-audio"), "sourceIn": .number(0), "sourceOut": .number(2),
+                "speed": .number(1), "track": .string("A1"), "generated": .bool(true), "readOnly": .bool(true),
+            ]),
+            node("clip-b", kind: "segment", lane: "primary", start: 90, end: 300, title: "DESTINATION B"),
+            node("clip-c", kind: "segment", lane: "primary", start: 330, end: 420, title: "SURVIVOR C"),
+            node("broll", kind: "cutaway", lane: "cutaway", start: 5, end: 20,
+                 parent: "clip-a", title: "B-ROLL"),
+            node("title", kind: "text", lane: "text", start: 210, end: 252, title: "TITLE OVERLAY"),
+            node("sound", kind: "sfx", lane: "audio", start: 36, end: 60, title: "SOUND"),
+        ]
+        let capabilities: JSONValue = .object([
+            "version": .number(1), "overwrite": .bool(true), "crossTrack": .bool(true),
+            "libraryInsert": .bool(true), "multiMove": .bool(true),
+            "cutawayPromotion": .bool(true), "insert": .bool(false),
+            "idAlgorithm": .string("sha256-v1"),
+        ])
+        let snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("capture-doc"),
+            "revisions": .object([
+                "document": .string("capture-revision"),
+                "library": .string("capture-library"),
+                "renderer": .string("capture-renderer"),
+            ]),
+            "plan": .object(["slug": .string("synthetic-capture"), "segments": .array([])]),
+            "nodes": .array(nodes), "tracks": .array(tracks.map { track in
+                .object([
+                    "id": .string(track.id), "kind": .string(track.kind), "name": .string(track.name),
+                    "index": .number(Double(track.index)), "locked": .bool(track.locked),
+                    "userAdded": .bool(track.userAdded),
+                ])
+            }),
+            "timelineCapabilities": capabilities,
+            "fps": .number(30), "durationFrames": .number(420),
+            "warnings": .array([]), "preview": .object(["state": .string("empty")]),
+        ])))
+        let trackMap = [
+            "clip-a": "V1", "clip-b": "V1", "clip-c": "V1", "source-audio-a": "A1",
+            "broll": "V3", "title": "V3", "sound": "A2",
+        ]
+        let sourceClip = try XCTUnwrap(snapshot.nodes.first { $0.id == "clip-a" })
+        XCTAssertFalse(TimelineLaneClassifier.shouldDrawLinkedAudio(for: sourceClip, nodes: snapshot.nodes),
+                       "the generated A1 child replaces, rather than duplicates, its virtual row")
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let output = repositoryRoot.appending(path: ".cache/editor/timeline-captures/final")
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+
+        func makeWindow(
+            size: CGSize, zoom: Double = 0.8, playheadFrame: Int = 120,
+            captureSnapshot: EditorSnapshot? = nil,
+            captureTracks: [EditorTrack]? = nil,
+            onOverwrite: (([TimelinePlacement], String) -> Bool)? = nil,
+            onDropRejected: ((String) -> Void)? = nil
+        ) -> (NSWindow, NSView) {
+            let activeSnapshot = captureSnapshot ?? snapshot
+            let activeTracks = captureTracks ?? tracks
+            let view = makeTimelineCanvasCaptureView(
+                snapshot: activeSnapshot, tracks: activeTracks, trackMap: trackMap,
+                selectedIDs: ["clip-b"], playheadFrame: playheadFrame, zoom: zoom,
+                onOverwrite: onOverwrite, onDropRejected: onDropRejected
+            )
+            let window = NSWindow(
+                contentRect: NSRect(origin: .zero, size: size),
+                styleMask: .borderless, backing: .buffered, defer: false
+            )
+            window.isReleasedWhenClosed = false
+            window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
+            window.contentView = view
+            view.frame = NSRect(origin: .zero, size: size)
+            window.displayIfNeeded()
+            return (window, view)
+        }
+
+        func save(_ view: NSView, as name: String) throws {
+            view.needsDisplay = true
+            view.displayIfNeeded()
+            let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            try png.write(to: output.appending(path: name), options: .atomic)
+        }
+
+        func mouseEvent(_ type: NSEvent.EventType, at point: NSPoint, in window: NSWindow) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.mouseEvent(
+                with: type, location: point, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil,
+                eventNumber: 1, clickCount: 1, pressure: 1
+            ))
+        }
+
+        let normal = CGSize(width: 1_100, height: 320)
+        let narrow = CGSize(width: 620, height: 320)
+        let (normalWindow, normalView) = makeWindow(size: normal)
+        try save(normalView, as: "timeline-normal.png")
+        normalWindow.close()
+        let (narrowWindow, narrowView) = makeWindow(size: narrow)
+        try save(narrowView, as: "timeline-narrow.png")
+        narrowWindow.close()
+
+        let gestureZoom = 1.2
+        let gestureScale = CGFloat(gestureZoom)
+        let v1Y = normal.height - 35 - 2 * 46 - 23
+        let v2Y = normal.height - 35 - 46 - 23
+        let a1Y = normal.height - 35 - (3 * 46 + 8) - 20
+        let grab = NSPoint(x: 132 + 24 * gestureScale, y: v1Y)
+
+        var verticalPlacements: [TimelinePlacement] = []
+        var verticalEditID: String?
+        let (dragWindow, dragView) = makeWindow(
+            size: normal, zoom: gestureZoom,
+            onOverwrite: { placements, editID in
+                verticalPlacements = placements
+                verticalEditID = editID
+                return true
+            }
+        )
+        let verticalDrop = NSPoint(x: grab.x, y: v2Y)
+        dragView.mouseDown(with: try mouseEvent(.leftMouseDown, at: grab, in: dragWindow))
+        dragView.mouseDragged(with: try mouseEvent(.leftMouseDragged, at: verticalDrop, in: dragWindow))
+        try save(dragView, as: "timeline-v1-to-v2-same-time-ghost.png")
+        dragView.mouseUp(with: try mouseEvent(.leftMouseUp, at: verticalDrop, in: dragWindow))
+        dragWindow.close()
+        XCTAssertEqual(verticalPlacements, [.moving(id: "clip-a", track: "V2", atFrame: 0)])
+        let verticalID = try XCTUnwrap(verticalEditID)
+        XCTAssertEqual(verticalID, verticalID.lowercased())
+
+        var middlePlacements: [TimelinePlacement] = []
+        var middleEditID: String?
+        let (middleWindow, middleView) = makeWindow(
+            size: normal, zoom: gestureZoom,
+            onOverwrite: { placements, editID in
+                middlePlacements = placements
+                middleEditID = editID
+                return true
+            }
+        )
+        let middleDrop = NSPoint(x: 132 + (150 + 24) * gestureScale, y: v1Y)
+        middleView.mouseDown(with: try mouseEvent(.leftMouseDown, at: grab, in: middleWindow))
+        middleView.mouseDragged(with: try mouseEvent(.leftMouseDragged, at: middleDrop, in: middleWindow))
+        try save(middleView, as: "timeline-overwrite-middle-ghost.png")
+        middleView.mouseUp(with: try mouseEvent(.leftMouseUp, at: middleDrop, in: middleWindow))
+        middleWindow.close()
+        XCTAssertEqual(middlePlacements, [.moving(id: "clip-a", track: "V1", atFrame: 150)])
+        let committedEditID = try XCTUnwrap(middleEditID)
+        let predicted = OptimisticTimeline.apply(
+            OptimisticTimeline.overwrite(placements: middlePlacements, editID: committedEditID, fps: 30),
+            to: snapshot
+        )
+        let tailID = "frag-" + OptimisticTimeline.overwriteID(
+            editID: committedEditID, origin: "clip-b", start: 210, end: 300
+        )
+        XCTAssertFalse(predicted.nodes.contains { $0.id == "clip-a" && $0.startFrame == 0 },
+                       "the old source interval remains a gap")
+        XCTAssertTrue(predicted.nodes.contains { $0.id == "clip-a" && $0.startFrame == 150 && $0.endFrame == 210 })
+        XCTAssertTrue(predicted.nodes.contains { $0.id == "clip-b" && $0.startFrame == 90 && $0.endFrame == 150 })
+        XCTAssertTrue(predicted.nodes.contains { $0.id == tailID && $0.startFrame == 210 && $0.endFrame == 300 })
+        XCTAssertEqual(predicted.nodes.filter { $0.kind == "source_audio" }.count, 1)
+        XCTAssertEqual(predicted.nodes.first { $0.id == "source-audio-a" }?.startFrame, 150)
+        let (predictedWindow, predictedView) = makeWindow(
+            size: normal, zoom: gestureZoom, captureSnapshot: predicted
+        )
+        try save(predictedView, as: "timeline-overwrite-middle-predicted.png")
+        predictedWindow.close()
+
+        var lockedRejection: String?
+        let lockedTracks = tracks.map { track in
+            var track = track
+            if track.id == "V2" { track.locked = true }
+            return track
+        }
+        var lockedSnapshot = snapshot
+        lockedSnapshot.tracks = lockedTracks
+        let (lockedWindow, lockedView) = makeWindow(
+            size: normal, zoom: gestureZoom, captureSnapshot: lockedSnapshot, captureTracks: lockedTracks,
+            onDropRejected: { lockedRejection = $0 }
+        )
+        lockedView.mouseDown(with: try mouseEvent(.leftMouseDown, at: grab, in: lockedWindow))
+        lockedView.mouseDragged(with: try mouseEvent(
+            .leftMouseDragged, at: NSPoint(x: grab.x, y: v2Y), in: lockedWindow
+        ))
+        try save(lockedView, as: "timeline-locked-v2-blocked.png")
+        lockedView.mouseUp(with: try mouseEvent(
+            .leftMouseUp, at: NSPoint(x: grab.x, y: v2Y), in: lockedWindow
+        ))
+        lockedWindow.close()
+        XCTAssertTrue(lockedRejection?.contains("locked") == true)
+
+        var audioRejection: String?
+        let (audioWindow, audioView) = makeWindow(
+            size: normal, zoom: gestureZoom, onDropRejected: { audioRejection = $0 }
+        )
+        audioView.mouseDown(with: try mouseEvent(.leftMouseDown, at: grab, in: audioWindow))
+        audioView.mouseDragged(with: try mouseEvent(
+            .leftMouseDragged, at: NSPoint(x: grab.x, y: a1Y), in: audioWindow
+        ))
+        try save(audioView, as: "timeline-audio-row-blocked.png")
+        audioView.mouseUp(with: try mouseEvent(
+            .leftMouseUp, at: NSPoint(x: grab.x, y: a1Y), in: audioWindow
+        ))
+        audioWindow.close()
+        XCTAssertEqual(audioRejection, "Drop on a video track.")
+
+        for name in [
+            "timeline-normal.png", "timeline-narrow.png", "timeline-v1-to-v2-same-time-ghost.png",
+            "timeline-overwrite-middle-ghost.png", "timeline-overwrite-middle-predicted.png",
+            "timeline-locked-v2-blocked.png", "timeline-audio-row-blocked.png",
+        ] {
+            XCTAssertGreaterThan(try Data(contentsOf: output.appending(path: name)).count, 1_000)
+        }
+    }
+
     func testRepositoryValidationNeedsExecutableLauncherAndPlansFolder() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -148,6 +392,11 @@ final class EditorModelTests: XCTestCase {
                     "startFrame":0,"endFrame":90,"frames":90,"raw":{"asset":"ride.mov"},
                     "assetId":"asset-1","sourceIn":1.0,"sourceOut":4.0,
                     "assetKind":"video","generated":false,"readOnly":false}],
+          "tracks":[{"id":"video-two","canonicalId":"V2","kind":"video","name":"B-roll",
+                     "index":2,"locked":false,"userAdded":false}],
+          "timelineCapabilities":{"version":1,"overwrite":true,"crossTrack":true,
+            "libraryInsert":true,"multiMove":true,"cutawayPromotion":true,
+            "insert":false,"idAlgorithm":"sha256-v1"},
           "fps":30,"durationFrames":90,"warnings":[],"preview":{}
         }
         """
@@ -159,6 +408,11 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(snapshot.nodes.first?.assetKind, "video")
         XCTAssertEqual(snapshot.nodes.first?.generated, false)
         XCTAssertEqual(snapshot.nodes.first?.isReadOnly, false)
+        XCTAssertEqual(snapshot.tracks.first?.canonicalId, "V2")
+        XCTAssertEqual(snapshot.timelineCapabilities?.idAlgorithm, "sha256-v1")
+        let roundTrip = try JSONDecoder().decode(EditorSnapshot.self, from: JSONEncoder().encode(snapshot))
+        XCTAssertEqual(roundTrip.tracks.first?.canonicalId, "V2")
+        XCTAssertEqual(roundTrip.timelineCapabilities, snapshot.timelineCapabilities)
     }
 
     func testSnapshotDeltaMergesPlanNodesRevisionsAndTopLevelStateSafely() throws {
@@ -186,6 +440,12 @@ final class EditorModelTests: XCTestCase {
             "nodes": .array([node("a", "a"), node("b", "b", start: 10)]),
             "fps": .number(30), "durationFrames": .number(20),
             "warnings": .array([]), "preview": .object(["state": .string("ready")]),
+            "timelineCapabilities": .object([
+                "version": .number(1), "overwrite": .bool(true), "crossTrack": .bool(true),
+                "libraryInsert": .bool(true), "multiMove": .bool(true),
+                "cutawayPromotion": .bool(true), "insert": .bool(false),
+                "idAlgorithm": .string("sha256-v1"),
+            ]),
             "change": .object(["origin": .string("manual")]),
             "selection": .object(["ids": .array([])]),
             "config": .object(["render": .object(["fps": .number(30)])]),
@@ -215,6 +475,12 @@ final class EditorModelTests: XCTestCase {
                 "fps": .number(24), "durationFrames": .number(30),
                 "warnings": .array([.string("updated")]),
                 "preview": .object(["state": .string("stale")]),
+                "timelineCapabilities": .object([
+                    "version": .number(1), "overwrite": .bool(true), "crossTrack": .bool(true),
+                    "libraryInsert": .bool(true), "multiMove": .bool(false),
+                    "cutawayPromotion": .bool(true), "insert": .bool(false),
+                    "idAlgorithm": .string("sha256-v1"),
+                ]),
                 "change": .object(["origin": .string("manual"), "affectedIds": .array([.string("a")])]),
                 "selection": .object(["ids": .array([.string("a")])]),
             ]),
@@ -235,6 +501,7 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(next.extraFields["change"]?["origin"]?.stringValue, "manual")
         XCTAssertNil(next.extraFields["config"])
         XCTAssertEqual(next.extraFields["selection"]?["ids"]?.arrayValue?.first?.stringValue, "a")
+        XCTAssertEqual(next.timelineCapabilities?.multiMove, false)
         XCTAssertNil(EditorSnapshot.applyingDelta(delta, to: next), "a delta cannot be replayed on a newer base")
         let wrongBase = delta.setting(.string("snapshot-other"), at: ["baseSnapshotToken"])
         XCTAssertNil(EditorSnapshot.applyingDelta(wrongBase, to: base), "same revisions are insufficient without exact snapshot identity")
@@ -305,6 +572,212 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(store.authoritativeSnapshot?.nodes.first(where: { $0.id == "c" })?.startFrame, 60)
         XCTAssertEqual(store.snapshot?.nodes.first(where: { $0.id == "b" })?.endFrame, 50)
         XCTAssertEqual(store.snapshot?.nodes.first(where: { $0.id == "c" })?.startFrame, 50)
+    }
+
+    @MainActor
+    func testOverwriteWireUsesCanonicalTracksAndStableEditID() throws {
+        let tracks = [
+            EditorTrack(id: "video-two-display", canonicalId: "V2", kind: "video", name: "B-roll",
+                        index: 2, locked: false, userAdded: false),
+        ]
+        let placements = [
+            TimelinePlacement.moving(id: "survivor-fragment", track: "video-two-display", atFrame: 42),
+            TimelinePlacement.inserting(
+                .object(["asset": .string("library-asset"), "in": .number(1), "out": .number(3)]),
+                track: "V2", atFrame: 90
+            ),
+        ]
+        let canonical = try XCTUnwrap(EditorStore.canonicalizeOverwritePlacements(placements, tracks: tracks))
+        XCTAssertEqual(canonical.map(\.track), ["V2", "V2"])
+
+        let operation = EditorStore.overwriteOperation(
+            placements: canonical, editID: "A0000000-0000-4000-8000-000000000001"
+        )
+        XCTAssertEqual(operation, .object([
+            "op": .string("move_segments"),
+            "editId": .string("a0000000-0000-4000-8000-000000000001"),
+            "mode": .string("overwrite"),
+            "placements": .array([
+                .object(["id": .string("survivor-fragment"), "track": .string("V2"),
+                         "atFrame": .number(42)]),
+                .object(["insert": .object([
+                    "asset": .string("library-asset"), "in": .number(1), "out": .number(3),
+                ]), "track": .string("V2"), "atFrame": .number(90)]),
+            ]),
+        ]))
+    }
+
+    @MainActor
+    func testTimelineDropBoundsPhotoDurationAndUnsupportedCommandCommitNothing() throws {
+        let capabilities: JSONValue = .object([
+            "version": .number(1), "overwrite": .bool(true), "crossTrack": .bool(true),
+            "libraryInsert": .bool(true), "multiMove": .bool(true),
+            "cutawayPromotion": .bool(true), "insert": .bool(true),
+            "idAlgorithm": .string("sha256-v1"),
+        ])
+        let tracks: [JSONValue] = [
+            .object(["id": .string("video-two-display"), "canonicalId": .string("V2"),
+                     "kind": .string("video"), "name": .string("B-roll"),
+                     "index": .number(2), "locked": .bool(false), "userAdded": .bool(false)]),
+            .object(["id": .string("V1"), "kind": .string("video"), "name": .string("V1"),
+                     "index": .number(1), "locked": .bool(false), "userAdded": .bool(false)]),
+            .object(["id": .string("A1"), "kind": .string("audio"), "name": .string("A1"),
+                     "index": .number(1), "locked": .bool(false), "userAdded": .bool(false)]),
+        ]
+        let snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("drop-doc"),
+            "revisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1"),
+            ]),
+            "plan": .object([:]), "nodes": .array([]), "tracks": .array(tracks),
+            "fps": .number(30), "durationFrames": .number(0),
+            "warnings": .array([]), "preview": .object([:]),
+            "timelineCapabilities": capabilities,
+        ])))
+        let store = EditorStore()
+        store.snapshot = snapshot
+        store.authoritativeSnapshot = snapshot
+        store.selectedAssetID = "video"
+        store.selectedAsset = .object([
+            "id": .string("video"), "type": .string("video"), "media": .string("ride.mov"),
+            "duration": .number(10),
+        ])
+        store.sourceIn = -2
+        store.sourceOut = 15
+        let videoDrop = store.previewTimelineDrop(
+            "video", atFrame: 70, trackID: "video-two-display", commandInsert: false
+        )
+        XCTAssertEqual(videoDrop.placement?.track, "V2")
+        XCTAssertEqual(videoDrop.placement?.atFrame, 70)
+        XCTAssertEqual(videoDrop.placement?.insert?["in"]?.numberValue, 0)
+        XCTAssertEqual(videoDrop.placement?.insert?["out"]?.numberValue, 10)
+
+        store.selectedAssetID = "still"
+        store.selectedAsset = .object([
+            "id": .string("still"), "type": .string("photo"), "media": .string("still.jpg"),
+            "duration": .number(5),
+        ])
+        store.sourceIn = 1.5
+        store.sourceOut = 8
+        let photoDrop = store.previewTimelineDrop("still", atFrame: 80, trackID: "V2", commandInsert: false)
+        XCTAssertEqual(photoDrop.placement?.insert?["duration"]?.numberValue, 3.5)
+        XCTAssertNil(photoDrop.placement?.insert?["in"])
+        XCTAssertNil(photoDrop.placement?.insert?["out"])
+
+        store.sourceIn = 10.5
+        store.sourceOut = 12
+        XCTAssertNotNil(store.previewTimelineDrop(
+            "still", atFrame: 80, trackID: "V2", commandInsert: false
+        ).rejection, "a source range beyond known asset duration is invalid")
+
+        store.sourceIn = 0
+        store.sourceOut = 2
+        let commandDrop = store.previewTimelineDrop("still", atFrame: 80, trackID: "V2", commandInsert: true)
+        XCTAssertNil(commandDrop.placement)
+        XCTAssertNotNil(commandDrop.rejection)
+        XCTAssertFalse(store.insertDroppedItem(
+            "still", atFrame: 80, trackID: "V2", sourceIn: 0, sourceOut: 2, commandInsert: true
+        ))
+        XCTAssertTrue(store.pendingPredictions.isEmpty)
+        XCTAssertEqual(store.snapshot, snapshot)
+    }
+
+    @MainActor
+    func testLockedA1OnlyBlocksMovesOrOverwritesThatChangeOwnedAudio() throws {
+        let snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("audio-lock-doc"),
+            "revisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1"),
+            ]),
+            "plan": .object([:]),
+            "nodes": .array([
+                .object([
+                    "id": .string("owner"), "kind": .string("segment"), "lane": .string("primary"),
+                    "parentId": .null, "startFrame": .number(0), "endFrame": .number(30),
+                    "frames": .number(30), "raw": .object(["asset": .string("video")]),
+                    "assetId": .string("video"), "track": .string("V1"),
+                    "generated": .bool(false), "readOnly": .bool(false),
+                ]),
+                .object([
+                    "id": .string("audio"), "kind": .string("source_audio"), "lane": .string("audio"),
+                    "parentId": .string("owner"), "startFrame": .number(0), "endFrame": .number(30),
+                    "frames": .number(30), "raw": .object([
+                        "asset": .string("audio"), "in": .number(0), "out": .number(1),
+                        "speed": .number(1), "volume": .number(1),
+                    ]),
+                    "assetId": .string("audio"), "track": .string("A1"),
+                    "generated": .bool(true), "readOnly": .bool(true),
+                ]),
+            ]),
+            "fps": .number(30), "durationFrames": .number(30),
+            "warnings": .array([]), "preview": .object([:]),
+        ])))
+        let nodes = snapshot.nodes
+        XCTAssertFalse(EditorStore.overwriteChangesLockedAudio(
+            placements: [.moving(id: "owner", track: "V2", atFrame: 0)],
+            regions: [], nodes: nodes
+        ), "same-time vertical movement leaves linked audio unchanged")
+        XCTAssertTrue(EditorStore.overwriteChangesLockedAudio(
+            placements: [.moving(id: "owner", track: "V1", atFrame: 1)],
+            regions: [], nodes: nodes
+        ), "horizontal movement changes linked audio timing")
+        XCTAssertTrue(EditorStore.overwriteChangesLockedAudio(
+            placements: [.moving(id: "other", track: "V1", atFrame: 40)],
+            regions: [TimelineOverwriteRegion(nodeID: "owner", track: "V1", startFrame: 10, endFrame: 20)],
+            nodes: nodes
+        ), "cutting an audible owner changes locked A1")
+    }
+
+    @MainActor
+    func testQueuedOverwriteSurvivorRebasesAfterAuthoritativeFullSnapshot() throws {
+        let editID = "a0000000-0000-4000-8000-000000000001"
+        let base = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("queued-overwrite-doc"), "snapshotToken": .string("snapshot-1"),
+            "revisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1"),
+            ]),
+            "plan": .object([:]),
+            "nodes": .array([.object([
+                "id": .string("victim"), "kind": .string("segment"), "lane": .string("primary"),
+                "parentId": .null, "startFrame": .number(30), "endFrame": .number(90),
+                "frames": .number(60), "raw": .object([
+                    "asset": .string("victim"), "in": .number(4), "out": .number(6), "speed": .number(1),
+                ]),
+                "assetId": .string("victim"), "sourceIn": .number(4), "sourceOut": .number(6),
+                "speed": .number(1), "track": .string("V1"),
+                "generated": .bool(false), "readOnly": .bool(false),
+            ])]),
+            "fps": .number(30), "durationFrames": .number(90),
+            "warnings": .array([]), "preview": .object([:]),
+        ])))
+        let firstChange = OptimisticTimeline.overwrite(
+            placements: [.inserting(
+                .object(["asset": .string("incoming"), "duration": .number(20.0 / 30.0)]),
+                track: "V1", atFrame: 50
+            )],
+            editID: editID, fps: 30
+        )
+        var firstAuthority = OptimisticTimeline.apply(firstChange, to: base)
+        let tailID = "frag-" + OptimisticTimeline.overwriteID(
+            editID: editID, origin: "victim", start: 70, end: 90
+        )
+        firstAuthority.revisions = Revisions(document: "d2", library: "l1", renderer: "r1")
+        firstAuthority.extraFields["snapshotToken"] = .string("snapshot-2")
+        let response = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(firstAuthority))
+
+        let queued = OptimisticTimeline.overwrite(
+            placements: [.moving(id: tailID, track: "V2", atFrame: 100)],
+            editID: "queued-edit", fps: 30
+        )
+        let store = EditorStore()
+        store.authoritativeSnapshot = base
+        store.pendingPredictions = [(id: UUID(), change: queued)]
+        XCTAssertTrue(store.reconcileApplyResponse(
+            response, baseDocumentId: base.documentId, baseRevisions: base.revisions
+        ))
+        XCTAssertEqual(store.authoritativeSnapshot?.nodes.first { $0.id == tailID }?.startFrame, 70)
+        XCTAssertEqual(store.snapshot?.nodes.first { $0.id == tailID }?.track, "V2")
+        XCTAssertEqual(store.snapshot?.nodes.first { $0.id == tailID }?.startFrame, 100)
     }
 
     func testSearchHitCarriesSourceSelection() {

@@ -4,7 +4,7 @@ import { editorStaticFile } from '../../editorStaticFile';
 import type { Cutaway, Segment } from '../types';
 
 /** What a still needs to be shown: a photo segment, or a photo cutaway. */
-type Still = Pick<Segment, 'src' | 'durationInFrames' | 'motion' | 'fit' | 'focusX' | 'focusY'>;
+type Still = Pick<Segment, 'src' | 'durationInFrames' | 'motion' | 'fit' | 'focusX' | 'focusY' | 'motionOffsetFrames' | 'motionDurationFrames'>;
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 
@@ -124,7 +124,8 @@ const VideoView: React.FC<{ seg: Segment }> = ({ seg }) => {
 
 const PhotoView: React.FC<{ seg: Still }> = ({ seg }) => {
   const frame = useCurrentFrame();
-  const p = interpolate(frame, [0, Math.max(1, seg.durationInFrames - 1)], [0, 1], clamp);
+  const p = interpolate(frame + (seg.motionOffsetFrames ?? 0),
+    [0, Math.max(1, (seg.motionDurationFrames ?? seg.durationInFrames) - 1)], [0, 1], clamp);
   const t = Easing.bezier(0.33, 0, 0.67, 1)(p);
   const fx = seg.focusX ?? 0.5;
   const fy = seg.focusY ?? 0.5;
