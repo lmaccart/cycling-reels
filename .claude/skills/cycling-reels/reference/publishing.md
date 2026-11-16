@@ -58,7 +58,7 @@ Every reel also goes to TikTok (Metricool account `leif`, connected 2026-11-11, 
 - Not carried over: the custom cover (ignored on personal TikTok accounts, TikTok picks a frame), alt text, collaborators and people tags (Instagram only).
 - Mixed-in trending songs are the open risk: TikTok checks uploaded audio and can mute a video or limit its reach, and the song lists are Instagram's. Check the first music reels after they post.
 - Adding TikTok to an already scheduled post is an update: the id changes, so re-record it with `./reels mark <slug> scheduled --metricool-id <new id>`.
-- Analytics: network `tiktok`, connector `posts` (`TKPO…`) and `evolution` (`TKEV…`). `./reels stats import` doesn't read these yet.
+- Analytics: `./reels stats import` reads TikTok (`TKPO…` videos + `TKEV…` followers) and YouTube (`YTVV…` + `YTEV…`) pulls — [analytics.md](analytics.md#tiktok-and-youtube-shorts).
 
 ### YouTube Shorts
 

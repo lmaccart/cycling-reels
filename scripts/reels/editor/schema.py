@@ -260,7 +260,7 @@ def _base_schema() -> dict[str, Any]:
                            *_punch_common("/punchOnBeats", 1.1),
                        ]),
                 _field("sfx", "Sound effects", "/sfx", "collection", itemTarget="sfxCue.reel"),
-                _field("autoSfx", "Automatic sound effects", "/autoSfx", "boolean", default=True),
+                _field("autoSfx", "Automatic sound effects", "/autoSfx", "boolean", default=False),
             ]),
             _group("titles", "Titles", [
                 _field("hook", "Opening hook", "/hook", "group", acceptedShapes=["string", "object"],

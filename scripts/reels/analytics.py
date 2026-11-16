@@ -389,6 +389,11 @@ def stats(project: Project, since: str | None = None) -> None:
 
     account = account_section(project)
     md += account
+    from .platforms import NETWORKS, section as platform_section
+
+    ig_views = {r["slug"]: r.get("views") for r in reels}
+    for network in NETWORKS:
+        md += platform_section(project, network, ig_views)
     log("")
     for line in account[:4]:
         log(line)

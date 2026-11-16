@@ -37,6 +37,18 @@ Reading it:
 - **The follower series is patchy, and only refreshes when the user opens Metricool.** Ask them to open it before the pull. As of the 2026-11-10 pulls Metricool returned a count on 10 of 22 days (0 through 2026-10-31, 1 on 11-06, 14 on 11-08, 19 on 11-09) and nothing for gained/lost. Unknown is shown as —, never as zero, and the count is labelled as Metricool's. If it disagrees with the number on the profile, say so and trust the profile.
 - **Accounts engaged** per day is the closest thing to "people who did something"; set it against account reach rather than reading it alone.
 
+## TikTok and YouTube Shorts
+
+Every reel also posts to TikTok and YouTube Shorts on the same Metricool post ([publishing.md](publishing.md)). Pull them in the same sitting:
+
+1. **TikTok:** `getAnalyticsDataByMetrics` with the same `brandId` and dates, `metrics` = `["TKPO02","TKPO05","TKPO03","TKPO06","TKPO07","TKPO08","TKPO09","TKPO10","TKPO11","TKPO13","TKPO14","TKPO15","TKPO16","TKPO17","TKPO19","TKPO20","TKPO21"]` (time, description, url, duration, views, likes, comments, shares, reach, full-watch rate, total / average watch time, traffic sources). Then `["TKEV07","TKEV08","TKEV16","TKEV17","TKEV02"]` (followers, net new, gained, lost, views; each row ends with the day `YYYYMMDD`).
+2. **YouTube:** `metrics` = `["YTVV02","YTVV17","YTVV04","YTVV05","YTVV06","YTVV07","YTVV08","YTVV09","YTVV11","YTVV12"]` (time, title, video id, url, views, watch minutes, average view duration, likes, comments, shares) and `["YTEV01","YTEV05","YTEV06","YTEV02"]` (subscribers, gained, lost, views). The `YTVP…` ("published in range") ids work too. The `YTVI…` ones are deprecated.
+3. Save each network as one file: `{"pulledAt": "<ISO now>", "fields": [<video ids>], "rows": [...], "evolution": {"fields": [<account ids>], "rows": [...]}}` (an account-only file with just `fields`/`rows` of `TKEV`/`YTEV` ids also works), and run `./reels stats import <file>`. The field ids tell it the network; snapshots go to `analytics/tiktok/` and `analytics/youtube/`, apart from Instagram's.
+4. Videos are matched to reels by the caption's opening words (TikTok's description is the caption with the line breaks gone; a Short's title is the caption's first line) and a posting time within 3 h, and the reel's `post.json` gets `tiktokId`/`tiktokUrl` or `youtubeId`/`youtubeUrl`. Unmatched videos are listed.
+5. `./reels stats` adds a **TikTok** and a **YouTube Shorts** section to `out/PERFORMANCE.md`: per reel views beside Instagram's, reach, average watch, watch-through, full-watch rate, likes/view, likes, comments, shares, age; plus Metricool's follower count. These sections are descriptive. Instagram stays the main report, and the weekly review and experiments read Instagram numbers only.
+
+As of 2026-11-16 Metricool sends TikTok views, likes, comments and shares but nothing (—) for reach, watch time, full-watch rate and traffic sources, and its TikTok follower count reads 0. YouTube had no Shorts yet. Unknown stays —, never 0.
+
 ## Plans carry a `format`
 
 Set `"format"` (the recipe name from [recipes.md](recipes.md), e.g. `"pov-joke"`) in each plan so the report can group by format. Plans without it show "—".
