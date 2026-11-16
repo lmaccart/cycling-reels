@@ -202,11 +202,11 @@ struct TimelinePanel: View {
                         onScrub: { frame, final in
                             store.setPlayhead(frame, final: final)
                         },
-                        onTrim: { node, sourceIn, sourceOut, lease in store.trim(node: node, sourceIn: sourceIn, sourceOut: sourceOut, lease: lease) },
-                        onReorder: { node, frame, beforeID, lease in
-                            store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID, lease: lease)
+                        onTrim: { node, sourceIn, sourceOut, ghost in store.trim(node: node, sourceIn: sourceIn, sourceOut: sourceOut, ghost: ghost) },
+                        onReorder: { node, frame, beforeID in
+                            store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID)
                         },
-                        onMoveToTrack: { node, trackID, lease in store.moveNode(node, toTrack: trackID, lease: lease) },
+                        onMoveToTrack: { node, trackID in store.moveNode(node, toTrack: trackID) },
                         onDelete: { store.deleteSelection() },
                         onSplit: { store.splitAtPlayhead() },
                         onScroll: { x in if abs(x - scrollX) > 0.5 { scrollX = x } },
@@ -424,9 +424,9 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let onBeginGesture: (String) async -> String?
     let onEndGesture: (String) -> Void
     let onScrub: (Int, Bool) -> Void
-    let onTrim: (EditorNode, Double, Double, String?) -> Void
-    let onReorder: (EditorNode, Int, String?, String?) -> Void
-    let onMoveToTrack: (EditorNode, String, String?) -> Void
+    let onTrim: (EditorNode, Double, Double, TimelineGhost) -> Void
+    let onReorder: (EditorNode, Int, String?) -> Void
+    let onMoveToTrack: (EditorNode, String) -> Void
     let onDelete: () -> Void
     let onSplit: () -> Void
     let onScroll: (CGFloat) -> Void
@@ -466,9 +466,9 @@ private final class TimelineCanvas: NSView {
         var onBeginGesture: (String) async -> String?
         var onEndGesture: (String) -> Void
         var onScrub: (Int, Bool) -> Void
-        var onTrim: (EditorNode, Double, Double, String?) -> Void
-        var onReorder: (EditorNode, Int, String?, String?) -> Void
-        var onMoveToTrack: (EditorNode, String, String?) -> Void
+        var onTrim: (EditorNode, Double, Double, TimelineGhost) -> Void
+        var onReorder: (EditorNode, Int, String?) -> Void
+        var onMoveToTrack: (EditorNode, String) -> Void
         var onDelete: () -> Void
         var onSplit: () -> Void
         var onScroll: (CGFloat) -> Void
@@ -510,6 +510,9 @@ private final class TimelineCanvas: NSView {
     private var ghostStart: Int?
     private var ghostEnd: Int?
     private var targetNodeID: String?
+    /// Frames between the clip's start and where it was grabbed, so a moved clip keeps
+    /// its position under the pointer instead of jumping its start to the cursor.
+    private var grabOffset = 0
     /// Track a clip is being dragged onto (vertical drag), nil when the drag stays on its own track.
     private var moveTargetTrackID: String?
     private var playheadLayer: PlayheadLayer?
@@ -1230,6 +1233,13 @@ private final class TimelineCanvas: NSView {
         return menu
     }
 
+    /// Pointer travel before a click becomes a move.
+    private static let moveThreshold: CGFloat = 4
+
+    private func frame(atX x: CGFloat) -> Int {
+        Int(((x - Self.labelWidth) / max(scale, 0.05)).rounded())
+    }
+
     private func beginLease(owner: String) {
         guard gestureLeaseTask == nil, let begin = callbacks?.onBeginGesture else { return }
         gestureLeaseTask = Task { await begin(owner) }
@@ -1270,6 +1280,7 @@ private final class TimelineCanvas: NSView {
         activeNode = node
         originalStart = node.startFrame
         originalEnd = node.endFrame
+        grabOffset = frame(atX: point.x) - node.startFrame
         ghostStart = nil
         ghostEnd = nil
         targetNodeID = nil
@@ -1312,10 +1323,20 @@ private final class TimelineCanvas: NSView {
             autoscroll(with: event)
             needsDisplay = true
         case .move:
-            guard hypot(point.x - downPoint.x, point.y - downPoint.y) > 12 else { return }
+            guard hypot(point.x - downPoint.x, point.y - downPoint.y) > Self.moveThreshold else { return }
             beginLease(owner: "timeline-reorder")
             moveTargetTrackID = trackMoveTarget(at: point)
             targetNodeID = moveTargetTrackID == nil ? hit(at: point)?.0.id : nil
+            // The clip follows the pointer while it is dragged along its track.
+            if moveTargetTrackID == nil {
+                let start = max(0, frame(atX: point.x) - grabOffset)
+                ghostStart = start
+                ghostEnd = start + (originalEnd - originalStart)
+            } else {
+                ghostStart = nil
+                ghostEnd = nil
+            }
+            autoscroll(with: event)
             needsDisplay = true
         }
     }
@@ -1334,12 +1355,9 @@ private final class TimelineCanvas: NSView {
         }
         guard let mode else { releaseLease(); return }
         let point = convert(event.locationInWindow, from: nil)
-        var sent = false
-        func send(_ edit: @escaping @MainActor (String?) -> Void) {
-            sent = true
-            let task = gestureLeaseTask
-            Task { @MainActor in edit(await task?.value) }
-        }
+        // The edit goes out immediately: the app shows it at once and the service saves it
+        // in order. The gesture's lease only keeps AI edits out; it is handed back right away.
+        func send(_ edit: () -> Void) { edit() }
         let fps = snapshot?.fps ?? 30
         switch mode {
         case .scrub:
@@ -1353,34 +1371,34 @@ private final class TimelineCanvas: NSView {
             let trimStartMode = mode == .trimStart
             let deltaFrames = start - node.startFrame + end - node.endFrame
             if kind == "cutaway", node.isPhoto {
-                send { [callbacks] token in callbacks?.onTrim(node, Double(start) / fps, Double(max(1, end - start)) / fps, token) }
+                send { callbacks?.onTrim(node, Double(start) / fps, Double(max(1, end - start)) / fps, TimelineGhost(start: start, end: end)) }
             } else if kind == "segment", node.isPhoto {
-                send { [callbacks] token in callbacks?.onTrim(node, 0, Double(max(1, end - start)) / fps, token) }
+                send { callbacks?.onTrim(node, 0, Double(max(1, end - start)) / fps, TimelineGhost(start: start, end: end)) }
             } else if kind == "cutaway", let sourceIn = node.sourceIn, let sourceOut = node.sourceOut {
                 let factor = (sourceOut - sourceIn) / Double(max(node.frames, 1))
                 let nextIn = trimStartMode ? sourceIn + Double(deltaFrames) * factor : sourceIn
                 let nextOut = !trimStartMode ? sourceOut + Double(deltaFrames) * factor : sourceOut
-                send { [callbacks] token in callbacks?.onTrim(node, max(0, nextIn), max(nextIn + 0.03, nextOut), token) }
+                send { callbacks?.onTrim(node, max(0, nextIn), max(nextIn + 0.03, nextOut), TimelineGhost(start: start, end: end)) }
             } else if isOverlay(node) {
-                send { [callbacks] token in callbacks?.onTrim(node, Double(start) / fps, Double(max(1, end - start)) / fps, token) }
+                send { callbacks?.onTrim(node, Double(start) / fps, Double(max(1, end - start)) / fps, TimelineGhost(start: start, end: end)) }
             } else if let sourceIn = node.sourceIn, let sourceOut = node.sourceOut {
                 let factor = (sourceOut - sourceIn) / Double(max(node.frames, 1))
                 let nextIn = trimStartMode ? sourceIn + Double(deltaFrames) * factor : sourceIn
                 let nextOut = !trimStartMode ? sourceOut + Double(deltaFrames) * factor : sourceOut
-                send { [callbacks] token in callbacks?.onTrim(node, max(0, nextIn), max(nextIn + 0.03, nextOut), token) }
+                send { callbacks?.onTrim(node, max(0, nextIn), max(nextIn + 0.03, nextOut), TimelineGhost(start: start, end: end)) }
             } else {
-                send { [callbacks] token in callbacks?.onTrim(node, 0, 0, token) }
+                send { callbacks?.onTrim(node, 0, 0, TimelineGhost(start: start, end: end)) }
             }
         case .move:
             if let node = activeNode, let trackID = moveTargetTrackID {
-                send { [callbacks] token in callbacks?.onMoveToTrack(node, trackID, token) }
-            } else if let node = activeNode, hypot(point.x - downPoint.x, point.y - downPoint.y) > 12 {
+                send { callbacks?.onMoveToTrack(node, trackID) }
+            } else if let node = activeNode, hypot(point.x - downPoint.x, point.y - downPoint.y) > Self.moveThreshold {
                 let target = targetNodeID == node.id ? nil : targetNodeID
-                let frame = Int(((point.x - Self.labelWidth) / max(scale, 0.05)).rounded())
-                send { [callbacks] token in callbacks?.onReorder(node, max(0, frame), target, token) }
+                let start = max(0, frame(atX: point.x) - grabOffset)
+                send { callbacks?.onReorder(node, start, target) }
             }
         }
-        if !sent { releaseLease() }
+        releaseLease()
     }
 
     override func keyDown(with event: NSEvent) {
@@ -1530,4 +1548,10 @@ private extension Double {
         let factor = pow(10, Double(places))
         return (self * factor).rounded() / factor
     }
+}
+
+/// Where the timeline showed a clip when a trim ended, in reel frames.
+struct TimelineGhost: Equatable {
+    let start: Int
+    let end: Int
 }

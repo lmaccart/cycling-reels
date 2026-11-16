@@ -386,6 +386,14 @@ def _executables(
         if value:
             found.add(Path(value))
             found.add(Path(value).resolve())
+    # media.py switches to Homebrew's keg-only ffmpeg-full (zimg, accurate HDR colour) when installed.
+    from ..media import FULL_FFMPEG_DIRS
+    for directory in FULL_FFMPEG_DIRS:
+        for name in ("ffmpeg", "ffprobe"):
+            item = Path(directory) / name
+            if item.is_file():
+                found.add(item)
+                found.add(item.resolve())
     found.add(Path(sys.executable))
     python_executable = Path(sys.executable).resolve()
     found.add(python_executable)

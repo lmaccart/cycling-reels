@@ -23,6 +23,10 @@ final class EditorStore {
     private var toastTask: Task<Void, Never>?
     var serviceState: EditorService.ServiceState = .stopped
     var snapshot: EditorSnapshot?
+    /// Timeline edits shown on screen but not saved yet, oldest first.
+    @ObservationIgnored var pendingPredictions: [(id: UUID, change: OptimisticTimeline.Change)] = []
+    /// The last queued edit; the next one waits for it.
+    @ObservationIgnored var editTail: Task<Void, Never>?
     var plans: [JSONValue] = []
     var library: [JSONValue] = []
     var searchHits: [SearchHit] = []
@@ -382,7 +386,7 @@ final class EditorStore {
             let value = try await service.call("document.snapshot")
             syncPermissions(from: value)
             if let next = EditorSnapshot.decode(value) {
-                snapshot = next
+                snapshot = withPendingPredictions(next)
                 inspectorSchema = next.inspectorSchema ?? inspectorSchema
                 if next.preview["state"]?.stringValue == "ready" {
                     previewManifest = next.preview
@@ -460,9 +464,28 @@ final class EditorStore {
         }
     }
 
-    func apply(_ operations: [JSONValue], reason: String, lease: String? = nil) async {
+    /// Sends one edit batch. Edits run strictly one after another (each built on the
+    /// revision the previous one produced), so quick back-to-back gestures never race.
+    /// `predict` moves clips on screen immediately; the saved snapshot replaces it.
+    func apply(_ operations: [JSONValue], reason: String, predict: OptimisticTimeline.Change? = nil) async {
+        let token = UUID()
+        if let predict, let current = snapshot {
+            pendingPredictions.append((token, predict))
+            snapshot = OptimisticTimeline.apply(predict, to: current)
+        }
+        let previous = editTail
+        let task = Task { @MainActor in
+            await previous?.value
+            await self.send(operations, reason: reason, token: token)
+        }
+        editTail = task
+        await task.value
+    }
+
+    private func send(_ operations: [JSONValue], reason: String, token: UUID) async {
+        defer { pendingPredictions.removeAll { $0.id == token } }
         guard let snapshot else { return }
-        var batch: [String: JSONValue] = [
+        let batch: [String: JSONValue] = [
             "expected": .object([
                 "document": .string(snapshot.revisions.document),
                 "library": .string(snapshot.revisions.library),
@@ -472,16 +495,22 @@ final class EditorStore {
             "origin": .string("manual"),
             "operations": .array(operations)
         ]
-        if let lease { batch["lease"] = .string(lease) }
         do {
             let value = try await service.call("document.apply", params: .object(["batch": .object(batch)]))
-            if let next = EditorSnapshot.decode(value) { self.snapshot = next }
+            pendingPredictions.removeAll { $0.id == token }
+            if let next = EditorSnapshot.decode(value) { self.snapshot = withPendingPredictions(next) }
             else { await refreshSnapshot() }
             notice = reason
         } catch {
+            pendingPredictions.removeAll { $0.id == token }
             errorMessage = error.localizedDescription
             await refreshSnapshot()
         }
+    }
+
+    /// A saved snapshot plus the edits still on their way, so queued moves don't flick back.
+    func withPendingPredictions(_ next: EditorSnapshot) -> EditorSnapshot {
+        pendingPredictions.reduce(next) { OptimisticTimeline.apply($1.change, to: $0) }
     }
 
     func editField(nodeID: String, path: String, value: JSONValue) {
@@ -600,112 +629,121 @@ final class EditorStore {
     }
 
     func acquireTimelineLease(owner: String) async -> String? {
-        do {
-            let result = try await service.call("lease.acquire", params: .object(["owner": .string(owner)]))
-            return result["token"]?.stringValue
-        } catch {
-            errorMessage = error.localizedDescription
-            return nil
-        }
+        // The lease only keeps AI edits out during a drag; failing to get one never
+        // blocks the user's own edit, so it isn't worth an error dialog.
+        let result = try? await service.call("lease.acquire", params: .object(["owner": .string(owner)]))
+        return result?["token"]?.stringValue
     }
 
-    /// Gives back a gesture lease that never turned into an edit (a click, or a trim that changed nothing).
+    /// Gives back a gesture lease.
     func releaseTimelineLease(_ token: String) {
         Task { _ = try? await service.call("lease.release", params: .object(["token": .string(token)])) }
     }
 
-    func reorder(ids: [String], beforeID: String?, lease: String?) {
-        Task {
-            guard let lease else { return }
-            var op: [String: JSONValue] = [
-                "op": .string("reorder_segments"),
-                "ids": .array(ids.map(JSONValue.string))
-            ]
-            if let beforeID { op["beforeId"] = .string(beforeID) }
-            await apply([.object(op)], reason: "Reorder clips", lease: lease)
-            _ = try? await service.call("lease.release", params: .object(["token": .string(lease)]))
-        }
+    func reorder(ids: [String], beforeID: String?) {
+        var op: [String: JSONValue] = [
+            "op": .string("reorder_segments"),
+            "ids": .array(ids.map(JSONValue.string))
+        ]
+        if let beforeID { op["beforeId"] = .string(beforeID) }
+        let predict = ids.count == 1 ? OptimisticTimeline.reorderSegment(id: ids[0], beforeID: beforeID) : nil
+        Task { await apply([.object(op)], reason: "Reorder clips", predict: predict) }
     }
 
-    func moveTimelineItem(_ node: EditorNode, toFrame: Int, beforeID: String?, lease: String?) {
-        Task {
-            guard let lease else { return }
-            if node.isReadOnly || (node.generated == true && node.kind.lowercased() != "generated_sfx") {
-                notice = "Generated caption timing is read-only."
-            } else if node.kind.lowercased() == "generated_sfx" {
+    /// A clip dropped after a horizontal drag. `toFrame` is where its start landed.
+    func moveTimelineItem(_ node: EditorNode, toFrame: Int, beforeID: String?) {
+        if node.isReadOnly || (node.generated == true && node.kind.lowercased() != "generated_sfx") {
+            notice = "Generated caption timing is read-only."
+        } else if node.kind.lowercased() == "generated_sfx" {
+            Task {
                 await apply([.object([
                     "op": .string("move_overlay"),
                     "id": .string(node.id),
                     "at": .number(Double(max(0, toFrame)) / fps)
-                ])], reason: "Move generated sound cue", lease: lease)
-            } else if node.kind.lowercased() == "cutaway" || node.parentId != nil || Self.isOverlay(node) {
-                let parentStart = snapshot?.nodes.first(where: { $0.id == node.parentId })?.startFrame ?? 0
-                let localFrame = max(0, toFrame - parentStart)
+                ])], reason: "Move generated sound cue", predict: OptimisticTimeline.move(id: node.id, toFrame: toFrame))
+            }
+        } else if node.kind.lowercased() == "cutaway" || node.parentId != nil || Self.isOverlay(node) {
+            let parentStart = snapshot?.nodes.first(where: { $0.id == node.parentId })?.startFrame ?? 0
+            let localFrame = max(0, toFrame - parentStart)
+            Task {
                 await apply([.object([
                     "op": .string("move_overlay"),
                     "id": .string(node.id),
                     "at": .number(Double(localFrame) / fps)
-                ])], reason: "Move overlay", lease: lease)
-            } else if node.kind.lowercased().contains("segment")
-                        || node.lane.lowercased().contains("video")
-                        || node.lane.lowercased().contains("primary") {
-                var operation: [String: JSONValue] = [
-                    "op": .string("reorder_segments"),
-                    "ids": .array([.string(node.id)])
-                ]
-                if let beforeID { operation["beforeId"] = .string(beforeID) }
-                await apply([.object(operation)], reason: "Reorder clips", lease: lease)
+                ])], reason: "Move overlay",
+                predict: OptimisticTimeline.move(id: node.id, toFrame: parentStart + localFrame))
             }
-            _ = try? await service.call("lease.release", params: .object(["token": .string(lease)]))
+        } else if node.kind.lowercased().contains("segment")
+                    || node.lane.lowercased().contains("video")
+                    || node.lane.lowercased().contains("primary") {
+            let ordered = OptimisticTimeline.segments(snapshot?.nodes ?? [])
+            guard let slot = OptimisticTimeline.dropSlot(moving: node, landingStart: toFrame, segments: ordered) else {
+                return // dropped back where it was
+            }
+            reorder(ids: [node.id], beforeID: slot.beforeID)
         }
     }
 
-    func trim(node: EditorNode, sourceIn: Double, sourceOut: Double, lease: String?) {
-        Task {
-            guard let lease else { return }
-            if node.isReadOnly || (node.generated == true && node.kind.lowercased() != "generated_sfx") {
-                notice = "Generated caption timing is read-only."
-            } else if node.kind.lowercased() == "cutaway", node.isPhoto {
-                let parentStart = snapshot?.nodes.first(where: { $0.id == node.parentId })?.startFrame ?? 0
-                await apply([.object([
-                    "op": .string("resize_overlay"),
-                    "id": .string(node.id),
-                    "at": .number(max(0, sourceIn - Double(parentStart) / fps)),
-                    "for": .number(min(12, max(0.8, sourceOut)))
-                ])], reason: "Resize photo cutaway", lease: lease)
-            } else if node.kind.lowercased() == "cutaway", sourceOut > sourceIn {
-                await apply([
-                    BrollOperationBuilder.trim(
-                        cutawayID: node.id, sourceIn: sourceIn, sourceOut: sourceOut,
-                        minimumDuration: 1.0 / fps
-                    )
-                ], reason: "Trim B-roll source", lease: lease)
-            } else if node.kind.lowercased() == "segment", node.isPhoto {
-                await apply([.object([
-                    "op": .string("set_field"),
-                    "id": .string(node.id),
-                    "path": .string("/duration"),
-                    "value": .number(min(12, max(0.8, sourceOut)))
-                ])], reason: "Adjust photo duration", lease: lease)
-            } else if node.kind.lowercased() == "generated_sfx" {
-                notice = "Generated sound cues can be moved but not edge-trimmed."
-            } else if Self.isOverlay(node) {
-                await apply([.object([
-                    "op": .string("resize_overlay"),
-                    "id": .string(node.id),
-                    "at": .number(max(0, sourceIn)),
-                    "for": .number(max(1 / fps, sourceOut))
-                ])], reason: "Resize overlay", lease: lease)
-            } else if sourceOut > sourceIn {
-                await apply([.object([
-                    "op": .string("trim_segment"),
-                    "id": .string(node.id),
-                    "sourceIn": .number(max(0, sourceIn)),
-                    "sourceOut": .number(max(sourceIn + 1.0 / fps, sourceOut))
-                ])], reason: "Trim clip", lease: lease)
-            }
-            _ = try? await service.call("lease.release", params: .object(["token": .string(lease)]))
+    func trim(node: EditorNode, sourceIn: Double, sourceOut: Double, ghost: TimelineGhost) {
+        let operation: JSONValue
+        let reason: String
+        var predict: OptimisticTimeline.Change?
+        if node.isReadOnly || (node.generated == true && node.kind.lowercased() != "generated_sfx") {
+            notice = "Generated caption timing is read-only."
+            return
+        } else if node.kind.lowercased() == "cutaway", node.isPhoto {
+            let parentStart = snapshot?.nodes.first(where: { $0.id == node.parentId })?.startFrame ?? 0
+            operation = .object([
+                "op": .string("resize_overlay"),
+                "id": .string(node.id),
+                "at": .number(max(0, sourceIn - Double(parentStart) / fps)),
+                "for": .number(min(12, max(0.8, sourceOut)))
+            ])
+            reason = "Resize photo cutaway"
+            predict = OptimisticTimeline.resize(id: node.id, start: ghost.start, end: ghost.end)
+        } else if node.kind.lowercased() == "cutaway", sourceOut > sourceIn {
+            operation = BrollOperationBuilder.trim(
+                cutawayID: node.id, sourceIn: sourceIn, sourceOut: sourceOut,
+                minimumDuration: 1.0 / fps
+            )
+            reason = "Trim B-roll source"
+            predict = OptimisticTimeline.resize(id: node.id, start: ghost.start, end: ghost.end)
+        } else if node.kind.lowercased() == "segment", node.isPhoto {
+            operation = .object([
+                "op": .string("set_field"),
+                "id": .string(node.id),
+                "path": .string("/duration"),
+                "value": .number(min(12, max(0.8, sourceOut)))
+            ])
+            reason = "Adjust photo duration"
+            predict = OptimisticTimeline.trimSegment(id: node.id, length: ghost.end - ghost.start)
+        } else if node.kind.lowercased() == "generated_sfx" {
+            notice = "Generated sound cues can be moved but not edge-trimmed."
+            return
+        } else if Self.isOverlay(node) {
+            operation = .object([
+                "op": .string("resize_overlay"),
+                "id": .string(node.id),
+                "at": .number(max(0, sourceIn)),
+                "for": .number(max(1 / fps, sourceOut))
+            ])
+            reason = "Resize overlay"
+            predict = OptimisticTimeline.resize(id: node.id, start: ghost.start, end: ghost.end)
+        } else if sourceOut > sourceIn {
+            operation = .object([
+                "op": .string("trim_segment"),
+                "id": .string(node.id),
+                "sourceIn": .number(max(0, sourceIn)),
+                "sourceOut": .number(max(sourceIn + 1.0 / fps, sourceOut))
+            ])
+            reason = "Trim clip"
+            predict = node.parentId == nil
+                ? OptimisticTimeline.trimSegment(id: node.id, length: ghost.end - ghost.start)
+                : OptimisticTimeline.resize(id: node.id, start: ghost.start, end: ghost.end)
+        } else {
+            return
         }
+        Task { await apply([operation], reason: reason, predict: predict) }
     }
 
     private static func isOverlay(_ node: EditorNode) -> Bool {
