@@ -157,6 +157,25 @@ struct EditorTrack: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+private struct AnyCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+
+    init(_ string: String) {
+        stringValue = string
+        intValue = nil
+    }
+
+    init?(stringValue: String) {
+        self.init(stringValue)
+    }
+
+    init?(intValue: Int) {
+        stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
 struct EditorSnapshot: Codable, Hashable, Sendable {
     var documentId: String
     var revisions: Revisions
@@ -170,6 +189,9 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
     var inspectorSchema: JSONValue?
     /// Organisational tracks (V1..., A1...). Absent in older services: derived default list.
     var tracks: [EditorTrack] = EditorTrack.defaults
+    /// Unknown service fields survive delta merges and future protocol additions.
+    var extraFields: [String: JSONValue] = [:]
+    var snapshotToken: String? { extraFields["snapshotToken"]?.stringValue }
 
     enum CodingKeys: String, CodingKey {
         case documentId, revisions, plan, nodes, fps, durationFrames, warnings, preview
@@ -193,6 +215,37 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
         } else {
             tracks = EditorTrack.defaults
         }
+        let all = try decoder.container(keyedBy: AnyCodingKey.self)
+        let known = Set([
+            "documentId", "revisions", "plan", "nodes", "fps", "durationFrames",
+            "warnings", "preview", "projectConfig", "inspectorSchema", "tracks",
+        ])
+        extraFields = [:]
+        for key in all.allKeys where !known.contains(key.stringValue) {
+            extraFields[key.stringValue] = try all.decode(JSONValue.self, forKey: key)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: AnyCodingKey.self)
+        try c.encode(documentId, forKey: AnyCodingKey("documentId"))
+        try c.encode(revisions, forKey: AnyCodingKey("revisions"))
+        try c.encode(plan, forKey: AnyCodingKey("plan"))
+        try c.encode(nodes, forKey: AnyCodingKey("nodes"))
+        try c.encode(fps, forKey: AnyCodingKey("fps"))
+        try c.encode(durationFrames, forKey: AnyCodingKey("durationFrames"))
+        try c.encode(warnings, forKey: AnyCodingKey("warnings"))
+        try c.encode(preview, forKey: AnyCodingKey("preview"))
+        try c.encodeIfPresent(projectConfig, forKey: AnyCodingKey("projectConfig"))
+        try c.encodeIfPresent(inspectorSchema, forKey: AnyCodingKey("inspectorSchema"))
+        try c.encode(tracks, forKey: AnyCodingKey("tracks"))
+        let known = Set([
+            "documentId", "revisions", "plan", "nodes", "fps", "durationFrames",
+            "warnings", "preview", "projectConfig", "inspectorSchema", "tracks",
+        ])
+        for (key, value) in extraFields where !known.contains(key) {
+            try c.encode(value, forKey: AnyCodingKey(key))
+        }
     }
 
     static func decode(_ value: JSONValue) -> EditorSnapshot? {
@@ -202,6 +255,72 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
         }
         guard let data = normalized.jsonData() else { return nil }
         return try? JSONDecoder().decode(EditorSnapshot.self, from: data)
+    }
+
+    static func applyingDelta(_ delta: JSONValue, to base: EditorSnapshot) -> EditorSnapshot? {
+        guard delta["type"]?.stringValue == "document.delta",
+              delta["documentId"]?.stringValue == base.documentId,
+              let baseSnapshotToken = base.snapshotToken,
+              delta["baseSnapshotToken"]?.stringValue == baseSnapshotToken,
+              let nextSnapshotToken = delta["snapshotToken"]?.stringValue,
+              let revisionsData = delta["baseRevisions"]?.jsonData(),
+              let baseRevisions = try? JSONDecoder().decode(Revisions.self, from: revisionsData),
+              baseRevisions == base.revisions,
+              let nextRevisionsData = delta["revisions"]?.jsonData(),
+              let nextRevisions = try? JSONDecoder().decode(Revisions.self, from: nextRevisionsData),
+              nextRevisions.document != base.revisions.document,
+              Set(base.nodes.map(\.id)).count == base.nodes.count,
+              let encoded = try? JSONEncoder().encode(base),
+              var root = try? JSONDecoder().decode(JSONValue.self, from: encoded) else {
+            return nil
+        }
+
+        guard let currentPlan = root["plan"],
+              let patchedPlan = currentPlan.applyingJSONPatch(delta["planPatch"]?.arrayValue ?? []) else {
+            return nil
+        }
+        root = root.setting(patchedPlan, at: ["plan"])
+
+        var byID = Dictionary(uniqueKeysWithValues: base.nodes.map { ($0.id, $0) })
+        for idValue in delta["removedIds"]?.arrayValue ?? [] {
+            guard let id = idValue.stringValue else { return nil }
+            byID.removeValue(forKey: id)
+        }
+        for value in delta["changedNodes"]?.arrayValue ?? [] {
+            guard let data = value.jsonData(),
+                  let node = try? JSONDecoder().decode(EditorNode.self, from: data) else {
+                return nil
+            }
+            byID[node.id] = node
+        }
+        guard let orderValues = delta["nodeOrder"]?.arrayValue else { return nil }
+        let order = orderValues.compactMap(\.stringValue)
+        guard order.count == orderValues.count,
+              Set(order).count == order.count,
+              Set(order) == Set(byID.keys) else {
+            return nil
+        }
+        let orderedNodes = order.compactMap { byID[$0] }
+        guard orderedNodes.count == order.count,
+              let nodesData = try? JSONEncoder().encode(orderedNodes),
+              let nodesValue = try? JSONDecoder().decode(JSONValue.self, from: nodesData),
+              var fields = root.objectValue else {
+            return nil
+        }
+        fields["nodes"] = nodesValue
+        for (key, value) in delta["fields"]?.objectValue ?? [:] {
+            fields[key] = value
+        }
+        for keyValue in delta["removedFields"]?.arrayValue ?? [] {
+            guard let key = keyValue.stringValue else { return nil }
+            fields.removeValue(forKey: key)
+        }
+        fields["documentId"] = .string(base.documentId)
+        fields["snapshotToken"] = .string(nextSnapshotToken)
+        if let revisions = delta["revisions"] {
+            fields["revisions"] = revisions
+        }
+        return decode(.object(fields))
     }
 }
 
@@ -272,5 +391,84 @@ extension JSONValue {
         var values = objectValue ?? [:]
         values[first] = (values[first] ?? .object([:])).setting(value, at: Array(components.dropFirst()))
         return .object(values)
+    }
+
+    func applyingJSONPatch(_ patch: [JSONValue]) -> JSONValue? {
+        var result = self
+        for operation in patch {
+            guard let name = operation["op"]?.stringValue,
+                  let pointer = operation["path"]?.stringValue,
+                  ["add", "replace", "remove"].contains(name) else {
+                return nil
+            }
+            let components = pointer.split(separator: "/", omittingEmptySubsequences: false)
+                .dropFirst()
+                .map {
+                    String($0)
+                        .replacingOccurrences(of: "~1", with: "/")
+                        .replacingOccurrences(of: "~0", with: "~")
+                }
+            guard let updated = result.replacing(
+                components: ArraySlice(components), operation: name, value: operation["value"]
+            ) else {
+                return nil
+            }
+            result = updated
+        }
+        return result
+    }
+
+    private func replacing(components: ArraySlice<String>, operation: String,
+                           value: JSONValue?) -> JSONValue? {
+        guard let first = components.first else {
+            return operation == "remove" ? nil : value
+        }
+        let rest = components.dropFirst()
+        switch self {
+        case .object(var values):
+            if rest.isEmpty {
+                if operation == "remove" {
+                    guard values.removeValue(forKey: first) != nil else { return nil }
+                } else {
+                    guard let value else { return nil }
+                    if operation == "replace" && values[first] == nil { return nil }
+                    values[first] = value
+                }
+            } else {
+                guard let child = values[first],
+                      let replacement = child.replacing(components: rest, operation: operation, value: value) else {
+                    return nil
+                }
+                values[first] = replacement
+            }
+            return .object(values)
+        case .array(var values):
+            if rest.isEmpty {
+                if operation == "add" {
+                    let index = first == "-" ? values.count : Int(first)
+                    guard let index, index >= 0, index <= values.count, let value else { return nil }
+                    values.insert(value, at: index)
+                } else {
+                    guard let index = Int(first), values.indices.contains(index) else { return nil }
+                    if operation == "remove" {
+                        values.remove(at: index)
+                    } else {
+                        guard let value else { return nil }
+                        values[index] = value
+                    }
+                }
+            } else {
+                guard let index = Int(first), values.indices.contains(index),
+                      let replacement = values[index].replacing(
+                        components: rest, operation: operation, value: value
+                      ) else {
+                    return nil
+                }
+                values[index] = replacement
+            }
+            return .array(values)
+        default:
+            return nil
+        }
     }
 }

@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import time
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -158,9 +159,17 @@ class Workspace:
         self.code_root = code_root
         self.project = project
         self._originals: dict[str, dict[str, Any]] = originals if originals is not None else {}
-        self._revision_cache: dict[str, tuple[dict[str, int], str]] = {}
         self._assets_stamp: tuple | None = None
         self._renderer_cache: tuple[float, str] | None = None
+        self._library_revision_lock = threading.RLock()
+        self._library_revision_value: str | None = None
+        self._library_revision_dirty = True
+        self._library_generation = 0
+        self._library_signatures: dict[str, tuple[int, ...]] = {}
+        self._library_watch_stop = threading.Event()
+        self._library_watch_thread: threading.Thread | None = None
+        self._library_watch_failed = False
+        self._library_watch_generation = 0
         self.live_mode = True
 
     @classmethod
@@ -304,11 +313,11 @@ class Workspace:
                 paths.append(path)
         return paths
 
-    def library_revision(self) -> str:
-        """Fingerprint render inputs; JSON by content (cached by stat), other files by stat."""
+    def _fresh_library_revision(self) -> tuple[str, dict[str, tuple[int, ...]]]:
+        """Recompute render-input identity and a cheap watcher signature."""
         self.sync_originals()
         digest = hashlib.sha256()
-        live: set[str] = set()
+        signatures: dict[str, tuple[int, ...]] = {}
         for path in sorted(self.input_paths()):
             relative = path.relative_to(self.data_root).as_posix()
             if not _safe_name(Path(relative)):
@@ -317,22 +326,136 @@ class Workspace:
                 identity = _signature(path)
             except OSError:
                 continue
-            live.add(relative)
+            signatures[relative] = tuple(identity[key] for key in ("dev", "ino", "size", "mtime_ns", "ctime_ns"))
             if path.suffix.lower() == ".json":
-                cached = self._revision_cache.get(relative)
-                if cached is None or cached[0] != identity:
-                    try:
-                        content = hashlib.sha256(_read_stable(path, identity)).hexdigest()
-                    except (OSError, ReelsError):
-                        content = "unstable"
-                    self._revision_cache[relative] = (identity, content)
-                else:
-                    content = cached[1]
+                # Explicit refreshes really read JSON, even if a caller restored
+                # its timestamp and size after an external edit.
+                try:
+                    content = hashlib.sha256(_read_stable(path, identity)).hexdigest()
+                except (OSError, ReelsError):
+                    content = "unstable"
             else:
                 content = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
             digest.update(relative.encode())
             digest.update(b"\0")
             digest.update(content.encode())
-        self._revision_cache = {k: v for k, v in self._revision_cache.items() if k in live}
         digest.update(json.dumps(self._originals, sort_keys=True).encode())
-        return digest.hexdigest()
+        return digest.hexdigest(), signatures
+
+    def refresh_library_revision(self) -> str:
+        """Force a fresh content fingerprint and reset the watcher's baseline."""
+        with self._library_revision_lock:
+            revision, signatures = self._fresh_library_revision()
+            if revision != self._library_revision_value:
+                self._library_generation += 1
+            self._library_revision_value = revision
+            self._library_signatures = signatures
+            self._library_revision_dirty = False
+            return revision
+
+    def invalidate_library_revision(self) -> None:
+        """Mark render inputs dirty after an in-process write or materialization."""
+        with self._library_revision_lock:
+            self._library_revision_dirty = True
+
+    def library_revision(self) -> str:
+        """Return the stable cached revision; refresh synchronously if needed.
+
+        When the polling watcher is unavailable or stopped, every call forces
+        a fresh read so external CLI edits remain immediately visible.
+        """
+        with self._library_revision_lock:
+            watcher = self._library_watch_thread
+            watching = bool(
+                watcher is not None and watcher.is_alive() and not self._library_watch_failed
+            )
+            if watching and not self._library_revision_dirty and self._library_revision_value is not None:
+                return self._library_revision_value
+        return self.refresh_library_revision()
+
+    def library_generation(self) -> int:
+        """Monotonic generation for consumers that mirror inputs incrementally."""
+        self.library_revision()
+        with self._library_revision_lock:
+            return self._library_generation
+
+    def library_signatures(self) -> dict[str, tuple[int, ...]]:
+        """Return cached relative-path stat signatures for worker input syncing."""
+        self.library_revision()
+        with self._library_revision_lock:
+            return dict(self._library_signatures)
+
+    def _input_watch_signature(self) -> dict[str, tuple[int, ...]]:
+        signatures: dict[str, tuple[int, ...]] = {}
+        for path in self.input_paths():
+            relative = path.relative_to(self.data_root).as_posix()
+            if not _safe_name(Path(relative)):
+                continue
+            try:
+                info = _signature(path)
+            except OSError:
+                continue
+            signatures[relative] = tuple(
+                info[key] for key in ("dev", "ino", "size", "mtime_ns", "ctime_ns")
+            )
+        return signatures
+
+    def _watch_library_inputs(self, interval: float, stop_event: threading.Event,
+                              generation: int) -> None:
+        try:
+            while not stop_event.wait(interval):
+                signatures = self._input_watch_signature()
+                with self._library_revision_lock:
+                    if generation != self._library_watch_generation or stop_event.is_set():
+                        return
+                    if signatures != self._library_signatures:
+                        self._library_signatures = signatures
+                        self._library_revision_dirty = True
+        except Exception:  # noqa: BLE001 - fail closed to fresh synchronous checks
+            with self._library_revision_lock:
+                if generation == self._library_watch_generation:
+                    self._library_watch_failed = True
+
+    def start_library_watcher(self, interval: float = 1.0) -> bool:
+        """Start stdlib polling for additions, deletions, renames and overwrites."""
+        if interval <= 0:
+            raise ValueError("watch interval must be positive")
+        with self._library_revision_lock:
+            watcher = self._library_watch_thread
+            if (watcher is not None and watcher.is_alive()
+                    and not self._library_watch_stop.is_set() and not self._library_watch_failed):
+                return True
+        self.stop_library_watcher()
+        self.refresh_library_revision()
+        with self._library_revision_lock:
+            self._library_watch_failed = False
+            self._library_watch_generation += 1
+            generation = self._library_watch_generation
+            self._library_watch_stop = threading.Event()
+            stop_event = self._library_watch_stop
+            watcher = threading.Thread(
+                target=self._watch_library_inputs,
+                args=(float(interval), stop_event, generation),
+                name="reels-library-revision-watcher",
+                daemon=True,
+            )
+            self._library_watch_thread = watcher
+            try:
+                watcher.start()
+            except RuntimeError:
+                self._library_watch_failed = True
+                self._library_watch_thread = None
+                return False
+            return watcher.is_alive()
+
+    def stop_library_watcher(self, join_timeout: float = 2.0) -> None:
+        with self._library_revision_lock:
+            self._library_watch_generation += 1
+            watcher = self._library_watch_thread
+            stop_event = self._library_watch_stop
+            stop_event.set()
+        if watcher is not None and watcher is not threading.current_thread():
+            watcher.join(timeout=max(0.0, join_timeout))
+        with self._library_revision_lock:
+            if watcher is self._library_watch_thread:
+                self._library_watch_thread = None

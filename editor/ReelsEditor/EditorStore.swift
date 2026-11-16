@@ -23,6 +23,8 @@ final class EditorStore {
     private var toastTask: Task<Void, Never>?
     var serviceState: EditorService.ServiceState = .stopped
     var snapshot: EditorSnapshot?
+    /// Last server-authoritative document state; `snapshot` may include predictions.
+    @ObservationIgnored var authoritativeSnapshot: EditorSnapshot?
     /// Timeline edits shown on screen but not saved yet, oldest first.
     @ObservationIgnored var pendingPredictions: [(id: UUID, change: OptimisticTimeline.Change)] = []
     /// The last queued edit; the next one waits for it.
@@ -288,6 +290,7 @@ final class EditorStore {
             service.stopSynchronously(grace: 1)
             repositoryRoot = valid
             snapshot = nil
+            authoritativeSnapshot = nil
             plans = []
             planSummaries = []
             plansLoaded = false
@@ -375,6 +378,7 @@ final class EditorStore {
             previewManifest = nil
             displayedPreviewRevision = nil
             _ = try await service.call("document.open", params: .object(["path": .string(path)]))
+            authoritativeSnapshot = nil
             await refreshSnapshot()
             if snapshot != nil { showPicker = false; openPlanPath = path }
             notice = "Project opened"
@@ -386,6 +390,7 @@ final class EditorStore {
             let value = try await service.call("document.snapshot")
             syncPermissions(from: value)
             if let next = EditorSnapshot.decode(value) {
+                authoritativeSnapshot = next
                 snapshot = withPendingPredictions(next)
                 inspectorSchema = next.inspectorSchema ?? inspectorSchema
                 if next.preview["state"]?.stringValue == "ready" {
@@ -484,28 +489,67 @@ final class EditorStore {
 
     private func send(_ operations: [JSONValue], reason: String, token: UUID) async {
         defer { pendingPredictions.removeAll { $0.id == token } }
-        guard let snapshot else { return }
-        let batch: [String: JSONValue] = [
+        guard let visibleSnapshot = snapshot else { return }
+        let baseSnapshot = authoritativeSnapshot ?? visibleSnapshot
+        let baseRevisions = baseSnapshot.revisions
+        var batch: [String: JSONValue] = [
             "expected": .object([
-                "document": .string(snapshot.revisions.document),
-                "library": .string(snapshot.revisions.library),
-                "renderer": .string(snapshot.revisions.renderer)
+                "document": .string(baseRevisions.document),
+                "library": .string(baseRevisions.library),
+                "renderer": .string(baseRevisions.renderer)
             ]),
             "reason": .string(reason),
             "origin": .string("manual"),
             "operations": .array(operations)
         ]
+        if let baseSnapshotToken = authoritativeSnapshot?.snapshotToken {
+            batch["responseMode"] = .string("delta")
+            batch["baseRevisions"] = .object([
+                "document": .string(baseRevisions.document),
+                "library": .string(baseRevisions.library),
+                "renderer": .string(baseRevisions.renderer)
+            ])
+            batch["baseSnapshotToken"] = .string(baseSnapshotToken)
+        }
         do {
             let value = try await service.call("document.apply", params: .object(["batch": .object(batch)]))
             pendingPredictions.removeAll { $0.id == token }
-            if let next = EditorSnapshot.decode(value) { self.snapshot = withPendingPredictions(next) }
-            else { await refreshSnapshot() }
+            if !reconcileApplyResponse(value, baseDocumentId: baseSnapshot.documentId,
+                                       baseRevisions: baseRevisions) {
+                await refreshSnapshot()
+            }
             notice = reason
         } catch {
             pendingPredictions.removeAll { $0.id == token }
             errorMessage = error.localizedDescription
             await refreshSnapshot()
         }
+    }
+
+    @discardableResult
+    func reconcileApplyResponse(_ value: JSONValue, baseDocumentId: String,
+                                baseRevisions: Revisions) -> Bool {
+        if let authoritativeSnapshot,
+           let next = EditorSnapshot.applyingDelta(value, to: authoritativeSnapshot) {
+            self.authoritativeSnapshot = next
+            snapshot = withPendingPredictions(next)
+            inspectorSchema = next.inspectorSchema ?? inspectorSchema
+            return true
+        }
+        guard let next = EditorSnapshot.decode(value), next.documentId == baseDocumentId else {
+            return false
+        }
+        // A full response is the compatibility/stale-base fallback. Do not roll
+        // back a newer authoritative snapshot delivered by an intervening event.
+        let currentRevision = authoritativeSnapshot?.revisions.document
+        guard currentRevision == nil || currentRevision == baseRevisions.document
+                || currentRevision == next.revisions.document else {
+            return false
+        }
+        authoritativeSnapshot = next
+        snapshot = withPendingPredictions(next)
+        inspectorSchema = next.inspectorSchema ?? inspectorSchema
+        return true
     }
 
     /// A saved snapshot plus the edits still on their way, so queued moves don't flick back.
@@ -589,7 +633,10 @@ final class EditorStore {
                     "renderer": .string(snapshot?.revisions.renderer ?? "")
                 ])
             ]))
-            if let next = EditorSnapshot.decode(value) { snapshot = next }
+            if let next = EditorSnapshot.decode(value) {
+                authoritativeSnapshot = next
+                snapshot = withPendingPredictions(next)
+            }
             else { await refreshSnapshot() }
         } catch { errorMessage = error.localizedDescription }
     }
@@ -1387,4 +1434,3 @@ actor LoginPathBox {
         return await created.value
     }
 }
-

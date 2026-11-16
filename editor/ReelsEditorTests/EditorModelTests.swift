@@ -161,6 +161,152 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(snapshot.nodes.first?.isReadOnly, false)
     }
 
+    func testSnapshotDeltaMergesPlanNodesRevisionsAndTopLevelStateSafely() throws {
+        func node(_ id: String, _ asset: String, start: Int = 0) -> JSONValue {
+            .object([
+                "id": .string(id), "kind": .string("segment"), "lane": .string("video"),
+                "parentId": .null, "startFrame": .number(Double(start)),
+                "endFrame": .number(Double(start + 10)), "frames": .number(10),
+                "raw": .object(["asset": .string(asset)]), "assetId": .string(asset),
+                "generated": .bool(false), "readOnly": .bool(false),
+            ])
+        }
+        let base = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("doc"),
+            "snapshotToken": .string("snapshot-1"),
+            "revisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "plan": .object([
+                "segments": .array([
+                    .object(["asset": .string("a")]), .object(["asset": .string("b")])
+                ]),
+                "text": .array([.object(["text": .string("old")])]),
+            ]),
+            "nodes": .array([node("a", "a"), node("b", "b", start: 10)]),
+            "fps": .number(30), "durationFrames": .number(20),
+            "warnings": .array([]), "preview": .object(["state": .string("ready")]),
+            "change": .object(["origin": .string("manual")]),
+            "selection": .object(["ids": .array([])]),
+            "config": .object(["render": .object(["fps": .number(30)])]),
+        ])))
+        let delta: JSONValue = .object([
+            "type": .string("document.delta"), "documentId": .string("doc"),
+            "baseSnapshotToken": .string("snapshot-1"), "snapshotToken": .string("snapshot-2"),
+            "baseRevisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "revisions": .object([
+                "document": .string("d2"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "planPatch": .array([
+                .object([
+                    "op": .string("add"), "path": .string("/segments/0/volume"), "value": .number(0.5)
+                ]),
+                .object(["op": .string("remove"), "path": .string("/text/0")]),
+            ]),
+            "changedNodes": .array([node("a", "a", start: 1), node("c", "c", start: 20)]),
+            "removedIds": .array([.string("b")]),
+            "nodeOrder": .array([.string("a"), .string("c")]),
+            "fields": .object([
+                "revisions": .object([
+                    "document": .string("d2"), "library": .string("l1"), "renderer": .string("r1")
+                ]),
+                "fps": .number(24), "durationFrames": .number(30),
+                "warnings": .array([.string("updated")]),
+                "preview": .object(["state": .string("stale")]),
+                "change": .object(["origin": .string("manual"), "affectedIds": .array([.string("a")])]),
+                "selection": .object(["ids": .array([.string("a")])]),
+            ]),
+            "removedFields": .array([.string("config")]),
+        ])
+
+        let next = try XCTUnwrap(EditorSnapshot.applyingDelta(delta, to: base))
+        XCTAssertEqual(next.revisions.document, "d2")
+        XCTAssertEqual(next.snapshotToken, "snapshot-2")
+        XCTAssertEqual(next.durationFrames, 30)
+        XCTAssertEqual(next.fps, 24)
+        XCTAssertEqual(next.warnings, ["updated"])
+        XCTAssertEqual(next.preview["state"]?.stringValue, "stale")
+        XCTAssertEqual(next.nodes.map(\.id), ["a", "c"])
+        XCTAssertEqual(next.nodes[0].startFrame, 1)
+        XCTAssertEqual(next.plan.value(at: ["segments", "0", "volume"])?.numberValue, 0.5)
+        XCTAssertEqual(next.plan.value(at: ["text"])?.arrayValue?.count, 0)
+        XCTAssertEqual(next.extraFields["change"]?["origin"]?.stringValue, "manual")
+        XCTAssertNil(next.extraFields["config"])
+        XCTAssertEqual(next.extraFields["selection"]?["ids"]?.arrayValue?.first?.stringValue, "a")
+        XCTAssertNil(EditorSnapshot.applyingDelta(delta, to: next), "a delta cannot be replayed on a newer base")
+        let wrongBase = delta.setting(.string("snapshot-other"), at: ["baseSnapshotToken"])
+        XCTAssertNil(EditorSnapshot.applyingDelta(wrongBase, to: base), "same revisions are insufficient without exact snapshot identity")
+    }
+
+    @MainActor
+    func testDeltaRebasesQueuedPredictionExactlyOnceOnAuthoritativeNodes() throws {
+        func node(_ id: String, start: Int, end: Int, volume: Double? = nil) -> JSONValue {
+            var raw: [String: JSONValue] = ["asset": .string(id)]
+            if let volume { raw["volume"] = .number(volume) }
+            return .object([
+                "id": .string(id), "kind": .string("segment"), "lane": .string("video"),
+                "parentId": .null, "startFrame": .number(Double(start)),
+                "endFrame": .number(Double(end)), "frames": .number(Double(end - start)),
+                "raw": .object(raw), "assetId": .string(id), "generated": .bool(false),
+                "readOnly": .bool(false),
+            ])
+        }
+        let revisions = Revisions(document: "d1", library: "l1", renderer: "r1")
+        let base = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("doc"), "snapshotToken": .string("snapshot-1"),
+            "revisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "plan": .object([
+                "segments": .array([
+                    .object(["asset": .string("a")]),
+                    .object(["asset": .string("b")]),
+                    .object(["asset": .string("c")]),
+                ])
+            ]),
+            "nodes": .array([node("a", start: 0, end: 30),
+                             node("b", start: 30, end: 60),
+                             node("c", start: 60, end: 90)]),
+            "fps": .number(30), "durationFrames": .number(90),
+            "warnings": .array([]), "preview": .object(["state": .string("empty")]),
+        ])))
+        let delta: JSONValue = .object([
+            "type": .string("document.delta"), "documentId": .string("doc"),
+            "baseSnapshotToken": .string("snapshot-1"), "snapshotToken": .string("snapshot-2"),
+            "baseRevisions": .object([
+                "document": .string("d1"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "revisions": .object([
+                "document": .string("d2"), "library": .string("l1"), "renderer": .string("r1")
+            ]),
+            "planPatch": .array([
+                .object(["op": .string("add"), "path": .string("/segments/1/volume"),
+                         "value": .number(0.5)])
+            ]),
+            "changedNodes": .array([node("b", start: 30, end: 60, volume: 0.5)]),
+            "removedIds": .array([]),
+            "nodeOrder": .array([.string("a"), .string("b"), .string("c")]),
+            "fields": .object(["revisions": .object([
+                "document": .string("d2"), "library": .string("l1"), "renderer": .string("r1")
+            ])]),
+            "removedFields": .array([]),
+        ])
+
+        let store = EditorStore()
+        let queuedTrim = OptimisticTimeline.trimSegment(id: "b", length: 20)
+        store.authoritativeSnapshot = base
+        store.pendingPredictions = [(id: UUID(), change: queuedTrim)]
+        store.snapshot = OptimisticTimeline.apply(queuedTrim, to: base)
+
+        XCTAssertEqual(store.snapshot?.nodes.first(where: { $0.id == "c" })?.startFrame, 50)
+        XCTAssertTrue(store.reconcileApplyResponse(delta, baseDocumentId: "doc", baseRevisions: revisions))
+        XCTAssertEqual(store.authoritativeSnapshot?.nodes.first(where: { $0.id == "c" })?.startFrame, 60)
+        XCTAssertEqual(store.snapshot?.nodes.first(where: { $0.id == "b" })?.endFrame, 50)
+        XCTAssertEqual(store.snapshot?.nodes.first(where: { $0.id == "c" })?.startFrame, 50)
+    }
+
     func testSearchHitCarriesSourceSelection() {
         let hit = SearchHit(
             id: "asset-1-4", title: "Cornering", evidence: "rider exits a bend",

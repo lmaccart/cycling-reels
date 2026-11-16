@@ -30,6 +30,7 @@ class _Workspace:
         self.media_root = root / "originals"
         self.media_root.mkdir()
         self._originals: dict = {}
+        self.fresh_revision_calls = 0
         self.code_root = code_root
         self.project = Project(self.data_root, code_root=code_root, media_root=self.media_root)
 
@@ -42,6 +43,10 @@ class _Workspace:
                     digest.update(path.read_bytes())
         digest.update(json.dumps(self._originals, sort_keys=True).encode())
         return digest.hexdigest()
+
+    def refresh_library_revision(self) -> str:
+        self.fresh_revision_calls += 1
+        return self.library_revision()
 
 
 class EditorPreviewTests(unittest.TestCase):
@@ -62,7 +67,9 @@ class EditorPreviewTests(unittest.TestCase):
         job_root = self.manager.worker_root / "snapshot-test"
         job_root.mkdir()
         self.addCleanup(lambda: __import__("shutil").rmtree(job_root, ignore_errors=True))
+        self.workspace.fresh_revision_calls = 0
         copied = self.manager._copy_inputs(snapshot, job_root)
+        self.assertEqual(self.workspace.fresh_revision_calls, 2, "freeze must check fresh inputs before and after copying")
         self.assertEqual(json.loads((copied / "plans/draft.json").read_text()), {"slug": "draft", "segments": []})
         (self.workspace.data_root / "library/transcripts/changed.json").parent.mkdir(parents=True, exist_ok=True)
         (self.workspace.data_root / "library/transcripts/changed.json").write_text("{}")

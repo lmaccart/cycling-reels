@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .claude import ClaudeCLI
+from .delta import snapshot_delta as _snapshot_delta, snapshot_token
 from .http import CapabilityServer
 from . import live, music_service
 from .jobs import JobManager, atomic_json
@@ -77,6 +78,11 @@ class EditorService:
         self._preview_timer: threading.Timer | None = None
         self._preview_sequence = 0
         self._announced_document_state: dict | None = None
+        self._announced_snapshot: dict | None = None
+        self._observed_library_revision: str | None = None
+        self._timeline_leases: dict[str, float] = {}
+        self._manual_apply_inflight = 0
+        self.watcher: threading.Thread | None = None
         self._plans_stamp: dict | None = live.plans_stamp(self.project)
         self._ingest_job: str | None = None
         self.state_path = Path(workspace.root) / "state.json"
@@ -85,19 +91,59 @@ class EditorService:
         except (OSError, ValueError):
             self.state = {}
         try:
+            from .compile_worker import begin_compile_session
+
+            self._compile_session = begin_compile_session(workspace)
             self.http = CapabilityServer(workspace)
             self.relay = Relay(self._relay_dispatch)
             self.claude = ClaudeCLI(workspace, self.relay, emit)
             self.jobs = JobManager(Path(workspace.root) / "jobs", self._job_event, self.current_revisions)
+            start_library_watcher = getattr(self.workspace, "start_library_watcher", None)
+            if callable(start_library_watcher):
+                try:
+                    start_library_watcher()
+                except Exception:  # noqa: BLE001 - fresh synchronous checks remain available
+                    pass
+            try:
+                self._observed_library_revision = str(self.workspace.library_revision())
+            except Exception:
+                self._observed_library_revision = None
+            self.watcher = self._new_service_watcher()
+            self.watcher.start()
         except Exception:
-            for name in ("jobs", "claude", "relay", "http"):
-                resource = getattr(self, name, None)
-                if resource is not None:
-                    resource.close()
-            os.close(self._workspace_lock_fd)
+            self.shutdown_requested.set()
+            try:
+                if self.watcher is not None and self.watcher.is_alive():
+                    self.watcher.join(timeout=2)
+                stop_library_watcher = getattr(self.workspace, "stop_library_watcher", None)
+                if callable(stop_library_watcher):
+                    try:
+                        stop_library_watcher()
+                    except Exception:
+                        pass
+                if self.document is not None and hasattr(self.document, "close"):
+                    try:
+                        self.document.close()
+                    except Exception:
+                        pass
+                for name in ("jobs", "claude", "relay", "http"):
+                    resource = getattr(self, name, None)
+                    if resource is not None:
+                        try:
+                            resource.close()
+                        except Exception:
+                            pass
+            finally:
+                try:
+                    compile_session = getattr(self, "_compile_session", None)
+                    if compile_session is not None:
+                        compile_session.close()
+                finally:
+                    os.close(self._workspace_lock_fd)
             raise
-        self.watcher = threading.Thread(target=self._watch, name="reels-private-file-watcher", daemon=True)
-        self.watcher.start()
+
+    def _new_service_watcher(self) -> threading.Thread:
+        return threading.Thread(target=self._watch, name="reels-private-file-watcher", daemon=True)
 
     def current_revisions(self) -> dict:
         document = self.document
@@ -153,6 +199,10 @@ class EditorService:
         result["preview"] = dict(self.preview)
         result["selection"] = dict(self.selection)
         result["permissions"] = copy.deepcopy(list(self.permissions.values()))
+        result.pop("snapshotToken", None)
+        result["snapshotToken"] = snapshot_token(result)
+        with self.lock:
+            self._announced_snapshot = copy.deepcopy(result)
         return result
 
     def _project_config(self):
@@ -161,13 +211,34 @@ class EditorService:
         value = json.loads(path.read_text()) if path.is_file() else {}
         return deep_merge(copy.deepcopy(DEFAULTS), value)
 
-    def _changed(self, snapshot: dict, *, prepare_preview=True):
-        snapshot = {**snapshot, "preview": dict(self.preview)}
+    def _changed(self, snapshot: dict, *, prepare_preview=True, delta_base=None,
+                 delta_snapshot_token=None):
+        snapshot = {
+            **snapshot,
+            "preview": dict(self.preview),
+            "selection": dict(self.selection),
+            "permissions": copy.deepcopy(list(self.permissions.values())),
+        }
+        snapshot.pop("snapshotToken", None)
+        snapshot["snapshotToken"] = snapshot_token(snapshot)
+        with self.lock:
+            previous = self._announced_snapshot
+            delta = (
+                _snapshot_delta(previous, snapshot, delta_base, delta_snapshot_token)
+                if delta_base is not None and delta_snapshot_token is not None
+                else None
+            )
+            self._announced_snapshot = copy.deepcopy(snapshot)
+            revision = (snapshot.get("revisions") or {}).get("library")
+            if revision:
+                self._observed_library_revision = str(revision)
         self._announced_document_state = self._document_state(snapshot)
         self.jobs.cancel_kind("preview", "source")
         if self._index is not None and self._index.library_revision != snapshot.get("revisions", {}).get("library"):
             self._invalidate_index()
-        self.emit("document.changed", snapshot, snapshot.get("revisions", {}), documentId=snapshot.get("documentId"))
+        if delta is None:
+            self.emit("document.changed", snapshot, snapshot.get("revisions", {}),
+                      documentId=snapshot.get("documentId"))
         # One committed gesture/batch, not each pointer/key event, prepares media.
         with self.lock:
             if self._preview_timer:
@@ -176,7 +247,33 @@ class EditorService:
                 self._preview_timer = threading.Timer(0.15, self._auto_preview)
                 self._preview_timer.daemon = True
                 self._preview_timer.start()
-        return snapshot
+        return delta if delta is not None else snapshot
+
+    def _refresh_library_inputs(self):
+        invalidate = getattr(self.workspace, "invalidate_library_revision", None)
+        if callable(invalidate):
+            invalidate()
+        refresh = getattr(self.workspace, "refresh_library_revision", None)
+        revision = refresh() if callable(refresh) else self.workspace.library_revision()
+        revision = str(revision)
+        with self.lock:
+            self._observed_library_revision = revision
+        self._invalidate_index()
+        self.emit("library.changed", {"libraryRevision": revision}, {"library": revision})
+        return revision
+
+    def _check_library_revision(self):
+        revision = str(self.workspace.library_revision())
+        with self.lock:
+            previous = self._observed_library_revision
+            if previous is None:
+                self._observed_library_revision = revision
+                return
+            if previous == revision:
+                return
+            self._observed_library_revision = revision
+        self._invalidate_index()
+        self.emit("library.changed", {"libraryRevision": revision}, {"library": revision})
 
     @staticmethod
     def _document_state(snapshot):
@@ -188,6 +285,17 @@ class EditorService:
     def _auto_preview(self):
         if self.shutdown_requested.is_set() or self.document is None:
             return
+        with self.lock:
+            now = time.monotonic()
+            self._timeline_leases = {
+                token: expires for token, expires in self._timeline_leases.items() if expires > now
+            }
+            if self._timeline_leases or self._manual_apply_inflight:
+                timer = threading.Timer(0.15, self._auto_preview)
+                timer.daemon = True
+                self._preview_timer = timer
+                timer.start()
+                return
         if self.preview.get("state") == "ready" and self.preview.get("revisions") == self.current_revisions():
             return
         try:
@@ -529,6 +637,15 @@ class EditorService:
             # The native app sends {"batch": {...}}; MCP/AI callers send the batch itself.
             wrapped = params.get("batch") if isinstance(params, dict) else None
             batch = copy.deepcopy(wrapped if isinstance(wrapped, dict) and "operations" in wrapped else params)
+            delta_base = (
+                batch.get("baseRevisions")
+                if (source == "native" and batch.get("responseMode") == "delta"
+                    and isinstance(batch.get("baseSnapshotToken"), str))
+                else None
+            )
+            delta_snapshot_token = (
+                batch.get("baseSnapshotToken") if delta_base is not None else None
+            )
             batch["origin"] = "ai" if source == "ai" else "manual"
             if source == "ai":
                 batch.pop("lease", None)
@@ -536,10 +653,21 @@ class EditorService:
             for operation in batch.get("operations", []):
                 if isinstance(operation, dict) and operation.get("op") == "correct_words":
                     self._require_asset_id(operation.get("assetId"))
-            result = self._doc().apply(batch)
-            if source != "ai" and self._ai_turn is not None:
-                self._manual_during_ai.update(self._operation_targets(batch.get("operations", [])))
-            return self._changed(result)
+            manual_request = source != "ai"
+            if manual_request:
+                with self.lock:
+                    self._manual_apply_inflight += 1
+            try:
+                result = self._doc().apply(batch)
+                if manual_request and self._ai_turn is not None:
+                    self._manual_during_ai.update(self._operation_targets(batch.get("operations", [])))
+                return self._changed(
+                    result, delta_base=delta_base, delta_snapshot_token=delta_snapshot_token
+                )
+            finally:
+                if manual_request:
+                    with self.lock:
+                        self._manual_apply_inflight = max(0, self._manual_apply_inflight - 1)
         if method in ("document.undo", "document.redo"):
             if self._ai_turn is not None:
                 self._manual_during_ai.add("document")
@@ -550,9 +678,24 @@ class EditorService:
             result = self._doc().reload_external()
             return self._changed(result) if result else self.snapshot()
         if method == "lease.acquire":
-            return self._doc().acquire_lease(str(params.get("owner", "native")), ttl=min(60, max(1, float(params.get("ttl", 6)))))
+            owner = str(params.get("owner", "native"))
+            with self.lock:
+                lease = self._doc().acquire_lease(
+                    owner, ttl=min(60, max(1, float(params.get("ttl", 6))))
+                )
+                if owner.startswith("timeline-") and isinstance(lease, dict) and lease.get("token"):
+                    # DocumentStore replaces the prior timeline lease with this
+                    # one; mirror that single-current-lease invariant here too.
+                    self._timeline_leases.clear()
+                    self._timeline_leases[str(lease["token"])] = (
+                        time.monotonic() + float(lease.get("expiresIn", 6))
+                    )
+            return lease
         if method == "lease.release":
-            self._doc().release_lease(str(params.get("token", "")))
+            token = str(params.get("token", ""))
+            with self.lock:
+                self._doc().release_lease(token)
+                self._timeline_leases.pop(token, None)
             return {"released": True}
         if method == "selection.get":
             return dict(self.selection)
@@ -736,6 +879,13 @@ class EditorService:
                 except Exception:  # noqa: BLE001
                     pass
             document = self.document
+            try:
+                self._check_library_revision()
+            except Exception as exc:
+                message = str(exc)
+                if message != last_error:
+                    self.emit("library.error", error_value(exc), {})
+                    last_error = message
             if document is None:
                 continue
             try:
@@ -778,6 +928,7 @@ class EditorService:
 
     def _music_added(self, result):
         self.emit("music.changed", {"track": result.get("track")}, {})
+        self._refresh_library_inputs()
         return result
 
     def _start_import(self, params):
@@ -809,9 +960,7 @@ class EditorService:
 
         def publish(result):
             if result.get("ingested"):
-                revision = self.workspace.library_revision()
-                self._invalidate_index()
-                self.emit("library.changed", {"libraryRevision": revision}, {"library": revision})
+                self._refresh_library_inputs()
             return result
 
         job = self.jobs.submit("ingest", {}, work, publish, independent=True)
@@ -820,22 +969,34 @@ class EditorService:
 
     def begin_close(self):
         self.shutdown_requested.set()
-        if self._preview_timer:
-            self._preview_timer.cancel()
-        if self.document is not None and hasattr(self.document, "cancel_pending"):
-            self.document.cancel_pending(origin="ai")
-        self.claude.stop()
-        self.jobs.cancel_kind("preview", "export", "source", "renderer")
-        if self.document is not None and hasattr(self.document, "close"):
-            self.document.close()
+        try:
+            if self._preview_timer:
+                self._preview_timer.cancel()
+            if self.document is not None and hasattr(self.document, "cancel_pending"):
+                self.document.cancel_pending(origin="ai")
+            self.claude.stop()
+            self.jobs.cancel_kind("preview", "export", "source", "renderer")
+        finally:
+            try:
+                if self.document is not None and hasattr(self.document, "close"):
+                    self.document.close()
+            finally:
+                self._compile_session.close()
 
     def close(self):
         if self._service_closed:
             return
         self._service_closed = True
-        self.begin_close()
         try:
-            self.watcher.join(timeout=2)
+            try:
+                self.begin_close()
+            except Exception as exc:
+                self.emit("service.cleanup_error", error_value(exc), {})
+            if self.watcher is not None and self.watcher.is_alive():
+                self.watcher.join(timeout=2)
+            stop_library_watcher = getattr(self.workspace, "stop_library_watcher", None)
+            if callable(stop_library_watcher):
+                stop_library_watcher()
             for resource in (self._search, self.claude, self.jobs, self.http, self.relay):
                 if resource is not None:
                     try:
