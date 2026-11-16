@@ -18,7 +18,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | `music` | no | none | Track slug from `./reels music list`: `"night-drive"`, or an object — see **Music** below. Leave it out (or `null`) for a ride-audio-only reel |
 | `musicDrops` | no | `[]` | `[{"at": 6.2, "for": 0.5}]` (reel seconds): the music cuts to silence for that window and comes back hard — see **Sound design** |
 | `sfx` | no | `[]` | Sound-effect cues in reel seconds: `{"sound": "whoosh-medium", "at": 3.1, "gain": 0.7}` or `"endAt"` instead of `at` — see **Sound design** |
-| `autoSfx` | no | config `sfx.auto` (`true`) | `false` = no automatic sound effects on this reel (only its own `sfx` cues) |
+| `autoSfx` | no | config `sfx.auto` (`false`) | `true` = automatic sound effects on this reel (only when the user asked for sound effects); `false` = none, only its own `sfx` cues |
 | `endCard` | no | `false` | `true` or `{"cta": "follow for more rides", "handle": "@x", "style": "light", "seconds": 1.6}`. Off by default — reels loop, and natural TikToks rarely have outros |
 | `loop` | no | `false` | `true` = a seamless loop: no music fades, no end card, the length snapped to whole bars of the song, and `check` / `render` judge the seam — see **Loops** |
 | `punchOnBeats` | no | – | `{"every": 4, "scale": 1.1}`: a punch-in every `every` beats of the music (in on one, back out on the next), on clips without their own `punch` — see **Punch-ins** |
@@ -155,7 +155,7 @@ The mix: the music (ducks under speech captions, fades out), each clip's ride au
 
 **Sound effects (`sfx`).** Top-level cues use reel seconds, segment cues seconds from the segment start. Each cue: `sound` (a slug from `./reels sfx list`; unknown names are refused with the close matches), `at` (when it starts) or `endAt` (when it ends — for risers that should land on a moment), `gain` 0–2 (default config `sfx.gain`, 0.7).
 
-**Automatic cues** (config `sfx.auto`, default on; `"autoSfx": false` turns them off per reel). `sfx.autoRules` maps an event to a sound slug, `{"sound", "gain"}`, or `null` to switch it off:
+**Automatic cues** (config `sfx.auto`, default off since 2026-11-16; `"autoSfx": true` turns them on for one reel when the user asks for sound effects). `sfx.autoRules` maps an event to a sound slug, `{"sound", "gain"}`, or `null` to switch it off:
 
 | Event | When | Default |
 | --- | --- | --- |

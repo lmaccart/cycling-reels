@@ -305,7 +305,7 @@ def build_cues(
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
 
-    auto_on = plan.get("autoSfx", scfg.get("auto", True))
+    auto_on = plan.get("autoSfx", scfg.get("auto", False))
     if not isinstance(auto_on, bool):
         warnings.append("autoSfx must be true or false — using false")
         auto_on = False

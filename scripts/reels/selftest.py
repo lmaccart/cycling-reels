@@ -190,11 +190,11 @@ def _check_stats(project: Project) -> str:
     from .analytics import build_report, import_file
 
     d = project.out_dir / "9999-01-01-stats-fake"
-    write_json(d / "post.json", {"slug": d.name, "caption": "stats fake caption", "duration": 10.0, "scheduledFor": "2030-01-01T18:30:00",
+    write_json(d / "post.json", {"slug": d.name, "caption": "stats fake caption", "duration": 10.0, "scheduledFor": "2020-01-01T18:30:00",
                                  "timezone": "America/Chicago", "segments": []})
-    row = ["20300102003100", "stats fake caption\n\n#cycling", "123", "https://www.instagram.com/reel/x/", "1", "2", "100", "3", "4", "150", "5.0", "700", None, "40.0", None]
+    row = ["20200102003100", "stats fake caption\n\n#cycling", "123", "https://www.instagram.com/reel/x/", "1", "2", "100", "3", "4", "150", "5.0", "700", None, "40.0", None]
     f = project.root / "stats-fake.json"
-    write_json(f, {"pulledAt": "2030-01-05T00:00:00Z", "rows": [row]})
+    write_json(f, {"pulledAt": "2020-01-05T00:00:00Z", "rows": [row]})
     import_file(project, str(f))
     reels, unmatched = build_report(project)
     r = reels[0]
