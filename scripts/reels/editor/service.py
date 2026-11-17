@@ -1153,7 +1153,7 @@ def remove_partial_proxies(workspace_root: Path, now: float | None = None) -> li
 
     Only in this workspace's private preview cache (<root>/preview/sources|spheres/<key>/);
     finished proxies, symlinks and anything else are left alone."""
-    from ..proxy_cache import cache_lock
+    from .proxy_cache import cache_lock
 
     now = time.time() if now is None else now
     preview = Path(workspace_root) / "preview"
