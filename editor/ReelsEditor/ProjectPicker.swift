@@ -127,6 +127,7 @@ struct ProjectPicker: View {
     @State private var query = ""
     @State private var selection: String?
     @FocusState private var titleFocused: Bool
+    @FocusState private var listFocused: Bool
 
     private var filtered: [PlanSummary] { store.planSummaries.filter { $0.matches(query) } }
 
@@ -263,8 +264,8 @@ struct ProjectPicker: View {
                             ForEach(filtered) { plan in
                                 PlanRow(plan: plan, selected: selection == plan.id)
                                     .id(plan.id)
-                                    .onTapGesture(count: 2) { open(plan.path) }
-                                    .onTapGesture { selection = plan.id }
+                                    .onTapGesture(count: 2) { listFocused = true; open(plan.path) }
+                                    .onTapGesture { listFocused = true; selection = plan.id }
                                     .contextMenu {
                                         Button("Open") { open(plan.path) }
                                         Button("Reveal in Finder") { store.revealPlan(plan.path) }
@@ -275,10 +276,12 @@ struct ProjectPicker: View {
                         .padding(.vertical, 3)
                     }
                     .focusable()
+                    .focused($listFocused)
                     .focusEffectDisabled()
+                    .onAppear { listFocused = true }
                     .onKeyPress(.return) {
-                        guard let selection else { return .ignored }
-                        open(selection)
+                        guard let target = PickerSelection.visible(selection, in: filtered.map(\.id)) else { return .ignored }
+                        open(target)
                         return .handled
                     }
                     .onKeyPress(.downArrow) { moveSelection(1, proxy) }
@@ -478,5 +481,13 @@ struct StatusBadge: View {
         case "rejected": .red
         default: .gray
         }
+    }
+}
+
+extension PickerSelection {
+    /// The selection only if it is still among the visible (filtered) rows.
+    static func visible(_ current: String?, in ids: [String]) -> String? {
+        guard let current, ids.contains(current) else { return nil }
+        return current
     }
 }

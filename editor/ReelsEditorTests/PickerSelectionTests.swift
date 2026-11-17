@@ -20,3 +20,11 @@ final class PickerSelectionTests: XCTestCase {
         XCTAssertNil(PickerSelection.move(from: "a", in: [], by: 1))
     }
 }
+
+final class PickerVisibleSelectionTests: XCTestCase {
+    func testFilteredOutSelectionIsNotOpenable() {
+        XCTAssertEqual(PickerSelection.visible("b", in: ["a", "b"]), "b")
+        XCTAssertNil(PickerSelection.visible("c", in: ["a", "b"]))
+        XCTAssertNil(PickerSelection.visible(nil, in: ["a"]))
+    }
+}
