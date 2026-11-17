@@ -9,6 +9,7 @@ import socket
 import stat
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from ..config import Project
 from ..util import ReelsError, quick_hash
 from .proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
 from .proxy_cache import proxy_job
+from .proxy_metal import cached_execution, render_proxy, reusable_execution
 
 _STAGE_SPEC_FIELDS = {
     "in", "out", "speed", "frame", "zoom", "focusX", "focusY", "fit", "motion",
@@ -947,6 +949,20 @@ def validate_candidate(job: dict) -> dict:
     return {"checks": checks, "render": rendered}
 
 
+def _encode_360_proxy(job: dict, source: Path, output: Path, arguments: list, *,
+                      start: float, end: float, projection: str | None,
+                      views: list[dict] | None = None, inputs=(), crf: int = 23) -> dict:
+    started = time.monotonic()
+    execution = (render_proxy(job, source, output, projection=projection, start=start, end=end,
+                              views=views, inputs=inputs) if projection else
+                 {"backend": "ffmpeg", "fallbackReason": "source proxy uses a single requested view"})
+    if execution["backend"] == "ffmpeg":
+        encoder = encode_proxy(source, output, arguments, inputs=inputs, seconds=end - start, crf=crf)
+        execution.update(encoder=encoder, encodeSeconds=time.monotonic() - started,
+                         outputBytes=output.stat().st_size)
+    return execution
+
+
 @proxy_job
 def prepare_source_proxy(job: dict) -> dict:
     """Create/reuse a view-specific 360 or codec/container compatibility proxy."""
@@ -1065,12 +1081,16 @@ def prepare_source_proxy(job: dict) -> dict:
     }
     if output.is_file() and marker.is_file():
         try:
-            if json.loads(marker.read_text(encoding="utf-8")) == expected_marker:
+            saved = json.loads(marker.read_text(encoding="utf-8"))
+            if (isinstance(saved, dict)
+                    and {k: v for k, v in saved.items() if k != "execution"} == expected_marker
+                    and (layout != "front-back" or reusable_execution(saved))):
                 if _stat_identity(source) != expected_identity:
                     raise ReelsError("registered original changed during source proxy reuse")
                 return {
                     "status": "ready", "path": str(output), "proxy": True, "reused": True,
                     "sourceKind": "image" if is_photo else "video", "layout": layout,
+                    **cached_execution(saved),
                 }
         except (OSError, ValueError):
             pass
@@ -1078,6 +1098,7 @@ def prepare_source_proxy(job: dict) -> dict:
         job["reserveOutput"]()
 
     temporary = revision_dir / f".source-{uuid.uuid4().hex}{output.suffix}"
+    execution = {}
     from ..media import run
 
     try:
@@ -1098,10 +1119,11 @@ def prepare_source_proxy(job: dict) -> dict:
                 ]
                 run(command, timeout=300)
         elif is_spherical:
-            encode_proxy(source, temporary, [
+            execution = _encode_360_proxy(job, source, temporary, [
                 "-filter_complex", f"{filter_graph};[{pad}]{camera}[source]",
                 "-map", "[source]", "-map", "0:a:0?", "-fps_mode", "passthrough",
-            ], seconds=float(probe.get("duration") or 0), crf=21)
+            ], start=0, end=float(probe.get("duration") or 0),
+                projection="front-back" if layout == "front-back" else None, views=front_back, crf=21)
         else:
             if not probe.get("width") or not probe.get("height"):
                 verify_source_unchanged()
@@ -1123,7 +1145,7 @@ def prepare_source_proxy(job: dict) -> dict:
         verify_source_unchanged()
         os.replace(temporary, output)
         output.chmod(0o400)
-        _atomic_json(marker, expected_marker)
+        _atomic_json(marker, {**expected_marker, **({"execution": execution} if execution else {})})
         marker.chmod(0o400)
         verify_source_unchanged()
     except (ReelsError, OSError, subprocess.SubprocessError) as exc:
@@ -1133,11 +1155,12 @@ def prepare_source_proxy(job: dict) -> dict:
             raise ReelsError("registered original changed during source proxy preparation") from exc
         return {"status": "unsupported", "reason": f"Could not prepare a playable source proxy: {exc}"}
     finally:
-        if temporary.exists():
+        if not isinstance(sys.exc_info()[1], (KeyboardInterrupt, SystemExit)) and temporary.exists():
             temporary.unlink()
     return {
         "status": "ready", "path": str(output), "proxy": True, "reused": False,
         "sourceKind": "image" if is_photo else "video", "layout": layout,
+        **execution,
     }
 
 
@@ -1200,16 +1223,18 @@ def prepare_sphere_proxy(job: dict) -> dict:
             lo, hi = float(saved["start"]), float(saved["end"])
             video = marker_path.with_name("sphere.mp4")
             if (all(saved.get(k) == v for k, v in settings.items())
+                    and reusable_execution(saved)
                     and lo <= requested_start < requested_end <= hi
                     and video.is_file() and not video.is_symlink() and video.stat().st_size > 0):
-                candidates.append((hi - lo, lo, hi, marker_path.parent))
+                candidates.append((hi - lo, lo, hi, marker_path.parent, cached_execution(saved)))
         except (OSError, ValueError, KeyError, TypeError):
             continue
     reused = bool(candidates)
     if reused:
-        _, start, end, range_dir = min(candidates)
+        _, start, end, range_dir, execution = min(candidates, key=lambda item: item[:4])
     else:
         range_dir = revision_dir / f"{start:.3f}-{end:.3f}"
+        execution = {}
     if range_dir.is_symlink():
         raise ReelsError("360 proxy range directory cannot be a symlink")
     range_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -1223,12 +1248,12 @@ def prepare_sphere_proxy(job: dict) -> dict:
         graph, pad, inproj = source_graph(probe)
         temporary = range_dir / f".sphere-{uuid.uuid4().hex}.mp4"
         try:
-            encode_proxy(source, temporary, [
+            execution = _encode_360_proxy(job, source, temporary, [
                 "-filter_complex",
                 f"{graph};[{pad}]fps={SPHERE_PROXY_FPS},v360=input={inproj}:output=e:w={width}:h={height}:interp=linear[sphere]",
                 "-map", "[sphere]", "-map", "0:a:0?",
             ], inputs=["-ss", f"{start:.3f}", "-t", f"{end - start:.3f}"],
-                seconds=end - start)
+                start=start, end=end, projection="equirect")
             if not temporary.is_file() or temporary.stat().st_size <= 0:
                 raise ReelsError("360 proxy encoder produced no file")
             if _stat_identity(source) != expected_identity:
@@ -1237,12 +1262,12 @@ def prepare_sphere_proxy(job: dict) -> dict:
             output.chmod(0o400)
             if marker.exists():
                 marker.chmod(0o600)
-            _atomic_json(marker, expected_marker)
+            _atomic_json(marker, {**expected_marker, "execution": execution})
             marker.chmod(0o400)
         except (ReelsError, OSError, subprocess.SubprocessError) as exc:
             return {"status": "unsupported", "reason": f"Could not prepare the 360 proxy: {exc}"}
         finally:
-            if temporary.exists():
+            if not isinstance(sys.exc_info()[1], (KeyboardInterrupt, SystemExit)) and temporary.exists():
                 temporary.unlink()
 
     correction = cached_correction_quats(source, revision_dir / "cori", expected_identity,
@@ -1253,6 +1278,7 @@ def prepare_sphere_proxy(job: dict) -> dict:
     return {
         "status": "ready", "path": str(output), "reused": reused,
         "start": start, "end": end, "fps": SPHERE_PROXY_FPS, "width": width, "height": height,
+        **execution,
         **correction, "stabilize": setting,
     }
 

@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreVideo
+import Darwin
 import Foundation
 import Metal
 import VideoToolbox
@@ -12,6 +13,10 @@ private struct Uniforms {
     var eac: Int32
     var planet: Int32
     var fullRange: Int32
+    var secondMatrix: simd_float3x3
+    var secondTanHalf: Float
+    var proxy: Int32
+    var layout: Int32
 }
 
 /// One retained current sample + one lookahead per track; one GPU frame in flight.
@@ -23,10 +28,14 @@ private final class TrackFrames {
     var next: CMSampleBuffer?
     var firstPTS: Double?
     var previousPTS = -Double.infinity
+    var lastSampleEnd = CMTime.invalid
 
     init(track: AVAssetTrack, reader: AVAssetReader, request: RenderRequest) throws {
         self.reader = reader
         self.request = request
+        // Decoded AVAssetReader samples commonly omit duration. The asset's
+        // validated track range covers sourceOut, which is the reader's EOF.
+        lastSampleEnd = CMTime(seconds: request.sourceOut, preferredTimescale: 600_000_000)
         output = AVAssetReaderTrackOutput(track: track, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: request.fullRange ? kCVPixelFormatType_420YpCbCr8BiPlanarFullRange : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
             kCVPixelBufferMetalCompatibilityKey as String: true,
@@ -45,6 +54,9 @@ private final class TrackFrames {
             if pts + 1e-9 < request.sourceIn { continue }
             if pts >= request.sourceOut - 1e-9 { return nil }
             guard CMSampleBufferGetImageBuffer(sample) != nil else { throw SphereFailure.runtime("decoded sample has no image") }
+            if request.isProxy && sample.duration.isNumeric && sample.duration > .zero {
+                lastSampleEnd = sample.presentationTimeStamp + sample.duration
+            }
             return sample
         }
         if reader.status == .failed { throw SphereFailure.runtime("decode: \(String(describing: reader.error))") }
@@ -56,11 +68,21 @@ private final class TrackFrames {
             current = try read()
             guard let current else { throw SphereFailure.runtime("no frames in source interval") }
             firstPTS = current.presentationTimeStamp.seconds
+            if request.isProxy { try request.validateProxyTiming(firstPTS: current.presentationTimeStamp) }
             next = try read()
         }
-        while let n = next, fpsTick(pts: n.presentationTimeStamp.seconds, first: firstPTS!, speed: request.speed, fps: request.fps) <= frame {
+        func tick(_ sample: CMSampleBuffer) -> Int {
+            request.isProxy ? proxyFPSTick(pts: sample.presentationTimeStamp, sourceIn: request.sourceIn) :
+                fpsTick(pts: sample.presentationTimeStamp.seconds, first: firstPTS!, speed: request.speed, fps: request.fps)
+        }
+        while let n = next, tick(n) <= frame {
             current = n
             next = try read()
+        }
+        if request.isProxy && next == nil {
+            let end = CMTimeMinimum(lastSampleEnd, CMTime(seconds: request.sourceOut, preferredTimescale: 600_000_000))
+            guard request.frames == proxyFPSTick(pts: end, sourceIn: request.sourceIn)
+            else { throw SphereFailure.unsupported("proxy source EOF does not match requested fps frame count; use ffmpeg") }
         }
         return current!
     }
@@ -112,6 +134,9 @@ final class OfflineRenderer {
             guard transform.isIdentity, abs(range.start.seconds) < 1e-9,
                   request.sourceIn < range.end.seconds, request.sourceOut <= range.end.seconds + .init(1.0/Double(request.fps))
             else { throw SphereFailure.unsupported("track transform, nonzero track origin or interval beyond source") }
+            if request.isProxy && request.sourceOut > range.end.seconds + 1e-9 {
+                throw SphereFailure.unsupported("proxy trim exceeds track EOF; use ffmpeg")
+            }
             selected.append(track)
         }
         tracks = selected
@@ -151,10 +176,37 @@ final class OfflineRenderer {
                                 threadsPerThreadgroup: MTLSize(width: w, height: min(8, pipeline.maxTotalThreadsPerThreadgroup / w), depth: 1))
     }
 
+    /// No CPU lock, allocation or copy on the normal production path.
+    private func writeProofSample(_ buffer: CVPixelBuffer, frame: Int) throws {
+        guard CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess
+        else { throw SphereFailure.runtime("proof readback lock") }
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        let width = request.width, height = request.height
+        var bytes = Data(count: width * height * 3 / 2)
+        try bytes.withUnsafeMutableBytes { (target: UnsafeMutableRawBufferPointer) in
+            for plane in 0...1 {
+                guard let source = CVPixelBufferGetBaseAddressOfPlane(buffer, plane)
+                else { throw SphereFailure.runtime("proof readback plane") }
+                let stride = CVPixelBufferGetBytesPerRowOfPlane(buffer, plane)
+                let rows = plane == 0 ? height : height / 2
+                let offset = plane == 0 ? 0 : width * height
+                for row in 0..<rows {
+                    memcpy(target.baseAddress!.advanced(by: offset + row * width),
+                           source.advanced(by: row * stride), width)
+                }
+            }
+        }
+        try bytes.write(to: request.proofSampleURL(frame: frame), options: .withoutOverwriting)
+    }
+
     func render() throws -> [String: Any] {
         let r = request, started = Date()
         let destination = URL(fileURLWithPath: r.destination)
-        let partial = destination.deletingLastPathComponent().appendingPathComponent(".sphere-\(UUID().uuidString).mp4")
+        // Match the owning proxy's cleanup namespace; interrupted native source
+        // writers must not leave aim-prefixed files outside source cleanup.
+        let prefix = r.isProxy && r.projection == "front-back" ? ".source-" : ".sphere-"
+        let partial = destination.deletingLastPathComponent().appendingPathComponent("\(prefix)\(UUID().uuidString).mp4")
+        let partialPath = partial.path
         defer { try? FileManager.default.removeItem(at: partial) }
         let reader = try AVAssetReader(asset: asset)
         // Reader clips its first sample PTS to timeRange.start, even when that
@@ -164,13 +216,17 @@ final class OfflineRenderer {
                                       end: CMTime(seconds: r.sourceOut, preferredTimescale: 600_000_000))
         let decoders = try tracks.map { try TrackFrames(track: $0, reader: reader, request: r) }
         let writer = try AVAssetWriter(outputURL: partial, fileType: .mp4)
+        var compression: [String: Any] = [
+            AVVideoAverageBitRateKey: r.isProxy ? 8_000_000 : max(20_000_000, r.width*r.height*r.fps/2),
+            AVVideoMaxKeyFrameIntervalKey: r.isProxy ? 10 : r.fps,
+            AVVideoAllowFrameReorderingKey: false, AVVideoExpectedSourceFrameRateKey: r.fps,
+        ]
+        if r.isProxy { compression[kVTCompressionPropertyKey_DataRateLimits as String] = [1_500_000, 1] }
         let settings: [String: Any] = [
             AVVideoCodecKey: r.codec == "hevc" ? AVVideoCodecType.hevc : AVVideoCodecType.h264,
             AVVideoWidthKey: r.width, AVVideoHeightKey: r.height,
             AVVideoEncoderSpecificationKey: [kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder as String: true],
-            AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: max(20_000_000, r.width*r.height*r.fps/2),
-                AVVideoMaxKeyFrameIntervalKey: r.fps, AVVideoAllowFrameReorderingKey: false,
-                AVVideoExpectedSourceFrameRateKey: r.fps],
+            AVVideoCompressionPropertiesKey: compression,
             AVVideoColorPropertiesKey: [AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
                 AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2, AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2],
         ]
@@ -178,7 +234,8 @@ final class OfflineRenderer {
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         input.expectsMediaDataInRealTime = false
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+            kCVPixelBufferPixelFormatTypeKey as String: r.isProxy && r.fullRange ?
+                kCVPixelFormatType_420YpCbCr8BiPlanarFullRange : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
             kCVPixelBufferWidthKey as String: r.width, kCVPixelBufferHeightKey as String: r.height,
             kCVPixelBufferMetalCompatibilityKey as String: true, kCVPixelBufferIOSurfacePropertiesKey as String: [:],
         ])
@@ -189,6 +246,32 @@ final class OfflineRenderer {
         writer.startSession(atSourceTime: .zero)
         guard let pool = adaptor.pixelBufferPool else { throw SphereFailure.runtime("writer IOSurface pool unavailable") }
         let keys = r.keys.map(\.key)
+        func floatMatrix(_ m: simd_double3x3) -> simd_float3x3 {
+            simd_float3x3(columns: (SIMD3<Float>(m.columns.0), SIMD3<Float>(m.columns.1), SIMD3<Float>(m.columns.2)))
+        }
+        func uniforms(frame: Int) -> Uniforms {
+            let first = r.matrix(frame: frame, keys: keys)
+            let second = r.projection == "front-back" ? r.cameraMatrix(view: r.views![1].key.view) : first
+            return Uniforms(matrix: floatMatrix(first.0), tanHalf: Float(first.1),
+                            aspect: Float(r.height)/Float(r.viewWidth),
+                            eac: r.sourceProjection == "gopro-eac" ? 1 : 0,
+                            planet: r.mode == .tinyPlanet ? 1 : 0, fullRange: r.fullRange ? 1 : 0,
+                            secondMatrix: floatMatrix(second.0), secondTanHalf: Float(second.1),
+                            proxy: r.isProxy ? 1 : 0,
+                            layout: r.projection == "equirect" ? 1 : (r.projection == "front-back" ? 2 : 0))
+        }
+        // Proxy aims never move: keep the W4 matrix/FOV conversion out of the frame loop.
+        let proxyUniforms = r.isProxy ? uniforms(frame: 0) : nil
+        func outputBytes() throws -> Int64 {
+            var info = stat()
+            guard lstat(partialPath, &info) == 0 else { throw SphereFailure.runtime("cannot stat encoded output: errno \(errno)") }
+            return Int64(info.st_size)
+        }
+        func checkOutputLimit() throws {
+            if let limit = r.maxOutputBytes, try outputBytes() > limit {
+                throw SphereFailure.runtime("proxy exceeded maxOutputBytes=\(limit); refusing publication")
+            }
+        }
         var atlas: [MTLTexture] = []
         var firstPTS = 0.0, lastPTS = 0.0
         let poolOptions = [kCVPixelBufferPoolAllocationThresholdKey as String: 8] as CFDictionary
@@ -219,10 +302,7 @@ final class OfflineRenderer {
                 } while status == kCVReturnWouldExceedAllocationThreshold && writer.status == .writing && Date() < allocationDeadline
                 guard status == kCVReturnSuccess, let output else { throw SphereFailure.runtime("bounded writer pool at frame \(n): \(status), \(String(describing: writer.error))") }
                 guard let command = queue.makeCommandBuffer(), let enc = command.makeComputeCommandEncoder() else { throw SphereFailure.runtime("Metal command creation") }
-                let (matrix, tanHalf) = r.matrix(frame: n, keys: keys)
-                let floatMatrix = simd_float3x3(columns: (SIMD3<Float>(matrix.columns.0), SIMD3<Float>(matrix.columns.1), SIMD3<Float>(matrix.columns.2)))
-                var uniforms = Uniforms(matrix: floatMatrix, tanHalf: Float(tanHalf), aspect: Float(r.height)/Float(r.width),
-                                        eac: r.sourceProjection == "gopro-eac" ? 1 : 0, planet: r.mode == .tinyPlanet ? 1 : 0, fullRange: r.fullRange ? 1 : 0)
+                var frameUniforms = proxyUniforms ?? uniforms(frame: n)
                 for plane in 0...1 {
                     let src = try texture(buffer, plane: plane)
                     let dst = try texture(output, plane: plane)
@@ -245,7 +325,7 @@ final class OfflineRenderer {
                         }
                     }
                     enc.setTexture(sourceTexture, index: 0); enc.setTexture(dst.1, index: 1)
-                    enc.setBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 0)
+                    enc.setBytes(&frameUniforms, length: MemoryLayout<Uniforms>.stride, index: 0)
                     var chroma = Int32(plane)
                     enc.setBytes(&chroma, length: MemoryLayout<Int32>.size, index: 1)
                     dispatch(enc, reproject, dst.1)
@@ -254,12 +334,16 @@ final class OfflineRenderer {
                 enc.endEncoding(); command.commit(); command.waitUntilCompleted()
                 withExtendedLifetime(retained) {}
                 guard command.status == .completed else { throw SphereFailure.runtime("Metal: \(String(describing: command.error))") }
+                if let samples = r.proofSampleFrames, samples.contains(n) {
+                    try writeProofSample(output, frame: n)
+                }
                 CVBufferSetAttachment(output, kCVImageBufferColorPrimariesKey, kCVImageBufferColorPrimaries_ITU_R_709_2, .shouldPropagate)
                 CVBufferSetAttachment(output, kCVImageBufferTransferFunctionKey, kCVImageBufferTransferFunction_ITU_R_709_2, .shouldPropagate)
                 CVBufferSetAttachment(output, kCVImageBufferYCbCrMatrixKey, kCVImageBufferYCbCrMatrix_ITU_R_709_2, .shouldPropagate)
                 let deadline = Date().addingTimeInterval(60)
                 while !input.isReadyForMoreMediaData && writer.status == .writing && Date() < deadline { Thread.sleep(forTimeInterval: 0.001) }
                 guard input.isReadyForMoreMediaData, adaptor.append(output, withPresentationTime: CMTime(value: Int64(n), timescale: Int32(r.fps))) else { throw SphereFailure.runtime("encode frame \(n): \(String(describing: writer.error))") }
+                if r.isProxy { try checkOutputLimit() }
             }
         }
         input.markAsFinished()
@@ -267,10 +351,13 @@ final class OfflineRenderer {
         let done = DispatchSemaphore(value: 0)
         writer.finishWriting { done.signal() }
         guard done.wait(timeout: .now()+120) == .success, writer.status == .completed else { throw SphereFailure.runtime("finish encode: \(String(describing: writer.error))") }
+        let bytes = try outputBytes()
+        try checkOutputLimit()
         // No replace: a racing consumer's existing output is never overwritten.
         try FileManager.default.moveItem(at: partial, to: destination)
         return ["renderer": "metal", "encoder": "\(r.codec)_videotoolbox", "frames": r.frames,
                 "fps": r.fps, "width": r.width, "height": r.height,
+                "preset": r.presetName, "projection": r.projection, "bytes": bytes, "outputBytes": bytes,
                 "firstSourcePTS": firstPTS, "lastSourcePTS": lastPTS, "wallSeconds": Date().timeIntervalSince(started)]
     }
 }

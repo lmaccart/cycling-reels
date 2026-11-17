@@ -10,6 +10,10 @@ struct Uniforms {
     int eac;
     int planet;
     int fullRange;
+    float3x3 secondMatrix;
+    float secondTanHalf;
+    int proxy;
+    int layout;
 };
 
 float4 cubic(float t) {
@@ -96,26 +100,63 @@ float4 interpolate(texture2d<float, access::read> t, float2 uv, bool eac) {
     }
     return floor(clamp(floor(result/16384.f),0.f,255.f))/255.f;
 }
+
+// vf_v360 interp=linear: four signed 14-bit coefficients, rounded to
+// nearest-even, then an integer shift (not a hardware bilinear sampler).
+float4 interpolateLinear(texture2d<float, access::read> t, float2 uv, bool eac) {
+    int2 base=int2(floor(uv));
+    float2 f=uv-float2(base);
+    int w=t.get_width(), h=t.get_height();
+    int4 result=0;
+    for(int y=0;y<2;y++) for(int x=0;x<2;x++) {
+        int2 p=base+int2(x,y);
+        if(eac) p=clamp(p,int2(0),int2(w-1,h-1));
+        else {
+            if(p.y<0 || p.y>=h) p.x+=w/2;
+            p.x=(p.x%w+w)%w;
+            p.y=clamp(p.y<0 ? -p.y : (p.y>=h ? 2*h-1-p.y : p.y),0,h-1);
+        }
+        int weight=int(rint((x ? f.x : 1-f.x)*(y ? f.y : 1-f.y)*16385.f));
+        result+=weight*int4(round(t.read(uint2(p))*255.f));
+    }
+    return float4(clamp(result>>14,int4(0),int4(255)))/255.f;
+}
 kernel void reproject(texture2d<float, access::read> src [[texture(0)]],
                       texture2d<float, access::write> dst [[texture(1)]],
                       constant Uniforms &u [[buffer(0)]],
                       constant int &chroma [[buffer(1)]],
                       uint2 p [[thread_position_in_grid]]) {
     if(p.x>=dst.get_width() || p.y>=dst.get_height()) return;
-    float2 xy=2*(float2(p)+.5f)/float2(dst.get_width(),dst.get_height())-1;
-    xy*=float2(u.tanHalf,u.tanHalf*u.aspect);
-    float3 ray;
-    if(u.planet) {
-        float r=length(xy), th=2*atan(r);
-        ray=r==0 ? float3(0,0,1) : float3(xy/r*sin(th),cos(th));
-    } else ray=normalize(float3(xy,1));
-    float3 d=normalize(u.matrix*ray);
+    uint viewWidth=u.layout==2 ? dst.get_width()/2 : dst.get_width();
+    bool second=u.layout==2 && p.x>=viewWidth;
+    float2 position=float2(second ? p.x-viewWidth : p.x,p.y);
+    float2 xy=2*(position+.5f)/float2(viewWidth,dst.get_height())-1;
+    float3 d;
+    if(u.layout==1) {
+        float phi=xy.x*M_PI_F, theta=xy.y*(M_PI_F/2);
+        d=float3(cos(theta)*sin(phi),sin(theta),cos(theta)*cos(phi));
+    } else {
+        float tanHalf=second ? u.secondTanHalf : u.tanHalf;
+        xy*=float2(tanHalf,tanHalf*u.aspect);
+        float3 ray;
+        if(u.planet) {
+            float r=length(xy), th=2*atan(r);
+            ray=r==0 ? float3(0,0,1) : float3(xy/r*sin(th),cos(th));
+        } else ray=normalize(float3(xy,1));
+        d=normalize((second ? u.secondMatrix : u.matrix)*ray);
+    }
     float2 size=float2(src.get_width(),src.get_height());
-    float2 uv=u.eac ? eacPosition(d,size) :
-        (float2(atan2(d.x,d.z)/M_PI_F,asin(clamp(d.y,-1.f,1.f))/(M_PI_F/2))+1)*.5f*size-.5f;
-    float4 value=interpolate(src,uv,u.eac);
-    // Only range changes here. Matrix/primaries conversion stays in stage_video.
-    // All supported inputs are SDR BT.709; HDR/wide gamut are capability fallback.
-    if(u.fullRange) value=chroma ? (value*224.f+16.f)/255.f : (value*219.f+16.f)/255.f;
+    float2 uv;
+    if(u.eac) uv=eacPosition(d,size);
+    else {
+        float2 spherical=float2(atan2(d.x,d.z)/M_PI_F,asin(clamp(d.y,-1.f,1.f))/(M_PI_F/2));
+        // v360's equirect input scale uses size-1, not texture pixel centres.
+        uv=u.proxy ? (.5f*spherical+.5f)*(size-1) : (spherical+1)*.5f*size-.5f;
+    }
+    float4 value=u.proxy ? interpolateLinear(src,uv,u.eac) : interpolate(src,uv,u.eac);
+    // Proxies preserve the source range, like the existing v360 proxy path.
+    // W7 render outputs remain limited BT.709 for subsequent staging.
+    if(u.fullRange && !u.proxy)
+        value=chroma ? (value*224.f+16.f)/255.f : (value*219.f+16.f)/255.f;
     dst.write(value,p);
 }

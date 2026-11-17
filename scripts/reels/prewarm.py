@@ -74,7 +74,7 @@ def prewarm(project: Project, ids=(), *, all_clips: bool = False, source_only: b
         identity = _stat_identity(source)
         common = {"sourcePath": str(source), "sourceIdentity": identity, "assetId": asset["id"],
                   "sourceKind": "video", "probe": probe, "mediaRoot": str(project.media_dir),
-                  "workspaceRoot": str(state), "freeDisk": free_disk}
+                  "workspaceRoot": str(state), "codeRoot": str(project.code_root), "freeDisk": free_disk}
         source_root = preview / "sources" / source_cache_key(asset, identity, {})
         sphere_root = preview / "spheres" / sphere_cache_key(asset["id"], identity, probe)
         jobs = [(prepare_source_proxy, {**common, "revisionDir": str(source_root), "view": {},
@@ -115,7 +115,11 @@ def prewarm(project: Project, ids=(), *, all_clips: bool = False, source_only: b
             written = max(0, _cache_size(root) - before)
             report["writtenBytes"] += written
             report["reused" if result.get("reused") else "prepared"] += 1
-            log(f"{asset['id']} {label}: {'cached' if result.get('reused') else 'ready'}, {written:,} bytes written")
+            backend = result.get("backend", "unknown")
+            encoder = result.get("encoder", "unknown")
+            reason = f"; {result['fallbackReason']}" if result.get("fallbackReason") else ""
+            log(f"{asset['id']} {label}: {'cached' if result.get('reused') else 'ready'}, "
+                f"{written:,} bytes written ({backend}, {encoder}{reason})")
         if complete:
             _queue_path(project, asset["id"]).unlink(missing_ok=True)
         if report["stopped"]:

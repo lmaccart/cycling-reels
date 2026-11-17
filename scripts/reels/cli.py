@@ -930,6 +930,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--report", help="numeric JSON report only; no footage retained")
     s.set_defaults(fn=lambda project, args: importlib.import_module(".editor.bench_sphere_metal", package=__package__).command(project, args))
 
+    s = sub.add_parser("bench-proxy-metal", help="measure cold software, VideoToolbox and Metal proxies in the worker sandbox")
+    s.add_argument("--asset", default="260627-gs010096-7da3")
+    s.add_argument("--seconds", type=float, default=30)
+    s.add_argument("--report", help="numeric JSON report only; temporary derived footage is deleted")
+    s.set_defaults(fn=lambda project, args: importlib.import_module(".editor.bench_proxy_metal", package=__package__).command(project, args))
+
     s = sub.add_parser("pending", help="list assets waiting to be tagged")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_pending)

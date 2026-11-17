@@ -10,7 +10,7 @@ from pathlib import Path
 
 from ..util import ReelsError
 
-PROXY_VERSION = 4
+PROXY_VERSION = 5
 PROXY_FPS = 30
 PROXY_GOP = 10
 SPHERE_PROXY_WIDTH = 2048
@@ -44,7 +44,8 @@ def proxy_reservation(seconds: float) -> int:
     return math.ceil(max(0.0, seconds) * 4_000_000) + 32_000_000
 
 
-def _run_encoder(command: list, *, timeout: float) -> None:
+def _run_encoder(command: list, *, timeout: float, max_output_bytes: int | None = None,
+                 check: bool = True) -> subprocess.CompletedProcess:
     # The selected frozen renderer may predate proxy leases. Keep descriptor
     # inheritance in the trusted runtime, not in that renderer's media.run API.
     from ..media import BIN
@@ -52,11 +53,24 @@ def _run_encoder(command: list, *, timeout: float) -> None:
 
     command = [str(value) for value in command]
     command[0] = BIN.get(command[0], command[0])
+    if max_output_bytes is not None:
+        if max_output_bytes <= 0:
+            raise ReelsError("proxy encoder requires a positive output byte limit")
+        # Apply the hard limit in a fresh interpreter, then exec without forking
+        # again. No preexec_fn runs in a potentially threaded editor process.
+        command = [
+            sys.executable, "-c",
+            "import os,resource,sys; n=int(sys.argv[1]); "
+            "resource.setrlimit(resource.RLIMIT_FSIZE,(n,n)); "
+            "os.execvp(sys.argv[2],sys.argv[2:])",
+            str(max_output_bytes), *command,
+        ]
     result = subprocess.run(command, capture_output=True, text=True, timeout=timeout,
                             stdin=subprocess.DEVNULL, pass_fds=encoder_fds())
-    if result.returncode:
+    if check and result.returncode:
         tail = (result.stderr or result.stdout or "").strip()[-2500:]
         raise ReelsError(f"proxy encoder failed (exit {result.returncode}): {tail}")
+    return result
 
 
 def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
@@ -64,7 +78,7 @@ def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
     """Hardware decode + encode on macOS; retry the complete job in software on failure."""
     hardware = ["h264_videotoolbox", "hevc_videotoolbox"]
     encoders = [*hardware, "libx264"] if sys.platform == "darwin" else ["libx264"]
-    limit = proxy_reservation(seconds) - 16_000_000 if seconds > 0 else None
+    limit = proxy_reservation(seconds) - 16_000_000
     for encoder in encoders:
         accelerated = encoder != "libx264"
         codec = (["-b:v", "8M", "-allow_sw", "0"] if accelerated else
@@ -80,7 +94,7 @@ def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
             *(["-fs", str(limit)] if limit else []), output,
         ]
         try:
-            _run_encoder(command, timeout=1800)
+            _run_encoder(command, timeout=1800, max_output_bytes=limit)
         except (ReelsError, OSError, subprocess.SubprocessError):
             if not accelerated:
                 raise

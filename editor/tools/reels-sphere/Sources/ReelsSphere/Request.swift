@@ -1,3 +1,4 @@
+import CoreMedia
 import Foundation
 import simd
 
@@ -49,8 +50,18 @@ struct RenderRequest: Decodable {
     let corrections: Corrections?
     let fullRange: Bool
     let codec: String
+    /// Absent on the W7 render contract.
+    let preset: String?
+    let views: [CameraKey]?
+    let maxOutputBytes: Int64?
+    /// Opt-in benchmark readback only; files are siblings of the private destination.
+    let proofSampleFrames: [Int]?
 
-    var mode: SphereProjection { projection == "flat" ? .flat : .tinyPlanet }
+    var isProxy: Bool { preset == "proxy" }
+    var presetName: String { preset ?? "render" }
+    var viewWidth: Int { projection == "front-back" ? width / 2 : width }
+
+    var mode: SphereProjection { projection == "tiny-planet" ? .tinyPlanet : .flat }
 
     func validate() throws {
         guard version == 1 else { throw SphereFailure.invalid("request version must be 1") }
@@ -66,13 +77,40 @@ struct RenderRequest: Decodable {
         else { throw SphereFailure.invalid("invalid source interval, speed, even dimensions, fps or frame count") }
         guard ["equirect", "gopro-eac"].contains(sourceProjection),
               trackIDs.count == (sourceProjection == "gopro-eac" ? 2 : 1), Set(trackIDs).count == trackIDs.count,
-              ["flat", "tiny-planet"].contains(projection), ["h264", "hevc"].contains(codec)
-        else { throw SphereFailure.invalid("projection, track IDs or encoder") }
-        guard !keys.isEmpty, keys.allSatisfy({
-            [$0.at, $0.yaw, $0.pitch, $0.roll, $0.fov].allSatisfy(\.isFinite) &&
-                abs($0.pitch) <= 90 && abs($0.roll) <= 180 && (10...150).contains($0.fov)
-        }), zip(keys, keys.dropFirst()).allSatisfy({ $0.at < $1.at })
+              (isProxy ? ["equirect", "front-back"] : ["flat", "tiny-planet"]).contains(projection),
+              ["h264", "hevc"].contains(codec), ["render", "proxy"].contains(presetName)
+        else { throw SphereFailure.invalid("projection, preset, track IDs or encoder") }
+        func validCamera(_ k: CameraKey) -> Bool {
+            [k.at, k.yaw, k.pitch, k.roll, k.fov].allSatisfy(\.isFinite) &&
+                abs(k.pitch) <= 90 && abs(k.roll) <= 180 && (10...150).contains(k.fov)
+        }
+        guard (isProxy || !keys.isEmpty), keys.allSatisfy(validCamera),
+              zip(keys, keys.dropFirst()).allSatisfy({ $0.at < $1.at })
         else { throw SphereFailure.invalid("finite, strictly ordered camera keys with valid angles/FOV required") }
+        if isProxy {
+            guard speed == 1, fps == 30, corrections == nil, let limit = maxOutputBytes, limit > 0
+            else { throw SphereFailure.invalid("proxy requires speed=1, fps=30, no corrections and positive maxOutputBytes") }
+            if projection == "equirect" {
+                guard width == 2048, height == 1024, sourceOut - sourceIn <= 180, views == nil
+                else { throw SphereFailure.invalid("equirect proxy requires 2048x1024, <=180 seconds and no views") }
+            } else {
+                guard width == 1440, height == 1280, let views, views.count == 2,
+                      views.allSatisfy({ validCamera($0) && $0.at == 0 && $0.cut != true })
+                else { throw SphereFailure.invalid("front-back proxy requires 1440x1280 and exactly two resolved views at zero without cuts") }
+            }
+        } else if views != nil || maxOutputBytes != nil {
+            throw SphereFailure.invalid("views and maxOutputBytes are proxy-only")
+        }
+        if let samples = proofSampleFrames {
+            guard isProxy, !samples.isEmpty, samples.count <= 8,
+                  samples.allSatisfy({ (0..<frames).contains($0) }),
+                  zip(samples, samples.dropFirst()).allSatisfy({ $0 < $1 })
+            else { throw SphereFailure.invalid("proof samples require a proxy and at most eight ordered, unique output frames") }
+            for frame in samples {
+                guard !FileManager.default.fileExists(atPath: proofSampleURL(frame: frame).path)
+                else { throw SphereFailure.invalid("proof sample destination already exists") }
+            }
+        }
         if let c = corrections {
             guard c.sourceStart.isFinite, c.sourceStep.isFinite, c.sourceStep > 0,
                   !c.quaternions.isEmpty, c.quaternions.allSatisfy({ q in
@@ -84,8 +122,24 @@ struct RenderRequest: Decodable {
         }
     }
 
+    func proofSampleURL(frame: Int) -> URL {
+        URL(fileURLWithPath: destination).appendingPathExtension("proof-\(frame).nv12")
+    }
+
+    func validateProxyTiming(firstPTS: CMTime) throws {
+        guard proxyFPSTick(pts: firstPTS, sourceIn: sourceIn) == 0,
+              frames == proxyFPSTick(pts: CMTime(seconds: sourceOut, preferredTimescale: 600_000_000), sourceIn: sourceIn)
+        else { throw SphereFailure.unsupported("proxy trim has nonzero first fps tick or mismatched EOF frame count; use ffmpeg") }
+    }
+
     func matrix(frame: Int, keys: [SphereKey]) -> (simd_double3x3, Double) {
-        let v = SphereMath.pathValue(keys, at: Double(frame) / Double(fps), projection: mode)
+        if projection == "equirect" { return (matrix_identity_double3x3, 1) }
+        let v = projection == "front-back" ? views![0].key.view :
+            SphereMath.pathValue(keys, at: Double(frame) / Double(fps), projection: mode)
+        return cameraMatrix(view: v, frame: frame)
+    }
+
+    func cameraMatrix(view v: SphereView, frame: Int = 0) -> (simd_double3x3, Double) {
         var m = SphereMath.matrix(for: v)
         if let c = corrections {
             let q = c.quaternions[frame]
@@ -96,7 +150,7 @@ struct RenderRequest: Decodable {
         func rounded(_ x: Double) -> Double { (x * 1000).rounded() / 1000 }
         m = SphereMath.v360Matrix(yaw: rounded(a.yaw), pitch: rounded(a.pitch), roll: rounded(a.roll))
         // camera_filter rounds diagonal FOV, not horizontal FOV.
-        let diag = hypot(Double(width), Double(height)) / Double(width)
+        let diag = hypot(Double(viewWidth), Double(height)) / Double(viewWidth)
         let dfov = mode == .flat ? 2 * atan(tan(v.fov * .pi / 360) * diag) * 180 / .pi : 4 * atan(1.25 * diag) * 180 / .pi
         let tanHalf = mode == .flat ? tan(rounded(dfov) * .pi / 360) / diag : tan(rounded(dfov) * .pi / 720) / diag
         return (m, tanHalf)
@@ -106,4 +160,11 @@ struct RenderRequest: Decodable {
 /// vf_fps round=near chooses the last input whose rounded output tick is <= n.
 func fpsTick(pts: Double, first: Double, speed: Double, fps: Int) -> Int {
     Int(((pts - first) / speed * Double(fps)).rounded(.toNearestOrAwayFromZero))
+}
+
+/// Keep exact source timestamps at half-tick boundaries; Double subtraction
+/// can put an exact 1/60-second tie on the wrong side of fps round=near.
+func proxyFPSTick(pts: CMTime, sourceIn: Double) -> Int {
+    let origin = CMTime(seconds: sourceIn, preferredTimescale: 600_000_000)
+    return Int(CMTimeConvertScale(pts - origin, timescale: 30, method: .roundHalfAwayFromZero).value)
 }

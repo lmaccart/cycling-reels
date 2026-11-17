@@ -122,9 +122,9 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
   the horizon. Front is the direction of travel, measured from the camera's
   accelerometer against GPS speed changes, so it works whichever way the camera
   was mounted; clips without GPS use their tagged angles, then the lens. The
-  first open of a long clip takes a few minutes (about half its length); after
-  that it's cached. Mark In/Out as usual, then **Aim 360°** on the timeline to
-  pick the exact angle.
+  first open prepares a private proxy; subsequent opens reuse it. Supported
+  spherical video uses native Metal reprojection and hardware encoding. Mark
+  In/Out as usual, then **Aim 360°** on the timeline to pick the exact angle.
 
 ### Flagging clips
 
@@ -192,6 +192,36 @@ what renders.
   abbreviated asset IDs against the original library before copying metadata;
   originals and the input plan remain read-only.
 - Space plays the clip in the 360 view; **Done** returns to the Program preview.
+
+### Preparing 360 proxies
+
+`./reels prewarm-360 <asset-id>` prepares the same front/back browsing and
+whole-clip aim caches as the installed service, with aim ranges up to 180 s.
+No arguments resumes the pending ingest queue; `--all` is an explicit whole-library
+backfill, not a routine verification command. Originals remain read-only.
+
+Supported 8-bit SDR BT.709 footage uses Metal plus hardware H.264 (HEVC fallback).
+Other formats or missing helpers use ffmpeg/v360 with an explicit reason.
+Prewarm logs and service results expose the actual backend/encoder. Front/back
+is 1440×1280; aim is an unstabilized 2048×1024 sphere; both are 30 fps, 8 Mb/s
+target/12 Mb/s ceiling, GOP 10, no B-frames. Ordinary photos/compatibility proxies
+are unchanged.
+
+Cache version 5 separates the new pixel/codec contract from older proxies,
+without invalidating proxies for unrelated code edits. A covering v5 aim range
+opens split pieces without re-encoding; stabilization uses each requested piece's
+own clock. Workers share inherited process locks and finite disk reservations
+with prewarm, preserving the 50 GB floor. Cached editor media remains playable
+below that floor, with missing corrections computed without a disk write.
+`./reels bench-proxy-metal --asset <id> --seconds 30 --report /tmp/proxies.json`
+checks pre-encode parity ≥35 dB and native-vs-W5b quality against the same raw
+v360 reference (Y and average, ≤0.10 dB deficit per sample), plus ≥2× original
+full aim preparation. Encoded-to-encoded PSNR stays diagnostic: its old ≥35 dB
+proxy gate failed and was explicitly replaced, not passed. W7 render's encoded
+≥35 dB gate is unchanged. Proof readback is bounded, opt-in and measured
+separately from normal cold preparation; temporary derived footage is deleted.
+See [measured proxy performance and fallback details](../README.md#metal-proxy-preparation).
+
 
 ### Footage dragging
 
