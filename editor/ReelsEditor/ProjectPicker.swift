@@ -127,6 +127,7 @@ struct ProjectPicker: View {
     @State private var query = ""
     @State private var selection: String?
     @FocusState private var titleFocused: Bool
+    @FocusState private var listFocused: Bool
 
     private var filtered: [PlanSummary] { store.planSummaries.filter { $0.matches(query) } }
 
@@ -257,32 +258,46 @@ struct ProjectPicker: View {
             if filtered.isEmpty {
                 emptyState
             } else {
-                List(selection: $selection) {
-                    ForEach(filtered) { plan in
-                        PlanRow(plan: plan)
-                            .tag(plan.id)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12))
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 6) {
+                            ForEach(filtered) { plan in
+                                PlanRow(plan: plan, selected: selection == plan.id)
+                                    .id(plan.id)
+                                    .onTapGesture(count: 2) { listFocused = true; open(plan.path) }
+                                    .onTapGesture { listFocused = true; selection = plan.id }
+                                    .contextMenu {
+                                        Button("Open") { open(plan.path) }
+                                        Button("Reveal in Finder") { store.revealPlan(plan.path) }
+                                    }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 3)
                     }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .contextMenu(forSelectionType: String.self) { items in
-                    if let path = items.first {
-                        Button("Open") { open(path) }
-                        Button("Reveal in Finder") { store.revealPlan(path) }
+                    .focusable()
+                    .focused($listFocused)
+                    .focusEffectDisabled()
+                    .onAppear { listFocused = true }
+                    .onKeyPress(.return) {
+                        guard let target = PickerSelection.visible(selection, in: filtered.map(\.id)) else { return .ignored }
+                        open(target)
+                        return .handled
                     }
-                } primaryAction: { items in
-                    if let path = items.first { open(path) }
-                }
-                .onKeyPress(.return) {
-                    guard let selection else { return .ignored }
-                    open(selection)
-                    return .handled
+                    .onKeyPress(.downArrow) { moveSelection(1, proxy) }
+                    .onKeyPress(.upArrow) { moveSelection(-1, proxy) }
                 }
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func moveSelection(_ delta: Int, _ proxy: ScrollViewProxy) -> KeyPress.Result {
+        let ids = filtered.map(\.id)
+        guard let next = PickerSelection.move(from: selection, in: ids, by: delta) else { return .ignored }
+        selection = next
+        proxy.scrollTo(next)
+        return .handled
     }
 
     @ViewBuilder private var emptyState: some View {
@@ -362,8 +377,23 @@ private struct ActionButton: View {
     }
 }
 
+/// Keyboard selection movement for the picker list.
+enum PickerSelection {
+    /// Next id after moving `delta` rows, clamped to the ends. No current selection
+    /// (or one filtered out) lands on the first row going down, the last going up.
+    static func move(from current: String?, in ids: [String], by delta: Int) -> String? {
+        guard !ids.isEmpty else { return nil }
+        guard let current, let index = ids.firstIndex(of: current) else {
+            return delta >= 0 ? ids.first : ids.last
+        }
+        return ids[min(max(index + delta, 0), ids.count - 1)]
+    }
+}
+
 private struct PlanRow: View {
     let plan: PlanSummary
+    let selected: Bool
+    @State private var hovering = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -387,9 +417,17 @@ private struct PlanRow: View {
         }
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(PickerPalette.row, in: RoundedRectangle(cornerRadius: 10))
-        .contentShape(Rectangle())
+        .background(rowFill, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.accentColor.opacity(selected ? 0.9 : 0), lineWidth: 1.5))
+        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .onHover { hovering = $0 }
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private var rowFill: Color {
+        if selected { return Color.accentColor.opacity(0.28) }
+        return hovering ? Color.white.opacity(0.09) : PickerPalette.row
     }
 
     private var detail: String {
@@ -443,5 +481,13 @@ struct StatusBadge: View {
         case "rejected": .red
         default: .gray
         }
+    }
+}
+
+extension PickerSelection {
+    /// The selection only if it is still among the visible (filtered) rows.
+    static func visible(_ current: String?, in ids: [String]) -> String? {
+        guard let current, ids.contains(current) else { return nil }
+        return current
     }
 }
