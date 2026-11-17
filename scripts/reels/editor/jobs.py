@@ -38,6 +38,7 @@ class JobContext:
     def __init__(self):
         self.on_log: Callable[[str], None] | None = None
         self.cancel = threading.Event()
+        self.timed_out = False
         self._processes: set[subprocess.Popen] = set()
         self._lock = threading.RLock()
 
@@ -82,6 +83,11 @@ class JobContext:
         with self._lock:
             for process in tuple(self._processes):
                 self._terminate(process)
+
+    def expire(self) -> None:
+        """The job ran past its deadline: stop it, and report it as timed out rather than cancelled."""
+        self.timed_out = True
+        self.stop()
 
     def log(self, line: str) -> None:
         if self.on_log is not None and line:
@@ -161,27 +167,48 @@ class JobManager:
         atomic_json(self.root / f"{job['id']}.json", job)
 
     def submit(self, kind: str, revisions: dict, work: Callable[[JobContext], Any],
-               publish: Callable[[Any], Any] | None = None, *, independent: bool = False) -> dict:
-        """independent jobs (footage ingest) are not tied to the open document's revisions."""
+               publish: Callable[[Any], Any] | None = None, *, independent: bool = False,
+               key: str | None = None, timeout: float | None = None,
+               on_error: Callable[[dict], Any] | None = None) -> dict:
+        """independent jobs (footage ingest, source and 360 proxies) are not tied to the open document's revisions.
+
+        A keyed request joins the queued or running job of the same kind and key instead of starting another.
+        timeout (seconds, counted from the start of the work) ends the job as "timed_out".
+        on_error gets the final record of a job that ends unpublished: failed, cancelled, timed out or superseded."""
         revisions = dict(revisions)
-        jid = uuid.uuid4().hex
-        record = {"id": jid, "kind": kind, "revisions": dict(revisions), "state": "queued", "created": time.time()}
-        context = JobContext()
+        with self.lock:
+            if key is not None:
+                for live, live_context in self.contexts.items():
+                    existing = self.jobs[live]
+                    if (existing["kind"] == kind and existing.get("key") == key
+                            and existing["state"] in ("queued", "running") and not live_context.cancel.is_set()):
+                        return {**existing, "joined": True}
+            jid = uuid.uuid4().hex
+            record = {"id": jid, "kind": kind, "revisions": dict(revisions), "state": "queued", "created": time.time()}
+            if key is not None:
+                record["key"] = key
+            if timeout is not None:
+                record["timeoutSeconds"] = timeout
+            context = JobContext()
+            self.jobs[jid], self.contexts[jid] = record, context
+            self._save(record)
 
         def on_log(line: str) -> None:
             record["log"] = line
             self.emit("job.changed", dict(record), revisions)
         context.on_log = on_log
-        with self.lock:
-            self.jobs[jid], self.contexts[jid] = record, context
-            self._save(record)
 
         def perform():
+            deadline = None
             try:
                 with self.lock:
                     context.check_cancelled()
                     record.update(state="running", started=time.time())
                     self._save(record)
+                if timeout is not None:
+                    deadline = threading.Timer(timeout, context.expire)
+                    deadline.daemon = True
+                    deadline.start()
                 self.emit("job.changed", dict(record), revisions)
                 result = work(context)
                 context.check_cancelled()
@@ -195,17 +222,31 @@ class JobManager:
                     record.update(state="superseded" if stale else "completed", result=result, finished=time.time())
                     self._save(record)
             except Exception as exc:
+                error = error_value(exc)
+                if context.timed_out:
+                    state, error = "timed_out", {"code": "timed_out", "message": f"The job took longer than {timeout:g} seconds."}
+                elif timeout is not None and error.get("code") == "worker_timeout":
+                    state = "timed_out"
+                else:
+                    state = "cancelled" if context.cancel.is_set() else "failed"
                 with self.lock:
-                    record.update(state="cancelled" if context.cancel.is_set() else "failed",
-                                  error=error_value(exc), finished=time.time())
+                    record.update(state=state, error=error, finished=time.time())
                     self._save(record)
             finally:
+                if deadline is not None:
+                    deadline.cancel()
+                with self.lock:
+                    # No longer joinable before anyone hears that it ended.
+                    self.contexts.pop(jid, None)
+                    self.futures.pop(jid, None)
                 self.emit("job.changed", dict(record), revisions)
                 if kind == "export" and record.get("state") == "completed":
                     self.emit("export.ready", record.get("result", {}), revisions)
-                with self.lock:
-                    self.contexts.pop(jid, None)
-                    self.futures.pop(jid, None)
+                if on_error is not None and record.get("state") != "completed":
+                    try:
+                        on_error(dict(record))
+                    except Exception:  # noqa: BLE001 - the job record already holds the outcome
+                        pass
 
         with self.lock:
             self.futures[jid] = self.pool.submit(perform)

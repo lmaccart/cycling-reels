@@ -11,7 +11,6 @@
 		060B81885CE66D26FA655FDA /* SphereViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D09EE0962C7C5FF6C23E2F3 /* SphereViewer.swift */; };
 		08CD90455894E386F245A5F9 /* EditorStore+Flags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C9AE32D2B38815E4EC9D663 /* EditorStore+Flags.swift */; };
 		10C7A74033B7B2F5AB5579B8 /* UXPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742C94E4DF78E1865BE6A48A /* UXPresentationTests.swift */; };
-		1133557799AABBCCDDEEFF01 /* TimelineRulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1133557799AABBCCDDEEFF02 /* TimelineRulerTests.swift */; };
 		1290C528AF956681AB34D170 /* EditorOperationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492085F9487856C3D07CC1DC /* EditorOperationTests.swift */; };
 		17ED6F6E7A21F1F0DE87E973 /* PreviewBridgeContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C4985573D277B58FF02AA0 /* PreviewBridgeContract.swift */; };
 		266BB705CD313C6DE6F3161A /* EditorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C312C20309FAA0C382EA1BA1 /* EditorStore.swift */; };
@@ -36,8 +35,10 @@
 		A171CF4D86E12BB7111DD94E /* EditorUXHelpersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A15B4061D53DB60EC70595 /* EditorUXHelpersTests.swift */; };
 		A3F9187E7BC4AD85BAB39559 /* NativeSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12D28A6846C257061650BD6 /* NativeSplitView.swift */; };
 		A95EDBAA7A2003A5A45BE178 /* OptimisticTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F1C0247223283547164FAB /* OptimisticTimelineTests.swift */; };
+		AC0504F244BA42B82DB79402 /* EditorStore+Source.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00912FA4D3D6F8F6B5E15B23 /* EditorStore+Source.swift */; };
 		B0AEFC94E211A4C894A1BD9E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12C1CCC02E779D3DAE84519C /* Assets.xcassets */; };
 		B64505FC0D612340BD9BD734 /* EditorStore+Schedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5264BF8BCCFA857B890DAFED /* EditorStore+Schedule.swift */; };
+		B7B5F498AB619F755DB557A5 /* SourcePreparationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEB83A94748FA2B0F50D641 /* SourcePreparationTests.swift */; };
 		B7B7FD1B83E0E66B053EE75C /* PickerSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FF7BA61A70DDD729E45B92B /* PickerSelectionTests.swift */; };
 		B866F3A4762DF86173B30451 /* ReelsEditorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F415E96C6D05FB7C8387B775 /* ReelsEditorApp.swift */; };
 		BE5DC0BA68E2BEF729ABAFCF /* EditorTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06A48046C41E3D1F3623A29E /* EditorTypography.swift */; };
@@ -50,6 +51,7 @@
 		D1D95A18B5653101D2B9CDCE /* SphereAimTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A64C3FA65A24DD65E7D641C3 /* SphereAimTests.swift */; };
 		D3CC88A7CCAFD18027152AA5 /* MusicPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2DAA7B389CB168BD1066065 /* MusicPanel.swift */; };
 		DB69077274011B641AC15C11 /* EditorStore+Music.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26E3C70A95A3557A2C749875 /* EditorStore+Music.swift */; };
+		E3C327645FDAE8AEE13D038C /* TimelineRulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4BEB0C7538B949A23CD1EC /* TimelineRulerTests.swift */; };
 		EBD2FC7A3E296DB480FF8670 /* EditorModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC261352427B10DE38523B2 /* EditorModelTests.swift */; };
 		F7C082E0326A00AFA642AD4E /* SphereShaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18400677F7C7C06A109E3A3 /* SphereShaderTests.swift */; };
 /* End PBXBuildFile section */
@@ -65,6 +67,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00912FA4D3D6F8F6B5E15B23 /* EditorStore+Source.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Source.swift"; sourceTree = "<group>"; };
 		048EC2248268D2D315232CA2 /* PreviewBridgeContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewBridgeContractTests.swift; sourceTree = "<group>"; };
 		06A48046C41E3D1F3623A29E /* EditorTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorTypography.swift; sourceTree = "<group>"; };
 		0AB78B999DBE7CCCA6AEF46A /* EditorOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorOperations.swift; sourceTree = "<group>"; };
@@ -84,11 +87,11 @@
 		53E52F15D85ACAF9EB0DEDC6 /* SphereAim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereAim.swift; sourceTree = "<group>"; };
 		5FF7BA61A70DDD729E45B92B /* PickerSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerSelectionTests.swift; sourceTree = "<group>"; };
 		742C94E4DF78E1865BE6A48A /* UXPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UXPresentationTests.swift; sourceTree = "<group>"; };
-		1133557799AABBCCDDEEFF02 /* TimelineRulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineRulerTests.swift; sourceTree = "<group>"; };
 		7B22DAA22E40659B34BDAAEB /* SphereMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereMathTests.swift; sourceTree = "<group>"; };
 		86D5BF0B4504F0FF2D5C5307 /* InspectorSchemaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorSchemaSupport.swift; sourceTree = "<group>"; };
 		878892DA5A2B189A65BF0451 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		8EE1C683534511987217FF5B /* SphereAimPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereAimPanel.swift; sourceTree = "<group>"; };
+		8FEB83A94748FA2B0F50D641 /* SourcePreparationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePreparationTests.swift; sourceTree = "<group>"; };
 		93BC961B8B95B9B663FED454 /* EditorAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAppDelegate.swift; sourceTree = "<group>"; };
 		974683C8F439B030F2062E57 /* ProjectPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPicker.swift; sourceTree = "<group>"; };
 		9AC261352427B10DE38523B2 /* EditorModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorModelTests.swift; sourceTree = "<group>"; };
@@ -102,6 +105,7 @@
 		BF0715F54C9153218C6048C7 /* ReelsEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReelsEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C12D28A6846C257061650BD6 /* NativeSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSplitView.swift; sourceTree = "<group>"; };
 		C312C20309FAA0C382EA1BA1 /* EditorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorStore.swift; sourceTree = "<group>"; };
+		CD4BEB0C7538B949A23CD1EC /* TimelineRulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineRulerTests.swift; sourceTree = "<group>"; };
 		D7D9E017A9210B0237982CEC /* EditorStore+Tracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Tracks.swift"; sourceTree = "<group>"; };
 		DC77A5F4780F6E55DD51BE03 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		E6F62FE74CD133E5E22086AC /* InspectorAndChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorAndChat.swift; sourceTree = "<group>"; };
@@ -130,6 +134,7 @@
 				1C9AE32D2B38815E4EC9D663 /* EditorStore+Flags.swift */,
 				26E3C70A95A3557A2C749875 /* EditorStore+Music.swift */,
 				5264BF8BCCFA857B890DAFED /* EditorStore+Schedule.swift */,
+				00912FA4D3D6F8F6B5E15B23 /* EditorStore+Source.swift */,
 				D7D9E017A9210B0237982CEC /* EditorStore+Tracks.swift */,
 				3EC208BD56C9E914CEA2AEF9 /* EditorStore+UX.swift */,
 				06A48046C41E3D1F3623A29E /* EditorTypography.swift */,
@@ -183,10 +188,11 @@
 				46F1C0247223283547164FAB /* OptimisticTimelineTests.swift */,
 				5FF7BA61A70DDD729E45B92B /* PickerSelectionTests.swift */,
 				048EC2248268D2D315232CA2 /* PreviewBridgeContractTests.swift */,
+				8FEB83A94748FA2B0F50D641 /* SourcePreparationTests.swift */,
 				A64C3FA65A24DD65E7D641C3 /* SphereAimTests.swift */,
 				7B22DAA22E40659B34BDAAEB /* SphereMathTests.swift */,
 				F18400677F7C7C06A109E3A3 /* SphereShaderTests.swift */,
-				1133557799AABBCCDDEEFF02 /* TimelineRulerTests.swift */,
+				CD4BEB0C7538B949A23CD1EC /* TimelineRulerTests.swift */,
 				742C94E4DF78E1865BE6A48A /* UXPresentationTests.swift */,
 			);
 			path = ReelsEditorTests;
@@ -289,10 +295,11 @@
 				A95EDBAA7A2003A5A45BE178 /* OptimisticTimelineTests.swift in Sources */,
 				B7B7FD1B83E0E66B053EE75C /* PickerSelectionTests.swift in Sources */,
 				66260E1964D0B024A5F45D43 /* PreviewBridgeContractTests.swift in Sources */,
+				B7B5F498AB619F755DB557A5 /* SourcePreparationTests.swift in Sources */,
 				D1D95A18B5653101D2B9CDCE /* SphereAimTests.swift in Sources */,
 				4A6164D06DFAFDE472A18AF6 /* SphereMathTests.swift in Sources */,
 				F7C082E0326A00AFA642AD4E /* SphereShaderTests.swift in Sources */,
-				1133557799AABBCCDDEEFF01 /* TimelineRulerTests.swift in Sources */,
+				E3C327645FDAE8AEE13D038C /* TimelineRulerTests.swift in Sources */,
 				10C7A74033B7B2F5AB5579B8 /* UXPresentationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -311,6 +318,7 @@
 				08CD90455894E386F245A5F9 /* EditorStore+Flags.swift in Sources */,
 				DB69077274011B641AC15C11 /* EditorStore+Music.swift in Sources */,
 				B64505FC0D612340BD9BD734 /* EditorStore+Schedule.swift in Sources */,
+				AC0504F244BA42B82DB79402 /* EditorStore+Source.swift in Sources */,
 				7E2C46EE7F6177C54980FAD6 /* EditorStore+Tracks.swift in Sources */,
 				9B02833190C9F1ADE54678D6 /* EditorStore+UX.swift in Sources */,
 				266BB705CD313C6DE6F3161A /* EditorStore.swift in Sources */,

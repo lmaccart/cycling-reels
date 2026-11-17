@@ -1003,9 +1003,13 @@ def prepare_source_proxy(job: dict) -> dict:
             if layout == "front-back":
                 from ..stabilize import front_back_views, read_orientation, travel_direction
 
-                ori = read_orientation(source, 0.0, float(probe.get("duration") or 0) + 1)
-                gravity = ori.gravity if ori is not None else None
-                travel = travel_direction(source, gravity) if gravity else None
+                gravity = travel = None
+                try:  # telemetry only levels and aims the views; unreadable telemetry keeps the defaults
+                    ori = read_orientation(source, 0.0, float(probe.get("duration") or 0) + 1)
+                    gravity = ori.gravity if ori is not None else None
+                    travel = travel_direction(source, gravity) if gravity else None
+                except (ReelsError, OSError, ValueError):
+                    pass
                 front_back = front_back_views(gravity, job.get("angles") if isinstance(job.get("angles"), dict) else None,
                                               travel=travel)
                 cams = [v360_filter(input_projection, "flat", view_params(v, "flat", width, height), width, height)
@@ -1240,7 +1244,10 @@ def prepare_sphere_proxy(job: dict) -> dict:
 
     frames = max(1, int(round((end - start) * SPHERE_PROXY_FPS)))
     pad_s = margin(setting) if setting else 0.5
-    ori = read_orientation(source, max(0.0, start - pad_s), end + pad_s)
+    try:
+        ori = read_orientation(source, max(0.0, start - pad_s), end + pad_s)
+    except (ReelsError, OSError, ValueError):  # unreadable telemetry: the proxy still plays, unstabilized
+        ori = None
     stabilization = None
     if setting and ori is not None:
         times = [start + n / SPHERE_PROXY_FPS for n in range(frames)]
