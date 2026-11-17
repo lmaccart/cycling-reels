@@ -23,7 +23,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | `loop` | no | `false` | `true` = a seamless loop: no music fades, no end card, the length snapped to whole bars of the song, and `check` / `render` judge the seam — see **Loops** |
 | `punchOnBeats` | no | – | `{"every": 4, "scale": 1.1}`: a punch-in every `every` beats of the music (in on one, back out on the next), on clips without their own `punch` — see **Punch-ins** |
 | `cover` | no | end of hook | Seconds into the reel for cover.jpg |
-| `grade` | no | config `render.grade` | Colour grade for the whole reel: `{"look": "house", "strength": 1.0, "rescue": "auto", "warmth": 0, "exposure": 0}` or `"none"` (colour fix only). Segments and cutaways take the same `grade` to override it — see **Colour grade** |
+| `grade` | no | config `render.grade` | Colour grade for the whole reel: `{"look": "house", "strength": 1.0, "rescue": "auto", "warmth": 0, "exposure": 0}` or `"none"` (colour-space fix only; the default). Segments and cutaways take the same `grade` to override it — see **Colour grade** |
 | `post` | for queueing | – | `{"caption": "...", "hashtags": ["#cycling", ...], "altText": "...", "collaborators": ["@club"], "peopleTags": ["@friend"]}`; a music credit is appended automatically when the track has one. `collaborators` (≤ 5) = an Instagram Collab: the reel shows on their profile and to their followers too, once each accepts the invite in the app; `peopleTags` = people tagged on the reel (they're notified). Only handles the user gave you and only people who are in it or agreed — never guess a handle |
 
 **Text styles** (`style` on hook, text beats and end card): `light` = black text on a white box (TikTok's classic), `dark` = white text on a black box, `plain` = white text with an outline. Default comes from config `brand.textStyle`. Text appears exactly as written — write it in lowercase if that's how it should look. `*asterisks*` are ignored. One emoji is fine.
@@ -332,13 +332,13 @@ Every clip is first converted to BT.709 from what it really is (iPhone copies an
 
 | Field | Default | Notes |
 | --- | --- | --- |
-| `look` | `house` | `house`, `moody`, or `none` (colour fix only, no grade) |
+| `look` | `none` (a `grade` object without `look` = `house`) | `house`, `moody`, or `none` (colour-space fix only, no look) |
 | `strength` | 1.0 | 0–1.5: how much of the correction + look is applied |
 | `rescue` | `auto` | `auto` (from the overcast score), `off` / `false`, `true` (= auto), or a fixed 0–1 |
 | `warmth` | 0 | −1…1: cooler / warmer on top of the automatic white balance |
 | `exposure` | 0 | −1…1 stops |
 
-The project default lives in config `render.grade` (`look`, `strength`, `rescue`); a plan's `grade` overrides it and a segment's or cutaway's `grade` overrides the plan's (`"grade": "none"` on one clip leaves just that clip ungraded). The Reels Editor shows these as **Colour** sliders and toggles at reel, clip and project level. The user asked on 2026-11-15 for a mild, consistent look between reels — not saturated, and not uniform colour between shots; they may ask later to change the look itself, which is the `look()` function in grade.py (bump `VERSION`). Exhibits, charts, maps, title cards and text are never graded. The render log prints one `grade` line per clip, and `lineage.json` keeps what was measured.
+The look is **off by default** (config `render.grade.look` is `none`): every clip still gets the colour-space conversion, but no per-shot correction, look or rescue unless a grade is asked for. A plan or segment `grade` object that omits `look` means `house`, unless a level above it already chose a look or `"none"`, which is kept (`"grade": "none"` on the plan plus a segment `{"warmth": 0.1}` stays ungraded). The project default lives in config `render.grade` (`look`, `strength`, `rescue`); a plan's `grade` overrides it and a segment's or cutaway's `grade` overrides the plan's (`"grade": "none"` on one clip leaves just that clip ungraded). The Reels Editor shows these as **Colour** sliders and toggles at reel, clip and project level. The user asked on 2026-11-15 for a mild, consistent look between reels — not saturated, and not uniform colour between shots; they may ask later to change the look itself, which is the `look()` function in grade.py (bump `VERSION`). Exhibits, charts, maps, title cards and text are never graded. The render log prints one `grade` line per clip, and `lineage.json` keeps what was measured.
 
 ## Photo segments
 

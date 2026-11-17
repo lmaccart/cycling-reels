@@ -34,7 +34,7 @@ from .util import ReelsError
 VERSION = 1
 LUT_SIZE = 33
 LOOKS = ("house", "moody", "none")
-DEFAULTS: dict[str, Any] = {"look": "house", "strength": 1.0, "rescue": "auto"}
+DEFAULTS: dict[str, Any] = {"look": "none", "strength": 1.0, "rescue": "auto"}
 SAMPLES = 8  # frames measured per segment
 SAMPLE_W = 270
 
@@ -114,10 +114,16 @@ def settings(config: dict | None, plan_grade: Any = None, seg_grade: Any = None)
     """The grade for one clip: project default (config render.grade) < the plan's `grade` < the segment's.
     `"none"` / false turns grading off at that level; `rescue: true/false` (the editor's toggle) = "auto"/"off"."""
     s = {**DEFAULTS, **(config or {})}
+    chosen = False  # a level named the look ("none" or a dict with `look`): later dicts without one keep it
     for g in (plan_grade, seg_grade):
         if g is False or g == "none":
             s["look"] = "none"
+            chosen = True
         elif isinstance(g, dict):
+            if "look" in g:
+                chosen = True
+            elif not chosen and s["look"] == "none":
+                s["look"] = "house"  # an explicit grade block asks for a grade
             s.update(g)
     if s.get("rescue") is True:
         s["rescue"] = "auto"
@@ -147,7 +153,7 @@ def check(where: str, g: Any, errors: list[str]) -> None:
 
 
 def active(s: dict) -> bool:
-    return s.get("look", "house") != "none"
+    return s.get("look", "none") != "none"
 
 
 # --------------------------------------------------------------------------

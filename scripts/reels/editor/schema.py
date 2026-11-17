@@ -165,11 +165,11 @@ def _grade_fields(path: str, *, project: bool = False) -> list[dict[str, Any]]:
     base = path + "/grade"
     inherited = {} if project else {"defaultSource": "project grade" if not path else "reel grade"}
     fields = [
-        _field("look", "Look", base + "/look", "enum", default="house", choices=["house", "moody", "none"],
-               help="house = the shared look; none = colour fix only (no grade).", **inherited),
+        _field("look", "Look", base + "/look", "enum", default="none", choices=["house", "moody", "none"],
+               help="none = colour-space fix only (default); house = the shared look; moody = matte blacks.", **inherited),
         _field("strength", "Strength", base + "/strength", "number", default=1.0, min=0, max=1.5, step=0.05,
                display="slider", unit="×", **inherited),
-        _field("rescue", "Grey-day rescue", base + "/rescue", "boolean", default=True,
+        _field("rescue", "Grey-day rescue", base + "/rescue", "boolean", default=False,
                help="Local contrast and a pull on bright sky, scaled by how overcast each shot is.", **inherited),
     ]
     if not project:

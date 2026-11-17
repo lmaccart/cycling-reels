@@ -36,8 +36,8 @@ DEFAULTS: dict[str, Any] = {
         "browserExecutable": None,
         "keepStaging": False,
         "punchStageScale": 1.4,  # punch-in segments are staged at their punch scale, up to this (when the source has the detail); 1 = off
-        # colour grade on every clip (grade.py): look house|moody|none, strength 0–1.5, rescue auto|off|0–1 (grey-day local contrast + sky)
-        "grade": {"look": "house", "strength": 1.0, "rescue": "auto"},
+        # colour grade on every clip (grade.py): look none|house|moody (default none: colour-space fix only), strength 0–1.5, rescue auto|off|0–1 (grey-day local contrast + sky)
+        "grade": {"look": "none", "strength": 1.0, "rescue": "auto"},
     },
     "audio": {
         "musicVolume": 0.5,

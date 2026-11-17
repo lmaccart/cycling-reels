@@ -38,7 +38,7 @@
     "concurrency": null,
     "browserExecutable": null,
     "punchStageScale": 1.4,
-    "grade": {"look": "house", "strength": 1.0, "rescue": "auto"}
+    "grade": {"look": "none", "strength": 1.0, "rescue": "auto"}
   },
   "audio": {
     "musicVolume": 0.5,
