@@ -23,7 +23,7 @@ from reels.util import ReelsError
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET = "261031-gs010110-08e8"
-SOURCE = ROOT / f"library/media/{ASSET}.360"
+SOURCE = (ROOT / f"library/media/{ASSET}.360").resolve()
 BINARY = ROOT / ".cache/editor/bin/reels-sphere"
 REAL = platform.system() == "Darwin" and SOURCE.is_file() and BINARY.is_file()
 
@@ -205,7 +205,7 @@ class MetalRealFootageTests(unittest.TestCase):
         )
         out = job / "staged.mp4"
         result = subprocess.run(["sandbox-exec", "-f", str(profile), sys.executable, "-c", script,
-                                 str(job / "segment.json"), str(self.work / "project"), str(frozen), str(ROOT / "library/media"), str(out)],
+                                 str(job / "segment.json"), str(self.work / "project"), str(frozen), str(SOURCE.parent), str(out)],
                                 env=env, cwd=frozen, capture_output=True, text=True, timeout=120)
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         self.assertIn("sphere renderer: metal (h264_videotoolbox", result.stdout+result.stderr)

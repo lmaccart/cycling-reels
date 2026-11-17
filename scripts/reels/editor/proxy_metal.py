@@ -132,10 +132,17 @@ def render_proxy(job: dict, source: Path, output: Path, *, projection: str,
     # VIDEO EOF, not at the container's rounded library duration. Keep the mux's
     # original interval; never synthesize an extra video frame to cover audio.
     try:
-        video_ends = {int(s["duration_ts"]) * Fraction(s["time_base"]) for s in videos}
-        if len(video_ends) != 1:
-            return fallback("selected video tracks have different EOF timestamps")
-        video_end = video_ends.pop()
+        video_ends = [int(s["duration_ts"]) * Fraction(s["time_base"]) for s in videos]
+        if len(videos) > 1:
+            rates = {Fraction(s[key]) for s in videos for key in ("r_frame_rate", "avg_frame_rate")}
+            if len(rates) != 1 or next(iter(rates)) <= 0:
+                return fallback("selected video tracks have different or unsupported frame rates")
+            # GoPro chapter tails differ by up to two 59.94 fps source frames.
+            # Bound the discrepancy in source frames, not rounded proxy ticks;
+            # only decode the intersection, never hold one track past its EOF.
+            if max(video_ends) - min(video_ends) > 2 / rates.pop():
+                return fallback("selected video tracks have different EOF timestamps")
+        video_end = min(video_ends)
         container_end = Fraction(container["format"]["duration"])
         # Library durations and ffmpeg input trims are millisecond-quantized.
         # Accept that exact EOF representation, not an arbitrary EOF tolerance.
