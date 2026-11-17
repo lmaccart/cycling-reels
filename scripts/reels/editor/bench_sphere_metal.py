@@ -1,10 +1,11 @@
 """Real-footage v360/Metal stage parity. Temporary plan/media only; originals read-only."""
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
 from copy import deepcopy
 import json
 import os
+import sys
 from pathlib import Path
 import tempfile
 import time
@@ -103,7 +104,8 @@ def benchmark(root: Path, plan_path: Path, segment: int = 1, seconds: float = 30
 
 def command(project: Project, args) -> int:
     root = Path(args.root).expanduser().resolve() if args.root else project.root
-    report = benchmark(root, (root / args.plan).resolve(), args.segment, args.seconds, args.scale)
+    with redirect_stdout(sys.stderr):
+        report = benchmark(root, (root / args.plan).resolve(), args.segment, args.seconds, args.scale)
     text = json.dumps(report, indent=2)
     if args.report:
         Path(args.report).write_text(text + "\n")

@@ -103,6 +103,10 @@ final class OfflineRenderer {
                                     (kCMFormatDescriptionExtension_YCbCrMatrix, "ITU_R_709_2")] {
                 if let value = ext[key] as? String, value != expected { throw SphereFailure.unsupported("non-BT.709 source \(key)=\(value)") }
             }
+            let dimensions = CMVideoFormatDescriptionGetDimensions(f)
+            if ext[kCMFormatDescriptionExtension_YCbCrMatrix] == nil && Int(dimensions.width) * Int(dimensions.height) <= 720 * 576 {
+                throw SphereFailure.unsupported("untagged SD uses staging's BT.601 colour interpretation")
+            }
             let transform = try await track.load(.preferredTransform)
             let range = try await track.load(.timeRange)
             guard transform.isIdentity, abs(range.start.seconds) < 1e-9,

@@ -46,6 +46,13 @@ class MetalCapabilityTests(unittest.TestCase):
             with self.subTest(reason=reason):
                 self.assertIn(reason, sphere_metal.capability(probe, streams))
 
+    def test_untagged_sd_preserves_staging_colour_interpretation(self):
+        stream = {**self.streams[0], "width": 512, "height": 256}
+        stream.pop("color_space")
+        self.assertIn("BT.601", sphere_metal.capability({"sphere": {"projection": "equirect"}}, [stream]))
+        stream["color_space"] = "bt709"
+        self.assertIsNone(sphere_metal.capability({"sphere": {"projection": "equirect"}}, [stream]))
+
     def test_requires_matching_track_ranges_and_chroma_aligned_seams(self):
         streams = deepcopy(self.streams)
         streams[1]["color_range"] = "tv"
@@ -205,6 +212,22 @@ class MetalRealFootageTests(unittest.TestCase):
         info = ffprobe_json(out)
         self.assertEqual([s["codec_type"] for s in info["streams"]], ["video", "audio"])
         self.assertEqual(int(info["streams"][0]["nb_frames"]), sg.frames)
+
+    def test_benchmark_stdout_remains_machine_readable_json(self):
+        from contextlib import redirect_stdout
+        import io
+        from reels.editor.bench_sphere_metal import command
+
+        plan = self.work / "benchmark-plan.json"
+        plan.write_text(json.dumps({"segments": [{"asset": ASSET, "in": 19.6375, "out": 20.0375}]}))
+        args = types.SimpleNamespace(root=str(ROOT), plan=str(plan), segment=1, seconds=.4, scale=.1, report=None)
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            status = command(Project(ROOT), args)
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(status, 0)
+        self.assertTrue(report["pass"])
+        self.assertTrue(report["temporaryMediaRemoved"])
 
     def test_cli_errors_leave_no_destination(self):
         destination = self.work / "never.mp4"

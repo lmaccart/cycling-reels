@@ -105,9 +105,9 @@ bleep, cleaning, fades, padding and AAC mux. The helper outputs limited BT.709;
 staging never converts it a second time. An explicitly requested grade remains
 a separate pass; the default remains **no look**.
 
-HDR, wide-gamut/other matrices, 10-bit/non-4:2:0, unsupported codecs, rotated or
-nonzero-origin tracks, and unaligned GoPro seam crops select v360 with an
-explicit reason. Missing/non-macOS helper does likewise. Decoder/Metal/writer
+HDR, wide-gamut/other matrices, untagged SD (staging assumes BT.601),
+10-bit/non-4:2:0, unsupported codecs, rotated/nonzero-origin tracks, and unaligned
+GoPro seam crops select v360 with an explicit reason. Missing/non-macOS helper does likewise. Decoder/Metal/writer
 errors **after** a successful capability check fail the job, never silently
 render another image. `REELS_SPHERE_BACKEND=metal` requires actual Metal execution;
 `v360` selects the reference; `auto` is the default.

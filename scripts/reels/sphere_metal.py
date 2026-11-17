@@ -51,6 +51,8 @@ def capability(probe: dict, streams: list[dict]) -> str | None:
             return "only hardware-decodable 8-bit 4:2:0 H.264/HEVC is supported"
         if any(s.get(k) not in (None, "unknown", "bt709") for k in ("color_space", "color_primaries", "color_transfer")):
             return "non-BT.709 colour conversion remains in v360"
+        if s.get("color_space") in (None, "unknown") and int(s.get("width", 0)) * int(s.get("height", 0)) <= 720 * 576:
+            return "untagged SD uses staging's BT.601 colour interpretation"
         if float(s.get("start_time", 0)) != 0:
             return "nonzero source track origin remains in v360"
         if any(d.get("rotation", 0) != 0 for d in s.get("side_data_list", [])):
