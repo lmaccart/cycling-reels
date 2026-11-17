@@ -114,7 +114,7 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
             item["motionWindow"] = {**window, "offsetSeconds": window["offsetSeconds"] + left-at}
         if isinstance(item.get("path"), list) or isinstance(item.get("cameraWindow"), dict):
             camera = (cameras.get(index, {}).get("spec") or {}).get("sphere")
-            _slice_camera(source, item, left-at, right-at, camera=camera)
+            _slice_camera(source, item, left-at, right-at, duration=duration, camera=camera)
         if isinstance(item.get("sphere"), dict) and isinstance(item["sphere"].get("path"), list):
             item["sphere"]["path"] = _slice_keys(item["sphere"]["path"], left-at, right-at, rebase=True)
         out.append(item)
@@ -258,14 +258,14 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
 
 
 def _slice_camera(segment: dict, result: dict, start: float, end: float, *,
-                  camera: dict | None = None) -> None:
+                  duration: float, camera: dict | None = None) -> None:
     """Keep playback intervals intact; only the separate editing handles are clipped."""
     from ..sphere import plan_camera
 
     window = segment.get("cameraWindow")
     if camera is None:
         spec = {**segment, "path": window["path"]} if window else segment
-        camera = plan_camera(spec, {}, None, window["durationSeconds"] if window else source_duration(segment),
+        camera = plan_camera(spec, {}, None, window["durationSeconds"] if window else duration,
                              [], [], "slice")
         if window and camera["path"]:
             for key in camera["path"]:
@@ -273,7 +273,7 @@ def _slice_camera(segment: dict, result: dict, start: float, end: float, *,
     if not camera.get("path"):
         return
     result["view"] = deepcopy(camera["view"])
-    window = window or {"offsetSeconds": 0, "durationSeconds": source_duration(segment),
+    window = window or {"offsetSeconds": 0, "durationSeconds": duration,
                         "path": camera["path"]}
     result["cameraWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + start}
     result["path"] = window_piece_keys(camera["path"], start, end-start, projection=camera["projection"])
@@ -310,7 +310,8 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *, reb
         else:
             result[key] = _clip_events(result[key], start, end, rebase=rebase)
     if isinstance(segment.get("path"), list) or isinstance(segment.get("cameraWindow"), dict):
-        _slice_camera(segment, result, start, end, camera=camera)
+        _slice_camera(segment, result, start, end,
+                      duration=source_duration((resolved or {}).get("spec") or segment), camera=camera)
     if isinstance(result.get("blur"), list):
         patches = []
         for patch in result["blur"]:

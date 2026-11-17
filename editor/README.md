@@ -77,6 +77,9 @@ Both projections (flat and tiny planet), custom pitch/roll, shortest-arc paths,
 holds/cuts, exterior cameraWindow keys, numeric stabilization and speed/fps
 retiming share W4's math/clock conventions. SwiftPM links the **same**
 `SphereMath.swift` used by the viewer, not a copied implementation.
+Camera slicing retains the compiler-resolved original duration (including the
+default photo duration) in `cameraWindow`; piece durations and editing handles
+do not restart or quantize that playback clock.
 
 Direct CLI: `.cache/editor/bin/reels-sphere --check request.json`, then
 `--render request.json`. Exit codes: 2 invalid inputs, 3 unsupported capability,

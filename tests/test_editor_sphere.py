@@ -263,6 +263,46 @@ class SphereCameraTests(unittest.TestCase):
                             self.assert_split_playback(result, original, window_path=original, window_duration=41.6)
                         self.assertEqual(len(result["plan"]["segments"]), 4)
 
+    def test_transaction_split_photo_uses_compiler_duration_and_preserves_playback(self):
+        from reels import render
+
+        asset = self.fixture.asset("photo360", kind="photo")
+        asset["probe"]["sphere"] = {"projection": "equirect", "width": 4096, "height": 2048}
+        save_asset(self.fixture.project, asset)
+        # Both durations occupy 75 frames, but the playback clock must retain the
+        # compiler's exact duration, including its default when raw duration is absent.
+        for duration in (None, 2.49):
+            with self.subTest(duration=duration):
+                segment = {"asset": "photo360", "path": ["front", "back"],
+                           "timeline": {"track": "V1", "startFrame": 0, "durationFrames": 75}}
+                if duration is not None:
+                    segment["duration"] = duration
+                node = self.open([segment], timeline={"version": 1, "fps": 30, "durationFrames": 75})[0]
+                store = self.service.document
+                self.assertEqual(store.snapshot()["durationFrames"], 75)
+                original = store._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+                result = self.apply_operations([{"op": "split_segment", "id": node, "atFrame": 30}])
+                self.assertEqual([(n["startFrame"], n["endFrame"]) for n in result["nodes"]
+                                  if n["kind"] == "segment"], [(0, 30), (30, 75)])
+                self.assertEqual([s["duration"] for s in result["plan"]["segments"]], [1, 1.5])
+                self.assertFalse([d for d in result.get("diagnostics", []) if d.get("severity") == "error"])
+                built = render.build(self.fixture.project, result["plan"])
+                for raw, piece in zip(result["plan"]["segments"], built["segs"]):
+                    start = piece.start / 30
+                    self.assertEqual(raw["cameraWindow"], {
+                        "offsetSeconds": start, "durationSeconds": 2.5 if duration is None else duration,
+                        "path": original})
+                    errors = []
+                    plan_camera({"path": raw["path"]}, {}, None, raw["duration"], errors, [], "photo piece")
+                    self.assertEqual(errors, [])
+                    ticks = [round(k["at"] * 1000) for k in raw["path"]]
+                    self.assertTrue(all(b-a >= 100 for a, b in zip(ticks, ticks[1:])), ticks)
+                    self.assertTrue(all(0 <= k["at"] <= raw["duration"] for k in raw["path"]))
+                    for frame in range(piece.frames + 1):
+                        t = frame / 30
+                        self.assert_pose(path_value(piece.spec["sphere"]["path"], t),
+                                         path_value(original, start + t))
+
     def test_transaction_recuts_keep_fractional_and_negative_window_clocks_and_hardcuts(self):
         for offset in (-1, 32 / 30):
             with self.subTest(offset=offset):
