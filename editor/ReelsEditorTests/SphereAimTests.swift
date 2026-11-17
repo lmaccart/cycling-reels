@@ -90,6 +90,36 @@ final class SphereAimTests: XCTestCase {
         XCTAssertEqual(SphereMath.element(m.stabilization(atSource: 12), 0, 0), 1, accuracy: 1e-12)  // no proxy: identity
     }
 
+    func testSplitPlaybackKeepsOriginalIntervalAndBoundaryCut() throws {
+        for cut in [false, true] {
+            let original = [key(0, 0), key(4, 90, cut: cut)]
+            let full = try XCTUnwrap(SphereAimModel.parseCamera(cameraJSON(path: original), nodeID: "full"))
+            let start = SphereMath.pathValue(full.keys, at: 1)
+            let json = cameraJSON(path: [key(0, start.yaw), key(3, 90, cut: cut)])
+                .setting(.array(original), at: ["playbackPath"])
+                .setting(.number(1), at: ["playbackOffsetSeconds"])
+                .setting(.number(3), at: ["seconds"])
+            let m = model(json)
+            for n in 0...90 {
+                let t = Double(n) / 30
+                XCTAssertEqual(m.view(atLocal: t).yaw, SphereMath.pathValue(full.keys, at: t + 1).yaw, accuracy: 1e-9)
+            }
+            _ = m.operationsForAim(SphereView(yaw: 50, pitch: 0, fov: 90, roll: 0), atLocal: 1, fps: 30, raw: nil)
+            XCTAssertEqual(m.view(atLocal: 1).yaw, 50, accuracy: 1e-9)
+        }
+    }
+
+    func testTinyPlanetPlaybackUsesProjectedPath() {
+        let original: [JSONValue] = [
+            .object(["at": .number(0), "yaw": .number(0), "pitch": .number(90), "roll": .number(0), "fov": .number(90)]),
+            .object(["at": .number(2), "yaw": .number(90), "pitch": .number(90), "roll": .number(90), "fov": .number(90)]),
+        ]
+        let m = model(cameraJSON(path: original).setting(.string("tiny-planet"), at: ["projection"]))
+        let expected = SphereMath.v360Matrix(yaw: 90, pitch: -90, roll: 0)
+        let actual = SphereMath.matrix(for: m.view(atLocal: 1))
+        for c in 0..<3 { XCTAssertEqual(simd_length(actual[c] - expected[c]), 0, accuracy: 1e-9) }
+    }
+
     func testStabilizeAndProjectionOperations() {
         let m = model(cameraJSON())
         XCTAssertEqual(ops(m.operationsForStabilize("lock"))["/stabilize"], .string("lock"))
@@ -138,5 +168,33 @@ final class SphereAimTests: XCTestCase {
         XCTAssertEqual(target([], 110), "over")                 // the cutaway is the picture there
         XCTAssertEqual(target([], 110, "right"), "right")       // but playing through it keeps the current clip
         XCTAssertNil(target([], 200))
+    }
+
+    func testSelectedClipSplitMovesSelectionAndAimToRightPiece() throws {
+        func snapshot(_ nodes: [EditorNode]) throws -> EditorSnapshot {
+            let rawNodes = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(nodes))
+            return try XCTUnwrap(EditorSnapshot.decode(.object([
+                "documentId": .string("split-doc"),
+                "revisions": .object(["document": .string("d"), "library": .string("l"), "renderer": .string("r")]),
+                "plan": .object([:]), "nodes": rawNodes, "fps": .number(30), "durationFrames": .number(180),
+                "warnings": .array([]), "preview": .object([:]),
+            ])))
+        }
+        let store = EditorStore()
+        store.library = [.object(["id": .string("a360"), "kind": .string("video"),
+                                   "probe": .object(["sphere": .object([:])])])]
+        store.snapshot = try snapshot([node("selected", "segment", "a360", 0, 180)])
+        store.selectedIDs = ["selected"]
+        store.playheadFrame = 90
+        store.sphereAim.isActive = true
+        store.sphereAim.boundNodeID = "selected"
+        // The ordinary split response keeps the selected ID on the left.
+        store.snapshot = try snapshot([node("selected", "segment", "a360", 0, 90),
+                                       node("new-right", "segment", "a360", 90, 180)])
+        XCTAssertEqual(store.selectedIDs, ["new-right"])
+        XCTAssertTrue(store.followSphereAim())
+        XCTAssertEqual(store.sphereAim.boundNodeID, "new-right")
+        XCTAssertEqual(store.playheadFrame, 90)
+        store.sphereAim.close()
     }
 }

@@ -147,8 +147,9 @@ def v360_matrix(yaw: float, pitch: float, roll: float) -> Mat:
 def v360_angles(m: Mat) -> tuple[float, float, float]:
     """Inverse of v360_matrix: (yaw, pitch, roll) in degrees."""
     sp = max(-1.0, min(1.0, -m[1][2]))
-    pitch = math.asin(sp)
-    if abs(sp) < 0.99999:
+    cp = math.hypot(m[0][2], m[2][2])
+    pitch = math.atan2(sp, cp)
+    if cp > 1e-12:
         yaw = math.atan2(m[0][2], m[2][2])
         roll = math.atan2(m[1][0], m[1][1])
     else:  # looking straight up/down: only yaw ± roll is defined — put it all in yaw

@@ -2039,6 +2039,14 @@ class DocumentStore:
                 parent[key] = value
             if isinstance(target, dict) and path.split("/")[1] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection"):
                 window = target.get("cameraWindow")
+                cleared = ctx.setdefault("clearedCameraWindows", {})
+                if path in ("/yaw", "/pitch", "/roll", "/fov") and value is None:
+                    if isinstance(window, dict):
+                        cleared[node_id] = window
+                elif path == "/path" and isinstance(value, list):
+                    window = window or cleared.pop(node_id, None)
+                else:
+                    cleared.pop(node_id, None)
                 kept = None
                 if path == "/path" and isinstance(value, list) and isinstance(window, dict):
                     # an aim edit on a split piece: its keys go into the window too, so the

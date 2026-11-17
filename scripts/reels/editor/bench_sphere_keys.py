@@ -43,7 +43,7 @@ CAMERA_FIELDS = ("asset", "in", "out", "speed", "moment", "view", "path", "camer
                  "stabilize", "yaw", "pitch", "fov", "roll")
 
 
-def piece(segment: dict, start: float | None, end: float | None) -> dict:
+def piece(segment: dict, start: float | None, end: float | None, *, asset: dict) -> dict:
     """The segment's camera fields, cut to [start, end) local seconds the way a timeline
     split does: the piece keeps the whole move in its `cameraWindow`."""
     from reels.editor.timing import _slice_keys
@@ -51,6 +51,12 @@ def piece(segment: dict, start: float | None, end: float | None) -> dict:
     seg = {k: deepcopy(segment[k]) for k in CAMERA_FIELDS if k in segment}
     if start is None and end is None:
         return seg
+    if "moment" in seg:
+        from reels.library import resolve_moment
+
+        moment = resolve_moment(asset, seg["moment"])
+        seg.setdefault("in", moment["in"])
+        seg.setdefault("out", moment["out"])
     speed = float(seg.get("speed") or 1.0)
     source_in, source_out = float(seg["in"]), float(seg["out"])
     seconds = (source_out - source_in) / speed
@@ -121,18 +127,21 @@ def run(project: Project, plan: dict, segment: int, out_dir: Path, *,
     from reels import render
     from reels.grade import source_colour, to_bt709
     from reels.sphere import path_value, source_graph, v360_filter
+    from reels.library import load_asset, resolve_id
 
     segments = plan.get("segments") or []
     if not 0 <= segment < len(segments):
         raise ReelsError(f"the plan has no segment {segment + 1}")
+    asset = load_asset(project, resolve_id(project, str(segments[segment].get("asset", ""))))
     bench_plan = {"slug": f"bench-sphere-{uuid.uuid4().hex[:8]}", "autoSfx": False,
-                  "segments": [piece(segments[segment], start, end)]}
+                  "segments": [piece(segments[segment], start, end, asset=asset)]}
     built = render.build(project, bench_plan)
     sg, fps = built["segs"][0], int(built["fps"])
     sphere = sg.spec.get("sphere")
     if sg.kind != "video" or not sphere:
         raise ReelsError(f"segment {segment + 1} isn't 360 video")
     keys = sphere.get("path") or []
+    out_dir = out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     staged = out_dir / "staged.mp4"
     started = time.perf_counter()
@@ -174,7 +183,7 @@ def run(project: Project, plan: dict, segment: int, out_dir: Path, *,
     rows = []
     for label, n in samples:
         t = n / fps
-        view = path_value(keys, t) if keys else dict(sphere["view"])
+        view = path_value(keys, t, sphere["projection"]) if keys else dict(sphere["view"])
         got, want = out_dir / f"f{n:05d}.staged.y4m", out_dir / f"f{n:05d}.path.y4m"
         _ffmpeg(["-v", "error", "-y", "-i", staged, "-vf", f"select=eq(n\\,{n})", "-fps_mode", "passthrough",
                  "-frames:v", 1, "-pix_fmt", "yuv420p", got])

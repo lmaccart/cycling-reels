@@ -80,6 +80,7 @@ final class SphereMathTests: XCTestCase {
         var keys: [SphereKey]
         var samples: [[Double]]
         var arcs: [(from: Int, to: Int, degrees: Double)]
+        var projection: SphereProjection
     }
 
     private func golden() throws -> (tolerance: Double, cases: [GoldenCase]) {
@@ -98,7 +99,8 @@ final class SphereMathTests: XCTestCase {
                 (from: $0["from"] as? Int ?? 0, to: $0["to"] as? Int ?? 0, degrees: $0["degrees"] as? Double ?? 0)
             }
             return GoldenCase(name: item["name"] as? String ?? "", keys: keys,
-                              samples: item["samples"] as? [[Double]] ?? [], arcs: arcs)
+                              samples: item["samples"] as? [[Double]] ?? [], arcs: arcs,
+                              projection: item["projection"] as? String == "tiny-planet" ? .tinyPlanet : .flat)
         }
         XCTAssertGreaterThanOrEqual(cases.count, 5)
         return (try XCTUnwrap(root["tolerance"] as? Double), cases)
@@ -110,7 +112,8 @@ final class SphereMathTests: XCTestCase {
     private func turn(_ a: simd_double3x3, _ b: simd_double3x3) -> Double {
         let m = a.transpose * b
         let trace = m[0][0] + m[1][1] + m[2][2]
-        return acos(min(1, max(-1, (trace - 1) / 2))) * 180 / .pi
+        let sine = simd_length(simd_double3(m[0][1] - m[1][0], m[1][2] - m[2][1], m[2][0] - m[0][2])) / 2
+        return atan2(sine, (trace - 1) / 2) * 180 / .pi
     }
 
     func testPathValueMatchesGoldenVectors() throws {
@@ -118,7 +121,7 @@ final class SphereMathTests: XCTestCase {
         var checked = 0
         for c in cases {
             for s in c.samples {
-                let v = SphereMath.pathValue(c.keys, at: s[0])
+                let v = SphereMath.pathValue(c.keys, at: s[0], projection: c.projection)
                 XCTAssertLessThan(wrapped(v.yaw, s[1]), tolerance, "\(c.name) yaw at \(s[0])")
                 XCTAssertLessThan(abs(v.pitch - s[2]), tolerance, "\(c.name) pitch at \(s[0])")
                 XCTAssertLessThan(abs(v.fov - s[3]), tolerance, "\(c.name) fov at \(s[0])")
@@ -133,11 +136,13 @@ final class SphereMathTests: XCTestCase {
         for c in try golden().cases {
             for arc in c.arcs {
                 let a = c.keys[arc.from], b = c.keys[arc.to]
-                let shortest = turn(SphereMath.matrix(for: a.view), SphereMath.matrix(for: b.view))
+                let shortest = turn(SphereMath.matrix(for: SphereMath.effectiveView(a.view, projection: c.projection)),
+                                    SphereMath.matrix(for: SphereMath.effectiveView(b.view, projection: c.projection)))
                 XCTAssertEqual(shortest, arc.degrees, accuracy: 1e-6, c.name)
                 XCTAssertLessThanOrEqual(shortest, 180)
                 let mats = (0...400).map { i in
-                    SphereMath.matrix(for: SphereMath.pathValue(c.keys, at: a.at + (b.at - a.at) * Double(i) / 400))
+                    SphereMath.matrix(for: SphereMath.pathValue(c.keys, at: a.at + (b.at - a.at) * Double(i) / 400,
+                                                               projection: c.projection))
                 }
                 let travelled = zip(mats, mats.dropFirst()).reduce(0) { $0 + turn($1.0, $1.1) }
                 XCTAssertEqual(travelled, shortest, accuracy: 1e-4, "\(c.name) arc \(arc.from)")

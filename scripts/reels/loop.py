@@ -30,7 +30,7 @@ def _view_at_end(sg, fps: int) -> dict | None:
     sph = sg.spec.get("sphere")
     if not sph:
         return None
-    return path_value(sph["path"], (sg.frames - 1) / fps) if sph["path"] else sph["view"]
+    return path_value(sph["path"], (sg.frames - 1) / fps, sph["projection"]) if sph["path"] else sph["view"]
 
 
 def _view_at_start(sg) -> dict | None:
@@ -94,7 +94,7 @@ def seam_frames(project: Project, segs: list, fps: int, folder: Path) -> tuple[P
     tail_spec = dict(last.spec, **{"in": max(0.0, last.spec["out"] - two)})
     sph = last.spec.get("sphere")
     if sph and sph["path"]:  # hold the view the camera move ends on
-        tail_spec["sphere"] = dict(sph, view=path_value(sph["path"], (last.frames - 1) / fps), path=None)
+        tail_spec["sphere"] = dict(sph, view=path_value(sph["path"], (last.frames - 1) / fps, sph["projection"]), path=None)
     tail = replace(last, spec=tail_spec, frames=2)
     stage_video(project, head, folder / "seam-head.mp4", fps)
     stage_video(project, tail, folder / "seam-tail.mp4", fps)

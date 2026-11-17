@@ -189,7 +189,7 @@ def view_quat(view: dict) -> tuple[float, float, float, float]:
     return (ca * cb * cc + sa * sb * sc, ca * sb * cc + sa * cb * sc, sa * cb * cc - ca * sb * sc, ca * cb * sc - sa * sb * cc)
 
 
-def path_value(keys: list[dict], t: float) -> dict:
+def path_value(keys: list[dict], t: float, projection: str = "flat") -> dict:
     """Camera at time t along keyframes [{'at', 'yaw', 'pitch', 'fov', 'roll'[, 'cut']}].
 
     Orientation moves along the shortest great-circle arc (quaternion slerp, eased), so a
@@ -199,14 +199,18 @@ def path_value(keys: list[dict], t: float) -> dict:
     golden vectors in tests/fixtures/sphere_path_golden.json hold both to it."""
     from .stabilize import qmat, qslerp, v360_angles
 
+    def effective(key):
+        return {**key, "pitch": -90.0} if projection == "tiny-planet" else key
+
     if t <= keys[0]["at"]:
-        return dict(keys[0])
+        return dict(effective(keys[0]))
     for a, b in zip(keys, keys[1:]):
         if b.get("cut"):  # hard cut: hold the previous view until this keyframe, then jump
             if t < b["at"]:
-                return {**a, "at": t, "cut": False}
+                return {**effective(a), "at": t, "cut": False}
             continue
         if t <= b["at"]:
+            a, b = effective(a), effective(b)
             span = max(1e-6, b["at"] - a["at"])
             e = _ease((t - a["at"]) / span)
             if e <= 0.0 or e >= 1.0:
@@ -215,7 +219,7 @@ def path_value(keys: list[dict], t: float) -> dict:
                         "fov": float(k["fov"]), "roll": float(k["roll"])}
             yaw, pitch, roll = v360_angles(qmat(qslerp(view_quat(a), view_quat(b), e)))
             return {"at": t, "yaw": wrap_yaw(yaw), "pitch": pitch, "fov": a["fov"] + (b["fov"] - a["fov"]) * e, "roll": roll}
-    return dict(keys[-1])
+    return dict(effective(keys[-1]))
 
 
 def camera_filter(
@@ -241,7 +245,7 @@ def camera_filter(
         return v360_filter(inproj, projection, first, w, h)
 
     def frame_params(n: int) -> dict:
-        p = view_params(path_value(keys, n / fps), projection, w, h) if keys else dict(first)
+        p = view_params(path_value(keys, n / fps, projection), projection, w, h) if keys else dict(first)
         if stab:
             a = stab[min(n, len(stab) - 1)]
             p["yaw"], p["pitch"], p["roll"] = v360_angles(mmul(a, v360_matrix(p["yaw"], p["pitch"], p["roll"])))

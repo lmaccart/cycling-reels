@@ -1848,6 +1848,29 @@
      "degrees": 90.4352300025
     }
    ]
+  },
+  {
+   "name": "tiny planet interpolates projected orientations",
+   "projection": "tiny-planet",
+   "keys": [
+    {"at": 0, "yaw": 0, "pitch": 90, "roll": 0, "fov": 90},
+    {"at": 2, "yaw": 90, "pitch": 90, "roll": 90, "fov": 110}
+   ],
+   "samples": [
+    [0, 0, -90, 90, 0],
+    [1, 90, -90, 100, 0],
+    [2, 90, -90, 110, 90]
+   ],
+   "arcs": [{"from": 0, "to": 1, "degrees": 180}]
+  },
+  {
+   "name": "constant near pole preserves orientation",
+   "keys": [
+    {"at": 0, "yaw": 0, "pitch": 89.9, "roll": 180, "fov": 90},
+    {"at": 2, "yaw": 0, "pitch": 89.9, "roll": 180, "fov": 90}
+   ],
+   "samples": [[0, 0, 89.9, 90, 180], [0.5, 0, 89.9, 90, 180], [1, 0, 89.9, 90, 180], [2, 0, 89.9, 90, 180]],
+   "arcs": []
   }
  ]
 }

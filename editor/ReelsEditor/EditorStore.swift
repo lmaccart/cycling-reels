@@ -23,7 +23,13 @@ final class EditorStore {
     private(set) var repositoryRoot: URL?
     private var toastTask: Task<Void, Never>?
     var serviceState: EditorService.ServiceState = .stopped
-    var snapshot: EditorSnapshot?
+    var snapshot: EditorSnapshot? {
+        didSet {
+            if let oldValue, let snapshot, oldValue.documentId == snapshot.documentId {
+                followSphereAimAfterSplit(previous: oldValue.nodes, next: snapshot.nodes)
+            }
+        }
+    }
     /// Last server-authoritative document state; `snapshot` may include predictions.
     @ObservationIgnored var authoritativeSnapshot: EditorSnapshot?
     /// Timeline edits shown on screen but not saved yet, oldest first.

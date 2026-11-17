@@ -27,8 +27,10 @@ SPRINT = next(case["keys"] for case in GOLDEN["cases"] if case["name"].startswit
 
 def _turn(m1, m2) -> float:
     """Degrees of rotation between two rotation matrices."""
-    trace = sum(m1[k][i] * m2[k][i] for i in range(3) for k in range(3))  # trace(m1ᵀ m2)
-    return math.degrees(math.acos(max(-1.0, min(1.0, (trace - 1) / 2))))
+    m = [[sum(m1[k][i] * m2[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    sine = math.sqrt(sum((m[i][j] - m[j][i]) ** 2 for i, j in ((0, 1), (1, 2), (2, 0)))) / 2
+    cosine = (sum(m[i][i] for i in range(3)) - 1) / 2
+    return math.degrees(math.atan2(sine, cosine))
 
 
 def _wrapped(a: float, b: float) -> float:
@@ -93,6 +95,30 @@ class SphereCameraTests(unittest.TestCase):
         plan_camera({"path": cam["path"]}, {"angles": ANGLES}, None, cam["seconds"], errors, [], "clip")
         self.assertEqual(errors, [])  # written back by an aim edit, the compiler accepts them
 
+    def test_split_playback_matches_render_at_interior_frames_and_boundary_cuts(self):
+        from reels import render
+
+        for cut in (False, True):
+            keys = [{"at": 0, "yaw": 0, "pitch": 0, "roll": 0, "fov": 90},
+                    {"at": 4, "yaw": 90, "pitch": 0, "roll": 0, "fov": 100, "cut": cut}]
+            segment = {"asset": "ride360", "in": 21, "out": 24, "cameraWindow": {
+                "durationSeconds": 4, "offsetSeconds": 1, "path": keys}}
+            node_id = self.open([segment])[0]
+            cam = self.service.dispatch("sphere.camera", {"id": node_id})
+            rendered = render.build(self.fixture.project, {"slug": "split", "segments": [segment]})["segs"][0].spec["sphere"]
+            for n in range(91):
+                t = n / 30
+                viewer = path_value(cam["playbackPath"], t + cam["playbackOffsetSeconds"])
+                expected = path_value(rendered["path"], t)
+                for name in ("yaw", "pitch", "roll", "fov"):
+                    self.assertAlmostEqual(viewer[name], expected[name], places=9)
+            if cut:
+                self.assertTrue(cam["path"][-1]["cut"])
+                self.assertEqual(path_value(cam["path"], 2.99)["yaw"], 0)
+            else:
+                self.assertGreater(abs(path_value(cam["path"], 0.5)["yaw"]
+                                       - path_value(cam["playbackPath"], 1.5)["yaw"]), 1)
+
     def test_non_360_clips_are_refused(self):
         ids = self.open([{"asset": "flat", "in": 0, "out": 2}])
         with self.assertRaises(ProtocolError):
@@ -132,6 +158,23 @@ class SliceCutTests(unittest.TestCase):
         keys = [{"at": 0, "x": 0.0, "w": 0.2}, {"at": 2, "x": 1.0, "w": 0.4}]
         self.assertEqual(_slice_keys(keys, 0.5, 2, rebase=True)[0], {"at": 0.0, "x": 0.25, "w": 0.25})
 
+    def test_sparse_boundary_keeps_slerps_roll_and_base_components(self):
+        raw = [{"at": 0, "yaw": 0, "pitch": 0}, {"at": 2, "yaw": 90, "pitch": 60}]
+        full = plan_camera({"path": raw}, {}, None, 2, [], [], "clip")["path"]
+        boundary = _slice_keys(raw, 1, 2, rebase=True)[0]
+        expected = path_value(full, 1)
+        self.assertGreater(abs(expected["roll"]), 10)
+        for name in ("yaw", "pitch", "roll", "fov"):
+            self.assertAlmostEqual(boundary[name], expected[name], places=9)
+        # An omitted component inherits the clip view, never the other key.
+        base = {"yaw": 0, "pitch": 10, "roll": 20, "fov": 100}
+        raw[1]["roll"] = 80
+        full = plan_camera({"view": base, "path": raw}, {}, None, 2, [], [], "clip")["path"]
+        boundary = _slice_keys(raw, 1, 2, rebase=True, view=base)[0]
+        expected = path_value(full, 1)
+        for name in ("yaw", "pitch", "roll", "fov"):
+            self.assertAlmostEqual(boundary[name], expected[name], places=9)
+
 
 class GoldenPathTests(unittest.TestCase):
     """tests/fixtures/sphere_path_golden.json: SphereMathTests asserts the same vectors in Swift."""
@@ -141,7 +184,7 @@ class GoldenPathTests(unittest.TestCase):
         for case in GOLDEN["cases"]:
             for t, yaw, pitch, fov, roll in case["samples"]:
                 with self.subTest(case=case["name"], t=t):
-                    v = path_value(case["keys"], t)
+                    v = path_value(case["keys"], t, case.get("projection", "flat"))
                     self.assertLess(_wrapped(v["yaw"], yaw), tol)
                     self.assertLess(abs(v["pitch"] - pitch), tol)
                     self.assertLess(abs(v["fov"] - fov), tol)
@@ -150,12 +193,14 @@ class GoldenPathTests(unittest.TestCase):
     def test_every_move_takes_the_short_way(self):
         for case in GOLDEN["cases"]:
             keys = case["keys"]
+            projection = case.get("projection", "flat")
             for arc in case["arcs"]:
                 a, b = keys[arc["from"]], keys[arc["to"]]
-                shortest = _turn(qmat(view_quat(a)), qmat(view_quat(b)))
+                shortest = _turn(qmat(view_quat(path_value(keys, a["at"], projection))),
+                                 qmat(view_quat(path_value(keys, b["at"], projection))))
                 self.assertAlmostEqual(arc["degrees"], shortest, places=6)
                 self.assertLessEqual(shortest, 180.0)
-                frames = [path_value(keys, a["at"] + (b["at"] - a["at"]) * i / 400) for i in range(401)]
+                frames = [path_value(keys, a["at"] + (b["at"] - a["at"]) * i / 400, projection) for i in range(401)]
                 mats = [v360_matrix(f["yaw"], f["pitch"], f["roll"]) for f in frames]
                 travelled = sum(_turn(m1, m2) for m1, m2 in zip(mats, mats[1:]))
                 with self.subTest(case=case["name"], arc=arc["from"]):
@@ -212,6 +257,29 @@ class CameraWindowKeyTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertIsNone(window_with_piece_keys({"offsetSeconds": 1.0, "durationSeconds": 8.0}, piece, edited))
 
+    def test_deleting_first_boundary_holds_the_first_remaining_pose(self):
+        self.check_deleted_boundary(first=True)
+
+    def test_deleting_last_boundary_holds_the_last_remaining_pose(self):
+        self.check_deleted_boundary(first=False)
+
+    def check_deleted_boundary(self, *, first):
+        window = {"offsetSeconds": 2.0, "durationSeconds": 10.0, "path": [
+            {"at": 0, "yaw": -45}, {"at": 10, "yaw": -90}]}
+        segment = {"in": 2, "out": 8}
+        for gap in (1.0, 0.05):
+            keys = [{"at": gap if first else 0, "yaw": 90, "pitch": 0, "fov": 90, "roll": 0},
+                    {"at": 3, "yaw": 45, "pitch": 0, "fov": 90, "roll": 0},
+                    {"at": 6 if first else 6 - gap, "yaw": 0, "pitch": 0, "fov": 90, "roll": 0}]
+            merged = window_with_piece_keys(window, segment, keys)
+            errors = []
+            resolved = plan_camera({"path": merged["path"]}, {}, None, merged["durationSeconds"], errors, [], "clip")
+            self.assertEqual(errors, [])
+            for n in range(181):
+                t = n / 30
+                self.assertAlmostEqual(path_value(resolved["path"], t + 2)["yaw"],
+                                       path_value(keys, t)["yaw"], places=7)
+
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
 class SphereProxyWorkerTests(unittest.TestCase):
@@ -265,12 +333,30 @@ class BenchSphereKeysTests(unittest.TestCase):
             {"at": 0, "yaw": -12.89, "pitch": 35.63, "fov": 80, "roll": -95.47},
             {"at": 1.5, "yaw": -107.05, "pitch": 84.01, "fov": 80, "roll": 167.45},
             {"at": 2.9, "yaw": -24.65, "pitch": 47.35, "fov": 90, "roll": -105.51}]}]}
-        report = run(fixture.project, plan, 0, fixture.root / "bench", start=0.5, end=2.95)  # a split piece
+        from contextlib import chdir
+
+        with chdir(fixture.root):
+            report = run(fixture.project, plan, 0, Path("bench"), start=0.5, end=2.95)
+        self.assertEqual(Path(report["dir"]), (fixture.root / "bench").resolve())
+        self.assertTrue((fixture.root / "bench" / "staged.mp4").is_file())
         self.assertTrue(report["pass"], report)
         self.assertEqual([r["label"].split()[0] for r in report["rows"]], ["mid", "key", "mid", "key"])
         for row in report["rows"]:
             if "linearPsnr" in row:  # the old per-component blend aims somewhere else entirely
                 self.assertLess(row["linearPsnr"], row["psnr"] - 10, row)
+
+    def test_moment_only_segment_slices_resolved_bounds(self):
+        from reels.editor.bench_sphere_keys import piece
+
+        asset = {"tags": {"moments": [{"id": "m-1", "in": 10, "out": 18, "view": "road"}]}}
+        segment = {"asset": "pano", "moment": "m-1", "speed": 2,
+                   "path": [{"at": 0, "yaw": 0}, {"at": 4, "yaw": 90}]}
+        sliced = piece(segment, 1, 3, asset=asset)
+        self.assertEqual((sliced["in"], sliced["out"]), (12, 16))
+        self.assertEqual(sliced["moment"], "m-1")
+        self.assertEqual(sliced["cameraWindow"]["offsetSeconds"], 1)
+        self.assertEqual(sliced["cameraWindow"]["durationSeconds"], 4)
+        self.assertNotIn("in", segment)
 
 
 if __name__ == "__main__":
@@ -355,6 +441,7 @@ class SphereEditTransactionTests(unittest.TestCase):
             {"at": 0, "yaw": 0, "pitch": 0, "fov": 90, "roll": 0}, {"at": 3, "yaw": 90, "pitch": 0, "fov": 90, "roll": 0},
             {"at": 6, "yaw": 0, "pitch": 0, "fov": 90, "roll": 0}]}
         fixture.plan("aim", [{"asset": "ride360", "in": 4, "out": 8, "cameraWindow": window,
+                              "yaw": 10, "pitch": 20, "roll": 30, "fov": 100,
                               "path": _slice_keys(window["path"], 2, 6, rebase=True)}])
         store = DocumentStore(live_workspace(fixture), "plans/aim.json")
         self.addCleanup(store.close)
@@ -364,6 +451,8 @@ class SphereEditTransactionTests(unittest.TestCase):
                   {"at": 1, "yaw": -45, "pitch": 5, "fov": 80, "roll": 0},
                   {"at": 4, "yaw": 0, "pitch": 0, "fov": 90, "roll": 0}]
         result = store.apply({"expected": before["revisions"], "origin": "manual", "reason": "aim", "operations": [
+            *[{"op": "set_field", "id": seg["id"], "path": "/" + name, "value": None}
+              for name in ("yaw", "pitch", "fov", "roll")],
             {"op": "set_field", "id": seg["id"], "path": "/path", "value": edited}]})
         self.assertFalse([d for d in result.get("diagnostics") or [] if d.get("severity") == "error"])
         raw = result["plan"]["segments"][0]

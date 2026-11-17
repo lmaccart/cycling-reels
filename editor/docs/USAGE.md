@@ -143,8 +143,13 @@ what renders.
   stabilized clips take a few seconds per second of footage to stage.
 - While the panel is open it follows the timeline: selecting another 360 clip
   aims that one, and with nothing selected it aims the 360 clip under the
-  playhead (after a cut, the piece the playhead is on). A split piece shows its
-  part of the original move, with keyframes at its start and end.
+  playhead. Splitting a selected clip moves selection and aim to the new right
+  piece when the playhead is there. Split playback retains the original path's
+  easing intervals and hard cuts; bounded start/end keys are editing handles,
+  not a replacement playback path.
+  Aim edits preserve the source camera window, including when clearing old
+  angle overrides. Deleting an endpoint key holds the nearest remaining pose.
+  Tiny-planet paths interpolate after applying their fixed downward pitch.
 - A **Custom** stabilize value (a number of seconds set in the plan) is shown
   with that same smoothing, not as Medium.
 - Space plays the clip in the 360 view; **Done** returns to the Program preview.

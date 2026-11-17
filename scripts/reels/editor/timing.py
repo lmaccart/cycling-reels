@@ -122,7 +122,8 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
     return out
 
 
-def _slice_keys(keys: list, start: float, end: float, *, rebase: bool) -> list:
+def _slice_keys(keys: list, start: float, end: float, *, rebase: bool,
+                view: dict | None = None, projection: str = "flat") -> list:
     """Keep boundary-interpolated keys so a split retains its camera/blur pose.
 
     360 camera keys (numeric yaw) get their boundary pose from ``sphere.path_value``,
@@ -137,56 +138,48 @@ def _slice_keys(keys: list, start: float, end: float, *, rebase: bool) -> list:
         left = before[-1] if before else ordered[0]
         right = after[0] if after else ordered[-1]
         result = deepcopy(left)
-        result.pop("cut", None)  # a boundary pose is a hold point, never a hard cut of its own
+        if at != float(left["at"]):
+            result.pop("cut", None)
         distance = float(right["at"]) - float(left["at"])
         if right.get("cut") is True and at < float(right["at"]):
             distance = 0  # before a hard-cut keyframe the camera holds the previous pose
-        if distance:
-            if _is_camera_key(left) and _is_camera_key(right):
-                pose = _camera_pose(left, right, at)
-                result.update({key: value for key, value in pose.items() if key in result})
-            else:
-                fraction = (at - float(left["at"])) / distance
-                for key, value in left.items():
-                    other = right.get(key)
-                    if key != "at" and isinstance(value, (int, float)) and isinstance(other, (int, float)):
-                        result[key] = value + (other - value) * fraction
+        if _is_camera_key(left) and _is_camera_key(right):
+            result.update(_camera_pose(left, right, at, view=view, projection=projection))
+        elif distance:
+            fraction = (at - float(left["at"])) / distance
+            for key, value in left.items():
+                other = right.get(key)
+                if key != "at" and isinstance(value, (int, float)) and isinstance(other, (int, float)):
+                    result[key] = value + (other - value) * fraction
         result["at"] = at
         return result
     selected = [at_time(start)] + [k for k in ordered if start < float(k["at"]) < end] + [at_time(end)]
+    selected[0].pop("cut", None)  # no incoming move at the piece's start
     for key in selected:
         key["at"] = round(float(key["at"]) - (start if rebase else 0), 6)
     return selected
-
-
-_CAMERA_DEFAULTS = {"pitch": 0.0, "fov": 75.0, "roll": 0.0}
 
 
 def _is_camera_key(key: dict) -> bool:
     return isinstance(key.get("yaw"), (int, float)) and not isinstance(key.get("yaw"), bool)
 
 
-def _camera_pose(left: dict, right: dict, at: float) -> dict:
-    """The 360 camera at `at` between two keys, on the renderer's path.
+def _camera_pose(left: dict, right: dict, at: float, *, view: dict | None = None,
+                 projection: str = "flat") -> dict:
+    """Sample complete views; missing components inherit the base, not the other key."""
+    from ..sphere import parse_view, path_value
 
-    A field one key leaves to the segment's view is taken from the other key, so it
-    doesn't move; the caller keeps only the fields the left key actually wrote."""
-    from ..sphere import path_value
+    def full(key):
+        return {**key, **parse_view(key, {}, [], "split boundary", view)}
 
-    def full(key, other):
-        view = {"at": float(key["at"]), "yaw": float(key["yaw"])}
-        for name, default in _CAMERA_DEFAULTS.items():
-            value = key.get(name, other.get(name, default))
-            view[name] = float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else default
-        return view
-
-    return path_value([full(left, right), full(right, left)], at)
+    pose = path_value([full(left), full(right)], at, projection)
+    return {name: pose[name] for name in ("yaw", "pitch", "fov", "roll")}
 
 
 MIN_KEY_GAP = 0.1  # plan_camera: path keyframes at least 0.1 s apart
 
 
-def window_piece_keys(window_path: list, offset: float, seconds: float) -> list:
+def window_piece_keys(window_path: list, offset: float, seconds: float, *, projection: str = "flat") -> list:
     """A split piece's camera keys in its own 0…seconds, from its `cameraWindow` path.
 
     `window_path` holds resolved keys in window time; the piece starts `offset` into
@@ -195,7 +188,7 @@ def window_piece_keys(window_path: list, offset: float, seconds: float) -> list:
     the result is a path `plan_camera` accepts for this piece."""
     if seconds < MIN_KEY_GAP or not any(isinstance(k, dict) and "at" in k for k in window_path):
         return []
-    keys = _slice_keys(window_path, offset, offset + seconds, rebase=True)
+    keys = _slice_keys(window_path, offset, offset + seconds, rebase=True, projection=projection)
     first, *inner, last = keys
     last["at"] = round(seconds, 6)
     inner = [k for k in inner if MIN_KEY_GAP <= k["at"] <= seconds - MIN_KEY_GAP]
@@ -233,16 +226,28 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list) ->
     times = _key_times(path, float(duration))
     if None in times:
         return None
-    local = sorted(float(k["at"]) for k in inside)
-    piece = max(seconds, local[-1])
-    lo, hi = float(offset) + local[0], float(offset) + local[-1]
+    inside.sort(key=lambda k: float(k["at"]))
+    piece = max(seconds, float(inside[-1]["at"]))
+    # A local path holds outside its keys. Put matching anchors at the piece
+    # edges (just outside for sub-0.1s gaps) before reconnecting exterior keys.
+    lo, hi = 0.0, piece
+    gap = MIN_KEY_GAP + 0.001  # stay valid after plan_camera's millisecond rounding
+    if float(inside[0]["at"]) > 0:
+        lo = min(0.0, float(inside[0]["at"]) - gap)
+        if float(offset) + lo >= 0:
+            inside.insert(0, {**deepcopy(inside[0]), "at": lo})
+    inside[0].pop("cut", None)
+    if float(inside[-1]["at"]) < piece:
+        hi = max(piece, float(inside[-1]["at"]) + gap)
+        inside.append({**deepcopy(inside[-1]), "at": hi, "cut": False})
+    lo, hi = float(offset) + lo, float(offset) + hi
     before = [{**deepcopy(k), "at": at} for k, at in zip(path, times)
               if at < float(offset) - 1e-6 and at <= lo - MIN_KEY_GAP]
     after = [{**deepcopy(k), "at": at} for k, at in zip(path, times)
              if at > float(offset) + piece + 1e-6 and at >= hi + MIN_KEY_GAP]
     for key in inside:
         key["at"] = round(float(key["at"]) + float(offset), 6)
-    return {**deepcopy(window), "durationSeconds": max(float(duration), float(offset) + piece),
+    return {**deepcopy(window), "durationSeconds": max(float(duration), hi),
             "path": before + sorted(inside, key=lambda k: k["at"]) + after}
 
 
@@ -264,7 +269,11 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *, reb
                 minimum=minimum_cutaway_frames / fps if minimum_cutaway_frames is not None else 0.4,
                 frame_exact=minimum_cutaway_frames is not None)
         elif key == "path" and isinstance(result[key], list):
-            result[key] = _slice_keys(result[key], start, end, rebase=rebase)
+            from ..sphere import parse_view
+            base = parse_view(segment.get("view"), {}, [], "split")
+            base.update({k: segment[k] for k in ("yaw", "pitch", "fov", "roll") if segment.get(k) is not None})
+            result[key] = _slice_keys(result[key], start, end, rebase=rebase,
+                                      view=base, projection=segment.get("projection", "flat"))
         elif isinstance(result[key], dict) and "at" in result[key]:
             clipped = _clip_events([result[key]], start, end, rebase=rebase)
             result[key] = clipped[0] if clipped else False
@@ -291,7 +300,8 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *, reb
         bleep["windows"] = _clip_events(bleep["windows"], start, end, rebase=rebase)
     sphere = result.get("sphere")
     if isinstance(sphere, dict) and isinstance(sphere.get("path"), list):
-        sphere["path"] = _slice_keys(sphere["path"], start, end, rebase=rebase)
+        sphere["path"] = _slice_keys(sphere["path"], start, end, rebase=rebase,
+                                     view=sphere.get("view"), projection=sphere.get("projection", "flat"))
     return result
 
 

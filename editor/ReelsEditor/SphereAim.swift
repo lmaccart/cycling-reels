@@ -23,6 +23,9 @@ final class SphereAimModel {
         var projection: SphereProjection
         var view: SphereView
         var keys: [SphereKey]
+        /// Original interpolation intervals for playback; `keys` are bounded edit handles.
+        var playbackKeys: [SphereKey]? = nil
+        var playbackOffset: Double = 0
         var stabilize: String          // off | light | medium | strong | lock | custom
         var stabilizeSeconds: Double? = nil   // the plan's number when `stabilize` is custom
         var angles: [(name: String, view: SphereView)]
@@ -32,6 +35,7 @@ final class SphereAimModel {
                 && lhs.sourceOut == rhs.sourceOut && lhs.speed == rhs.speed && lhs.projection == rhs.projection
                 && lhs.view == rhs.view && lhs.keys == rhs.keys && lhs.stabilize == rhs.stabilize
                 && lhs.stabilizeSeconds == rhs.stabilizeSeconds
+                && lhs.playbackKeys == rhs.playbackKeys && lhs.playbackOffset == rhs.playbackOffset
                 && lhs.angles.map(\.name) == rhs.angles.map(\.name)
         }
     }
@@ -176,10 +180,13 @@ final class SphereAimModel {
               let sourceIn = value["in"]?.numberValue, let sourceOut = value["out"]?.numberValue,
               let view = parseView(value["view"]) else { return nil }
         let speed = value["speed"]?.numberValue ?? 1
-        let keys: [SphereKey] = (value["path"]?.arrayValue ?? []).compactMap { item in
-            guard let at = item["at"]?.numberValue, let v = parseView(item) else { return nil }
-            return SphereKey(at: at, view: v, cut: item["cut"]?.boolValue ?? false)
-        }.sorted { $0.at < $1.at }
+        func parseKeys(_ raw: JSONValue?) -> [SphereKey] {
+            (raw?.arrayValue ?? []).compactMap { item in
+                guard let at = item["at"]?.numberValue, let v = parseView(item) else { return nil }
+                return SphereKey(at: at, view: v, cut: item["cut"]?.boolValue ?? false)
+            }.sorted { $0.at < $1.at }
+        }
+        let keys = parseKeys(value["path"])
         let angles = (value["angles"]?.objectValue ?? [:]).compactMap { name, raw -> (String, SphereView)? in
             guard let v = parseView(raw, fallback: view) else { return nil }
             return (name, v)
@@ -188,7 +195,10 @@ final class SphereAimModel {
             nodeID: nodeID, assetID: assetID, sourceIn: sourceIn, sourceOut: sourceOut, speed: speed,
             seconds: value["seconds"]?.numberValue ?? (sourceOut - sourceIn) / max(speed, 0.01),
             projection: value["projection"]?.stringValue == "tiny-planet" ? .tinyPlanet : .flat,
-            view: view, keys: keys, stabilize: stabilizeLabel(value["stabilize"]),
+            view: view, keys: keys,
+            playbackKeys: value["playbackPath"].map { parseKeys($0) },
+            playbackOffset: value["playbackOffsetSeconds"]?.numberValue ?? 0,
+            stabilize: stabilizeLabel(value["stabilize"]),
             stabilizeSeconds: value["stabilize"]?.numberValue,
             angles: angles.map { (name: $0.0, view: $0.1) }
         )
@@ -253,7 +263,10 @@ final class SphereAimModel {
     func view(atLocal t: Double) -> SphereView {
         if let draft { return draft }
         guard let camera else { return SphereView(yaw: 0, pitch: 0, fov: 75, roll: 0) }
-        return camera.keys.count >= 2 ? SphereMath.pathValue(camera.keys, at: t) : camera.view
+        let keys = camera.playbackKeys ?? camera.keys
+        let time = t + (camera.playbackKeys == nil ? 0 : camera.playbackOffset)
+        return keys.count >= 2 ? SphereMath.pathValue(keys, at: time, projection: camera.projection)
+            : SphereMath.effectiveView(camera.view, projection: camera.projection)
     }
 
     func stabilization(atSource source: Double) -> simd_double3x3 {
@@ -335,6 +348,7 @@ final class SphereAimModel {
         guard var camera else { return [] }
         if camera.keys.count < 2 {
             camera.view = view
+            camera.playbackKeys = nil
             self.camera = camera
             return clearOverrides(raw: raw) + [set("/view", .object(Self.viewJSON(view)))]
         }
@@ -354,6 +368,7 @@ final class SphereAimModel {
                 camera.keys = [SphereKey(at: 0, view: camera.view, cut: false),
                                SphereKey(at: clamped, view: current, cut: false)]
             }
+            camera.playbackKeys = nil
             self.camera = camera
             return clearOverrides(raw: raw) + [set("/path", Self.pathJSON(camera.keys, seconds: camera.seconds))]
         }
@@ -370,6 +385,7 @@ final class SphereAimModel {
     func operationsForDeleteKey(atLocal t: Double, fps: Double, raw: JSONValue?) -> [JSONValue] {
         guard var camera, let index = keyIndex(atLocal: t, fps: fps) else { return [] }
         camera.keys.remove(at: index)
+        camera.playbackKeys = nil
         if camera.keys.count < 2 {
             let remaining = camera.keys.first?.view ?? camera.view
             camera.view = remaining
@@ -386,6 +402,7 @@ final class SphereAimModel {
         let held = view(atLocal: t)
         camera.view = held
         camera.keys = []
+        camera.playbackKeys = nil
         self.camera = camera
         return clearOverrides(raw: raw) + [set("/path", .null), set("/view", .object(Self.viewJSON(held)))]
     }
@@ -402,6 +419,7 @@ final class SphereAimModel {
             camera.keys.append(SphereKey(at: at, view: view, cut: cut ?? false))
             camera.keys.sort { $0.at < $1.at }
         }
+        camera.playbackKeys = nil
         self.camera = camera
         return clearOverrides(raw: raw) + [set("/path", Self.pathJSON(camera.keys, seconds: camera.seconds))]
     }
