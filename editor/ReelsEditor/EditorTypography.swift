@@ -27,9 +27,12 @@ enum EditorType {
     static let ruler = Font.system(size: 9.5, weight: .regular, design: .monospaced)
 
     // AppKit equivalents for the NSView-drawn timeline.
-    static var nsClipLabel: NSFont { NSFont.systemFont(ofSize: 10.5, weight: .semibold) }
-    static var nsTrackHeader: NSFont { NSFont.systemFont(ofSize: 11, weight: .bold) }
-    static var nsRuler: NSFont { NSFont.monospacedSystemFont(ofSize: 9.5, weight: .regular) }
+    @MainActor static let nsClipLabel = NSFont.systemFont(ofSize: 10.5, weight: .semibold)
+    @MainActor static let nsTrackHeader = NSFont.systemFont(ofSize: 11, weight: .bold)
+    @MainActor static let nsRuler = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .regular)
+    @MainActor static let rulerAttributes: [NSAttributedString.Key: Any] = [
+        .font: nsRuler, .foregroundColor: NSColor.white.withAlphaComponent(0.6)
+    ]
     static var nsTimecode: NSFont { NSFont.monospacedSystemFont(ofSize: 10.5, weight: .medium) }
 }
 

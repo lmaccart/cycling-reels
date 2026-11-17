@@ -559,6 +559,10 @@ private final class TimelineCanvas: NSView {
     private static let labelWidth = TimelineLayout.labelWidth
     private static let rulerHeight = TimelineLayout.rulerHeight
     private static let topInset = TimelineLayout.topInset
+    private static let cornerAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.monospacedSystemFont(ofSize: 15, weight: .medium),
+        .foregroundColor: TimelineColors.playhead
+    ]
 
     private var snapshot: EditorSnapshot?
     private var tracks: [EditorTrack] = EditorTrack.defaults
@@ -577,6 +581,8 @@ private final class TimelineCanvas: NSView {
     private var snapGuideFrame: Int?
     private var scrollObserver: NSObjectProtocol?
     private var audioObserver: NSObjectProtocol?
+    private var occlusionObserver: NSObjectProtocol?
+    fileprivate var allowsOccludedDrawing = false
     private var callbacks: Callbacks?
     private var lastScrollRequestID = 0
     private var mode: DragMode?
@@ -599,7 +605,7 @@ private final class TimelineCanvas: NSView {
     private var overwriteBlockedReason: String?
     private var overwriteDropTrackID: String?
     private var dragAnchorStart = 0
-    private var playheadLayer: PlayheadLayer?
+    fileprivate var playheadLayer: PlayheadLayer?
     private var dropTrackID: String?
     private var dropItemID: String?
     private var dropItemCommandInsert = false
@@ -644,6 +650,7 @@ private final class TimelineCanvas: NSView {
     isolated deinit {
         if let audioObserver { NotificationCenter.default.removeObserver(audioObserver) }
         if let scrollObserver { NotificationCenter.default.removeObserver(scrollObserver) }
+        if let occlusionObserver { NotificationCenter.default.removeObserver(occlusionObserver) }
     }
 
     func update(snapshot: EditorSnapshot?, tracks: [EditorTrack], trackMap: [String: String],
@@ -671,14 +678,15 @@ private final class TimelineCanvas: NSView {
         self.zoom = zoom
         self.snapping = snapping
         self.callbacks = callbacks
+        let visible = allowsOccludedDrawing || window?.occlusionState.contains(.visible) == true
         if contentsChanged {
-            needsDisplay = true
+            if visible { needsDisplay = true }
             window?.invalidateCursorRects(for: self)
-        } else if playheadMoved {
+        } else if playheadMoved && visible {
             setNeedsDisplay(cornerRect)
         }
         playheadLayer?.update(frame: playheadFrame, zoom: zoom, labelWidth: Self.labelWidth,
-                              rulerHeight: Self.rulerHeight, fps: snapshot?.fps ?? 30)
+                              rulerHeight: Self.rulerHeight, fps: snapshot?.fps ?? 30, redraw: visible)
         setAccessibilityChildren(makeAccessibilityChildren())
         if let scrollRequest, scrollRequest.id != lastScrollRequestID {
             lastScrollRequestID = scrollRequest.id
@@ -933,13 +941,18 @@ private final class TimelineCanvas: NSView {
     // MARK: drawing
 
     override func draw(_ dirtyRect: NSRect) {
+        guard allowsOccludedDrawing || window?.occlusionState.contains(.visible) == true else { return }
         TimelineColors.background.setFill()
         dirtyRect.fill()
         drawTracks()
         drawClips(dirtyRect)
         drawSnapGuide()
         drawMarquee()
-        drawRuler()
+        let rulerLeft = visibleRect.minX + Self.labelWidth
+        let rulerArea = NSRect(x: rulerLeft, y: bounds.maxY - Self.rulerHeight - TimelineLayout.workBarHeight,
+                               width: max(0, bounds.maxX - rulerLeft),
+                               height: Self.rulerHeight + TimelineLayout.workBarHeight)
+        if dirtyRect.intersects(rulerArea) { drawRuler() }
         drawGutter()
     }
 
@@ -1070,11 +1083,7 @@ private final class TimelineCanvas: NSView {
         TimelineColors.ruler.setFill()
         corner.fill()
         let text = TimeFormat.timecode(playheadFrame, fps: snapshot?.fps ?? 30)
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedSystemFont(ofSize: 15, weight: .medium),
-            .foregroundColor: TimelineColors.playhead
-        ]
-        let string = NSAttributedString(string: text, attributes: attrs)
+        let string = NSAttributedString(string: text, attributes: Self.cornerAttributes)
         let size = string.size()
         string.draw(at: CGPoint(x: corner.minX + 10, y: corner.midY - size.height / 2))
         TimelineColors.line.setFill()
@@ -1097,15 +1106,33 @@ private final class TimelineCanvas: NSView {
         super.viewDidMoveToWindow()
         if let scrollObserver { NotificationCenter.default.removeObserver(scrollObserver) }
         scrollObserver = nil
-        guard window != nil, let clip = enclosingScrollView?.contentView else { return }
+        if let occlusionObserver { NotificationCenter.default.removeObserver(occlusionObserver) }
+        occlusionObserver = nil
+        guard let window else { return }
+        occlusionObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.window?.occlusionState.contains(.visible) == true else { return }
+                self.needsDisplay = true
+                self.playheadLayer?.needsDisplay = true
+            }
+        }
+        if window.occlusionState.contains(.visible) {
+            needsDisplay = true
+            playheadLayer?.needsDisplay = true
+        }
+        guard let clip = enclosingScrollView?.contentView else { return }
         clip.postsBoundsChangedNotifications = true
         scrollObserver = NotificationCenter.default.addObserver(
             forName: NSView.boundsDidChangeNotification, object: clip, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.needsDisplay = true
-                self.playheadLayer?.needsDisplay = true
+                if self.allowsOccludedDrawing || self.window?.occlusionState.contains(.visible) == true {
+                    self.needsDisplay = true
+                    self.playheadLayer?.needsDisplay = true
+                }
                 self.callbacks?.onScroll(self.visibleRect.minX)
             }
         }
@@ -1128,10 +1155,6 @@ private final class TimelineCanvas: NSView {
         let ruler = NSRect(x: 0, y: bounds.maxY - Self.rulerHeight, width: bounds.width, height: Self.rulerHeight)
         TimelineColors.ruler.setFill()
         ruler.fill()
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: EditorType.nsRuler,
-            .foregroundColor: NSColor.white.withAlphaComponent(0.6)
-        ]
         let fps = max(snapshot?.fps ?? 30, 1)
         let pixelsPerSecond = Double(scale) * fps
         let interval = TimelineMetrics.rulerStepSeconds(pixelsPerSecond: pixelsPerSecond)
@@ -1145,7 +1168,7 @@ private final class TimelineCanvas: NSView {
             guard x <= bounds.maxX, x >= visibleRect.minX - 60, x <= visibleRect.maxX else { continue }
             ticks.move(to: CGPoint(x: x, y: ruler.minY + 8))
             ticks.line(to: CGPoint(x: x, y: ruler.maxY))
-            NSAttributedString(string: TimeFormat.clock(Double(second)), attributes: attrs)
+            NSAttributedString(string: TimeFormat.clock(Double(second)), attributes: EditorType.rulerAttributes)
                 .draw(at: CGPoint(x: x + 4, y: ruler.minY + 8))
             let minor = interval > 1 ? 4 : 2
             for step in 1..<minor {
@@ -2042,9 +2065,12 @@ func makeTimelineCanvasCaptureView(
     onOverwrite: (([TimelinePlacement], String) -> Bool)? = nil,
     onDropRejected: ((String) -> Void)? = nil,
     onScrub: ((Int, Bool) -> Void)? = nil,
-    onSetSelection: ((Set<String>) -> Void)? = nil
+    onSetSelection: ((Set<String>) -> Void)? = nil,
+    allowOccludedDrawing: Bool = true
 ) -> NSView {
     let view = TimelineCanvas(frame: .zero)
+    view.allowsOccludedDrawing = allowOccludedDrawing
+    view.playheadLayer?.allowsOccludedDrawing = allowOccludedDrawing
     view.update(
         snapshot: snapshot,
         tracks: tracks,
@@ -2083,27 +2109,31 @@ func makeTimelineCanvasCaptureView(
 }
 
 @MainActor
-private final class PlayheadLayer: NSView {
+class PlayheadLayer: NSView {
     private var frameNumber = 0
     private var zoom = 0.56
     private var labelWidth: CGFloat = 132
     private var rulerHeight: CGFloat = 30
     private var fps = 30.0
+    var allowsOccludedDrawing = false
 
-    func update(frame: Int, zoom: Double, labelWidth: CGFloat, rulerHeight: CGFloat, fps: Double) {
+    func update(frame: Int, zoom: Double, labelWidth: CGFloat, rulerHeight: CGFloat, fps: Double, redraw: Bool) {
         let old = playheadX
         frameNumber = frame
         self.zoom = zoom
         self.labelWidth = labelWidth
         self.rulerHeight = rulerHeight
         self.fps = fps
-        setNeedsDisplay(NSRect(x: old - 8, y: 0, width: 17, height: bounds.height))
-        setNeedsDisplay(NSRect(x: playheadX - 8, y: 0, width: 17, height: bounds.height))
+        if redraw && old != playheadX {
+            setNeedsDisplay(NSRect(x: old - 8, y: 0, width: 17, height: bounds.height))
+            setNeedsDisplay(NSRect(x: playheadX - 8, y: 0, width: 17, height: bounds.height))
+        }
     }
 
     private var playheadX: CGFloat { labelWidth + CGFloat(frameNumber) * CGFloat(zoom) }
 
     override func draw(_ dirtyRect: NSRect) {
+        guard allowsOccludedDrawing || window?.occlusionState.contains(.visible) == true else { return }
         let x = playheadX
         // the pinned track headers cover the left edge of the scrolled content
         guard x >= visibleRect.minX + labelWidth - 1 else { return }

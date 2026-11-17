@@ -87,6 +87,8 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Drag the timeline playhead or ruler to scrub: the Program preview updates
   while the mouse is held down. The final playhead position is saved on release.
   Clicking or dragging anywhere else in the tracks never moves the playhead.
+  Timeline drawing pauses while the window is occluded and refreshes when it
+  becomes visible again; playback continues.
 - Drag across empty track space to draw a selection box, like Premiere: every
   clip it touches is selected (locked tracks are skipped). Hold ⌘ or ⇧ to add
   to the current selection. A plain click on empty space deselects.
