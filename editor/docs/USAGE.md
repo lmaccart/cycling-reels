@@ -348,7 +348,11 @@ xcodebuild -project editor/ReelsEditor.xcodeproj \
   -derivedDataPath .cache/editor/DerivedData test
 ```
 
-Optimistic-delete ordering can be checked without launching the installed app:
+XCTest runs a prohibited-activation AppKit host: no Dock icon, editor scene,
+window restoration or service auto-connect. Hosted views use unordered windows;
+custom-speed input is supplied at the modal presentation boundary.
+
+Optimistic-delete latency and ordering can be checked without opening any windows:
 
 ```bash
 TEST_RUNNER_REELS_TEST_PYTHON=/absolute/path/to/.venv/bin/python \
@@ -359,22 +363,42 @@ xcodebuild -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
 ```
 
 This hosts the production `ContentView`, including its nested hosting views and
-timeline, against a real broker/compiler on a temporary project. The broker holds
-`document.apply` before validation/persistence; the canvas must remove the clip
-and request redraw while the saved plan still has both clips. Sequential delete,
-positioned gap preservation, ripple, intervening refresh and a real revision
-conflict/rollback are covered. Media decoding and automatic preview rendering are
-disabled for this fixture. Diagnostic bitmaps are in
-`.cache/editor/timeline-captures/delete-*.png`.
+timeline, against a real broker/compiler on a temporary project with 570 camera
+keyframes. The broker holds `document.apply` before validation/persistence.
+Deletion must publish synchronously on the input handler's turn, and the actual
+hosted canvas must remove the clip and request redraw within 50 ms while the saved
+plan still has both clips. Sequential delete, positioned gap preservation, ripple,
+intervening refresh and a real revision conflict/rollback are covered.
 
-This is an acknowledgement-order regression, **not** a presentation-latency
-benchmark. Layout can delay drawing even when the store predicts before sending.
-For installed-app latency, pin the app PID and window ID, start a ScreenCaptureKit
-stream before input, and retain complete frames with their presentation timestamps.
-Correlate those with app-side command receipt, snapshot publication, canvas
-update/draw and plan-save timestamps on one monotonic clock. A `CGEvent.post`
-return timestamps enqueueing, not handler receipt; a new screenshot process or
-an offscreen `cacheDisplay` bitmap is not proof of the first presented frame.
+`DELETE-PROFILE` reports input → enqueue → prediction → publication → canvas update,
+comparison, redraw, accessibility rebuild and offscreen draw on one monotonic clock.
+This measures redraw requests and hosted rendering, **not** screen presentation.
+Media decoding and automatic preview rendering are disabled for this fixture.
+Offscreen view bitmaps are in `.cache/editor/timeline-captures/delete-*.png`;
+no screen-capture or Accessibility service is used.
+
+Delete predictions do not wait for a Task hop or earlier backend edits. Persistence
+still runs serially against the authoritative revision; pending predictions replay
+over refreshes and rejected edits roll back. Inspector sections and collection rows
+are lazy so offscreen camera controls do not block the timeline's update.
+
+Recorded Release input-to-redraw results for that hosted fixture (574 nodes):
+
+| Delete | Eager inspector baseline | Lazy inspector + synchronous enqueue |
+| --- | ---: | ---: |
+| Sequential | 3864.3 ms | 49.2 ms |
+| Positioned | 3642.9 ms | 4.3 ms |
+| Ripple | 3718.1 ms | 39.7 ms |
+| Rejected edit (optimistic phase) | 3816.2 ms | 4.7 ms |
+
+Baseline: inherited XCTest log `ui-delete-interval-before.log`; final:
+`ui-delete-offscreen-failed-rerun.log`, both under `.cache/agents/`. The baseline
+ordered its hosted window; the final host is offscreen/nonactivating. These are
+single-run diagnostics, not controlled screen-presentation measurements. Prediction
+publication took 0.57–1.21 ms in the final run; canvas comparison took under 0.003 ms
+and accessibility rebuilding about 6 ms. The dominant baseline stall was between
+publication and canvas update, not prediction, equality, backend acknowledgement
+or media decoding (disabled in this fixture).
 
 The optional sandbox/render proofs need macOS with ffmpeg, node and a Chrome
 Headless Shell:

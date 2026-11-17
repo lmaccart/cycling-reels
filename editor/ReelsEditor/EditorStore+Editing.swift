@@ -62,9 +62,7 @@ extension EditorStore {
         let prediction = canPredict
             ? OptimisticTimeline.remove(ids: Set(ids), ripple: effectiveRipple, positioned: positioned)
             : nil
-        Task {
-            await apply([operation], reason: ripple ? "Ripple delete" : "Delete", predict: prediction)
-        }
+        enqueue([operation], reason: ripple ? "Ripple delete" : "Delete", predict: prediction)
     }
 
     func duplicateSegments(_ ids: [String]) {
@@ -161,7 +159,7 @@ extension EditorStore {
             alert.accessoryView = field
             alert.addButton(withTitle: "Apply")
             alert.addButton(withTitle: "Cancel")
-            if alert.runModal() == .alertFirstButtonReturn, let speed = Double(field.stringValue),
+            if presentSpeedDialog(alert) == .alertFirstButtonReturn, let speed = Double(field.stringValue),
                (0.25...2).contains(speed) {
                 setSegmentSpeed(ids, speed: speed)
             }

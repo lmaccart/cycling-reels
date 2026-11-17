@@ -5,29 +5,22 @@ import Vision
 import XCTest
 @testable import ReelsEditor
 
-// NSAlert's nested modal loop does not drain a test's pending main-dispatch block.
-// An Objective-C timer target runs on the main run loop without crossing actor isolation.
+// Unordered windows still exercise SwiftUI's visible-view update scheduling.
+// No window is placed on the user's screen or made key.
 @MainActor
-private final class SpeedModalInput: NSObject {
-    @objc func apply(_ timer: Timer) {
-        func fields(_ view: NSView) -> [NSTextField] {
-            (view as? NSTextField).map { [$0] } ?? view.subviews.flatMap(fields)
-        }
-        guard let content = NSApp.modalWindow?.contentView,
-              let field = fields(content).first(where: \.isEditable) else {
-            XCTFail("Custom speed must present its actual editable modal")
-            NSApp.abortModal()
-            return
-        }
-        field.stringValue = "1.5"
-        NSApp.stopModal(withCode: .alertFirstButtonReturn)
-    }
+private final class HostedTestWindow: NSWindow {
+    override var occlusionState: NSWindow.OcclusionState { .visible }
 }
 
 @MainActor
-private final class DeleteRedrawCounter {
-    var count = 0
-    var first: Date?
+private final class DeleteLatencyTrace {
+    var delivered: TimeInterval?
+    var times: [String: TimeInterval] = [:]
+
+    func record(_ stage: String) {
+        guard delivered != nil, times[stage] == nil else { return }
+        times[stage] = ProcessInfo.processInfo.systemUptime
+    }
 }
 
 @MainActor
@@ -318,11 +311,10 @@ final class EditorOperationTests: XCTestCase {
         store.authoritativeSnapshot = serverSnapshot
         let model = ExactProgramPlayerModel()
         let host = NSHostingView(rootView: ProgramMonitor(store: store, exactPlayer: model))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 420),
+        let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 420),
                               styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = host
-        window.orderFront(nil)
         defer { window.close() }
         try await eventually("ProgramMonitor loads a ready exact player") {
             model.player?.currentItem?.status == .readyToPlay
@@ -379,11 +371,10 @@ final class EditorOperationTests: XCTestCase {
         store.authoritativeSnapshot = store.snapshot
         let model = ExactProgramPlayerModel()
         let host = NSHostingView(rootView: ProgramMonitor(store: store, exactPlayer: model))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 420),
+        let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 420),
                               styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = host
-        window.orderFront(nil)
         defer { model.clear(); window.close() }
         try await eventually("Exact media loads") { model.player?.currentItem?.status == .readyToPlay }
         for (editing, playback) in [(150, 90), (90, 60)] {
@@ -531,6 +522,10 @@ final class EditorOperationTests: XCTestCase {
                 "probe": {"duration": 60, "fps": 30, "width": 1280, "height": 720, "hasAudio": True}})
             segments = [{"asset": "ride", "in": 9.133333333333333, "out": 19.133333333333333},
                         {"asset": "ride", "in": 19.999666666666666, "out": 50.733333333333334}]
+            for segment in segments:
+                duration = segment["out"] - segment["in"]
+                segment["path"] = [{"at": i * duration / 285, "yaw": i * 0.1, "pitch": 0, "fov": 90}
+                                   for i in range(285)]
             plan = {"slug": "delete", "autoSfx": False, "segments": segments}
             if os.environ["REELS_DELETE_SCENARIO"] != "sequential":
                 plan["timeline"] = {"version": 1, "fps": 30, "durationFrames": 1248}
@@ -585,11 +580,10 @@ final class EditorOperationTests: XCTestCase {
             // Include the production nested NSHostingView / NativeSplitView boundary,
             // not a canvas manually fed the predicted snapshot.
             let host = NSHostingView(rootView: ContentView(store: store))
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1520, height: 940),
+            let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1520, height: 940),
                                   styleMask: .titled, backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.contentView = host
-            window.orderFront(nil)
             defer { window.close() }
             try await eventually("Integrated timeline is hosted: \(scenario)") {
                 self.descendants(host).contains { $0 is TimelineCanvas }
@@ -602,9 +596,9 @@ final class EditorOperationTests: XCTestCase {
                 }
             }
             host.layoutSubtreeIfNeeded()
-            try await eventually("Test window is visible: \(scenario)") {
-                window.occlusionState.contains(.visible) && !canvas.visibleRect.isEmpty
-            }
+            XCTAssertFalse(window.isVisible, "Hosted verification must never order a window")
+            XCTAssertFalse(window.isKeyWindow)
+            XCTAssertTrue(canvas.window === window)
             store.setPlayhead(300)
             try await eventually("Both clips reach the integrated canvas: \(scenario)") {
                 (clip(target)?.accessibilityFrame().width ?? 0) > 0
@@ -614,15 +608,20 @@ final class EditorOperationTests: XCTestCase {
             let scale = oldTargetFrame.width / CGFloat(target.frames)
             let timelineOriginX = oldTargetFrame.minX - CGFloat(target.startFrame) * scale
             try capture(host, name: "delete-\(scenario)-before.png")
-            let redraws = DeleteRedrawCounter()
+            let trace = DeleteLatencyTrace()
+            store.editTrace = { trace.record($0) }
+            canvas.editTrace = { trace.record($0) }
+            // Offscreen NSView reports needsDisplay == false even when invalidated;
+            // observe the setter request, as in the occlusion regression.
             let observation = canvas.observe(\.needsDisplay, options: [.new]) { _, _ in
-                MainActor.assumeIsolated {
-                    redraws.count += 1
-                    if redraws.first == nil { redraws.first = Date() }
-                }
+                MainActor.assumeIsolated { trace.record("redraw") }
             }
-            defer { observation.invalidate() }
-            let delivered = Date()
+            defer {
+                observation.invalidate()
+                store.editTrace = nil
+                canvas.editTrace = nil
+            }
+            trace.delivered = ProcessInfo.processInfo.systemUptime
             if scenario == "ripple" {
                 store.performTimelineContextAction("Ripple delete", nodeID: target.id, atFrame: target.startFrame)
             } else if scenario == "sequential" {
@@ -633,20 +632,28 @@ final class EditorOperationTests: XCTestCase {
             } else {
                 store.deleteSelection()
             }
-            // Verify event ordering, not a wall-clock UI performance budget:
-            // the broker cannot save or acknowledge until this test releases it.
+            XCTAssertFalse(store.snapshot?.nodes.contains { $0.id == target.id } ?? true,
+                           "Prediction must publish on the input handler's turn, before any Task hop")
+            XCTAssertEqual(store.pendingPredictions.count, 1)
+            // The broker cannot save or acknowledge until this test releases it.
             try await eventually("Hosted clip disappears before backend acknowledgement: \(scenario)") {
                 clip(target) == nil
             }
             XCTAssertNil(clip(target), "The actual hosted canvas must remove the clip before any server save: \(scenario)")
-            XCTAssertGreaterThan(redraws.count, 0, "Prediction must invalidate drawing, not only accessibility: \(scenario)")
+            XCTAssertNotNil(trace.times["redraw"], "Prediction must invalidate drawing, not only accessibility: \(scenario)")
             let expectedStart = scenario == "ripple" ? survivor.startFrame - target.frames : survivor.startFrame
             let predictedFrame = try XCTUnwrap(clip(survivor)).accessibilityFrame()
             let predictedScale = predictedFrame.width / CGFloat(survivor.frames)
             XCTAssertEqual(predictedFrame.minX, timelineOriginX + CGFloat(expectedStart) * predictedScale,
                            accuracy: 1, scenario)
-            let redrawMilliseconds = try XCTUnwrap(redraws.first).timeIntervalSince(delivered) * 1000
-            print("DELETE-PROOF \(scenario): redraw requested at \(redrawMilliseconds) ms; hosted removal observed at \(Date().timeIntervalSince(delivered) * 1000) ms; backend apply still gated")
+            let redrawMilliseconds = (try XCTUnwrap(trace.times["redraw"])
+                - XCTUnwrap(trace.delivered)) * 1000
+            XCTAssertLessThan(redrawMilliseconds, 50, "Input-to-redraw budget with 570 camera keyframes: \(scenario)")
+            try capture(host, name: "delete-\(scenario)-optimistic.png")
+            let intervals = trace.times.sorted { $0.value < $1.value }.map {
+                "\($0.key)=\(($0.value - trace.delivered!) * 1000)ms"
+            }.joined(separator: ", ")
+            print("DELETE-PROFILE \(scenario) nodes=\(initial.nodes.count): \(intervals); backend apply gated")
             try await eventually("Backend receives apply and remains gated: \(scenario)") {
                 FileManager.default.fileExists(atPath: root.appending(path: "apply.waiting").path)
             }
@@ -655,7 +662,6 @@ final class EditorOperationTests: XCTestCase {
             let unsavedPlan = try JSONDecoder().decode(JSONValue.self, from: Data(contentsOf: planURL))
             XCTAssertEqual(unsavedPlan["segments"]?.arrayValue?.count, 2, "Backend has not saved: \(scenario)")
             XCTAssertEqual(store.authoritativeSnapshot?.revisions, initial.revisions, scenario)
-            try capture(host, name: "delete-\(scenario)-optimistic.png")
             // An intervening refresh must keep the prediction on screen.
             await store.refreshSnapshot()
             XCTAssertNil(clip(target), scenario)
@@ -772,11 +778,10 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(store.playheadFrame, 210)
 
         let timelineHost = NSHostingView(rootView: TimelinePanel(store: store))
-        let timelineWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 450),
+        let timelineWindow = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 450),
                                       styleMask: .titled, backing: .buffered, defer: false)
         timelineWindow.isReleasedWhenClosed = false
         timelineWindow.contentView = timelineHost
-        timelineWindow.makeKeyAndOrderFront(nil)
         defer { timelineWindow.close() }
         try await eventually("Production timeline canvas is hosted") {
             self.descendants(timelineHost).contains { NSStringFromClass(type(of: $0)).hasSuffix(".TimelineCanvas") }
@@ -793,19 +798,10 @@ final class EditorOperationTests: XCTestCase {
         }
         try await eventually("Hosted clip geometry is available") { clipWidth() > 0 }
         let originalWidth = clipWidth()
-        // SwiftUI draws the slider in the host; click its native key-view proxy's track.
-        let slider = try XCTUnwrap(descendants(timelineHost).first {
-            String(describing: type(of: $0)) == "KeyViewProxy"
-        })
-        let sliderPoint = slider.convert(NSPoint(x: slider.bounds.width * 0.65, y: slider.bounds.midY), to: nil)
-        func sliderEvent(_ type: NSEvent.EventType) throws -> NSEvent {
-            try XCTUnwrap(NSEvent.mouseEvent(with: type, location: sliderPoint, modifierFlags: [],
-                timestamp: 0, windowNumber: timelineWindow.windowNumber, context: nil,
-                eventNumber: 0, clickCount: 1, pressure: 1))
-        }
-        NSApp.postEvent(try sliderEvent(.leftMouseUp), atStart: false)
-        timelineWindow.sendEvent(try sliderEvent(.leftMouseDown))
-        try await eventually("The hosted logarithmic slider changes clip geometry") {
+        // Use the production zoom command; SwiftUI's private KeyViewProxy is only
+        // installed for ordered windows and is not an offscreen test contract.
+        store.performShortcut(.zoomIn)
+        try await eventually("The hosted zoom command changes clip geometry") {
             clipWidth() > originalWidth
         }
         func key(_ code: UInt16, _ characters: String) throws -> NSEvent {
@@ -865,10 +861,14 @@ final class EditorOperationTests: XCTestCase {
                        ["4.0-7.0", "7.0-12.0"])
         XCTAssertTrue(pieces.allSatisfy { $0.raw["enabled"]?.boolValue == false })
 
-        let modalInput = Timer(timeInterval: 0.01, target: SpeedModalInput(),
-                               selector: #selector(SpeedModalInput.apply(_:)), userInfo: nil, repeats: false)
-        RunLoop.main.add(modalInput, forMode: .modalPanel)
-        defer { modalInput.invalidate() }
+        store.presentSpeedDialog = { alert in
+            guard let field = alert.accessoryView as? NSTextField else {
+                XCTFail("Custom speed must provide its editable input")
+                return .alertSecondButtonReturn
+            }
+            field.stringValue = "1.5"
+            return .alertFirstButtonReturn
+        }
         store.performTimelineContextAction("Custom…", nodeID: pieces[0].id, atFrame: 210)
         current = try await settle(after: current.revisions.document)
         XCTAssertEqual(current.nodes.first { $0.id == pieces[0].id }?.raw["speed"]?.numberValue, 1.5)
