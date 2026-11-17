@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import platform
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -45,6 +46,7 @@ class FlagTests(unittest.TestCase):
             flags.unflag(self.project, "f-nope")
         self.assertEqual(flags.add(self.project, "clip", 50, 99)["out"], 60.0)  # clamped to the clip
 
+    @unittest.skipUnless(platform.system() == "Darwin", "the editor service's relay socket needs macOS")
     def test_service_round_trip_emits_changes(self):
         events = []
         workspace = SimpleNamespace(root=self.fixture.root, data_root=self.fixture.root,
