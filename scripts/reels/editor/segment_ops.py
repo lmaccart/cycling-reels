@@ -14,7 +14,7 @@ from .document import _descriptors, node_location, pointer_get
 from .tracks import track_list
 
 # Editor metadata that never travels with a pasted segment.
-PASTE_STRIP = ("timeline", "_editor", "id", "__timelineEditorId")
+PASTE_STRIP = ("timeline", "_editor", "id", "__timelineEditorId", "timingId")
 
 
 def primary_segments(plan: dict[str, Any], ids: list[str]) -> list[dict[str, Any]]:
@@ -56,8 +56,8 @@ def set_enabled(plan: dict[str, Any], ids: list[str], enabled: bool) -> None:
 def suspend_events(plan: dict[str, Any], old_snapshot: dict[str, Any]) -> None:
     """Keep global event definitions and their owner-relative timing while that owner is disabled.
 
-    The private node index carries suspension, not the event dict: IDs and user intent survive
-    subsequent edits, saves, and undo/redo. The renderer omits these events until re-enabled.
+    Suspension and its owner token are render-relevant plan content, not private editor metadata.
+    Disk-only renders and a fresh editor without sidecars must observe the same state.
     """
     nodes = plan["_editor"]["nodes"]
     disabled = {key for key, entry in nodes.items() if entry["kind"] == "segment"
@@ -68,19 +68,21 @@ def suspend_events(plan: dict[str, Any], old_snapshot: dict[str, Any]) -> None:
                if node["kind"] == "segment" and node.get("enabled") is not False]
     fps = old_snapshot["fps"]
     for entry in nodes.values():
-        if entry.get("disabledTiming") or not entry["locator"].startswith(("/text/", "/sfx/", "/musicDrops/", "/exhibits/")):
+        if not entry["locator"].startswith(("/text/", "/sfx/", "/musicDrops/", "/exhibits/")):
             continue
         if entry["locator"].count("/") != 2:
             continue
         event = pointer_get(plan, entry["locator"])
-        if not isinstance(event, dict):
+        if not isinstance(event, dict) or event.get("disabledTiming"):
             continue
         at = event.get("at", event.get("endAt"))
         if at is None:
             continue
         anchor = next((node for node in reversed(anchors) if node["startFrame"] / fps <= float(at)), None)
         if anchor and anchor["id"] in disabled and float(at) < anchor["endFrame"] / fps:
-            entry["disabledTiming"] = {"segmentId": anchor["id"], "startSeconds": anchor["startFrame"] / fps}
+            owner = pointer_get(plan, nodes[anchor["id"]]["locator"])
+            token = owner.setdefault("timingId", anchor["id"])
+            event["disabledTiming"] = {"owner": token}
 
 
 def duplicate(plan: dict[str, Any], ids: list[str], ctx: dict[str, Any]) -> None:
@@ -89,6 +91,8 @@ def duplicate(plan: dict[str, Any], ids: list[str], ctx: dict[str, Any]) -> None
         copies = _duplicate_positioned(plan, picked)
     else:
         copies = [deepcopy(item) for item in picked]
+    for copy in copies:
+        copy.pop("timingId", None)  # reel-global events are not duplicated with a disabled owner
     last = _index(plan, picked[-1])
     plan["segments"][last + 1:last + 1] = copies
     ctx["copyPairs"] = list(zip(picked, copies))
@@ -145,12 +149,13 @@ def ripple_remove(plan: dict[str, Any], ids: list[str], affected: set[str]) -> l
         a, b = _bounds(item)
         for other in survivors:
             c, d = _bounds(other)
-            if _track(other) != _track(item):
+            if (_track(other) != _track(item) or item.get("enabled") is False
+                    or other.get("enabled") is False):
                 continue
-            if c < a < d:
-                a = max(a, d)
-            elif a <= c < b < d:
-                b = min(b, c)
+            if c < a < d <= b and item["timeline"].get("transitionInFrames", 0) == d - a:
+                a = d
+            elif a < c < b < d and other["timeline"].get("transitionInFrames", 0) == b - c:
+                b = c
         if a < b:
             intervals.append([a, b])
     merged: list[list[int]] = []
@@ -207,18 +212,23 @@ def paste_sequential(plan: dict[str, Any], compiled: dict[str, Any], operation: 
     return values
 
 
-def _frames(value: dict[str, Any], fps: int) -> int:
-    stamp = value.get("timeline")
-    if isinstance(stamp, dict) and type(stamp.get("durationFrames")) is int and stamp["durationFrames"] > 0:
-        return stamp["durationFrames"]
-    if "in" in value and "out" in value:
-        return max(1, round((float(value["out"]) - float(value["in"])) * fps / float(value.get("speed", 1))))
-    if "in" not in value and "out" not in value:
-        return max(1, round(float(value.get("duration", 2.5)) * fps))
-    raise ValueError("pasted clips need both in and out, or a duration")
+def _frames(value: dict[str, Any], fps: int, project) -> int:
+    from ..library import load_asset, resolve_id, resolve_moment
+    from .overwrite import video_source_bounds
+    asset = load_asset(project, resolve_id(project, value["asset"]))
+    if asset["kind"] != "video":
+        return round(float(value.get("duration", 2.5)) * fps)
+    if "moment" in value:
+        moment = resolve_moment(asset, value["moment"])
+        value.setdefault("in", moment["in"])
+        value.setdefault("out", moment["out"])
+    if "in" not in value or "out" not in value:
+        raise ValueError("pasted videos need in/out or a moment")
+    source_in, source_out, speed = video_source_bounds(asset, value["in"], value["out"], value.get("speed", 1))
+    return round((source_out - source_in) * fps / speed)
 
 
-def paste_placements(plan: dict[str, Any], operation: dict[str, Any], fps: int) -> list[dict[str, Any]]:
+def paste_placements(plan: dict[str, Any], operation: dict[str, Any], fps: int, project) -> list[dict[str, Any]]:
     """Positioned paste: anchor the earliest clip at atFrame, preserving layout regardless of input order."""
     raw = operation["values"]
     values = [clean_value(value) for value in raw]
@@ -237,24 +247,19 @@ def paste_placements(plan: dict[str, Any], operation: dict[str, Any], fps: int) 
         offsets, cursor = [], 0
         for value in values:
             offsets.append(cursor)
-            cursor += _frames(value, fps)
+            cursor += _frames(value, fps, project)
     return [{"insert": value, "track": track, "atFrame": at + offset} for value, offset in zip(values, offsets)]
 
 
 def inherit_tracks(plan: dict[str, Any], pairs: list[tuple[dict[str, Any], dict[str, Any]]]) -> None:
     """Copies keep the track assignment of the node they were copied from (stored in ``_editor.nodes``)."""
     nodes = plan["_editor"]["nodes"]
-    by_object = {}
-    for node_id, entry in nodes.items():
-        value = pointer_get(plan, entry["locator"])
-        if isinstance(value, (dict, list)):
-            by_object[id(value)] = node_id
+    roots = {id(segment): f"/segments/{index}" for index, segment in enumerate(plan["segments"])}
+    by_path = {entry["locator"]: entry for entry in nodes.values()}
     for original, copy in pairs:
-        left = _descriptors({"segments": [original]})
-        right = _descriptors({"segments": [copy]})
-        for a, b in zip(left, right):
-            if not (isinstance(a["raw"], (dict, list)) and isinstance(b["raw"], (dict, list))):
-                continue
-            source, target = by_object.get(id(a["raw"])), by_object.get(id(b["raw"]))
-            if source and target and nodes[source].get("track"):
-                nodes[target]["track"] = nodes[source]["track"]
+        source_root, target_root = roots[id(original)], roots[id(copy)]
+        for desc in _descriptors({"segments": [original]}):
+            suffix = desc["path"][len("/segments/0"):]
+            source, target = by_path.get(source_root + suffix), by_path.get(target_root + suffix)
+            if source and target and source.get("track"):
+                target["track"] = source["track"]

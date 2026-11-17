@@ -59,7 +59,8 @@ class PasteSegments(OperationModel):
     stripped and reissued). Sequential plans insert at the nearest cut at or before atFrame.
     Positioned plans anchor the earliest clip at atFrame on track (default: first video track),
     regardless of values order, preserving relative timeline offsets with move_segments overwrite
-    rules. Without timeline starts, values are laid back-to-back in input order."""
+    rules. Without timeline starts, values are laid back-to-back in input order using resolved
+    moment/source durations and speed (or photo duration)."""
     op: Literal["paste_segments"]
     values: list[dict[str, Any]] = Field(min_length=1, max_length=500)
     atFrame: int = Field(ge=0, description="Global reel frame.")
@@ -69,7 +70,8 @@ class PasteSegments(OperationModel):
 class SetEnabled(OperationModel):
     """Disable or enable primary segments. A disabled segment keeps its place and full length in the
     editor but renders no video and no audio; sequential plans close up around it. Reel-level events
-    inside it are preserved but suspended until enabled, then restored relative to the clip.
+    inside it are preserved in the saved plan and retimed source-relatively through trims and speed
+    changes, but suspended from rendering until enabled.
     Stored as "enabled": false on the segment (the key is absent when enabled)."""
     op: Literal["set_enabled"]
     ids: list[str] = Field(min_length=1)

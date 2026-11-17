@@ -18,9 +18,11 @@ def positioned(plan: dict) -> bool:
 
 
 def suspended_event_paths(plan: dict) -> set[str]:
-    """Global events retained for a disabled owner are editor intent, not rendered content."""
-    return {entry["locator"] for entry in (plan.get("_editor") or {}).get("nodes", {}).values()
-            if entry.get("disabledTiming")}
+    """Suspension lives in the saved plan; rendering never depends on private editor sidecars."""
+    return {f"/{collection}/{index}"
+            for collection in ("text", "sfx", "musicDrops", "exhibits")
+            for index, event in enumerate(plan.get(collection) or [])
+            if isinstance(event, dict) and event.get("disabledTiming")}
 
 
 def video_track(value: Any) -> int:

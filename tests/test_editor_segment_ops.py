@@ -377,7 +377,8 @@ class SequentialOpsTests(OpsBase):
         middle = self.clips(before)[1]
         off = self.apply(store, [{"op": "set_enabled", "ids": [middle["id"]], "enabled": False}], before)
         for collection, values in events.items():
-            self.assertEqual(off["plan"][collection], values)
+            self.assertEqual([{k: v for k, v in event.items() if k != "disabledTiming"}
+                              for event in off["plan"][collection]], values)
         self.assertFalse(store._current_compiled["props"].get("exhibits"))
         self.assertFalse(store._current_compiled["props"]["beats"])
         self.assertFalse(store._current_compiled["sound"]["cues"])

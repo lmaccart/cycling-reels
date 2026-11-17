@@ -72,13 +72,19 @@ Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai)
   Sequential plans insert at the nearest cut at or before `atFrame`. Positioned plans anchor the
   earliest copied clip at `atFrame` regardless of `values` order, preserving relative offsets, on
   `track` (default the first video track) with `move_segments` overwrite rules. Values without
-  timeline starts are laid back-to-back in input order.
+  timeline starts are laid back-to-back in input order using resolved moment/source ranges and speed
+  (photos use their duration), not an assumed video length.
 - `set_enabled`: `ids`, `enabled`. Stores `"enabled": false` on the segment (absent = enabled).
   A disabled segment stays on the timeline at full length (compiled segs and nodes carry
   `disabled: true` / `enabled: false`) but renders no video or audio; sequential plans close up
   around it. Global events inside a disabled sequential segment retain their definitions and IDs
-  but are suspended from rendering. Enabling restores their owner-relative timing, including after
-  other edits; suspension is persisted privately in `_editor.nodes[*].disabledTiming`.
+  but are suspended from rendering. Suspended events carry `disabledTiming: {"owner": "<token>"}`
+  and their primary segment carries the matching `timingId`. Both are saved in the plan, not
+  `_editor`, so disk-only render/check and a fresh editor preserve suspension. Hidden events retime
+  with each trim/speed edit using source-relative timing, including their durations and endAt cues.
+  Enabling removes suspension; unreferenced owner tokens are removed. Copies/pastes do not reuse
+  an original segment's timing token. Child track assignments, including scalar text, are copied
+  by their corresponding locators.
 - `trim_segment` / `trim_cutaway`: `id`, `sourceIn`, `sourceOut`
 - `split_segment`: `id`, `atFrame` (global frame)
 - `insert_overlay`: `parentId` (or document), `collection`, `value`
@@ -93,6 +99,11 @@ must be structured and leave HEAD untouched. Undo/redo create new revisions.
 Field paths are relative to a stable node, e.g. `/volume`, never
 `/segments/0/volume`. AI batches cannot borrow a manual lease token. The MCP
 operation inventory is a discriminated JSON schema in `operations.py`.
+
+When every primary segment is disabled, `preview.prepare` (interactive or exact) returns
+`state: "empty"` without staging media. The service cancels pending preview work, clears previous
+URLs, persists the empty manifest and emits `preview.ready` with the empty state. Reopening an
+all-disabled plan cannot restore a prior preview URL. Normal export still requires enabled footage.
 
 Preview manifests carry `revisions`, `revision`, `mode`, `props`, `url` and
 `staticBaseUrl`. Exact also provides `movie`/`movieURL`. An Interactive→Exact

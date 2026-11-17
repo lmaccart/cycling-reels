@@ -1600,7 +1600,7 @@ class DocumentStore:
                 placements = [{"id": operation["id"], "track": operation["track"], "atFrame": node["startFrame"]}]
             elif op == "paste_segments":
                 from .segment_ops import paste_placements
-                placements = paste_placements(plan, operation, ctx["fps"])
+                placements = paste_placements(plan, operation, ctx["fps"], self.project)
             elif op == "insert_segment":
                 value = deepcopy(operation["value"])
                 value.pop("timeline", None)
@@ -1744,10 +1744,17 @@ class DocumentStore:
             return  # other absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
         old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment" and n.get("enabled") is not False]
+        old_owners = {n["raw"].get("timingId", n["id"]): n for n in old_snapshot["nodes"] if n["kind"] == "segment"}
         all_new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
+        new_owners = {n["raw"].get("timingId", n["id"]): n for n in all_new_nodes.values()}
         new_nodes = {key: n for key, n in all_new_nodes.items() if n.get("enabled") is not False}
         old_fps, new_fps = old_snapshot["fps"], new_snapshot["fps"]
         old_total, new_total = old_snapshot["durationFrames"] / old_fps, new_snapshot["durationFrames"] / new_fps
+        def source_time(at, anchor, target):
+            offset = at - anchor["startFrame"] / old_fps
+            if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
+                offset = (offset * anchor.get("speed", 1) + anchor["sourceIn"] - target["sourceIn"]) / target.get("speed", 1)
+            return target["startFrame"] / new_fps + max(0.0, offset)
         def remap(at, *, endpoint=False):
             if absolute:
                 frame = at * old_fps
@@ -1764,32 +1771,35 @@ class DocumentStore:
             target = new_nodes.get(anchor["id"])
             if target is None:
                 return None
-            offset = at - anchor["startFrame"] / old_fps
-            if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
-                offset = (offset * anchor.get("speed", 1) + anchor["sourceIn"] - target["sourceIn"]) / target.get("speed", 1)
-            return max(target["startFrame"] / new_fps, target["startFrame"] / new_fps + offset)
-        event_metadata = {entry["locator"]: entry for entry in plan["_editor"]["nodes"].values()}
+            return source_time(at, anchor, target)
         for collection in ("text", "musicDrops", "sfx", "exhibits"):
             events = plan.get(collection)
             if not isinstance(events, list):
                 continue
             kept = []
-            for index, event in enumerate(events):
+            for event in events:
                 if not isinstance(event, dict) or (event.get("at") is None and event.get("endAt") is None):
                     kept.append(event)
                     continue
-                entry = event_metadata.get(f"/{collection}/{index}", {})
-                suspended = entry.get("disabledTiming")
+                suspended = event.get("disabledTiming")
                 if suspended:
-                    target = all_new_nodes.get(suspended["segmentId"])
+                    token = suspended["owner"]
+                    anchor, target = old_owners.get(token), new_owners.get(token)
                     if target is None:
                         continue  # deleting the disabled owner deletes its suspended events too
+                    if anchor is not None:
+                        time_field = "at" if event.get("at") is not None else "endAt"
+                        old_at = float(event[time_field])
+                        at = source_time(old_at, anchor, target)
+                        old_end = float(event.get("endAt", old_at + float(event.get("for", 0) or 0)))
+                        end = source_time(old_end, anchor, target)
+                        event[time_field] = round(at, 6)
+                        if "for" in event:
+                            event["for"] = round(max(0.0, end - at), 6)
+                        if time_field == "at" and "endAt" in event:
+                            event["endAt"] = round(max(at, end), 6)
                     if target.get("enabled") is not False:
-                        shift = target["startFrame"] / new_fps - suspended["startSeconds"]
-                        for field in ("at", "endAt"):
-                            if event.get(field) is not None:
-                                event[field] = round(float(event[field]) + shift, 6)
-                        entry.pop("disabledTiming")
+                        event.pop("disabledTiming")
                     kept.append(event)
                     continue
                 time_field = "at" if event.get("at") is not None else "endAt"
@@ -1810,6 +1820,13 @@ class DocumentStore:
                     event["endAt"] = round(max(at, end), 6)
                 kept.append(event)
             plan[collection] = kept
+        suspended_owners = {event["disabledTiming"]["owner"]
+                            for name in ("text", "musicDrops", "sfx", "exhibits")
+                            for event in plan.get(name) or []
+                            if isinstance(event, dict) and event.get("disabledTiming")}
+        for clip in plan.get("segments") or []:
+            if clip.get("timingId") not in suspended_owners:
+                clip.pop("timingId", None)
         ensure_node_ids(plan)
 
     def _refresh_edit_timing(self, ctx):

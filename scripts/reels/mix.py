@@ -340,8 +340,9 @@ def build_cues(
                 autos.append(cue)
             return cue
 
-        for sg in segs:
-            if sg.trans and not ({sg.index, sg.index - 1} & talking):
+        for position, sg in enumerate(segs):
+            previous = segs[position - 1] if position else None
+            if sg.trans and sg.index not in talking and (previous is None or previous.index not in talking):
                 mid = sg.start + sg.trans / 2
                 auto("transition", f"segment {sg.index + 1} fade", centre=mid, anchor=mid)
             path = (sg.spec.get("sphere") or {}).get("path")
