@@ -86,8 +86,12 @@ piece durations and editing handles never restart, shorten or quantize that
 playback clock. Handles use finalized visible source bounds, not the authored
 duration or rounded timeline frame count. Pieces shorter than the 100 ms
 editable-key gap retain playback through the window without an editable path.
-Live-camera handles and subsequent camera transactions use the same compiled
-visible bounds, including music-retimed pieces. Windowed pieces may be shorter
+Live-camera responses resolve raw settings, asset identity and playback from one
+snapshot, including external plan reloads. Handles and local-path transactions
+use the same compiled visible bounds, including music-retimed pieces. Unsplit
+projection/static edits retain authored bounds; local-path edits preserve the
+authored duration and path in a window before materializing visible bounds.
+Windowed pieces may be shorter
 than the video/photo authoring minima; their editable keys still obey the
 100 ms gap, and sequential cutaways still obey the 0.4 s on-screen minimum.
 

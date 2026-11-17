@@ -2114,19 +2114,21 @@ class DocumentStore:
             if camera_edit and node_id and entry["kind"] in ("segment", "cutaway"):
                 resolved = (ctx["compiled"]["segs"][int(entry["locator"].split("/")[2])]["spec"]
                             if entry["kind"] == "segment" else self._resolved_cutaway(ctx, node_id)["resolved"])
-                if resolved.get("sphere") and any(target.get(name) != resolved.get(name)
-                                                  for name in ("in", "out", "duration")):
-                    # Aim handles describe the compiler's visible piece, not
-                    # the raw pre-music bounds. Materialize those bounds before
-                    # validating a write or clearing its playback window.
+                if (resolved.get("sphere") and (window or path == "/path" and isinstance(value, list))
+                        and any(target.get(name) != resolved.get(name) for name in ("in", "out", "duration"))):
+                    # Only local handles need the visible, retimed bounds.
+                    # Preserve the authored clock before materializing them;
+                    # projection/static edits on unsplit items keep raw bounds.
+                    from .timing import window_piece_keys
+                    camera = resolved["sphere"]
+                    window = window or {"offsetSeconds": 0, "durationSeconds": camera["durationSeconds"],
+                                        "path": deepcopy(camera["path"])}
+                    target["cameraWindow"] = window
                     for name in ("in", "out", "duration", "speed"):
                         if name in resolved:
                             target[name] = resolved[name]
-                    if window:
-                        from .timing import window_piece_keys
-                        camera = resolved["sphere"]
-                        target["path"] = window_piece_keys(camera["path"] or [], 0, source_duration(target),
-                                                           projection=camera["projection"]) or None
+                    target["path"] = window_piece_keys(camera["path"] or [], 0, source_duration(target),
+                                                       projection=camera["projection"]) or None
             tags, moment = {}, {}
             if camera_edit and (window or node_id in ctx.get("clearedCameraWindows", {})):
                 from ..library import load_asset, resolve_moment

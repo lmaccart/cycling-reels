@@ -455,29 +455,25 @@ class EditorService:
         """A 360 clip's camera resolved to numbers: named angles, the moment's view and a
         split segment's camera window become plain yaw/pitch/fov/roll keyframes in
         segment seconds — what the live 360 viewer edits."""
-        import copy as _copy
-
         from ..library import load_asset, resolve_id
-        from .document import node_location
 
-        plan = _copy.deepcopy(self._doc()._current_raw_plan())
-        try:
-            _, target = node_location(plan, node_id)
-        except KeyError:
+        snapshot = self._doc().snapshot()
+        node = next((n for n in snapshot["nodes"] if n["id"] == node_id), None)
+        if node is None:
             raise ProtocolError("node_not_found", "That clip is no longer in the reel.")
+        target = node["raw"]
+        spec = node.get("resolved", {})
         if not isinstance(target, dict) or not target.get("asset"):
             raise ProtocolError("not_360", "Select a 360 clip on the timeline.")
         try:
-            asset = load_asset(self.project, resolve_id(self.project, str(target["asset"])))
+            asset = load_asset(self.project, resolve_id(self.project, str(spec["asset"])))
         except Exception as exc:
             raise ProtocolError("asset_not_found", str(exc))
         if asset.get("kind") != "video" or not (asset.get("probe") or {}).get("sphere"):
             raise ProtocolError("not_360", "This clip isn't 360 video.")
         tags = asset.get("tags") or {}
-        # The compiler owns visible bounds after beat/music retiming, separately
-        # from the authored duration against which camera keys were resolved.
-        node = next((n for n in self._doc().snapshot()["nodes"] if n["id"] == node_id), None)
-        spec = node.get("resolved", {}) if node else {}
+        # Raw settings, resolved bounds/camera and asset identity belong to the
+        # same snapshot, including when snapshot() reloads an external edit.
         try:
             start, end = float(spec["in"]), float(spec["out"])
             speed = float(spec.get("speed") or 1.0)

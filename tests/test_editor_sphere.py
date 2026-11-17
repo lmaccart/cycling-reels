@@ -94,6 +94,36 @@ class SphereCameraTests(unittest.TestCase):
         self.assertTrue(second["path"][1]["cut"])
         self.assertIsNone(second["stabilizeSetting"])
 
+    def test_camera_external_reload_keeps_asset_settings_and_playback_together(self):
+        # Keep the real file reload synchronous with the camera request.
+        self.service.shutdown_requested.set()
+        self.service.watcher.join(5)
+        self.assertFalse(self.service.watcher.is_alive())
+        angles = {"other": {"yaw": -65, "pitch": 10, "roll": 15, "fov": 80}}
+        asset = self.fixture.asset("other360", duration=60, tags={"angles": angles})
+        asset["probe"]["sphere"] = {"projection": "equirect", "width": 4096, "height": 2048}
+        save_asset(self.fixture.project, asset)
+        node = self.open([{"asset": "ride360", "in": 1, "out": 7, "stabilize": "strong"}])[0]
+        store = self.service.document
+        before = store.snapshot()
+        raw = before["plan"]
+        raw["segments"][0].update(asset="other360", **{"in": 10, "out": 14, "stabilize": None,
+                                                      "path": ["other", "back"]})
+        store.plan_path.write_text(json.dumps(raw))
+
+        camera = self.service.dispatch("sphere.camera", {"id": node})
+        self.assertEqual(camera["assetId"], "other360")
+        self.assertEqual((camera["in"], camera["out"], camera["seconds"]), (10, 14, 4))
+        self.assertIsNone(camera["stabilize"])
+        self.assertIsNone(camera["stabilizeSetting"])
+        self.assertEqual(camera["angles"], angles)
+        self.assertEqual(camera["view"], angles["other"])
+        expected = plan_camera(raw["segments"][0], {"angles": angles}, None, 4, [], [], "clip")
+        for frame in range(121):
+            self.assert_pose(path_value(camera["playbackPath"], frame / 30),
+                             path_value(expected["path"], frame / 30))
+        self.assertNotEqual(store.snapshot()["revisions"]["document"], before["revisions"]["document"])
+
     def test_split_segment_camera_window_is_clamped_to_the_piece(self):
         window = {"durationSeconds": 4, "offsetSeconds": 1,
                   "path": [{"at": 0, "view": "road"}, {"at": 4, "view": "side"}]}
@@ -324,13 +354,17 @@ class SphereCameraTests(unittest.TestCase):
         for node_id, raw in items:
             projected = self.apply_operations([
                 {"op": "set_field", "id": node_id, "path": "/projection", "value": "tiny-planet"}])
-            sphere = next(n["resolved"]["sphere"] for n in projected["nodes"] if n["id"] == node_id)
+            resolved = next(n["resolved"] for n in projected["nodes"] if n["id"] == node_id)
+            sphere = resolved["sphere"]
             self.assertFalse([d for d in projected.get("diagnostics", []) if d.get("severity") == "error"])
             raw = pointer_get(projected["plan"], ensure_node_ids(projected["plan"])[node_id]["locator"])
             if "in" in raw:
                 camera = self.service.dispatch("sphere.camera", {"id": node_id})
                 self.assertEqual(camera["errors"], [])
                 raw = {**raw, "path": camera["path"] or None}
+            else:
+                raw = {**raw, "path": window_piece_keys(sphere["path"] or [], 0, source_duration(resolved),
+                                                       projection=sphere["projection"]) or None}
             if raw["path"]:
                 keys = [dict(k) for k in raw["path"]]
                 keys[0]["yaw"] = (keys[0]["yaw"] + 197) % 360 - 180
@@ -377,9 +411,9 @@ class SphereCameraTests(unittest.TestCase):
         cases = [("video", speed) for speed in
                  (0.25, 0.5, 0.75, 1, 1.5, 2, 3.25, 4, *(rng.uniform(0.25, 4) for _ in range(4)))]
         cases += [("photo", duration) for duration in (None, None, rng.uniform(2, 5), rng.uniform(2, 5))]
-        for placed in (False, True):
+        for placed, split_count in ((False, 0), (False, 2), (True, 0), (True, 2)):
             for case, (kind, setting) in enumerate(cases):
-                with self.subTest(placed=placed, case=case, kind=kind, setting=setting):
+                with self.subTest(placed=placed, splits=split_count, case=case, kind=kind, setting=setting):
                     if kind == "video":
                         speed = setting
                         # Legacy source intervals must be >=300 ms; editable paths
@@ -408,11 +442,11 @@ class SphereCameraTests(unittest.TestCase):
                         extra["timeline"] = {"version": 1, "fps": 30, "durationFrames": frames}
                     self.open([segment], **extra)
                     store = self.service.document
-                    store.snapshot()
+                    result = store.snapshot()
                     spec = store._current_compiled["segs"][0]["spec"]
                     original = spec["sphere"]["path"]
                     duration = spec["duration"] if kind == "photo" else (spec["out"] - spec["in"]) / spec["speed"]
-                    for _ in range(2):
+                    for _ in range(split_count):
                         candidates = [n for n in store.snapshot()["nodes"] if n["kind"] == "segment"
                                       and n["endFrame"] - n["startFrame"] >= 2 * minimum_frames]
                         if not candidates:
@@ -460,9 +494,9 @@ class SphereCameraTests(unittest.TestCase):
         asset = self.fixture.asset("photo360", kind="photo")
         asset["probe"]["sphere"] = {"projection": "equirect", "width": 4096, "height": 2048}
         save_asset(self.fixture.project, asset)
-        for placed in (False, True):
+        for placed, split_count in ((False, 0), (False, 2), (True, 0), (True, 2)):
             for case, setting in enumerate((0.25, 1, 4, None)):
-                with self.subTest(placed=placed, setting=setting):
+                with self.subTest(placed=placed, splits=split_count, setting=setting):
                     seconds = rng.uniform(4, 5) if setting is not None else 2.5
                     segment = ({"asset": "photo360"} if setting is None else {
                         "asset": "ride360", "in": 0.1337, "out": 0.1337 + seconds * setting, "speed": setting})
@@ -475,12 +509,13 @@ class SphereCameraTests(unittest.TestCase):
                     self.open([segment], **extra)
                     store = self.service.document
                     before = store.snapshot()
+                    result = before
                     camera = store._current_compiled["segs"][0]["spec"]["sphere"]
                     original, duration = camera["path"], camera["durationSeconds"]
                     self.assertAlmostEqual(duration, seconds)
                     offsets = [0]
                     minimum = 1 if placed else (24 if setting is None else math.ceil(max(.301 / setting, .101) * 30))
-                    for split in range(2):
+                    for split in range(split_count):
                         nodes = [n for n in before["nodes"] if n["kind"] == "segment"]
                         candidates = [(i, n) for i, n in enumerate(nodes)
                                       if n["frames"] >= minimum * 2]
@@ -556,6 +591,40 @@ class SphereCameraTests(unittest.TestCase):
         self.assert_cutaway_split_playback(result, original, 2.5, original_at=1)
         self.assert_followup_camera_edits(result)
 
+    def test_unsplit_retimed_cutaway_camera_edits_keep_authored_bounds(self):
+        asset = self.fixture.asset("photo360", kind="photo")
+        asset["probe"]["sphere"] = {"projection": "equirect", "width": 4096, "height": 2048}
+        save_asset(self.fixture.project, asset)
+        for kind in ("video", "photo"):
+            with self.subTest(kind=kind):
+                cutaway = ({"asset": "photo360"} if kind == "photo" else
+                           {"asset": "ride360", "in": 5, "out": 7.5})
+                cutaway.update(at=1, path=[{"at": 0, "yaw": 0}, {"at": 2.5, "yaw": 90}])
+                self.open([{"asset": "flat", "in": 0, "out": 3.5, "cutaways": [cutaway]}],
+                          music=self.beat_music(90))
+                before = self.service.document.snapshot()
+                node = next(n for n in before["nodes"] if n["kind"] == "cutaway")
+                self.assertEqual(node["frames"], 70)
+                self.assertAlmostEqual(source_duration(node["resolved"]), 2.333)
+                for path, value in (("/projection", "tiny-planet"), ("/yaw", 25), ("/view", "back")):
+                    result = self.apply_operations([
+                        {"op": "set_field", "id": node["id"], "path": path, "value": value}])
+                    raw = result["plan"]["segments"][0]["cutaways"][0]
+                    self.assertNotIn("cameraWindow", raw)
+                    for name in ("in", "out", "duration", "path"):
+                        self.assertEqual(raw.get(name), cutaway.get(name))
+                    sphere = next(n["resolved"]["sphere"] for n in result["nodes"] if n["id"] == node["id"])
+                    self.assertEqual(sphere["durationSeconds"], 2.5)
+                    expected = plan_camera(raw, {"angles": ANGLES} if kind == "video" else {},
+                                           None, 2.5, [], [], "authored camera")
+                    for frame in range(71):
+                        self.assert_pose(path_value(sphere["path"], frame / 30, sphere["projection"]),
+                                         path_value(expected["path"], frame / 30, expected["projection"]))
+                self.assert_followup_camera_edits(result)
+                raw = self.service.document.snapshot()["plan"]["segments"][0]["cutaways"][0]
+                self.assertEqual(raw["cameraWindow"]["durationSeconds"], 2.5)
+                self.assertEqual(raw["cameraWindow"]["path"][-1], expected["path"][-1])
+
     def test_random_retimed_cutaway_transaction_cuts_keep_legal_handles_and_playback(self):
         rng = random.Random(3603790)
         asset = self.fixture.asset("photo360", kind="photo")
@@ -564,10 +633,10 @@ class SphereCameraTests(unittest.TestCase):
         cases = [("video", speed) for speed in
                  (0.25, 0.5, 0.75, 1, 1.5, 2, 3.25, 4, *(rng.uniform(0.25, 4) for _ in range(4)))]
         cases += [("photo", duration) for duration in (None, None, None, None, 2.49, rng.uniform(3, 5))]
-        for placed in (False, True):
+        for placed, split_count in ((False, 0), (False, 2), (True, 0), (True, 2)):
             for case, (kind, setting) in enumerate(cases):
                 bpm = (60, 90, 137, 180, None)[case % 5]
-                with self.subTest(placed=placed, case=case, kind=kind, setting=setting, bpm=bpm):
+                with self.subTest(placed=placed, splits=split_count, case=case, kind=kind, setting=setting, bpm=bpm):
                     if kind == "video":
                         seconds = rng.uniform(4, 6)
                         source_in = rng.uniform(0.001, 15)
@@ -594,10 +663,11 @@ class SphereCameraTests(unittest.TestCase):
                     self.open([parent], **extra)
                     store = self.service.document
                     before = store.snapshot()
+                    result = before
                     spec = store._current_compiled["segs"][0]["cutaways"][0]["spec"]
                     original = spec["sphere"]["path"]
                     duration = spec["sphere"]["durationSeconds"]
-                    for _ in range(2):
+                    for _ in range(split_count):
                         # Random legal source cuts, including cuts within and outside
                         # cutaways. Positioned plans also exercise one-frame fragments.
                         candidates = []
