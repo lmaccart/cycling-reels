@@ -44,11 +44,24 @@ def proxy_reservation(seconds: float) -> int:
     return math.ceil(max(0.0, seconds) * 4_000_000) + 32_000_000
 
 
+def _run_encoder(command: list, *, timeout: float) -> None:
+    # The selected frozen renderer may predate proxy leases. Keep descriptor
+    # inheritance in the trusted runtime, not in that renderer's media.run API.
+    from ..media import BIN
+    from .proxy_cache import encoder_fds
+
+    command = [str(value) for value in command]
+    command[0] = BIN.get(command[0], command[0])
+    result = subprocess.run(command, capture_output=True, text=True, timeout=timeout,
+                            stdin=subprocess.DEVNULL, pass_fds=encoder_fds())
+    if result.returncode:
+        tail = (result.stderr or result.stdout or "").strip()[-2500:]
+        raise ReelsError(f"proxy encoder failed (exit {result.returncode}): {tail}")
+
+
 def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
                  seconds: float = 0, crf: int = 23) -> str:
     """Hardware decode + encode on macOS; retry the complete job in software on failure."""
-    from ..media import run
-
     hardware = ["h264_videotoolbox", "hevc_videotoolbox"]
     encoders = [*hardware, "libx264"] if sys.platform == "darwin" else ["libx264"]
     limit = proxy_reservation(seconds) - 16_000_000 if seconds > 0 else None
@@ -67,7 +80,7 @@ def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
             *(["-fs", str(limit)] if limit else []), output,
         ]
         try:
-            run(command, timeout=1800)
+            _run_encoder(command, timeout=1800)
         except (ReelsError, OSError, subprocess.SubprocessError):
             if not accelerated:
                 raise

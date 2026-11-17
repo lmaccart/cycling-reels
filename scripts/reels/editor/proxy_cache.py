@@ -6,6 +6,7 @@ import os
 import shutil
 import uuid
 from contextlib import ExitStack, contextmanager
+from contextvars import ContextVar
 from functools import wraps
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from .proxy import proxy_reservation
 from ..util import ReelsError
 
 MIN_FREE_BYTES = 50_000_000_000
+_encoder_fds: ContextVar[tuple[int, ...]] = ContextVar("proxy_encoder_fds", default=())
 
 
 class ProxyDiskFull(ReelsError):
@@ -20,9 +22,22 @@ class ProxyDiskFull(ReelsError):
 
 
 def _open_lock(path: Path):
-    # Never follow a cache entry replaced by a symlink. CLOEXEC keeps a killed
-    # Python worker's lease from surviving in an ffmpeg child.
+    # Inherit only explicitly selected locks via pass_fds, never every open file.
     return os.fdopen(os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600), "r+")
+
+
+def encoder_fds() -> tuple[int, ...]:
+    """Key locks and output leases the encoder must retain if Python dies."""
+    return _encoder_fds.get()
+
+
+@contextmanager
+def _encoder_lock(stream):
+    token = _encoder_fds.set((*_encoder_fds.get(), stream.fileno()))
+    try:
+        yield
+    finally:
+        _encoder_fds.reset(token)
 
 
 @contextmanager
@@ -37,10 +52,10 @@ def cache_lock(root: Path, *, blocking: bool = True):
         except BlockingIOError:
             yield False
         else:
-            try:
+            # Closing our descriptor releases only our reference. LOCK_UN would
+            # also unlock a surviving encoder's inherited open-file description.
+            with _encoder_lock(stream):
                 yield True
-            finally:
-                fcntl.flock(stream, fcntl.LOCK_UN)
 
 
 def budget_root(workspace: Path) -> Path:
@@ -55,9 +70,9 @@ def budget_root(workspace: Path) -> Path:
 def reserve_disk(root: Path, amount: int, free_disk=None):
     """Atomically account for all in-flight proxy outputs, across processes.
 
-    Live reservation files stay flocked; abandoned ones are reclaimed on the next
-    request, including after SIGKILL. Counting already-written bytes again is
-    conservative. Unrelated disk writers cannot participate in this budget.
+    Live reservation files stay flocked by Python and its encoder; abandoned ones
+    are reclaimed only after both exit, including after SIGKILL. Counting written
+    bytes again is conservative. Unrelated disk writers are outside this budget.
     """
     free_disk = free_disk or (lambda path: shutil.disk_usage(path).free)
     lease_path = root / f"{uuid.uuid4().hex}.reserve"
@@ -79,12 +94,21 @@ def reserve_disk(root: Path, amount: int, free_disk=None):
             fcntl.flock(lease, fcntl.LOCK_EX)
             lease.write(str(amount))
             lease.flush()
-        yield
+        with _encoder_lock(lease):
+            yield
     finally:
         if lease is not None:
+            lease.close()
             with cache_lock(root):
-                lease_path.unlink(missing_ok=True)
-                lease.close()
+                # SIGINT can unwind this scope while an encoder is still alive.
+                # Keep its lease until the last inherited descriptor is closed.
+                with _open_lock(lease_path) as stream:
+                    try:
+                        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError:
+                        pass
+                    else:
+                        lease_path.unlink(missing_ok=True)
 
 
 def proxy_job(work):

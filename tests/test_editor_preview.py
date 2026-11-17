@@ -276,7 +276,7 @@ class EditorPreviewTests(unittest.TestCase):
             "revisions": {"renderer": "renderer-360"},
             "runtimeRevision": "runtime-360",
         }
-        with patch("reels.media.run", side_effect=fake_run):
+        with patch("reels.editor.proxy._run_encoder", side_effect=fake_run):
             result = prepare_source_proxy(job)
         self.assertEqual(result["status"], "ready")
         command = commands[0]

@@ -46,10 +46,13 @@ def describe(asset: dict) -> str:
 
 def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> list[dict]:
     """Move new files into the library, build sheets, then drain new 360 source jobs."""
+    from .prewarm import prewarm, queue_sources
+
     project.assert_media_writable()
     project.ensure_dirs()
     ignored: dict[str, int] = {}
     new: list[dict] = []
+    queued: list[str] = []
     files = _inbox_files(project)
     if not files:
         log("inbox is empty — drop ride videos and photos into inbox/ first")
@@ -127,16 +130,13 @@ def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> l
             warn(f"{asset_id}: contact sheet failed ({e}); you can retry with ./reels frames {asset_id}")
             asset["sheets"] = []
         save_asset(project, asset)
+        queued.extend(queue_sources(project, [asset]))
         new.append(asset)
         log(f"+ {asset_id}  {kind}  {describe(asset)}")
         if kind == "video" and probe["hasAudio"]:  # sound events (freehub, shifts, pass-bys…) -> library/sounds/
             from .sounds import on_ingest
 
             on_ingest(project, asset)
-
-    from .prewarm import prewarm, queue_sources
-
-    queued = queue_sources(project, new)
 
     # GPS from GoPro telemetry tracks (clips without one are skipped silently)
     videos = [a["id"] for a in new if a["kind"] == "video"]

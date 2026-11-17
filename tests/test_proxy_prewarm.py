@@ -12,7 +12,7 @@ from unittest.mock import patch
 from helpers import TempProject, live_workspace
 from reels.editor.preview import PreviewManager
 from reels.editor.worker import _stat_identity, prepare_source_proxy, prepare_sphere_proxy
-from reels.library import save_asset
+from reels.library import all_assets, save_asset
 from reels.prewarm import MIN_FREE_BYTES, _queue_path, prewarm, queue_sources
 from reels.editor.proxy import PROXY_VERSION, encode_proxy, proxy_reservation, source_cache_key, sphere_cache_key
 from reels.stabilize import Orientation
@@ -35,7 +35,7 @@ class EncodingPolicyTests(unittest.TestCase):
                 raise ReelsError("VideoToolbox unavailable")
             self.output.write_bytes(b"software output")
 
-        with patch("reels.editor.proxy.sys.platform", "darwin"), patch("reels.media.run", side_effect=run):
+        with patch("reels.editor.proxy.sys.platform", "darwin"), patch("reels.editor.proxy._run_encoder", side_effect=run):
             codec = encode_proxy(Path("input.mp4"), self.output, ["-map", "0:v:0"], seconds=2)
         self.assertEqual(codec, "libx264")
         self.assertEqual(commands[0][commands[0].index("-c:v") + 1], "h264_videotoolbox")
@@ -47,7 +47,7 @@ class EncodingPolicyTests(unittest.TestCase):
             self.assertEqual(command[command.index("-bf") + 1], "0")
 
     def test_hardware_success_does_not_encode_again(self):
-        with patch("reels.editor.proxy.sys.platform", "darwin"), patch("reels.media.run") as run:
+        with patch("reels.editor.proxy.sys.platform", "darwin"), patch("reels.editor.proxy._run_encoder") as run:
             run.side_effect = lambda *args, **kwargs: self.output.write_bytes(b"hardware output")
             codec = encode_proxy(Path("input.mp4"), self.output, [], seconds=1)
         self.assertEqual(codec, "h264_videotoolbox")
@@ -55,7 +55,7 @@ class EncodingPolicyTests(unittest.TestCase):
         self.assertIn("yuv420p", run.call_args.args[0])
 
     def test_non_mac_uses_software_and_propagates_software_failure(self):
-        with patch("reels.editor.proxy.sys.platform", "linux"), patch("reels.media.run", side_effect=ReelsError("bad input")) as run:
+        with patch("reels.editor.proxy.sys.platform", "linux"), patch("reels.editor.proxy._run_encoder", side_effect=ReelsError("bad input")) as run:
             with self.assertRaisesRegex(ReelsError, "bad input"):
                 encode_proxy(Path("input.mp4"), self.output, [])
         self.assertEqual(run.call_count, 1)
@@ -65,7 +65,7 @@ class EncodingPolicyTests(unittest.TestCase):
         def run(command, **kwargs):
             with self.output.open("wb") as stream:
                 stream.truncate(int(command[command.index("-fs") + 1]))
-        with patch("reels.media.run", side_effect=run):
+        with patch("reels.editor.proxy._run_encoder", side_effect=run):
             with self.assertRaisesRegex(ReelsError, "truncated"):
                 encode_proxy(Path("input.mp4"), self.output, [], seconds=1)
 
@@ -242,6 +242,31 @@ class PrewarmTests(unittest.TestCase):
         flat = self.fixture.asset("flat")
         photo = self.fixture.asset("photo", kind="photo")
         self.assertEqual(queue_sources(self.fixture.project, [flat, photo]), [])
+
+    def test_interrupted_ingest_resumes_saved_clip_before_sounds_or_next_clip(self):
+        from reels.ingest import ingest
+
+        for interruption in ("sounds", "next-clip"):
+            with self.subTest(interruption=interruption):
+                fixture = TempProject(self)
+                for name in ("first", "second"):
+                    (fixture.project.inbox / f"{name}.mp4").write_bytes(name.encode())
+                probe = {**self.asset["probe"], "hasAudio": True}
+                probes = [probe, KeyboardInterrupt()]
+                sound_error = KeyboardInterrupt() if interruption == "sounds" else None
+                with patch("reels.ingest.probe_video", side_effect=probes), patch("reels.ingest.volume_stats", return_value=None), patch("reels.ingest.make_video_sheets", return_value=[]), patch("reels.sounds.on_ingest", side_effect=sound_error), redirect_stdout(io.StringIO()):
+                    with self.assertRaises(KeyboardInterrupt):
+                        ingest(fixture.project, speech=False)
+                saved = all_assets(fixture.project)
+                self.assertEqual([a["originalName"] for a in saved], ["first.mp4"])
+                queued = _queue_path(fixture.project, saved[0]["id"])
+                self.assertEqual(json.loads(queued.read_text()), {"assetId": saved[0]["id"]})
+                with patch("reels.editor.worker.prepare_source_proxy", return_value={"status": "ready", "reused": False}) as worker, redirect_stdout(io.StringIO()):
+                    report = prewarm(fixture.project, source_only=True,
+                                     free_disk=lambda _: MIN_FREE_BYTES + proxy_reservation(361))
+                self.assertEqual(worker.call_args.args[0]["assetId"], saved[0]["id"])
+                self.assertEqual((report["prepared"], report["failed"]), (1, 0))
+                self.assertFalse(queued.exists())
 
     @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
     def test_tiny_clip_prewarms_real_media_reused_by_editor(self):

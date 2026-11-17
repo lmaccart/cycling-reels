@@ -19,6 +19,7 @@ def cached_correction_quats(src: Path, cache_dir: Path, identity: dict, start: f
     import uuid
 
     from .proxy import cache_key
+    from .proxy_cache import ProxyDiskFull
     from ..util import ReelsError
 
     frames = max(1, int(round((end - start) * fps)))
@@ -26,7 +27,6 @@ def cached_correction_quats(src: Path, cache_dir: Path, identity: dict, start: f
                      "setting": setting, "correctionVersion": 1})
     if cache_dir.is_symlink():
         raise ReelsError("CORI cache directory cannot be a symlink")
-    cache_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     target = cache_dir / f"{key}.json"
     if target.is_symlink():
         raise ReelsError("CORI cache entry cannot be a symlink")
@@ -42,8 +42,14 @@ def cached_correction_quats(src: Path, cache_dir: Path, identity: dict, start: f
             return cached
     except (OSError, ValueError, KeyError, TypeError):
         pass
+    persist = True
     if reserve is not None:
-        reserve()
+        try:
+            reserve()
+        except ProxyDiskFull:
+            # Covered media remains playable: compute the request's own clock
+            # and lock anchor in memory without writing a correction sidecar.
+            persist = False
     pad_s = stabilize.margin(setting) if setting else 0.5
     try:
         ori = stabilize.read_orientation(src, max(0.0, start - pad_s), end + pad_s)
@@ -62,6 +68,9 @@ def cached_correction_quats(src: Path, cache_dir: Path, identity: dict, start: f
             "quats": [[round(c, 6) for c in q] for q in stabilize.correction_quats(
                 ori, [start + n / fps for n in range(frames)], setting)],
         }
+    if not persist:
+        return result
+    cache_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     temporary = cache_dir / f".{key}-{uuid.uuid4().hex}.tmp"
     try:
         with temporary.open("x", encoding="utf-8") as stream:
