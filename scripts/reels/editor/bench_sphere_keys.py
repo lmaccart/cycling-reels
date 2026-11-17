@@ -223,6 +223,10 @@ def print_report(report: dict) -> None:
 
 def _private_project(root: Path, work: Path, asset_id: str, scale: float) -> Project:
     """A throwaway project holding copies of config.json and one asset record; media read in place."""
+    from reels.library import resolve_id
+
+    original = Project(root, media_read_only=True)
+    asset_id = resolve_id(original, asset_id)
     (work / "library" / "assets").mkdir(parents=True)
     if (root / "config.json").is_file():
         config = json.loads((root / "config.json").read_text(encoding="utf-8"))

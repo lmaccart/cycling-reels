@@ -2033,12 +2033,30 @@ class DocumentStore:
                     raise ValueError(f"{component!r} holds a value, not an object, so {path} can't be set inside it")
             key = components[-1]
             value = deepcopy(operation.get("value"))
+            camera_edit = isinstance(target, dict) and components[0] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection")
+            window = target.get("cameraWindow") if camera_edit else None
+            tags, moment = {}, {}
+            if camera_edit and (window or node_id in ctx.get("clearedCameraWindows", {})):
+                from ..library import load_asset, resolve_moment
+                from ..sphere import plan_camera
+
+                asset = load_asset(self.project, target["asset"])
+                tags = asset.get("tags") or {}
+                moment = resolve_moment(asset, target["moment"]) if "moment" in target else {}
+                if isinstance(window, dict):
+                    # Freeze sparse exterior poses before clearing any base-view
+                    # overrides in the aim batch, not after the last field write.
+                    errors: list[str] = []
+                    camera = plan_camera({**target, "path": window["path"]}, tags, moment.get("view"),
+                                         window["durationSeconds"], errors, [], "camera window")
+                    if errors:
+                        raise ValueError("; ".join(errors))
+                    window = {**window, "path": camera["path"]}
             if isinstance(parent, list):
                 raise ValueError("array elements must be edited through stable node IDs")
             else:
                 parent[key] = value
-            if isinstance(target, dict) and path.split("/")[1] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection"):
-                window = target.get("cameraWindow")
+            if camera_edit:
                 cleared = ctx.setdefault("clearedCameraWindows", {})
                 if path in ("/yaw", "/pitch", "/roll", "/fov") and value is None:
                     if isinstance(window, dict):
@@ -2052,7 +2070,8 @@ class DocumentStore:
                     # an aim edit on a split piece: its keys go into the window too, so the
                     # renderer (which reads the window) shows them and trims keep the move
                     from .timing import window_with_piece_keys
-                    kept = window_with_piece_keys(window, target, value)
+                    kept = window_with_piece_keys(window, {**moment, **target}, value,
+                                                  tags=tags, moment_view=moment.get("view"))
                 if kept is not None:
                     target["cameraWindow"] = kept
                 else:

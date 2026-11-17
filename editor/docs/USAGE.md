@@ -145,16 +145,26 @@ what renders.
   aims that one, and with nothing selected it aims the 360 clip under the
   playhead. Splitting a selected clip moves selection and aim to the new right
   piece when the playhead is there. Undo/redo restores the corresponding selection
-  and aim target. Clearing the selection keeps playhead-following active across
+  and aim target through the normal selection/Inspector pathway, including the
+  service and terminal context. Clearing the selection keeps playhead-following active across
   aim edits and refreshes. Split playback retains the original path's easing
   intervals and hard cuts; bounded start/end keys are editing handles, not a
   replacement playback path.
-  Editable key times use the compiler's millisecond grid and 100 ms minimum gap.
-  Aim edits preserve the source camera window, including when clearing old
-  angle overrides. Deleting an endpoint key holds the nearest remaining pose.
+  Editable key times use the compiler's millisecond grid and 100 ms minimum gap;
+  window translations add integer ticks so fractional offsets cannot shrink a gap.
+  Aim edits preserve the source camera window, including named/string and sparse
+  keys, tagged/moment defaults, and exterior poses when clearing old angle overrides.
+  Deleting an endpoint key holds the nearest remaining pose.
   Tiny-planet paths interpolate after applying their fixed downward pitch.
+  Loop seams and automatic camera-move cues compare quaternion rotation, not Euler
+  readouts at the poles; FOV is checked separately. Camera-move cues use a 20° rotation
+  threshold on any axis (including roll), or a 25° FOV change.
 - A **Custom** stabilize value (a number of seconds set in the plan) is shown
   with that same smoothing, not as Medium.
+- `scripts/reels/editor/bench_sphere_keys.py` stages an isolated temporary plan and
+  compares keyframe/midpoint frames with single-frame v360 references. It resolves
+  abbreviated asset IDs against the original library before copying metadata;
+  originals and the input plan remain read-only.
 - Space plays the clip in the 360 view; **Done** returns to the Program preview.
 
 ### Footage dragging

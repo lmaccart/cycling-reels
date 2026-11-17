@@ -155,8 +155,12 @@ def _slice_keys(keys: list, start: float, end: float, *, rebase: bool,
         return result
     selected = [at_time(start)] + [k for k in ordered if start < float(k["at"]) < end] + [at_time(end)]
     selected[0].pop("cut", None)  # no incoming move at the piece's start
+    from ..sphere import key_time_ms
+    camera = _is_camera_key(selected[0])
     for key in selected:
-        key["at"] = round(float(key["at"]) - (start if rebase else 0), 6)
+        offset = -start if rebase else 0
+        key["at"] = (key_time_ms(float(key["at"]), offset=offset) / 1000 if camera
+                     else round(float(key["at"]) + offset, 6))
     return selected
 
 
@@ -176,9 +180,6 @@ def _camera_pose(left: dict, right: dict, at: float, *, view: dict | None = None
     return {name: pose[name] for name in ("yaw", "pitch", "fov", "roll")}
 
 
-MIN_KEY_GAP = 0.1  # plan_camera: path keyframes at least 0.1 s apart
-
-
 def window_piece_keys(window_path: list, offset: float, seconds: float, *, projection: str = "flat") -> list:
     """A split piece's camera keys in its own 0…seconds, from its `cameraWindow` path.
 
@@ -186,81 +187,69 @@ def window_piece_keys(window_path: list, offset: float, seconds: float, *, proje
     it. Keys outside the piece become boundary poses at 0 and `seconds` (on the same
     path the renderer follows), and keys too close to a boundary make way for it, so
     the result is a path `plan_camera` accepts for this piece."""
-    if seconds < MIN_KEY_GAP or not any(isinstance(k, dict) and "at" in k for k in window_path):
+    from ..sphere import MIN_KEY_GAP_MS, key_time_ms
+
+    end_ms = key_time_ms(seconds, upper_bound=seconds)
+    if end_ms < MIN_KEY_GAP_MS or not window_path:
         return []
     keys = _slice_keys(window_path, offset, offset + seconds, rebase=True, projection=projection)
     first, *inner, last = keys
-    last["at"] = round(seconds, 3)
-    if last["at"] > seconds:
-        last["at"] = round(last["at"] - 0.001, 3)
-    end_ms = round(last["at"] * 1000)
+    last["at"] = end_ms / 1000
     kept = [first]
     previous_ms = 0
     for key in inner:
-        key["at"] = round(key["at"], 3)
-        at_ms = round(key["at"] * 1000)
-        # Match plan_camera after millisecond rounding, including inner gaps
-        # which can shrink when shifted from the source window.
-        if at_ms - previous_ms >= 100 and end_ms - at_ms >= 100:
+        at_ms = key_time_ms(key["at"])
+        if at_ms - previous_ms >= MIN_KEY_GAP_MS and end_ms - at_ms >= MIN_KEY_GAP_MS:
             kept.append(key)
             previous_ms = at_ms
     return [*kept, last]
 
 
-def _key_times(path: list, duration: float) -> list:
-    """`at` of each raw window key, with plan_camera's defaults for a missing one."""
-    times = []
-    for index, key in enumerate(path):
-        at = key.get("at", 0 if index == 0 else duration) if isinstance(key, dict) else None
-        times.append(float(at) if isinstance(at, (int, float)) and not isinstance(at, bool) else None)
-    return times
+def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
+                           tags: dict | None = None, moment_view: Any = None) -> dict | None:
+    """Merge an edit on the compiler's integer-ms lattice, retaining exterior poses.
 
+    Normalize both paths through the compiler before merging: names and sparse keys
+    must inherit the same tagged/moment/segment view as they do when rendered.
+    """
+    from ..sphere import MIN_KEY_GAP_MS, key_time_ms, plan_camera
 
-def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list) -> dict | None:
-    """`window` after an aim edit wrote `keys` (piece time) to a split piece's /path.
-
-    The window path keeps its keys outside the piece, so a later trim still continues
-    the original move, and takes the edited keys inside it. None when the window can't
-    carry them (no path, unreadable times); the caller then drops the window."""
-    path = window.get("path")
     duration = window.get("durationSeconds")
-    offset = window.get("offsetSeconds", 0)
-    if (not isinstance(path, list) or not isinstance(duration, (int, float))
-            or not isinstance(offset, (int, float)) or isinstance(offset, bool)):
+    if not isinstance(window.get("path"), list) or not isinstance(duration, (int, float)):
         return None
-    try:
-        seconds = source_duration(segment)
-    except (TypeError, ValueError, ZeroDivisionError):
-        seconds = 0.0
-    inside = [deepcopy(k) for k in keys if isinstance(k, dict) and isinstance(k.get("at"), (int, float))]
-    if len(inside) != len(keys) or not inside:
+    seconds = source_duration(segment)
+    errors: list[str] = []
+    outside = plan_camera({**segment, "path": window["path"]}, tags or {}, moment_view,
+                          duration, errors, [], "camera window")["path"]
+    inside = plan_camera({**segment, "path": keys}, tags or {}, moment_view,
+                         seconds, errors, [], "edited camera")["path"]
+    if errors:
+        raise ValueError("; ".join(errors))
+    if not outside or not inside:
         return None
-    times = _key_times(path, float(duration))
-    if None in times:
-        return None
-    inside.sort(key=lambda k: float(k["at"]))
-    piece = max(seconds, float(inside[-1]["at"]))
-    # A local path holds outside its keys. Put matching anchors at the piece
-    # edges (just outside for sub-0.1s gaps) before reconnecting exterior keys.
-    lo, hi = 0.0, piece
-    gap = MIN_KEY_GAP + 0.001  # stay valid after plan_camera's millisecond rounding
-    if float(inside[0]["at"]) > 0:
-        lo = min(0.0, float(inside[0]["at"]) - gap)
-        if float(offset) + lo >= 0:
-            inside.insert(0, {**deepcopy(inside[0]), "at": lo})
+    offset_ms = key_time_ms(float(window.get("offsetSeconds", 0)))
+    end_ms = key_time_ms(seconds, upper_bound=seconds)
+    lo, hi = 0, end_ms
+    first_ms, last_ms = key_time_ms(inside[0]["at"]), key_time_ms(inside[-1]["at"])
+    # Hold the edited endpoints before reconnecting exterior keys. If an edge is
+    # less than one key gap away, put its hold anchor just outside the piece.
+    if first_ms > 0:
+        lo = min(0, first_ms - MIN_KEY_GAP_MS)
+        if offset_ms + lo >= 0:
+            inside.insert(0, {**inside[0], "at": lo / 1000})
     inside[0].pop("cut", None)
-    if float(inside[-1]["at"]) < piece:
-        hi = max(piece, float(inside[-1]["at"]) + gap)
-        inside.append({**deepcopy(inside[-1]), "at": hi, "cut": False})
-    lo, hi = float(offset) + lo, float(offset) + hi
-    before = [{**deepcopy(k), "at": at} for k, at in zip(path, times)
-              if at < float(offset) - 1e-6 and at <= lo - MIN_KEY_GAP]
-    after = [{**deepcopy(k), "at": at} for k, at in zip(path, times)
-             if at > float(offset) + piece + 1e-6 and at >= hi + MIN_KEY_GAP]
+    if last_ms < end_ms:
+        hi = max(end_ms, last_ms + MIN_KEY_GAP_MS)
+        inside.append({**inside[-1], "at": hi / 1000, "cut": False})
+    lo, hi = offset_ms + lo, offset_ms + hi
+    before = [k for k in outside if key_time_ms(k["at"]) < offset_ms
+              and key_time_ms(k["at"]) <= lo - MIN_KEY_GAP_MS]
+    after = [k for k in outside if key_time_ms(k["at"]) > offset_ms + end_ms
+             and key_time_ms(k["at"]) >= hi + MIN_KEY_GAP_MS]
     for key in inside:
-        key["at"] = round(float(key["at"]) + float(offset), 6)
-    return {**deepcopy(window), "durationSeconds": max(float(duration), hi),
-            "path": before + sorted(inside, key=lambda k: k["at"]) + after}
+        key["at"] = key_time_ms(key["at"], offset=offset_ms / 1000) / 1000
+    return {**deepcopy(window), "durationSeconds": max(float(duration), hi / 1000),
+            "path": before + inside + after}
 
 
 def slice_local_events(segment: dict[str, Any], start: float, end: float, *, rebase: bool = False,

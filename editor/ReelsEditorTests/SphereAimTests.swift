@@ -241,4 +241,103 @@ final class SphereAimTests: XCTestCase {
         XCTAssertEqual(store.playheadFrame, 180)
         store.sphereAim.close()
     }
+
+    func testSplitUndoRedoSelectionReachesServiceAndTerminalContext() async throws {
+        let code = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let python = ProcessInfo.processInfo.environment["REELS_TEST_PYTHON"]
+            ?? code.appending(path: ".venv/bin/python").path
+        guard FileManager.default.isExecutableFile(atPath: python) else {
+            throw XCTSkip("Needs the repository Python environment")
+        }
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Real Python service and compiler; placeholder media is fingerprinted, never decoded.
+        let server = """
+        import os
+        from pathlib import Path
+        from reels.config import Project
+        from reels.library import save_asset
+        from reels.util import quick_hash, write_json
+        from reels.editor.workspace import Workspace
+        from reels.editor.service import serve
+        root = Path.cwd()
+        project = Project(root)
+        project.ensure_dirs()
+        (root / "remotion").mkdir(exist_ok=True)
+        media = project.media_dir / "pano.mp4"
+        media.write_bytes(b"selection-test" * 64)
+        save_asset(project, {"id": "pano", "kind": "video", "media": "library/media/pano.mp4",
+            "hash": quick_hash(media), "status": "tagged", "tags": {},
+            "probe": {"duration": 6, "fps": 30, "width": 512, "height": 256,
+                      "hasAudio": False, "sphere": {"projection": "equirect", "width": 512, "height": 256}}})
+        write_json(project.plans_dir / "selection.json",
+                   {"slug": "selection", "autoSfx": False, "segments": [{"asset": "pano", "in": 0, "out": 6}]})
+        serve(Workspace.live(root, code_root=Path(os.environ["REELS_TEST_CODE_ROOT"])))
+        """
+        try server.write(to: root.appending(path: "serve.py"), atomically: true, encoding: .utf8)
+        let launcher = root.appending(path: "reels")
+        try "#!/bin/sh\nexec \"$REELS_TEST_PYTHON\" serve.py\n".write(to: launcher, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcher.path)
+        var env = ProcessInfo.processInfo.environment
+        env["PYTHONPATH"] = code.appending(path: "scripts").path
+        env["REELS_TEST_PYTHON"] = python
+        env["REELS_TEST_CODE_ROOT"] = code.path
+        env["REELS_HOME"] = root.path
+        let store = EditorStore()
+        try store.service.start(repositoryRoot: root, environment: env)
+        defer { store.sphereAim.close(); store.service.stopSynchronously() }
+        let opened = try await store.service.call("document.open", params: .object(["path": .string("plans/selection.json")]))
+        store.snapshot = try XCTUnwrap(EditorSnapshot.decode(opened))
+        store.library = [.object(["id": .string("pano"), "kind": .string("video"),
+                                   "probe": .object(["sphere": .object([:])])])]
+        let leftID = try XCTUnwrap(store.snapshot?.nodes.first(where: { $0.kind == "segment" })?.id)
+        store.playheadFrame = 90
+        store.setSelection([leftID])
+
+        func assertServiceSelection(_ id: String) async throws {
+            // Wait for the normal asynchronous selection/inspector pathway, with
+            // an observable service-state condition rather than a fixed sleep.
+            var selection: JSONValue = .null
+            var context: JSONValue = .null
+            let deadline = Date().addingTimeInterval(5)
+            repeat {
+                await Task.yield()
+                selection = try await store.service.call("selection.get")
+                let data = try Data(contentsOf: root.appending(path: ".cache/editor/live/context.json"))
+                context = try JSONDecoder().decode(JSONValue.self, from: data)
+                if selection["ids"] == .array([.string(id)]),
+                   context["selection"]?.arrayValue?.first?["id"]?.stringValue == id { break }
+                try await Task.sleep(for: .milliseconds(10))
+            } while Date() < deadline
+            XCTAssertEqual(selection["ids"], .array([.string(id)]))
+            XCTAssertEqual(selection["playhead"]?.numberValue, 90)
+            XCTAssertEqual(context["selection"]?.arrayValue?.first?["id"]?.stringValue, id)
+            XCTAssertEqual(context["playheadSeconds"]?.numberValue, 3)
+        }
+        try await assertServiceSelection(leftID)
+        var result = try await store.service.call("document.apply", params: .object([
+            "expected": opened["revisions"]!, "origin": .string("manual"), "reason": .string("split"),
+            "operations": .array([.object(["op": .string("split_segment"), "id": .string(leftID), "atFrame": .number(90)])])
+        ]))
+        var rightID: String?
+        for action in ["split", "document.undo", "document.redo"] {
+            if action != "split" {
+                result = try await store.service.call(action, params: .object(["expected": result["revisions"]!]))
+            }
+            store.sphereAim.isActive = true
+            store.sphereAim.boundNodeID = store.selectedIDs.first
+            store.acceptRefreshedSnapshot(try XCTUnwrap(EditorSnapshot.decode(result)))
+            if action == "split" {
+                rightID = store.snapshot?.nodes.first(where: { $0.kind == "segment" && $0.startFrame == 90 })?.id
+            }
+            let expected = action == "document.undo" ? leftID : try XCTUnwrap(rightID)
+            XCTAssertEqual(store.selectedIDs, [expected])
+            XCTAssertEqual(store.sphereAim.boundNodeID, expected)
+            XCTAssertEqual(store.playheadFrame, 90)
+            store.sphereAim.close() // no proxy job: this regression exercises selection, not decoding
+            try await assertServiceSelection(expected)
+        }
+    }
 }

@@ -27,10 +27,10 @@ extension EditorStore {
     /// piece. Reconcile both directions before the panel observes the snapshot.
     func reconcileSphereAimSelection(previous: [EditorNode], next: [EditorNode]) {
         guard sphereAim.isActive else { return }
-        var migrated = false
+        var selection = selectedIDs
         for old in previous where selectedIDs.contains(old.id) {
             if !next.contains(where: { $0.id == old.id }) {
-                selectedIDs.remove(old.id)
+                selection.remove(old.id)
                 if let merged = next.first(where: { candidate in
                     candidate.assetId == old.assetId && candidate.kind == old.kind
                         && candidate.parentId == old.parentId && candidate.lane == old.lane
@@ -40,9 +40,8 @@ extension EditorStore {
                                 && $0.endFrame == old.startFrame
                         })
                 }) {
-                    selectedIDs.insert(merged.id)
+                    selection.insert(merged.id)
                 }
-                migrated = true
                 continue
             }
             guard let left = next.first(where: { $0.id == old.id }),
@@ -55,10 +54,11 @@ extension EditorStore {
                   }),
                   playheadFrame >= right.startFrame && playheadFrame < right.endFrame,
                   SphereAimModel.isSphereClip(right, library: library) else { continue }
-            selectedIDs.remove(old.id)
-            selectedIDs.insert(right.id)
-            migrated = true
+            selection.remove(old.id)
+            selection.insert(right.id)
         }
+        let migrated = selection != selectedIDs
+        if migrated { setSelection(selection) }
         if migrated || sphereAim.boundNodeID.map({ id in !next.contains(where: { $0.id == id }) }) == true {
             followSphereAim()
         }

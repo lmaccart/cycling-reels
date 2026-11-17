@@ -120,6 +120,59 @@ class SphereCameraTests(unittest.TestCase):
                 self.assertGreater(abs(path_value(cam["path"], 0.5)["yaw"]
                                        - path_value(cam["playbackPath"], 1.5)["yaw"]), 1)
 
+    def edit_piece(self, segment):
+        """Real service camera → full aim batch → sandboxed transaction compiler."""
+        from helpers import live_workspace
+        from reels.editor.transactions import DocumentStore
+
+        self.fixture.plan("piece-edit", [segment])
+        store = DocumentStore(live_workspace(self.fixture), "plans/piece-edit.json")
+        self.service.document = store
+        try:
+            before = store.snapshot()
+            node = next(n for n in before["nodes"] if n["kind"] == "segment")
+            camera = self.service.dispatch("sphere.camera", {"id": node["id"]})
+            self.assertEqual(camera["errors"], [])
+            edited = [dict(k) for k in camera["path"]]
+            self.assertGreaterEqual(len(edited), 2)
+            edited[0]["yaw"] = (edited[0]["yaw"] + 25 + 180) % 360 - 180
+            result = store.apply({"expected": before["revisions"], "origin": "manual", "reason": "aim", "operations": [
+                *[{"op": "set_field", "id": node["id"], "path": "/" + name, "value": None}
+                  for name in ("yaw", "pitch", "fov", "roll")],
+                {"op": "set_field", "id": node["id"], "path": "/path", "value": edited}]})
+            raw = result["plan"]["segments"][0]
+            self.assertEqual(raw["path"], edited)
+            self.assertIn("cameraWindow", raw)
+            self.assertEqual(raw["cameraWindow"]["offsetSeconds"], segment["cameraWindow"]["offsetSeconds"])
+            self.assertFalse([d for d in result.get("diagnostics", []) if d.get("severity") == "error"])
+            # Exterior poses survive, even after the old top-level defaults are cleared.
+            lo = segment["cameraWindow"]["offsetSeconds"]
+            hi = lo + camera["seconds"]
+            for key in camera["playbackPath"]:
+                if key["at"] < lo - 0.101 or key["at"] > hi + 0.101:
+                    self.assertIn(key, raw["cameraWindow"]["path"])
+            return camera, raw
+        finally:
+            self.service.document = None
+            store.close()
+
+    def test_fractional_window_aim_transaction_keeps_100ms_intervals(self):
+        window = {"durationSeconds": 1, "offsetSeconds": 0.0625,
+                  "path": [{"at": t, "yaw": 10 * i} for i, t in enumerate((0, 0.2, 0.4, 0.5, 1))]}
+        camera, raw = self.edit_piece({"asset": "ride360", "in": 2, "out": 3.2, "speed": 2,
+                                      "cameraWindow": window})
+        self.assertEqual([k["at"] for k in camera["path"]], [0, 0.138, 0.338, 0.438, 0.6])
+        times = [round(k["at"] * 1000) for k in raw["cameraWindow"]["path"]]
+        self.assertTrue(all(b - a >= 100 for a, b in zip(times, times[1:])), times)
+
+    def test_shorthand_and_sparse_windows_preserve_exterior_camera_keys(self):
+        for path in (["front", "back"], ["road", "side"],
+                     [{"pitch": 15}, {"roll": 80, "view": "front"}]):
+            with self.subTest(path=path):
+                self.edit_piece({"asset": "ride360", "moment": "m-1", "in": 11, "out": 14,
+                                 "roll": 25, "fov": 85, "cameraWindow": {
+                                     "durationSeconds": 6, "offsetSeconds": 1.0625, "path": path}})
+
     def test_random_split_keys_compile_and_playback_matches_render(self):
         from reels import render
 
@@ -133,14 +186,21 @@ class SphereCameraTests(unittest.TestCase):
                 keys.append({"at": time_ms / 1000, "yaw": rng.uniform(-180, 180),
                              "pitch": rng.uniform(-85, 85), "roll": rng.uniform(-180, 180),
                              "fov": rng.uniform(30, 120), "cut": index > 0 and rng.random() < 0.25})
-            speed = rng.choice((0.5, 1, 2))
-            minimum = 0.301 / speed  # render.build requires at least 0.3 s of source per piece
-            duration = max((time_ms + rng.randint(100, 500)) / 1000, 2 * minimum + 0.1)
-            split = rng.uniform(minimum, duration - minimum)
+            speed = rng.choice((0.25, 0.5, 0.75, 1, 1.5, 2, 3.25, 4, rng.uniform(0.25, 4)))
+            minimum = max(0.404 / speed, 0.101)
+            offset = rng.choice((0.0625, 0.0005, rng.uniform(0.001, 0.25)))
+            duration = max((time_ms + rng.randint(100, 500)) / 1000, offset + 2 * minimum + 0.1)
+            split = rng.uniform(offset + minimum, duration - minimum)
+            if case % 4 == 0:
+                keys = rng.choice((["front", "back"], ["road", "side"]))
+            elif case % 4 == 1:
+                for key in keys:
+                    for component in rng.sample(["yaw", "pitch", "roll", "fov"], rng.randint(1, 3)):
+                        key.pop(component)
             projection = rng.choice(("flat", "tiny-planet"))
-            for start, end in ((0, split), (split, duration)):
-                with self.subTest(case=case, start=start, end=end, projection=projection):
-                    segment = {"asset": "ride360", "in": start * speed, "out": end * speed,
+            for start, end in ((offset, split), (split, duration)):
+                with self.subTest(case=case, start=start, end=end, speed=speed, projection=projection):
+                    segment = {"asset": "ride360", "moment": "m-1", "in": start * speed, "out": end * speed,
                                "speed": speed, "projection": projection, "cameraWindow": {
                                    "durationSeconds": duration, "offsetSeconds": start, "path": keys}}
                     node_id = self.open([segment])[0]
@@ -161,13 +221,16 @@ class SphereCameraTests(unittest.TestCase):
                         expected = path_value(rendered["path"], t, projection)
                         self.assertLess(_turn(qmat(view_quat(viewer)), qmat(view_quat(expected))), 1e-7)
                         self.assertAlmostEqual(viewer["fov"], expected["fov"], places=9)
+                    self.edit_piece(segment)
 
     def test_tiny_planet_swap_halves_keeps_seam_protection(self):
         from reels import render
         from reels.loop import swap_halves
 
-        view = {"yaw": 20, "pitch": 0, "roll": 0, "fov": 90}
-        for first_path, last_path in ((True, True), (True, False), (False, True), (False, False)):
+        from itertools import product
+
+        for roll, first_path, last_path in product((0, 90, -120), (True, False), (True, False)):
+            view = {"yaw": 0, "pitch": 0, "roll": roll, "fov": 90}
             segments = []
             for start, end, use_path in ((5, 8, first_path), (2, 5, last_path)):
                 segment = {"asset": "ride360", "in": start, "out": end,
@@ -182,6 +245,26 @@ class SphereCameraTests(unittest.TestCase):
         segments[0]["view"]["yaw"] = 70
         changed = render.build(self.fixture.project, {"slug": "changed-loop", "loop": True, "segments": segments})
         self.assertFalse(changed["loop"]["swap"][0])
+        # Flat roll-only changes used to be missed entirely by the Euler seam check.
+        segments[0]["view"] = {**view, "roll": view["roll"] + 10}
+        for segment in segments:
+            segment["projection"] = "flat"
+        changed = render.build(self.fixture.project, {"slug": "roll-loop", "loop": True, "segments": segments})
+        self.assertFalse(changed["loop"]["swap"][0])
+        segments[0]["view"] = {**view, "fov": view["fov"] + 10}
+        changed = render.build(self.fixture.project, {"slug": "zoom-loop", "loop": True, "segments": segments})
+        self.assertFalse(changed["loop"]["swap"][0])
+
+    def test_camera_move_cues_measure_rotation_not_euler_components(self):
+        from reels.mix import _move_mids
+
+        for projection, pitch in (("flat", -90), ("tiny-planet", 0)):
+            equivalent = [{"at": 0, "yaw": 0, "pitch": pitch, "roll": 90, "fov": 90},
+                          {"at": 2, "yaw": 90, "pitch": pitch, "roll": 0, "fov": 90}]
+            self.assertEqual(_move_mids(equivalent, projection), [])
+        start = {"at": 0, "yaw": 0, "pitch": 0, "roll": 0, "fov": 90}
+        for component, delta in (("yaw", 30), ("pitch", 25), ("roll", 30), ("fov", 30)):
+            self.assertEqual(_move_mids([start, {**start, "at": 2, component: start[component] + delta}]), [1])
 
     def test_non_360_clips_are_refused(self):
         ids = self.open([{"asset": "flat", "in": 0, "out": 2}])
@@ -394,24 +477,37 @@ class SphereProxyWorkerTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
 class BenchSphereKeysTests(unittest.TestCase):
     def test_staged_frames_match_single_frame_views_and_not_the_old_blend(self):
-        from reels.editor.bench_sphere_keys import run
+        from reels.editor.bench_sphere_keys import main
 
         fixture = TempProject(self)
         media = fixture.project.media_dir / "pano.mp4"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=512x256:rate=30:duration=3",
                         "-c:v", "libx264", "-pix_fmt", "yuv420p", str(media)], check=True)  # fmt: skip
-        asset = fixture.asset("pano", duration=3.0, width=512, height=256, audio=False, media=media)
+        asset = fixture.asset("pano-1234", duration=3.0, width=512, height=256, audio=False, media=media)
         asset["probe"]["sphere"] = {"projection": "equirect", "width": 512, "height": 256}
         save_asset(fixture.project, asset)
         fixture.project.config["render"].update(width=144, height=256)
+        config_path = fixture.root / "config.json"
+        config_path.write_text(json.dumps(fixture.project.config))
         plan = {"slug": "t", "segments": [{"asset": "pano", "in": 0, "out": 3, "path": [
             {"at": 0, "yaw": -12.89, "pitch": 35.63, "fov": 80, "roll": -95.47},
             {"at": 1.5, "yaw": -107.05, "pitch": 84.01, "fov": 80, "roll": 167.45},
             {"at": 2.9, "yaw": -24.65, "pitch": 47.35, "fov": 90, "roll": -105.51}]}]}
-        from contextlib import chdir
+        from contextlib import chdir, redirect_stdout
+        import io
 
-        with chdir(fixture.root):
-            report = run(fixture.project, plan, 0, Path("bench"), start=0.5, end=2.95)
+        plan_path = fixture.plan("t", plan["segments"])
+        originals = {p: p.read_bytes() for p in (plan_path, config_path, media,
+                     fixture.project.assets_dir / "pano-1234.json")}
+        output = io.StringIO()
+        with chdir(fixture.root), redirect_stdout(output):
+            status = main(["--root", str(fixture.root), "--plan", "plans/t.json",
+                           "--out", "bench", "--from", "0.5", "--to", "2.95", "--json"])
+        report = json.loads(output.getvalue())
+        self.assertEqual(status, 0)
+        self.assertEqual(report["asset"], "pano-1234")
+        for path, content in originals.items():
+            self.assertEqual(path.read_bytes(), content, path)
         self.assertEqual(Path(report["dir"]), (fixture.root / "bench").resolve())
         self.assertTrue((fixture.root / "bench" / "staged.mp4").is_file())
         self.assertTrue(report["pass"], report)

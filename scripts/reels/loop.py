@@ -60,10 +60,12 @@ def swap_halves(segs: list, fps: int) -> tuple[bool, str]:
     if va or vb:
         if not (va and vb) or (a["sphere"]["projection"] != b["sphere"]["projection"]):
             return False, "the two halves use different 360 projections"
-        dyaw = abs((va["yaw"] - vb["yaw"] + 180) % 360 - 180)
-        if dyaw > 1 or abs(va["pitch"] - vb["pitch"]) > 1 or abs(va["fov"] - vb["fov"]) > 1:
-            return False, (f"the 360 view changes at the seam (yaw {vb['yaw']:g}→{va['yaw']:g}, pitch {vb['pitch']:g}→{va['pitch']:g}, "
-                           f"fov {vb['fov']:g}→{va['fov']:g}) — end the last segment on the view the first one starts with")  # fmt: skip
+        from .sphere import orientation_distance
+
+        rotation = orientation_distance(va, vb)
+        if rotation > 1 or abs(va["fov"] - vb["fov"]) > 1:
+            return False, (f"the 360 view changes at the seam (rotation {rotation:g}°, "
+                           f"fov {vb['fov']:g}→{va['fov']:g}) — end the last segment on the view the first one starts with")
     else:
         for k in ("frame", "zoom", "focusX", "focusY"):
             if a[k] != b[k] and not (isinstance(a[k], float) and abs(a[k] - b[k]) <= _TOL):

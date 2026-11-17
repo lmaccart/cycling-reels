@@ -189,6 +189,17 @@ def view_quat(view: dict) -> tuple[float, float, float, float]:
     return (ca * cb * cc + sa * sb * sc, ca * sb * cc + sa * cb * sc, sa * cb * cc - ca * sb * sc, ca * cb * sc - sa * sb * cc)
 
 
+def orientation_distance(a: dict, b: dict, projection: str = "flat") -> float:
+    """Shortest rotation in degrees, independent of Euler wrapping/pole representation."""
+    if projection == "tiny-planet":
+        a, b = {**a, "pitch": -90.0}, {**b, "pitch": -90.0}
+    qa, qb = view_quat(a), view_quat(b)
+    sign = -1 if sum(x * y for x, y in zip(qa, qb)) < 0 else 1
+    # Chord form remains accurate near zero, unlike acos(dot).
+    chord = math.sqrt(sum((x - sign * y) ** 2 for x, y in zip(qa, qb)))
+    return math.degrees(4 * math.asin(min(1.0, chord / 2)))
+
+
 def path_value(keys: list[dict], t: float, projection: str = "flat") -> dict:
     """Camera at time t along keyframes [{'at', 'yaw', 'pitch', 'fov', 'roll'[, 'cut']}].
 
@@ -369,6 +380,62 @@ def parse_angles(raw: Any, errors: list[str]) -> dict:
     return out
 
 
+MIN_KEY_GAP_MS = 100
+
+
+def key_time_ms(seconds: float, *, offset: float = 0.0, upper_bound: float | None = None) -> int:
+    """Compiler key-time lattice. Translate integer ticks, never re-round shifted floats.
+
+    Rounding each (key + offset) independently can turn a valid 100 ms interval
+    into 99 ms at a half-millisecond offset. Quantize both operands first.
+    A bounded endpoint always uses the last tick inside the piece, in both the
+    editable path and the window merge (not a newly deleted endpoint/hold).
+    """
+    ticks = round(round(seconds, 3) * 1000) + round(round(offset, 3) * 1000)
+    if upper_bound is not None:
+        last = key_time_ms(upper_bound)
+        ticks = min(ticks, last - int(last / 1000 > upper_bound))
+    return ticks
+
+
+def normalize_path(raw: Any, angles: dict, view: dict, seconds: float,
+                   errors: list[str], where: str) -> list[dict] | None:
+    """All compiler key forms: names, sparse objects and default endpoint times."""
+    if raw is None:
+        return None
+    if not isinstance(raw, list) or len(raw) < 2:
+        errors.append(f"{where}: path needs at least two keyframes, e.g. [{{\"at\": 0, \"view\": \"road\"}}, {{\"at\": 2, \"view\": \"rider\"}}]")
+        return None
+    keys = []
+    for i, k in enumerate(raw):
+        w = f"{where} path[{i}]"
+        if isinstance(k, str):
+            k = {"view": k}
+        if not isinstance(k, dict):
+            errors.append(f"{w}: keyframes are objects like {{\"at\": 1.5, \"view\": \"rider\"}}")
+            continue
+        try:
+            at = float(k.get("at", 0 if i == 0 else seconds))
+        except (TypeError, ValueError):
+            errors.append(f"{w}: at must be seconds from the start of the segment")
+            continue
+        if not math.isfinite(at):
+            errors.append(f"{w}: at must be finite seconds from the start of the segment")
+            continue
+        if not 0 <= at <= seconds + 0.01:
+            errors.append(f"{w}: at={at:g}s is outside this {seconds:.1f}s segment")
+        key = {"at": key_time_ms(at) / 1000, **parse_view(k, angles, errors, w, view)}
+        if k.get("cut") is True and i > 0:
+            key["cut"] = True
+        elif k.get("cut") not in (None, False, True):
+            errors.append(f"{w}: cut must be true or false")
+        keys.append(key)
+    keys.sort(key=lambda x: x["at"])
+    if any(key_time_ms(b["at"]) - key_time_ms(a["at"]) < MIN_KEY_GAP_MS for a, b in zip(keys, keys[1:])):
+        errors.append(f"{where}: path keyframes need to be at least 0.1 s apart")
+    return keys
+
+
 def plan_camera(
     spec: dict,
     tags: dict,
@@ -399,37 +466,7 @@ def plan_camera(
     for k in ("frame", "zoom", "focusX", "focusY", "fit"):
         if k in written:
             warnings.append(f"{where}: '{k}' doesn't apply to 360 footage — framing comes from view/fov/path")
-    path = None
-    raw = spec.get("path")
-    if raw is not None:
-        if not isinstance(raw, list) or len(raw) < 2:
-            errors.append(f"{where}: path needs at least two keyframes, e.g. [{{\"at\": 0, \"view\": \"road\"}}, {{\"at\": 2, \"view\": \"rider\"}}]")
-        else:
-            keys = []
-            for i, k in enumerate(raw):
-                w = f"{where} path[{i}]"
-                if isinstance(k, str):
-                    k = {"view": k}
-                if not isinstance(k, dict):
-                    errors.append(f"{w}: keyframes are objects like {{\"at\": 1.5, \"view\": \"rider\"}}")
-                    continue
-                try:
-                    at = float(k.get("at", 0 if i == 0 else seconds))
-                except (TypeError, ValueError):
-                    errors.append(f"{w}: at must be seconds from the start of the segment")
-                    continue
-                if not 0 <= at <= seconds + 0.01:
-                    errors.append(f"{w}: at={at:g}s is outside this {seconds:.1f}s segment")
-                key = {"at": round(at, 3), **parse_view(k, angles, errors, w, view)}
-                if k.get("cut") is True and i > 0:
-                    key["cut"] = True
-                elif k.get("cut") not in (None, False, True):
-                    errors.append(f"{w}: cut must be true or false")
-                keys.append(key)
-            keys.sort(key=lambda x: x["at"])
-            if any(round(b["at"] * 1000) - round(a["at"] * 1000) < 100 for a, b in zip(keys, keys[1:])):
-                errors.append(f"{where}: path keyframes need to be at least 0.1 s apart")
-            path = keys
+    path = normalize_path(spec.get("path"), angles, view, seconds, errors, where)
     from .stabilize import parse_setting
 
     stabilize = parse_setting(spec.get("stabilize"), errors, where)
