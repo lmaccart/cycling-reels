@@ -47,7 +47,8 @@ class ProxyMetalTests(unittest.TestCase):
                       "sphere": {"projection": "equirect", "width": 1920, "height": 960}}
         self.streams = [{"index": 0, "id": "0x1", "codec_type": "video", "codec_name": "h264",
                          "pix_fmt": "yuv420p", "color_space": "bt709", "color_primaries": "bt709",
-                         "color_transfer": "bt709", "color_range": "tv", "width": 1920, "height": 960},
+                         "color_transfer": "bt709", "color_range": "tv", "width": 1920, "height": 960,
+                         "duration_ts": 60, "time_base": "1/30"},
                         {"index": 1, "codec_type": "audio", "codec_name": "aac"}]
         self.job = {"sourcePath": str(self.source), "sourceIdentity": _stat_identity(self.source),
                     "mediaRoot": str(self.source.parent), "workspaceRoot": str(self.root), "assetId": "pano",
@@ -56,7 +57,8 @@ class ProxyMetalTests(unittest.TestCase):
         self.requests, self.commands = [], []
         self.enterContext(patch.dict(os.environ, REELS_SPHERE_BACKEND="auto"))
         self.enterContext(patch.object(proxy_metal, "executable", return_value=Path("/trusted/reels-sphere")))
-        self.enterContext(patch.object(proxy_metal, "ffprobe_json", return_value={"streams": self.streams}))
+        self.container = {"streams": self.streams, "format": {"duration": "2.000000"}}
+        self.enterContext(patch.object(proxy_metal, "ffprobe_json", return_value=self.container))
         self.enterContext(patch("reels.stabilize.read_orientation", return_value=None))
 
     def native(self, command, **kwargs):
@@ -123,6 +125,61 @@ class ProxyMetalTests(unittest.TestCase):
         self.assertEqual(result["outputBytes"], Path(result["path"]).stat().st_size)
         self.assertGreaterEqual(result["encodeSeconds"], result["muxSeconds"])
         self.assertEqual(list(Path(result["path"]).parent.glob(".sphere-*")), [])
+
+    def test_container_tail_uses_video_eof_without_extending_video_or_trimming_audio(self):
+        # 59.94 fps video and AAC have different physical EOFs. Container-based
+        # rounding would request 301 frames; vf_fps emits only 300.
+        self.streams[0].update(duration_ts=600600, time_base="1/60000")
+        self.container["format"]["duration"] = "10.024000"
+        for kind, start, expected_frames in (("source", 0, 300), ("sphere", 9, 30)):
+            with self.subTest(kind=kind), patch.object(proxy, "_run_encoder", side_effect=self.native):
+                job = {**self.job, "probe": {**self.probe, "duration": 10.024},
+                       "revisionDir": str(self.root / ("eof-" + kind)), "start": start, "end": 10.024}
+                result = (prepare_source_proxy if kind == "source" else prepare_sphere_proxy)(job)
+                self.assertEqual((result["status"], result["backend"]), ("ready", "metal"), result)
+                request = self.requests[-1]
+                self.assertEqual((request["sourceIn"], request["sourceOut"], request["frames"]),
+                                 (start, 10.01, expected_frames))
+                mux = self.commands[-1][0]
+                self.assertEqual(mux[mux.index("-ss"):mux.index("-ss") + 4],
+                                 ["-ss", f"{start:.3f}", "-t", f"{10.024 - start:.3f}"])
+
+    def test_eof_contract_rejects_out_of_container_range_and_mismatched_tracks(self):
+        self.streams[0].update(duration_ts=600600, time_base="1/60000")
+        self.container["format"]["duration"] = "10.024000"
+        cases = [
+            (10.025, "container EOF"),
+            (12, "container EOF"),
+        ]
+        for end, reason in cases:
+            with self.subTest(end=end), patch.object(proxy, "_run_encoder", side_effect=self.native):
+                result = proxy_metal.render_proxy(self.job, self.source, self.root / "invalid.mp4",
+                                                  projection="equirect", start=9, end=end)
+                self.assertEqual(result["backend"], "ffmpeg")
+                self.assertIn(reason, result["fallbackReason"])
+        other = {**self.streams[0], "index": 5, "id": "0x6", "duration_ts": 599599}
+        self.streams.append(other)
+        self.job["probe"] = {"sphere": {"projection": "gopro-eac", "face": 256,
+                                      "overlap": 64, "tracks": [0, 5]}}
+        for stream in (self.streams[0], other):
+            stream.update(width=832, height=256)
+        with patch.object(proxy, "_run_encoder", side_effect=self.native):
+            result = proxy_metal.render_proxy(self.job, self.source, self.root / "mismatch.mp4",
+                                              projection="equirect", start=9, end=10.024)
+        self.assertEqual(result["backend"], "ffmpeg")
+        self.assertIn("different EOF", result["fallbackReason"])
+        self.assertEqual(self.commands, [])
+
+    def test_exact_video_eof_half_tick_and_rounded_container_representation(self):
+        self.streams[0].update(duration_ts=601, time_base="1/60")
+        self.container["format"]["duration"] = "10.016667"
+        with patch.object(proxy, "_run_encoder", side_effect=self.native):
+            result = proxy_metal.render_proxy(self.job, self.source, self.root / "tie.mp4",
+                                              projection="equirect", start=9, end=10.017,
+                                              inputs=["-ss", "9.000", "-t", "1.017"])
+        self.assertEqual(result["backend"], "metal", result)
+        self.assertEqual(self.requests[-1]["frames"], 31)
+        self.assertEqual(self.requests[-1]["sourceOut"], 601 / 60)
 
     def test_h264_failure_tries_hevc_then_reports_actual_encoder(self):
         def run(command, **kwargs):

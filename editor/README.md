@@ -419,3 +419,101 @@ guarantee. HEVC proxy fallback was not forced on real hardware; the 12 Mb/s
 ceiling is configured, not a separately measured rolling-window bound.
 No installed-app setup/launch or whole-library backfill was performed.
 
+
+### Whole-clip video EOF contract
+
+Proxy video and audio keep their own EOFs. The trusted native adapter reads
+each selected video's exact `duration_ts * time_base`, requires matching EOFs
+for paired GoPro tracks, and bounds native `sourceOut` by that video EOF.
+The 30 fps frame count uses exact rational round-half-away-from-zero, as
+`vf_fps` does; audio still uses the worker's original seek/trim and AAC mux.
+No frame is invented to cover an audio/data tail, and no video is discarded
+to fit a container-based frame count.
+
+Requested endpoints beyond the live container EOF are rejected for native
+execution (the exact millisecond-rounded EOF used by library metadata is
+accepted). Missing video duration or mismatched track EOFs takes the explicit
+fallback path. The native track-range, decoded-EOF and first-tick guards remain
+unchanged; this is not a tolerance increase. Version 5 pixels/codec/cache
+semantics are unchanged, so existing valid ffmpeg proxies remain reusable.
+
+The production failure on `261031-gs010110-08e8` and
+`261031-gs010112-b674` was a 482.496 s audio/container EOF versus 482.482 s
+video EOF: 14,475 container-derived frames versus **14,474 actual 30 fps
+video frames**. Regression coverage includes a non-integer source frame
+clock with a longer audio tail, whole-source and final aim-range requests,
+exact half-tick EOF rounding, invalid endpoints and disagreeing paired tracks.
+
+EOF-fix verification: full Python suite **993 passed** in 497.020 s with
+`REELS_RUN_SANDBOX_RENDER_PROOF=1` and the main checkout Python; no skips.
+Native CLI SwiftPM **9 passed**. Integrated editor **143 tests accounted
+for**: 142 passed in the full run, one Python-dependent service test skipped
+because Xcode did not forward the plain shell variable; that test then passed
+with `TEST_RUNNER_REELS_TEST_PYTHON` and `test-without-building`. No tests
+remain skipped. Unique local DerivedData; no setup/install or installed-app
+launch.
+
+#### Full-clip EOF proof
+
+Both unmodified 482.496 s asset requests ran through the production
+`PreviewManager._run_worker` sandbox with `REELS_SPHERE_BACKEND=auto`,
+fresh private output/telemetry directories and real locks/reservations.
+Both selected **Metal / h264_videotoolbox**, with `fallbackReason: null`.
+The orchestrator's existing W5b outputs were only read, not regenerated or
+modified. Their resolved views matched the new production requests exactly.
+
+| Asset | Full worker s | Encode job s | Native decode/GPU/encode s | Mux s | Output bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `261031-gs010110-08e8` | 81.249262 | 80.072260 | 72.389565 | 7.430387 | 492,688,235 |
+| `261031-gs010112-b674` | 79.983288 | 78.911064 | 71.290801 | 7.358255 | 492,672,549 |
+
+These are observed wall times, not an isolated speed benchmark; other
+verification processes shared the machine. Recorded W5b encode-job times
+were 170.620839 / 167.903087 s, not contemporaneous baselines. No new 30 s
+speed benchmark was run. Separate full proof-readback workers took
+81.105739 / 76.670220 s; their requests differed only in destination and
+the eight bounded proof indexes.
+
+Both outputs: H.264 High, 1440×1280, full-range 8-bit 4:2:0, BT.709,
+GOP ≤10/no B-frames. **14,474 packets**, every PTS `n/30`, first 0, last
+482.433333 s, video duration **482.466667 s**, exactly matching W5b.
+Both native runs selected source PTS **482.4486333333333** for the final
+output frame. The final source frame rounds to the EOF tick and is dropped
+by `vf_fps`, not padded into an extra output frame. All 22,618 audio packets
+(PTS/duration/size/flags) and decoded PCM SHA-256 matched W5b; audio remains
+**482.496 s**, not shortened to video EOF.
+
+Final aim requests 480–482.496 s also used native H.264: **74 frames**,
+2048×1024, exact `n/30` PTS, matching audio packets/PCM versus freshly run
+W5b. Full aim-worker wall times were 1.460813 / 1.429612 s.
+
+Quality sampled the **last eight consecutive frames** in each layout for
+each asset (front/back 14466–14473; aim 66–73). Software v360 replay from
+the integer 480 s origin preserves the full-clip 30 fps tick grid. Each
+uncompressed planar reference is shared by native pre-encode and decoded
+native/W5b comparisons, preserving full range, 255 peak and 4:1:1 weighting.
+
+| Asset / layout | Minimum pre-encode average dB | Worst native−W5b Y dB | Worst native−W5b average dB |
+| --- | ---: | ---: | ---: |
+| `gs010110` front/back | 68.444056 | −0.037258 | −0.035173 |
+| `gs010110` aim | 68.911101 | −0.032859 | −0.031023 |
+| `gs010112` front/back | 68.331731 | −0.022447 | −0.021621 |
+| `gs010112` aim | 68.501141 | −0.009846 | −0.009454 |
+
+All 32 samples pass the unchanged ≥35 dB raw / ≤0.10 dB deficit gates.
+Final-frame front/back raw average: 68.681559 / 68.400381 dB; native decoded
+Y: 37.292545 / 39.773427 dB versus W5b 37.284714 / 39.767425 dB.
+The W7 encoded ≥35 dB gate also passed its existing real-footage dynamic,
+equirect, slow-24fps, split-105 and tiny-planet tests; it was not replaced.
+
+Full precision per-plane/region metrics, common-reference hashes, requests,
+commands, packet clocks and timings: `.cache/editor/eof-production-proof.json`
+(`pass: true`, `temporaryMediaRemoved: true`). Original and recorded-baseline
+stat/quick-hash identities were unchanged; all private derived footage and
+the throwaway harness were removed. The initial harness incorrectly required
+primaries/transfer tags absent from the existing W5b output, aborted after a
+successful native run, and removed that output; the corrected harness retained
+the strict native colour check and all quality thresholds. No shader, native
+EOF guard, UI, timing/slerp, mux, preset, reservation or cancellation changes.
+Limits: two own-footage chapters on one M2 Pro; endpoint-focused quality,
+not an all-footage claim, forced HEVC test or new throughput certification.
