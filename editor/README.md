@@ -440,8 +440,15 @@ No installed-app setup/launch or whole-library backfill was performed.
 ### Whole-clip video EOF contract
 
 Proxy video and audio keep their own EOFs. The trusted native adapter reads
-each selected video's exact `duration_ts * time_base`, requires matching EOFs
-for paired GoPro tracks, and bounds native `sourceOut` by that video EOF.
+each selected video's exact `duration_ts * time_base` and bounds native
+`sourceOut` by the **shortest selected video track**. Paired GoPro tracks must
+have the same positive nominal and average frame rate. Their EOFs may differ
+by at most **two source-frame periods** (exact rational arithmetic): measured
+chapter tails lose one or two frames at 60000/1001 fps, or 16.683333 /
+33.366667 ms. Larger differences retain the explicit
+`selected video tracks have different EOF timestamps` fallback; missing or
+inconsistent rates also fall back. The tolerance only admits the file:
+it never extends either track, pads a frame or changes the decoder's guards.
 The 30 fps frame count uses exact rational round-half-away-from-zero, as
 `vf_fps` does; audio still uses the worker's original seek/trim and AAC mux.
 No frame is invented to cover an audio/data tail, and no video is discarded
@@ -449,17 +456,19 @@ to fit a container-based frame count.
 
 Requested endpoints beyond the live container EOF are rejected for native
 execution (the exact millisecond-rounded EOF used by library metadata is
-accepted). Missing video duration or mismatched track EOFs takes the explicit
-fallback path. The native track-range, decoded-EOF and first-tick guards remain
-unchanged; this is not a tolerance increase. Version 5 pixels/codec/cache
-semantics are unchanged, so existing valid ffmpeg proxies remain reusable.
+accepted). Missing video duration or unsupported paired-track timing takes the
+explicit fallback path. The native track-range, decoded-EOF and first-tick
+guards remain unchanged. The same intersection applies to whole front/back
+chapters and every 180 s aim range, including the final partial range.
+Version 5 pixels/codec/cache semantics are unchanged, so existing valid
+ffmpeg proxies remain reusable.
 
 The production failure on `261031-gs010110-08e8` and
 `261031-gs010112-b674` was a 482.496 s audio/container EOF versus 482.482 s
 video EOF: 14,475 container-derived frames versus **14,474 actual 30 fps
 video frames**. Regression coverage includes a non-integer source frame
 clock with a longer audio tail, whole-source and final aim-range requests,
-exact half-tick EOF rounding, invalid endpoints and disagreeing paired tracks.
+exact half-tick EOF rounding, invalid endpoints and excessive paired-track skew.
 
 EOF-fix verification: full Python suite **993 passed** in 497.020 s with
 `REELS_RUN_SANDBOX_RENDER_PROOF=1` and the main checkout Python; no skips.
@@ -534,3 +543,88 @@ the strict native colour check and all quality thresholds. No shader, native
 EOF guard, UI, timing/slerp, mux, preset, reservation or cancellation changes.
 Limits: two own-footage chapters on one M2 Pro; endpoint-focused quality,
 not an all-footage claim, forced HEVC test or new throughput certification.
+
+#### Paired-track EOF measurements
+
+Read-only ffprobe measurements on six original GoPro chapters; video stream
+indexes 0 and 5, both nominal and average rate **60000/1001 fps**, time base
+**1/60000** throughout. EOF is `duration_ts * time_base`, not the container
+duration or the last frame's start PTS.
+
+| Chapter | Track 0 EOF s | Track 5 EOF s | Difference |
+| --- | ---: | ---: | ---: |
+| `261031-gs010108-f357` | 394.994600000 | 394.977916667 | 1 source frame |
+| `261031-gs010109-e573` | 677.793783333 | 677.760416667 | 2 source frames |
+| `261031-gs010110-08e8` | 482.482000000 | 482.482000000 | 0 |
+| `261031-gs010111-0f10` | 482.482000000 | 482.482000000 | 0 |
+| `261031-gs010112-b674` | 482.482000000 | 482.482000000 | 0 |
+| `261031-gs020110-239a` | 482.482000000 | 482.482000000 | 0 |
+
+Packet-level measurements on the first two chapters confirm respectively
+23,676/23,675 and 40,627/40,625 frames, each with duration 1001 ticks.
+Two source-frame periods is the smallest frame-count bound covering both
+observed tails; even one additional 1/60000 s tick is rejected by the regression.
+Tests also cover either selected track being shorter, every aim chunk,
+whole chapters, mismatched nominal/average rates and invalid rate metadata.
+
+#### Small-skew production proof
+
+Both mismatched chapters ran through `PreviewManager._run_worker` and the
+unchanged production sandbox with fresh private output/CORI directories and
+real locks/reservations. Both full front/back chapters and **every** aim chunk
+returned **Metal / h264_videotoolbox**, no fallback, no cache hit.
+
+| Chapter | Proxy / requested interval s | Frames | Worker s |
+| --- | --- | ---: | ---: |
+| `gs010108` | front/back 0–395.115 | 11,849 | 130.914406 |
+| `gs010108` | aim 0–180 | 5,400 | 57.841452 |
+| `gs010108` | aim 180–360 | 5,400 | 55.461633 |
+| `gs010108` | aim 360–395.115 | 1,049 | 12.631404 |
+| `gs010109` | front/back 0–677.931 | 20,333 | 162.910108 |
+| `gs010109` | aim 0–180 | 5,400 | 55.930978 |
+| `gs010109` | aim 180–360 | 5,400 | 57.551073 |
+| `gs010109` | aim 360–540 | 5,400 | 54.597868 |
+| `gs010109` | aim 540–677.931 | 4,133 | 44.299156 |
+
+Every packet PTS is `n/30`, with the exact shorter-track-derived frame count.
+All outputs retain H.264 High, source full range, original proxy dimensions,
+GOP ≤10 and no B-frames. Final selected source PTS:
+**394.944550 s** (`23696673/60000`) and **677.743733333… s**
+(`40664624/60000`), for both full and final-aim outputs. Packet witnesses
+exist in **both** source tracks, with duration 1001 ticks, below the shorter
+EOF; no extra frame covers either longer video or audio tail.
+
+Separately timed full-source/final-aim readback workers used production requests
+differing only in destination and the eight final consecutive proof indexes.
+The existing cached W5b outputs were read only; source identity and front/back
+views matched. A single uncompressed v360 reference per sampled frame serves
+native pre-encode and both decoded native/W5b comparisons (full range, peak 255,
+4:1:1 sample-weighted MSE). Integer-second reference seeks preserve the same
+30 fps source clock.
+
+| Chapter / layout | Minimum pre-encode average dB | Worst native−W5b Y dB | Worst native−W5b average dB |
+| --- | ---: | ---: | ---: |
+| `gs010108` front/back | 71.358183 | −0.027079 | −0.023455 |
+| `gs010108` aim | 70.793829 | −0.018697 | −0.015002 |
+| `gs010109` front/back | 69.474834 | −0.012890 | −0.012200 |
+| `gs010109` aim | 69.991536 | −0.027895 | −0.025400 |
+
+All **32 endpoint samples**, including each last frame, pass the unchanged
+**pre-encode ≥35 dB / decoded Y and average deficit ≤0.10 dB** gates.
+Full-source and final-aim audio packets (PTS/duration/size/flags) and decoded
+PCM SHA-256 match cached W5b. Originals and baseline caches remained unchanged.
+Full-precision metrics, reference hashes/commands, requests, packet witnesses,
+timings and byte counts: `.cache/editor/track-eof-production-proof.json`
+(`pass: true`, `temporaryMediaRemoved: true`). Private derived footage and the
+throwaway harness were removed. Timings shared hardware with other work;
+this is endpoint fidelity/EOF proof, not a new throughput certification.
+
+Verification: focused Python **41 passed**; SwiftPM CLI **9 passed**.
+The full Python suite ran **once**, **1,007 tests** in 725.976 s with
+`REELS_RUN_SANDBOX_RENDER_PROOF=1`. One failure and six subtest errors exposed
+pre-existing sandbox fixtures passing unresolved `library/media` symlink paths.
+Fixtures now register canonical source/media-root paths without widening
+sandbox access. All **six affected tests passed** on their only targeted rerun
+(25.363 s), including both source/aim subtests and SIGINT/SIGKILL lease checks;
+no remaining failures/skips. No Swift editor changes, Xcode suite, app launch,
+whole-library backfill rerun or cache-version bump.

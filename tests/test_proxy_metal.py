@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+from fractions import Fraction
 import math
 import os
 from pathlib import Path
@@ -30,7 +31,7 @@ from reels.util import ReelsError
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET = "261031-gs010110-08e8"
-SOURCE = ROOT / f"library/media/{ASSET}.360"
+SOURCE = (ROOT / f"library/media/{ASSET}.360").resolve()
 BINARY = ROOT / ".cache/editor/bin/reels-sphere"
 REAL = (platform.system() == "Darwin" and SOURCE.is_file() and BINARY.is_file()
         and shutil.which("sandbox-exec") and shutil.which("ffmpeg"))
@@ -144,7 +145,7 @@ class ProxyMetalTests(unittest.TestCase):
                 self.assertEqual(mux[mux.index("-ss"):mux.index("-ss") + 4],
                                  ["-ss", f"{start:.3f}", "-t", f"{10.024 - start:.3f}"])
 
-    def test_eof_contract_rejects_out_of_container_range_and_mismatched_tracks(self):
+    def test_eof_contract_rejects_out_of_container_range_and_large_track_mismatch(self):
         self.streams[0].update(duration_ts=600600, time_base="1/60000")
         self.container["format"]["duration"] = "10.024000"
         cases = [
@@ -157,18 +158,70 @@ class ProxyMetalTests(unittest.TestCase):
                                                   projection="equirect", start=9, end=end)
                 self.assertEqual(result["backend"], "ffmpeg")
                 self.assertIn(reason, result["fallbackReason"])
-        other = {**self.streams[0], "index": 5, "id": "0x6", "duration_ts": 599599}
+        # Two source frames plus one time-base tick must still fall back.
+        other = {**self.streams[0], "index": 5, "id": "0x6", "duration_ts": 598597}
         self.streams.append(other)
         self.job["probe"] = {"sphere": {"projection": "gopro-eac", "face": 256,
                                       "overlap": 64, "tracks": [0, 5]}}
         for stream in (self.streams[0], other):
             stream.update(width=832, height=256)
+            stream.update(r_frame_rate="60000/1001", avg_frame_rate="60000/1001")
         with patch.object(proxy, "_run_encoder", side_effect=self.native):
             result = proxy_metal.render_proxy(self.job, self.source, self.root / "mismatch.mp4",
                                               projection="equirect", start=9, end=10.024)
         self.assertEqual(result["backend"], "ffmpeg")
         self.assertIn("different EOF", result["fallbackReason"])
         self.assertEqual(self.commands, [])
+
+    def test_small_dual_track_eof_mismatch_uses_shorter_track_for_whole_and_all_aim_chunks(self):
+        # Real one/two-frame GoPro tails. The longer EOF would add output frames.
+        for short_ticks, extra_ticks, end in ((23698675, 1001, 395.115), (40665625, 2002, 677.931)):
+            for short_first in (False, True):
+                with self.subTest(short_ticks=short_ticks, short_first=short_first):
+                    first = {**self.streams[0], "duration_ts": short_ticks, "time_base": "1/60000",
+                             "width": 832, "height": 256,
+                             "r_frame_rate": "60000/1001", "avg_frame_rate": "60000/1001"}
+                    second = {**first, "index": 5, "id": "0x6", "duration_ts": short_ticks + extra_ticks}
+                    if not short_first:
+                        first["duration_ts"], second["duration_ts"] = second["duration_ts"], first["duration_ts"]
+                    self.container["streams"] = [first, second]
+                    self.container["format"]["duration"] = str(end)
+                    job = {**self.job, "probe": {"sphere": {"projection": "gopro-eac", "face": 256,
+                                                          "overlap": 64, "tracks": [0, 5]}}}
+                    ranges = [("front-back", 0, end)] + [
+                        ("equirect", start, min(start + 180, end)) for start in range(0, math.ceil(end), 180)]
+                    for projection, start, stop in ranges:
+                        with self.subTest(projection=projection, start=start), patch.object(
+                                proxy, "_run_encoder", side_effect=self.native):
+                            result = proxy_metal.render_proxy(
+                                job, self.source, self.root / "shorter.mp4", projection=projection,
+                                start=start, end=stop, views=[{}, {}] if projection == "front-back" else None)
+                            self.assertEqual(result["backend"], "metal", result)
+                            request = self.requests[-1]
+                            video_out = min(Fraction(str(stop)), Fraction(short_ticks, 60000))
+                            expected = math.floor((video_out - start) * 30 + Fraction(1, 2))
+                            self.assertEqual(request["sourceOut"], float(video_out))
+                            self.assertEqual(request["frames"], expected)
+                            mux = self.commands[-1][0]
+                            self.assertEqual(mux[mux.index("-ss"):mux.index("-ss") + 4],
+                                             ["-ss", f"{start:.3f}", "-t", f"{stop - start:.3f}"])
+
+    def test_dual_track_frame_rates_must_agree_even_when_eofs_match(self):
+        first = {**self.streams[0], "width": 832, "height": 256,
+                 "r_frame_rate": "60000/1001", "avg_frame_rate": "60000/1001"}
+        second = {**first, "index": 5, "id": "0x6"}
+        self.container["streams"] = [first, second]
+        job = {**self.job, "probe": {"sphere": {"projection": "gopro-eac", "face": 256,
+                                              "overlap": 64, "tracks": [0, 5]}}}
+        for key, rate in (("r_frame_rate", "60"), ("avg_frame_rate", "30"),
+                          ("r_frame_rate", "0/0"), ("avg_frame_rate", "0")):
+            with self.subTest(key=key, rate=rate), patch.dict(second, {key: rate}), patch.object(
+                    proxy, "_run_encoder", side_effect=self.native):
+                result = proxy_metal.render_proxy(job, self.source, self.root / "rate.mp4",
+                                                  projection="equirect", start=0, end=2)
+                self.assertEqual(result["backend"], "ffmpeg")
+                self.assertIn("frame rates" if rate != "0/0" else "EOF is unavailable", result["fallbackReason"])
+                self.assertEqual(self.commands, [])
 
     def test_exact_video_eof_half_tick_and_rounded_container_representation(self):
         self.streams[0].update(duration_ts=601, time_base="1/60")
