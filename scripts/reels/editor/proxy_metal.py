@@ -8,6 +8,7 @@ import platform
 import subprocess
 import time
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 from ..media import ffprobe_json
@@ -99,7 +100,8 @@ def render_proxy(job: dict, source: Path, output: Path, *, projection: str,
         return fallback("reels-sphere is not built on this macOS runtime")
     probe = job.get("probe") or {}
     try:
-        streams = ffprobe_json(source).get("streams", [])
+        container = ffprobe_json(source)
+        streams = container.get("streams", [])
         reason = capability(probe, streams)
     except (ReelsError, OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as exc:
         return fallback(f"native input capability check failed: {exc}")
@@ -126,7 +128,26 @@ def render_proxy(job: dict, source: Path, output: Path, *, projection: str,
     # clock exactly; the worker still computes CORI on the unrounded request.
     media_start = float(f"{start:.3f}") if inputs else start
     media_seconds = float(f"{seconds:.3f}") if inputs else seconds
-    frames = math.floor(media_seconds * PROXY_FPS + .5)
+    # Container duration includes audio/data tails. vf_fps ends at the selected
+    # VIDEO EOF, not at the container's rounded library duration. Keep the mux's
+    # original interval; never synthesize an extra video frame to cover audio.
+    try:
+        video_ends = {int(s["duration_ts"]) * Fraction(s["time_base"]) for s in videos}
+        if len(video_ends) != 1:
+            return fallback("selected video tracks have different EOF timestamps")
+        video_end = video_ends.pop()
+        container_end = Fraction(container["format"]["duration"])
+        # Library durations and ffmpeg input trims are millisecond-quantized.
+        # Accept that exact EOF representation, not an arbitrary EOF tolerance.
+        requested_limit = max(container_end, Fraction(f"{float(container_end):.3f}"))
+        if Fraction(str(end)) > requested_limit:
+            return fallback("native proxy interval exceeds container EOF")
+        video_out = min(Fraction(str(media_start)) + Fraction(str(media_seconds)), video_end)
+        if not 0 <= media_start < video_out or video_end <= 0:
+            return fallback("native proxy interval has no video samples")
+    except (KeyError, TypeError, ValueError, ZeroDivisionError, OverflowError) as exc:
+        return fallback(f"native video EOF is unavailable: {exc}")
+    frames = math.floor((video_out - Fraction(str(media_start))) * PROXY_FPS + Fraction(1, 2))
     # Both native video and the audio-mux output can coexist. Their hard bounds
     # together leave 16 MB of the existing reservation for sidecars and metadata.
     limit = (proxy_reservation(seconds) - 16_000_000) // 2
@@ -135,7 +156,7 @@ def render_proxy(job: dict, source: Path, output: Path, *, projection: str,
     request = {
         "version": 1, "preset": "proxy", "source": str(source), "destination": str(native),
         "sourceProjection": sphere["projection"], "trackIDs": [int(str(s["id"]), 0) for s in videos],
-        "sourceIn": media_start, "sourceOut": media_start + media_seconds,
+        "sourceIn": media_start, "sourceOut": float(video_out),
         "speed": 1, "fps": PROXY_FPS, "frames": frames,
         "width": width, "height": height, "projection": projection, "keys": [], "corrections": None,
         "fullRange": videos[0].get("color_range") == "pc" or videos[0]["pix_fmt"].startswith("yuvj"),
