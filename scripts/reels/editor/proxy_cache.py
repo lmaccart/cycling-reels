@@ -10,7 +10,7 @@ from functools import wraps
 from pathlib import Path
 
 from .proxy import proxy_reservation
-from .util import ReelsError
+from ..util import ReelsError
 
 MIN_FREE_BYTES = 50_000_000_000
 

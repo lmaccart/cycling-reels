@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .util import ReelsError
+from ..util import ReelsError
 
 PROXY_VERSION = 4
 PROXY_FPS = 30
@@ -47,7 +47,7 @@ def proxy_reservation(seconds: float) -> int:
 def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
                  seconds: float = 0, crf: int = 23) -> str:
     """Hardware decode + encode on macOS; retry the complete job in software on failure."""
-    from .media import run
+    from ..media import run
 
     hardware = ["h264_videotoolbox", "hevc_videotoolbox"]
     encoders = [*hardware, "libx264"] if sys.platform == "darwin" else ["libx264"]

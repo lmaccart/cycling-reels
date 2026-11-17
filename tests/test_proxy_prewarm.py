@@ -14,8 +14,9 @@ from reels.editor.preview import PreviewManager
 from reels.editor.worker import _stat_identity, prepare_source_proxy, prepare_sphere_proxy
 from reels.library import save_asset
 from reels.prewarm import MIN_FREE_BYTES, _queue_path, prewarm, queue_sources
-from reels.proxy import PROXY_VERSION, encode_proxy, proxy_reservation, source_cache_key, sphere_cache_key
-from reels.stabilize import Orientation, cached_correction_quats
+from reels.editor.proxy import PROXY_VERSION, encode_proxy, proxy_reservation, source_cache_key, sphere_cache_key
+from reels.stabilize import Orientation
+from reels.editor.proxy_stabilize import cached_correction_quats
 from reels.util import ReelsError
 
 
@@ -34,7 +35,7 @@ class EncodingPolicyTests(unittest.TestCase):
                 raise ReelsError("VideoToolbox unavailable")
             self.output.write_bytes(b"software output")
 
-        with patch("reels.proxy.sys.platform", "darwin"), patch("reels.media.run", side_effect=run):
+        with patch("reels.editor.proxy.sys.platform", "darwin"), patch("reels.media.run", side_effect=run):
             codec = encode_proxy(Path("input.mp4"), self.output, ["-map", "0:v:0"], seconds=2)
         self.assertEqual(codec, "libx264")
         self.assertEqual(commands[0][commands[0].index("-c:v") + 1], "h264_videotoolbox")
@@ -46,7 +47,7 @@ class EncodingPolicyTests(unittest.TestCase):
             self.assertEqual(command[command.index("-bf") + 1], "0")
 
     def test_hardware_success_does_not_encode_again(self):
-        with patch("reels.proxy.sys.platform", "darwin"), patch("reels.media.run") as run:
+        with patch("reels.editor.proxy.sys.platform", "darwin"), patch("reels.media.run") as run:
             run.side_effect = lambda *args, **kwargs: self.output.write_bytes(b"hardware output")
             codec = encode_proxy(Path("input.mp4"), self.output, [], seconds=1)
         self.assertEqual(codec, "h264_videotoolbox")
@@ -54,7 +55,7 @@ class EncodingPolicyTests(unittest.TestCase):
         self.assertIn("yuv420p", run.call_args.args[0])
 
     def test_non_mac_uses_software_and_propagates_software_failure(self):
-        with patch("reels.proxy.sys.platform", "linux"), patch("reels.media.run", side_effect=ReelsError("bad input")) as run:
+        with patch("reels.editor.proxy.sys.platform", "linux"), patch("reels.media.run", side_effect=ReelsError("bad input")) as run:
             with self.assertRaisesRegex(ReelsError, "bad input"):
                 encode_proxy(Path("input.mp4"), self.output, [])
         self.assertEqual(run.call_count, 1)
@@ -76,7 +77,7 @@ class EncodingPolicyTests(unittest.TestCase):
         for software in (False, True):
             with self.subTest(software=software):
                 if software:
-                    with patch("reels.proxy.sys.platform", "linux"):
+                    with patch("reels.editor.proxy.sys.platform", "linux"):
                         encode_proxy(source, self.output, ["-map", "0:v:0"], seconds=2)
                 else:
                     encode_proxy(source, self.output, ["-map", "0:v:0"], seconds=2)
@@ -148,18 +149,20 @@ class CacheTests(unittest.TestCase):
         sphere = sphere_cache_key("sphere", identity, self.asset["probe"])
         self.assertNotEqual(source, source_cache_key(self.asset, identity, {"yaw": 90}))
         self.assertNotEqual(sphere, sphere_cache_key("sphere", {**identity, "size": 999}, self.asset["probe"]))
-        with patch("reels.proxy.PROXY_VERSION", PROXY_VERSION + 1):
+        with patch("reels.editor.proxy.PROXY_VERSION", PROXY_VERSION + 1):
             self.assertNotEqual(source, source_cache_key(self.asset, identity, {}))
             self.assertNotEqual(sphere, sphere_cache_key("sphere", identity, self.asset["probe"]))
 
     def test_split_range_reuses_cover_and_preserves_proxy_clock(self):
         with patch("reels.editor.worker.encode_proxy", side_effect=self.encode), patch("reels.stabilize.read_orientation", return_value=None):
             full = prepare_sphere_proxy(self.job)
-        with patch("reels.editor.worker.encode_proxy", side_effect=AssertionError("split re-encoded")), patch("reels.stabilize.read_orientation", side_effect=AssertionError("CORI re-read")):
+        with patch("reels.editor.worker.encode_proxy", side_effect=AssertionError("split re-encoded")), patch("reels.stabilize.read_orientation", return_value=None):
             split = prepare_sphere_proxy({**self.job, "start": 15, "end": 40})
         self.assertTrue(split["reused"])
         self.assertEqual(split["path"], full["path"])
         self.assertEqual((split["start"], split["end"]), (0, 180))
+        with patch("reels.stabilize.read_orientation", side_effect=AssertionError("CORI re-read")):
+            self.assertEqual(prepare_sphere_proxy({**self.job, "start": 15, "end": 40}), split)
         # A request across a chunk edge must not return incomplete media.
         with patch("reels.editor.worker.encode_proxy", side_effect=self.encode), patch("reels.stabilize.read_orientation", return_value=None):
             crossing = prepare_sphere_proxy({**self.job, "start": 170, "end": 190})

@@ -9,8 +9,8 @@ from typing import Callable
 
 from .config import Project
 from .library import all_assets, load_asset
-from .proxy import SPHERE_PROXY_MAX, proxy_reservation, source_cache_key, sphere_cache_key
-from .proxy_cache import MIN_FREE_BYTES, ProxyDiskFull
+from .editor.proxy import SPHERE_PROXY_MAX, proxy_reservation, source_cache_key, sphere_cache_key
+from .editor.proxy_cache import MIN_FREE_BYTES, ProxyDiskFull
 from .util import ReelsError, log, read_json, warn, write_json
 
 

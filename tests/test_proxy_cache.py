@@ -13,9 +13,10 @@ from unittest.mock import patch
 from helpers import TempProject
 from reels.editor.service import remove_partial_proxies
 from reels.editor.worker import _stat_identity, prepare_source_proxy, prepare_sphere_proxy
-from reels.proxy import proxy_reservation
-from reels.proxy_cache import MIN_FREE_BYTES, ProxyDiskFull, budget_root, reserve_disk
-from reels.stabilize import Orientation, cached_correction_quats
+from reels.editor.proxy import proxy_reservation
+from reels.editor.proxy_cache import MIN_FREE_BYTES, ProxyDiskFull, budget_root, reserve_disk
+from reels.stabilize import Orientation
+from reels.editor.proxy_stabilize import cached_correction_quats
 
 
 class ProxyConcurrencyTests(unittest.TestCase):
@@ -101,7 +102,7 @@ with patch('reels.editor.worker.encode_proxy', side_effect=encode), patch('reels
         code = '''
 import sys
 from pathlib import Path
-from reels.proxy_cache import reserve_disk, MIN_FREE_BYTES
+from reels.editor.proxy_cache import reserve_disk, MIN_FREE_BYTES
 with reserve_disk(Path(sys.argv[1]), int(sys.argv[2]), lambda _: MIN_FREE_BYTES + int(sys.argv[2])):
     print('reserved', flush=True)
     sys.stdin.readline()

@@ -15,8 +15,8 @@ from typing import Any
 
 from ..config import Project
 from ..util import ReelsError, quick_hash
-from ..proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
-from ..proxy_cache import proxy_job
+from .proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
+from .proxy_cache import proxy_job
 
 _STAGE_SPEC_FIELDS = {
     "in", "out", "speed", "frame", "zoom", "focusX", "focusY", "fit", "motion",
@@ -1170,7 +1170,8 @@ def prepare_sphere_proxy(job: dict) -> dict:
         return {"status": "unsupported", "reason": f"A 360 proxy covers up to {SPHERE_PROXY_MAX:g} s of a clip."}
 
     from ..sphere import source_graph
-    from ..stabilize import cached_correction_quats, parse_setting
+    from ..stabilize import parse_setting
+    from .proxy_stabilize import cached_correction_quats
 
     errors: list[str] = []
     setting = parse_setting(job.get("stabilize"), errors, "stabilize")
@@ -1244,7 +1245,8 @@ def prepare_sphere_proxy(job: dict) -> dict:
                 temporary.unlink()
 
     correction = cached_correction_quats(source, revision_dir / "cori", expected_identity,
-                                        start, end, SPHERE_PROXY_FPS, setting, reserve=job["reserveOutput"])
+                                        requested_start, requested_end, SPHERE_PROXY_FPS, setting,
+                                        reserve=job["reserveOutput"])
     if _stat_identity(source) != expected_identity:
         raise ReelsError("registered original changed during 360 proxy reuse")
     return {

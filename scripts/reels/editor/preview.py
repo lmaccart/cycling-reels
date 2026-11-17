@@ -270,6 +270,7 @@ def _profile_text(
     executables: set[Path],
     *,
     browser: bool = False,
+    videotoolbox: bool = False,
 ) -> str:
     lines = [
         "(version 1)",
@@ -299,6 +300,13 @@ def _profile_text(
         lines.append(f"(allow file-write* (subpath {_sbpl_quote(root)}))")
     for executable in sorted(executables, key=str):
         lines.append(f"(allow process-exec (literal {_sbpl_quote(executable)}))")
+    if videotoolbox:
+        # Pixel buffers shared with the codec XPC services; no GPU/device-wide grant.
+        lines.extend([
+            '(allow iokit-open-user-client (iokit-user-client-class "IOSurfaceRootUserClient"))',
+            '(allow mach-lookup (xpc-service-name "com.apple.coremedia.videoencoder"))',
+            '(allow mach-lookup (xpc-service-name "com.apple.coremedia.videodecoder"))',
+        ])
     if browser:
         # Chrome's renderer processes use a PID-scoped local rendezvous port;
         # signal is limited to this sandbox's own process tree for Stop/cleanup.
@@ -506,8 +514,9 @@ def _worker_command(code_root: Path, *arguments: str) -> list[str]:
     """
     trusted = Path(__file__).with_name("worker.py").resolve(strict=True)
     bootstrap = (
-        "import importlib.util,sys;"
+        "import importlib.util,sys;from pathlib import Path;"
         "sys.path.insert(0,sys.argv[1]);"
+        "import reels.editor;reels.editor.__path__=[str(Path(sys.argv[2]).parent)];"
         "s=importlib.util.spec_from_file_location('reels.editor._trusted_worker',sys.argv[2]);"
         "m=importlib.util.module_from_spec(s);sys.modules[s.name]=m;"
         "s.loader.exec_module(m);raise SystemExit(m.main(sys.argv[3:]))"
@@ -630,7 +639,7 @@ class PreviewManager:
         browser_worker = job.get("mode") == "exact" or job.get("action") in ("prepare", "export", "validate")
         reads, writes = _path_roots(self.workspace, code_root, job_root, revision_dir, cache_root, bundle_cache)
         if job.get("action") in ("source_proxy", "sphere_proxy"):
-            from ..proxy_cache import budget_root
+            from .proxy_cache import budget_root
 
             reservations = budget_root(Path(self.workspace.root).resolve())
             reads.append(reservations)
@@ -640,7 +649,8 @@ class PreviewManager:
             reads.extend(_browser_preference_files())
         executables = _executables(self.workspace, code_root, node=job["node"], browser=browser_worker)
         profile = job_root / "worker.sb"
-        profile_text = _profile_text(reads, writes, executables, browser=browser_worker)
+        profile_text = _profile_text(reads, writes, executables, browser=browser_worker,
+                                     videotoolbox=job.get("action") in ("source_proxy", "sphere_proxy"))
         # Candidate source/tests are inputs even when nested inside a writable
         # job directory. Candidate Python must not rewrite trusted contracts or
         # the runner while those contracts are executing.
@@ -901,7 +911,7 @@ class PreviewManager:
     def prepare_sphere(self, asset_id: str, start: float, end: float, stabilize=None, context=None) -> dict:
         """An equirectangular proxy of [start, end] of a 360 clip for the live 360 viewer,
         with the stabilization rotations for `stabilize` (a plan's stabilize value)."""
-        from ..proxy import SPHERE_PROXY_MAX, sphere_cache_key
+        from .proxy import SPHERE_PROXY_MAX, sphere_cache_key
 
         from ..util import quick_hash, read_json
 
@@ -980,7 +990,7 @@ class PreviewManager:
 
     def prepare_source(self, asset_id: str, view: dict | None = None, context=None) -> dict:
         """Return a playable original or a private view-specific proxy."""
-        from ..proxy import source_cache_key
+        from .proxy import source_cache_key
 
         from ..util import read_json, quick_hash
 
