@@ -99,6 +99,7 @@ class EditorService:
             self.relay = Relay(self._relay_dispatch)
             self.claude = ClaudeCLI(workspace, self.relay, emit)
             self.jobs = JobManager(Path(workspace.root) / "jobs", self._job_event, self.current_revisions)
+            remove_partial_proxies(Path(workspace.root))
             start_library_watcher = getattr(self.workspace, "start_library_watcher", None)
             if callable(start_library_watcher):
                 try:
@@ -234,7 +235,7 @@ class EditorService:
             if revision:
                 self._observed_library_revision = str(revision)
         self._announced_document_state = self._document_state(snapshot)
-        self.jobs.cancel_kind("preview", "source")
+        self.jobs.cancel_kind("preview")
         if self._index is not None and self._index.library_revision != snapshot.get("revisions", {}).get("library"):
             self._invalidate_index()
         if delta is None:
@@ -695,7 +696,7 @@ class EditorService:
                 raise ProtocolError("invalid_plan_path", "Open a plan inside this workspace's private plans directory.")
             store = DocumentStore(self.workspace, path)
             with self.lock:
-                self.jobs.cancel_kind("preview", "export", "source", "renderer")
+                self.jobs.cancel_kind("preview", "export", "renderer")
                 previous = self.document
                 self.document, self.document_path = store, path
                 self.selection = {"ids": [], "playhead": 0}
@@ -826,6 +827,7 @@ class EditorService:
             manager = self.preview_manager()
             if not hasattr(manager, "prepare_source"):
                 raise ProtocolError("source_proxy_required", "This source requires a view-specific proxy not available in this build.")
+            view = params.get("view")
             def publish_source(result):
                 result = dict(result)
                 if result.get("status", "ready") != "ready":
@@ -838,8 +840,21 @@ class EditorService:
                 result["sourceURL"] = result["url"]
                 self.emit("source.ready", result, revisions)
                 return result
-            self.jobs.cancel_kind("source")
-            return self.jobs.submit("source", revisions, lambda ctx: manager.prepare_source(aid, view=params.get("view"), context=ctx), publish_source)
+            def source_stopped(record):
+                error = record.get("error") or {}
+                message = {
+                    "cancelled": "Preparing this source view was stopped.",
+                    "timed_out": "Preparing this source view took longer than "
+                                 f"{record.get('timeoutSeconds', SOURCE_JOB_TIMEOUT) / 60:g} minutes and was stopped.",
+                }.get(record["state"], error.get("message") or "This source view couldn't be prepared.")
+                self.emit("source.error", {"assetId": aid, "jobId": record["id"], "state": record["state"],
+                                           "code": error.get("code") or record["state"], "message": message}, revisions)
+            # One job per asset and view: a repeat request joins it and other assets never stop it.
+            # The proxy belongs to the library asset, so document edits don't supersede it.
+            key = f"{aid}:{json.dumps(view or {}, sort_keys=True)}"
+            return self.jobs.submit("source", revisions, lambda ctx: manager.prepare_source(aid, view=view, context=ctx),
+                                    publish_source, independent=True, key=key, timeout=SOURCE_JOB_TIMEOUT,
+                                    on_error=source_stopped)
         if method in ("flags.list", "flags.add", "flags.update", "flags.remove"):
             return self._flags(method, params)
         if method == "sphere.camera":
@@ -868,9 +883,15 @@ class EditorService:
                 result.pop("path", None)
                 self.emit("sphere.ready", result, revisions)
                 return result
+            def sphere_stopped(record):
+                error = record.get("error") or {}
+                self.emit("sphere.unavailable", {"requestId": request, "assetId": aid, "jobId": record["id"],
+                                                 "status": record["state"],
+                                                 "reason": error.get("message") or "The 360 view couldn't be prepared."}, revisions)
             self.jobs.cancel_kind("sphere")
             return self.jobs.submit("sphere", revisions, lambda ctx: manager.prepare_sphere(
-                aid, start, end, stabilize=params.get("stabilize"), context=ctx), publish_sphere)
+                aid, start, end, stabilize=params.get("stabilize"), context=ctx), publish_sphere,
+                independent=True, on_error=sphere_stopped)
         if method == "job.status":
             return self.jobs.status(str(params.get("id", "")))
         if method == "job.cancel":
@@ -1121,6 +1142,37 @@ class EditorService:
         finally:
             fcntl.flock(self._workspace_lock_fd, fcntl.LOCK_UN)
             os.close(self._workspace_lock_fd)
+
+
+SOURCE_JOB_TIMEOUT = 1800.0  # s of work per source job; the app waits a little longer (EditorStore+Source.swift)
+PARTIAL_PROXY_GRACE = 600.0  # s; a younger partial may be an encode still running outside this service
+
+
+def remove_partial_proxies(workspace_root: Path, now: float | None = None) -> list[Path]:
+    """Delete the .source-*/.sphere-* temporaries that killed proxy workers left behind.
+
+    Only in this workspace's private preview cache (<root>/preview/sources|spheres/<key>/);
+    finished proxies, symlinks and anything else are left alone."""
+    now = time.time() if now is None else now
+    preview = Path(workspace_root) / "preview"
+    removed: list[Path] = []
+    for folder, prefix in (("sources", ".source-"), ("spheres", ".sphere-")):
+        root = preview / folder
+        try:
+            if preview.is_symlink() or root.is_symlink() or not root.is_dir():
+                continue
+            for entry in root.iterdir():
+                if entry.is_symlink() or not entry.is_dir():
+                    continue
+                for path in entry.iterdir():
+                    if (not path.name.startswith(prefix) or path.is_symlink() or not path.is_file()
+                            or now - path.stat().st_mtime < PARTIAL_PROXY_GRACE):
+                        continue
+                    path.unlink(missing_ok=True)
+                    removed.append(path)
+        except OSError:
+            continue  # cache housekeeping never blocks the service; the next start tries again
+    return removed
 
 
 def serve(workspace) -> int:

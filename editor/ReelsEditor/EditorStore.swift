@@ -44,6 +44,9 @@ final class EditorStore {
     var sourceStates: [String: String] = [:]
     /// "front-back" when an asset's Source proxy shows level front and back 360 views side by side.
     var sourceLayouts: [String: String] = [:]
+    /// Source jobs being waited on and their retries (EditorStore+Source.swift).
+    @ObservationIgnored var sourcePreparation = SourcePreparation()
+    @ObservationIgnored var sourceWatchdogs: [String: Task<Void, Never>] = [:]
     var playheadFrame = 0
     var seekGeneration = 0
     private var isScrubbing = false
@@ -1344,31 +1347,29 @@ final class EditorStore {
         sourceIn = item["sourceIn"]?.numberValue ?? item["in"]?.numberValue
         sourceOut = nil
         if let id = selectedAssetID {
-            sourceStates[id] = "loading"
+            if timelineSourceURLs[id] == nil, sourceStates[id] != "pending" { sourceStates[id] = "loading" }
             Task {
                 do {
                     let asset = try await service.call("library.asset", params: .object(["id": .string(id)]))
-                    guard selectedAssetID == id else { return }
+                    guard selectedAssetID == id else {
+                        if sourceStates[id] == "loading" { sourceStates[id] = nil }
+                        return
+                    }
                     selectedAsset = asset
                     sourceIn = asset["sourceIn"]?.numberValue ?? asset["in"]?.numberValue ?? sourceIn
                     let kind = (selectedAsset?["type"]?.stringValue ?? selectedAsset?["projection"]?.stringValue ?? "").lowercased()
-                    if kind.contains("360") || selectedAsset?["is360"]?.boolValue == true {
-                        sourceStates[id] = "pending"
-                        _ = try await service.call("source.prepare", params: .object(["id": .string(id)]))
-                    } else if let url = Self.registeredURL(from: selectedAsset) {
+                    if !(kind.contains("360") || selectedAsset?["is360"]?.boolValue == true),
+                       let url = Self.registeredURL(from: selectedAsset) {
                         timelineSourceURLs[id] = url
                         sourceStates[id] = "ready"
                     } else {
-                        sourceStates[id] = "pending"
-                        let result = try await service.call("source.prepare", params: .object(["id": .string(id)]))
-                        if let layout = result["layout"]?.stringValue { sourceLayouts[id] = layout }
-                        if let url = Self.registeredURL(from: result) {
-                            timelineSourceURLs[id] = url
-                            sourceStates[id] = "ready"
-                        }
+                        await ensureSource(id)
                     }
                 }
-                catch { errorMessage = error.localizedDescription }
+                catch {
+                    if sourceStates[id] == "loading" { sourceStates[id] = "error" }
+                    errorMessage = error.localizedDescription
+                }
             }
         }
     }
@@ -1380,28 +1381,14 @@ final class EditorStore {
                 do {
                     let asset = try await service.call("library.asset", params: .object(["id": .string(id)]))
                     let type = (asset["type"]?.stringValue ?? asset["projection"]?.stringValue ?? "").lowercased()
-                    if type.contains("360") || asset["is360"]?.boolValue == true {
-                        sourceStates[id] = "pending"
-                        let result = try await service.call("source.prepare", params: .object(["id": .string(id)]))
-                        if let layout = result["layout"]?.stringValue { sourceLayouts[id] = layout }
-                        if let url = Self.registeredURL(from: result) {
-                            timelineSourceURLs[id] = url
-                            sourceStates[id] = "ready"
-                        }
-                    } else if let url = Self.registeredURL(from: asset) {
+                    if !(type.contains("360") || asset["is360"]?.boolValue == true), let url = Self.registeredURL(from: asset) {
                         timelineSourceURLs[id] = url
                         sourceStates[id] = "ready"
                     } else {
-                        sourceStates[id] = "pending"
-                        let result = try await service.call("source.prepare", params: .object(["id": .string(id)]))
-                        if let layout = result["layout"]?.stringValue { sourceLayouts[id] = layout }
-                        if let url = Self.registeredURL(from: result) {
-                            timelineSourceURLs[id] = url
-                            sourceStates[id] = "ready"
-                        }
+                        await ensureSource(id)
                     }
                 } catch {
-                    sourceStates[id] = "error"
+                    if sourceStates[id] == "loading" { sourceStates[id] = "error" }
                 }
             }
         }
@@ -1542,19 +1529,8 @@ final class EditorStore {
             }
         } else if name == "sphere.ready" || name == "sphere.unavailable" {
             sphereAim.receive(name: name, payload: payload)
-        } else if name == "source.ready" {
-            let assetID = payload["assetId"]?.stringValue ?? payload["id"]?.stringValue
-            let url = Self.registeredURL(from: payload["asset"] ?? payload)
-            if let assetID {
-                if let layout = payload["layout"]?.stringValue { sourceLayouts[assetID] = layout }
-                if let url { timelineSourceURLs[assetID] = url; sourceStates[assetID] = "ready" }
-                else { sourceStates[assetID] = "error" }
-                if assetID == selectedAssetID, let asset = payload["asset"] { selectedAsset = asset }
-            }
-        } else if name == "source.error" || name == "source.unavailable" {
-            let assetID = payload["assetId"]?.stringValue ?? payload["id"]?.stringValue
-            if let assetID { sourceStates[assetID] = "error" }
-            notice = payload["message"]?.stringValue ?? payload["reason"]?.stringValue ?? "Source proxy is unavailable"
+        } else if name == "source.ready" || name == "source.unavailable" || name == "source.error" {
+            receiveSource(name: name, payload: payload, url: Self.registeredURL(from: payload["asset"] ?? payload))
         } else if name == "permission.requested" {
             if !pendingPermissions.contains(where: { $0["id"]?.stringValue == payload["id"]?.stringValue }) {
                 pendingPermissions.append(payload)
@@ -1584,6 +1560,8 @@ final class EditorStore {
                 schedule.handleJob(payload)
             } else if payload["kind"]?.stringValue == "music" {
                 music.handleJob(payload)
+            } else if payload["kind"]?.stringValue == "source" {
+                sourceJobChanged(payload)
             } else {
                 notice = EventNotice.jobMessage(payload)
             }

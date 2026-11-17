@@ -75,9 +75,19 @@ bridge receives `window.postMessage({channel:"cycling-reel-preview",command}, or
 and emits revision-tagged events through the `reelsPreview` WK handler. Web content
 has no editing bridge.
 
-`source.ready` provides `assetId`, `sourceKind`, `url` and `sourceURL`;
-`source.unavailable` provides `status` and `reason`. Library discovery returns
-`sourceState=proxy_required` rather than a falsely playable original URL.
+`source.prepare` returns its job record. There is one job per asset and view:
+a repeat request while it is queued or running gets that job back with
+`joined: true`, and requests for other assets never stop it. Source and
+`sphere.prepare` jobs belong to the library asset, so document edits never
+supersede them. A source job runs at most `timeoutSeconds` (1800) once started,
+and every job ends with exactly one event: `source.ready` provides `assetId`,
+`sourceKind`, `url` and `sourceURL`; `source.unavailable` provides `status` and
+`reason`; `source.error` provides `assetId`, `jobId`, `state`
+(failed/cancelled/timed_out), `code` and `message`. A `sphere.prepare` job that
+ends without a proxy answers its `requestId` with `sphere.unavailable`. Library
+discovery returns `sourceState=proxy_required` rather than a falsely playable
+original URL. Starting the service deletes `.source-*`/`.sphere-*` partials older
+than 10 minutes from `preview/sources|spheres/` (cache only).
 `chat.history` returns `{sessionId,records:[{role,text,state}]}`; `chat.delta`
 streams prose, while `chat.record` carries completed prose/tool activity.
 `export.ready` is emitted only after a completed job and includes its `jobId`.

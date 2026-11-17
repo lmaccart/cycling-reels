@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import shutil
+import threading
 import uuid
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -40,6 +41,9 @@ _PROTECTED_REMOTION_SOURCES = {
     "remotion/src/editor-preview.css",
     "remotion/src/editorStaticFile.ts",
 }
+# Concurrent jobs (two source proxies, a preview) can ask for a new revision's baseline at once:
+# one copies it, the others wait instead of failing on, or reading, a half-made copy.
+_BASELINE_LOCK = threading.Lock()
 
 
 def _under(path: Path, root: Path) -> bool:
@@ -146,8 +150,10 @@ class RendererManager:
         root = (self.root / revision / "source").resolve()
         head_path = Path(self.workspace.root) / "history/HEAD"
         has_committed_head = head_path.exists() or head_path.is_symlink()
-        if not root.is_dir() and not has_committed_head and revision == self._code_revision():
-            self._persist_baseline(revision)
+        if not has_committed_head and revision == self._code_revision():
+            with _BASELINE_LOCK:
+                if not root.is_dir():
+                    self._persist_baseline(revision)
             root = (self.root / revision / "source").resolve()
         if not _under(root, self.root.resolve()) or not root.is_dir() or root.is_symlink():
             raise ReelsError("renderer revision is unavailable; refusing to fall back to another code version")
