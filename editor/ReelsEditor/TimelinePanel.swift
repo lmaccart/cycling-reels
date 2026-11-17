@@ -131,6 +131,31 @@ private struct ScrollRequest: Equatable {
     var x: CGFloat
 }
 
+enum TimelineTool: String {
+    case select, razor
+
+    static func fromKeyCode(_ keyCode: UInt16) -> TimelineTool? {
+        switch keyCode {
+        case 8: .razor
+        case 9: .select
+        default: nil
+        }
+    }
+}
+enum TimelineContextMenuContents {
+    static func groups(kind: String, is360: Bool, enabled: Bool) -> [[String]] {
+        let source = ["Flag source range"] + (is360 ? ["Aim 360"] : []) + ["Reveal in Source"]
+        guard kind.lowercased() == "segment" else {
+            return [["Delete", "Copy", "Paste"], source]
+        }
+        return [
+            ["Split here", "Split at playhead"],
+            ["Delete", "Ripple delete", "Duplicate", "Copy", "Paste"],
+            ["Speed", enabled ? "Disable" : "Enable"],
+            source
+        ]
+    }
+}
 private enum TimelineColors {
     static let video = NSColor(srgbRed: 0.36, green: 0.40, blue: 0.92, alpha: 1)
     static let broll = NSColor(srgbRed: 0.16, green: 0.62, blue: 0.66, alpha: 1)
@@ -154,7 +179,6 @@ struct TimelinePanel: View {
     @State private var scrollX: CGFloat = 0
     @State private var scrollRequest: ScrollRequest?
     @State private var pendingFit = true
-    @State private var audioMode = AudioVisualCache.shared.mode
 
     private static let gutter = Double(TimelineLayout.labelWidth)
 
@@ -210,15 +234,6 @@ struct TimelinePanel: View {
                         .truncationMode(.tail)
                         .frame(maxWidth: 180, alignment: .trailing)
                 }
-                Picker("Audio display", selection: $audioMode) {
-                    Text("Waveform").tag(AudioVisualMode.waveform)
-                    Text("Spectrogram").tag(AudioVisualMode.spectrogram)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 170)
-                .help("Draw audio clips as a waveform or a spectrogram")
-                .accessibilityLabel("Audio display")
                 Toggle(isOn: $snapping) { Image(systemName: "magnet") }
                     .toggleStyle(.button)
                     .help("Snap edges to the playhead and neighboring clips")
@@ -228,7 +243,13 @@ struct TimelinePanel: View {
                     .accessibilityLabel("Zoom out")
                 Button { zoom = TimelineMetrics.zoomIn(zoom) } label: { Image(systemName: "plus.magnifyingglass") }
                     .help("Zoom in  ⌘+")
-                    .accessibilityLabel("Zoom in")
+                Slider(value: Binding(
+                    get: { log(zoom) },
+                    set: { zoom = TimelineMetrics.clamp(exp($0)) }
+                ), in: log(TimelineMetrics.minZoom)...log(TimelineMetrics.maxZoom))
+                    .frame(width: 90)
+                    .help("Timeline zoom")
+                    .accessibilityLabel("Zoom")
                 Button { fit() } label: { Image(systemName: "arrow.left.and.right.square") }
                     .help("Fit the whole reel in view  ⌘0")
                     .accessibilityLabel("Fit reel to window")
@@ -283,6 +304,9 @@ struct TimelinePanel: View {
                          },
                          onDropItem: { id, frame, trackID, command in
                              store.insertDroppedItem(id, atFrame: frame, trackID: trackID, commandInsert: command)
+                         },
+                         onContextAction: { action, id, frame in
+                             store.performTimelineContextAction(action, nodeID: id, atFrame: frame)
                          }
                      )
                     .frame(width: max(contentWidth, proxy.size.width), height: max(trackHeight, proxy.size.height))
@@ -326,7 +350,6 @@ struct TimelinePanel: View {
         .onChange(of: store.openPlanPath) { _, _ in pendingFit = true; fitIfPending() }
         .onChange(of: store.snapshot?.documentId) { _, _ in pendingFit = true; fitIfPending() }
         .onChange(of: store.snapshot?.durationFrames) { _, _ in fitIfPending() }
-        .onChange(of: audioMode) { _, mode in AudioVisualCache.shared.mode = mode }
         .onAppear { fitIfPending() }
     }
 
@@ -504,6 +527,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let onDropMusic: (String, String) -> Void
     let onPreviewDrop: (String, Int, String, Bool) -> TimelineDropResolution
     let onDropItem: (String, Int, String, Bool) -> Bool
+    let onContextAction: (String, String, Int) -> Void
 
     func makeNSView(context: Context) -> TimelineCanvas {
         let view = TimelineCanvas()
@@ -524,7 +548,8 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
                 onDropRejected: onDropRejected, onMoveToTrack: onMoveToTrack, onDelete: onDelete, onSplit: onSplit,
                 onScroll: onScroll, onToggleLock: onToggleLock, onAddTrack: onAddTrack,
                 onRenameTrack: onRenameTrack, onDeleteTrack: onDeleteTrack, onDropMusic: onDropMusic,
-                onPreviewDrop: onPreviewDrop, onDropItem: onDropItem, onSetSelection: onSetSelection
+                onPreviewDrop: onPreviewDrop, onDropItem: onDropItem, onSetSelection: onSetSelection,
+                onContextAction: onContextAction
             )
         )
     }
@@ -554,6 +579,7 @@ private final class TimelineCanvas: NSView {
         var onDropItem: (String, Int, String, Bool) -> Bool
         /// Replaces the whole selection (a marquee drag, or a click on empty track space).
         var onSetSelection: (Set<String>) -> Void = { _ in }
+        var onContextAction: (String, String, Int) -> Void = { _, _, _ in }
     }
 
     private static let labelWidth = TimelineLayout.labelWidth
@@ -571,6 +597,7 @@ private final class TimelineCanvas: NSView {
     private var selectedIDs: Set<String> = []
     private var changedIDs: Set<String> = []
     private var sourceURLs: [String: URL] = [:]
+    private var tool: TimelineTool = .select
     private let thumbnailCache = NSCache<NSString, NSImage>()
     private var pendingThumbnails: Set<String> = []
     private var waveformCache: [String: [Float]] = [:]
@@ -1140,6 +1167,10 @@ private final class TimelineCanvas: NSView {
 
     override func resetCursorRects() {
         super.resetCursorRects()
+        if tool == .razor {
+            addCursorRect(visibleRect, cursor: .crosshair)
+            return
+        }
         for row in rows where !row.track.locked {
             for (node, linked) in clips(in: row) where !node.isReadOnly && node.kind.lowercased() != "generated_sfx" {
                 _ = linked
@@ -1362,6 +1393,11 @@ private final class TimelineCanvas: NSView {
     }
 
     private func drawClip(_ node: EditorNode, linked: Bool, in rect: NSRect, row: TimelineLayout.Row) {
+        let disabled = node.raw["enabled"]?.boolValue == false
+        if disabled {
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current?.cgContext.setAlpha(0.35)
+        }
         let shown = shownSelection
         let selected = shown.contains(node.id)
             || (node.kind.lowercased() == "source_audio" && node.parentId.map(shown.contains) == true)
@@ -1437,16 +1473,16 @@ private final class TimelineCanvas: NSView {
             guide.lineWidth = 2
             guide.stroke()
         }
+        if disabled { NSGraphicsContext.restoreGraphicsState() }
     }
 
     private func drawAudioVisual(for node: EditorNode, in rect: NSRect) {
         guard rect.width > 2, rect.height > 2, let snapshot else { return }
         let backing = window?.backingScaleFactor ?? 2
         let pixelSize = CGSize(width: min(4096, rect.width * backing), height: rect.height * backing)
-        if let image = AudioVisualCache.shared.image(for: node, snapshot: snapshot, mode: AudioVisualCache.shared.mode,
-                                                     pixelSize: pixelSize) {
+        if let image = AudioVisualCache.shared.image(for: node, snapshot: snapshot, pixelSize: pixelSize) {
             image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 0.95)
-        } else if AudioVisualCache.shared.mode == .waveform {
+        } else {
             drawWaveform(for: node, in: rect)
         }
     }
@@ -1742,8 +1778,54 @@ private final class TimelineCanvas: NSView {
         callbacks?.onToggleLock(id, !track.locked)
     }
 
+    private var contextNodeID: String?
+    private var contextFrame = 0
+
+    @objc private func timelineContextItem(_ sender: NSMenuItem) {
+        guard let id = contextNodeID else { return }
+        callbacks?.onContextAction(sender.title, id, contextFrame)
+    }
+
+    private func clipMenu(for node: EditorNode) -> NSMenu {
+        let menu = NSMenu()
+        func add(_ title: String, key: String = "") {
+            let item = NSMenuItem(title: title, action: #selector(timelineContextItem(_:)), keyEquivalent: key)
+            item.target = self
+            menu.addItem(item)
+        }
+        let is360 = (node.assetKind ?? "").lowercased().contains("360") || node.raw["is360"]?.boolValue == true
+        let groups = TimelineContextMenuContents.groups(
+            kind: node.kind, is360: is360, enabled: node.raw["enabled"]?.boolValue != false
+        )
+        for (index, group) in groups.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            for title in group {
+                if title == "Speed" {
+                    let speed = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+                    let speedMenu = NSMenu()
+                    for speedTitle in ["0.25×", "0.5×", "1×", "2×", "Custom…"] {
+                        let item = NSMenuItem(title: speedTitle, action: #selector(timelineContextItem(_:)), keyEquivalent: "")
+                        item.target = self
+                        speedMenu.addItem(item)
+                    }
+                    speed.submenu = speedMenu
+                    menu.addItem(speed)
+                } else {
+                    add(title, key: title == "Copy" ? "c" : title == "Paste" ? "v" : "")
+                }
+            }
+        }
+        return menu
+    }
+
     override func menu(for event: NSEvent) -> NSMenu? {
         let point = convert(event.locationInWindow, from: nil)
+        if let (node, _) = hit(at: point) {
+            contextNodeID = node.id
+            contextFrame = frame(atX: point.x)
+            if !selectedIDs.contains(node.id) { callbacks?.onSelect(node.id, false) }
+            return clipMenu(for: node)
+        }
         guard isHeaderPoint(point) else { return nil }
         let menu = NSMenu()
         if let row = row(at: CGPoint(x: Self.labelWidth, y: point.y)) {
@@ -1823,6 +1905,17 @@ private final class TimelineCanvas: NSView {
             marqueeBase = additive ? selectedIDs : []
             marqueeHits = []
             marqueePoint = nil
+            return
+        }
+        if tool == .razor {
+            if node.kind.lowercased() == "segment" {
+                let frame = frame(atX: point.x)
+                if frame > node.startFrame && frame < node.endFrame {
+                    callbacks?.onSelect(node.id, false)
+                    callbacks?.onScrub(frame, true)
+                    callbacks?.onSplit()
+                }
+            }
             return
         }
         let additive = event.modifierFlags.contains(.command) || event.modifierFlags.contains(.shift)
@@ -2013,12 +2106,30 @@ private final class TimelineCanvas: NSView {
         releaseLease()
     }
 
+
     override func keyDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.command) {
+            switch event.keyCode {
+            case 40:
+                callbacks?.onSplit()
+            case 8:
+                callbacks?.onContextAction("Copy", selectedIDs.first ?? "", playheadFrame)
+            case 9:
+                callbacks?.onContextAction("Paste", selectedIDs.first ?? "", playheadFrame)
+            default:
+                super.keyDown(with: event)
+            }
+            return
+        }
+        if let next = TimelineTool.fromKeyCode(event.keyCode) {
+            tool = next
+            window?.invalidateCursorRects(for: self)
+            return
+        }
         switch event.keyCode {
         case 49: NotificationCenter.default.post(name: .reelsTogglePlayback, object: nil)
         case 123: callbacks?.onScrub(max(0, playheadFrame - 1), true)
         case 124: callbacks?.onScrub(playheadFrame + 1, true)
-        case 11: callbacks?.onSplit()
         case 51, 117: callbacks?.onDelete()
         default: super.keyDown(with: event)
         }

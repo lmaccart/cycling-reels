@@ -55,6 +55,7 @@
 		E3C327645FDAE8AEE13D038C /* TimelineRulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4BEB0C7538B949A23CD1EC /* TimelineRulerTests.swift */; };
 		EBD2FC7A3E296DB480FF8670 /* EditorModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC261352427B10DE38523B2 /* EditorModelTests.swift */; };
 		F7C082E0326A00AFA642AD4E /* SphereShaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18400677F7C7C06A109E3A3 /* SphereShaderTests.swift */; };
+		11A1B2C3D4E5F60718293A4B /* EditorStore+Editing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A1B2C3D4E5F60718293A4B /* EditorStore+Editing.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,6 +119,7 @@
 		F18400677F7C7C06A109E3A3 /* SphereShaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereShaderTests.swift; sourceTree = "<group>"; };
 		F415E96C6D05FB7C8387B775 /* ReelsEditorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReelsEditorApp.swift; sourceTree = "<group>"; };
 		F5B3C6840BA535BCCE0AA008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		22A1B2C3D4E5F60718293A4B /* EditorStore+Editing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Editing.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -140,6 +142,7 @@
 				9EAA4676317BEBDADFD29C99 /* EditorStore+SphereAim.swift */,
 				D7D9E017A9210B0237982CEC /* EditorStore+Tracks.swift */,
 				3EC208BD56C9E914CEA2AEF9 /* EditorStore+UX.swift */,
+				22A1B2C3D4E5F60718293A4B /* EditorStore+Editing.swift */,
 				06A48046C41E3D1F3623A29E /* EditorTypography.swift */,
 				51BF2FCCA512BA37E5755922 /* ImportFootage.swift */,
 				E6F62FE74CD133E5E22086AC /* InspectorAndChat.swift */,
@@ -325,6 +328,7 @@
 				DA8C3CC87C1C9858B2211041 /* EditorStore+SphereAim.swift in Sources */,
 				7E2C46EE7F6177C54980FAD6 /* EditorStore+Tracks.swift in Sources */,
 				9B02833190C9F1ADE54678D6 /* EditorStore+UX.swift in Sources */,
+				11A1B2C3D4E5F60718293A4B /* EditorStore+Editing.swift in Sources */,
 				266BB705CD313C6DE6F3161A /* EditorStore.swift in Sources */,
 				BE5DC0BA68E2BEF729ABAFCF /* EditorTypography.swift in Sources */,
 				54F682CF3FA7381B886133BB /* ImportFootage.swift in Sources */,

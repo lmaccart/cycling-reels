@@ -184,6 +184,29 @@ enum OptimisticTimeline {
             }
         }
     }
+    /// Removes primary segments, optionally closing the gap in the primary sequence.
+    /// Child nodes are removed with their parent; free overlays stay in place.
+    static func remove(ids: Set<String>, ripple: Bool) -> Change {
+        { nodes in
+            let removed = Set(nodes.filter { ids.contains($0.id) && $0.kind.lowercased() == "segment" }
+                .flatMap { subtree($0.id, in: nodes) })
+            guard !removed.isEmpty else { return nodes }
+            let removedSegments = segments(nodes).filter { removed.contains($0.id) }
+            let surviving = nodes.filter { !removed.contains($0.id) }
+            guard ripple, !removedSegments.isEmpty else { return surviving }
+            let ordered = segments(nodes)
+            var starts: [String: Int] = [:]
+            for segment in ordered where !removed.contains(segment.id) {
+                let shift = removedSegments.reduce(into: 0) { total, deleted in
+                    if deleted.startFrame < segment.startFrame {
+                        total += max(0, deleted.endFrame - deleted.startFrame)
+                    }
+                }
+                if shift > 0 { starts[segment.id] = max(0, segment.startFrame - shift) }
+            }
+            return relayout(surviving, newStarts: starts)
+        }
+    }
 
     /// Shared Python/Swift ID contract for overwrite fragments and insertions.
     static func overwriteID(editID: String, origin: String, start: Int, end: Int) -> String {

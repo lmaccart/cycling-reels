@@ -525,4 +525,17 @@ final class OptimisticTimelineTests: XCTestCase {
         XCTAssertFalse(horizontal.verticalSameTime)
         XCTAssertEqual(horizontal.frame, scrolledFrame - 8)
     }
+    func testRemoveLeavesPositionedGapUnlessRippleRequested() {
+        let gap = OptimisticTimeline.remove(ids: ["a"], ripple: false)(reel)
+        XCTAssertEqual(starts(gap)["b"], 30)
+        XCTAssertEqual(starts(gap)["c"], 90)
+        XCTAssertNil(starts(gap)["a"])
+        XCTAssertEqual(starts(gap)["t"], 40)
+
+        let ripple = OptimisticTimeline.remove(ids: ["a"], ripple: true)(reel)
+        XCTAssertEqual(starts(ripple)["b"], 0)
+        XCTAssertEqual(starts(ripple)["c"], 60)
+        XCTAssertEqual(starts(ripple)["t"], 10)
+        XCTAssertNil(starts(ripple)["a"])
+    }
 }

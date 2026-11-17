@@ -671,15 +671,9 @@ final class EditorStore {
     }
 
     func splitAtPlayhead() {
-        guard let node = selectedNode, !node.isReadOnly,
-              node.kind.lowercased().contains("segment") || node.lane.lowercased().contains("video") else { return }
-        Task {
-            await apply([.object([
-                "op": .string("split_segment"),
-                "id": .string(node.id),
-                "atFrame": .number(Double(playheadFrame))
-            ])], reason: "Split clip")
-        }
+        let targets = TimelineEditingTargets.split(nodes: snapshot?.nodes ?? [],
+                                                   selectedIDs: selectedIDs, at: playheadFrame)
+        splitSegments(targets, at: playheadFrame)
     }
 
     func deleteSelection() {
@@ -698,9 +692,12 @@ final class EditorStore {
                 "ids": .array(segments.map(JSONValue.string))
             ]))
         }
-        operations.append(contentsOf: overlays.map { .object(["op": .string("remove_overlay"), "id": .string($0.id)]) })
+        operations.append(contentsOf: overlays.map {
+            .object(["op": .string("remove_overlay"), "id": .string($0.id)])
+        })
+        let prediction = segments.isEmpty ? nil : OptimisticTimeline.remove(ids: Set(segments), ripple: false)
         Task {
-            await apply(operations, reason: "Delete selection")
+            await apply(operations, reason: "Delete selection", predict: prediction)
         }
     }
 
@@ -1019,7 +1016,10 @@ final class EditorStore {
         }
 
         let value: JSONValue?
-        if let hit = hit(for: id) {
+        if let flag = flaggedDrop(id) {
+            value = Self.timelineInsertSpec(assetID: flag.assetID, metadata: flag.metadata,
+                                            sourceIn: flag.sourceIn, sourceOut: flag.sourceOut)
+        } else if let hit = hit(for: id) {
             value = Self.timelineInsertSpec(
                 assetID: hit.assetId, metadata: hit.raw,
                 sourceIn: hit.sourceIn, sourceOut: hit.sourceOut, moment: hit.raw["moment"]
@@ -1163,6 +1163,16 @@ final class EditorStore {
             return false
         }
         let startFrame = max(0, atFrame)
+        if let flag = flaggedDrop(id) {
+            guard let value = Self.timelineInsertSpec(assetID: flag.assetID, metadata: flag.metadata,
+                                                       sourceIn: sourceIn ?? flag.sourceIn,
+                                                       sourceOut: sourceOut ?? flag.sourceOut) else {
+                notice = "The selected source range is invalid."
+                return false
+            }
+            return submitTimelineInsert(value, assetID: flag.assetID, metadata: flag.metadata,
+                                        trackID: target.canonicalId ?? target.id, atFrame: startFrame)
+        }
         if let hit = hit(for: id) {
             guard let value = Self.timelineInsertSpec(
                 assetID: hit.assetId, metadata: hit.raw,

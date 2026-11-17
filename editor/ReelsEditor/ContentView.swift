@@ -457,6 +457,7 @@ private struct FlagRow: View {
         }
         .buttonStyle(.plain)
         .help("Open in Source with this range marked")
+        .draggable("flag:\(flag.id)")
         .contextMenu {
             Button("Edit note…") { draft = flag.note ?? ""; editing = true }
             Button("Remove flag", role: .destructive) { store.removeFlag(flag) }
