@@ -3,6 +3,14 @@ import Darwin
 
 @MainActor
 final class EditorAppDelegate: NSObject, NSApplicationDelegate {
+    static var isTestHost: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || NSClassFromString("XCTestCase") != nil
+    }
+
+    func applicationShouldSaveApplicationState(_ app: NSApplication) -> Bool { !Self.isTestHost }
+    func applicationShouldRestoreApplicationState(_ app: NSApplication) -> Bool { !Self.isTestHost }
+
     private var captureObservers: [NSObjectProtocol] = []
     private var captureContinuation: CheckedContinuation<Bool, Never>?
     private var captureDocumentReady = false
@@ -11,6 +19,7 @@ final class EditorAppDelegate: NSObject, NSApplicationDelegate {
     private var previewFailure: String?
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard !Self.isTestHost else { return false }
         if !flag, let window = sender.windows.first(where: { $0.contentView != nil && $0.canBecomeMain }) {
             window.makeKeyAndOrderFront(nil)
             return false
@@ -23,6 +32,7 @@ final class EditorAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !Self.isTestHost else { return }
         Task { await enforceMinimumWindowSize() }
         guard let destination = Self.argument("--capture-window", in: ProcessInfo.processInfo.arguments) else { return }
         if Self.argument("--plan", in: ProcessInfo.processInfo.arguments) != nil
