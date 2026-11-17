@@ -991,20 +991,38 @@ def prepare_source_proxy(job: dict) -> dict:
         "360-video" if is_spherical else ("photo" if is_photo else "video")
     )
     width, height = (720, 1280) if is_spherical else (0, 0)
+    # A 360 video with no requested view gets the browsing layout: level front and back views
+    # side by side (front = the measured direction of travel; see stabilize.front_back_views).
+    layout = "front-back" if is_spherical and not is_photo and not view else "single"
+    front_back: list[dict] = []
     if is_spherical and not is_photo:
         try:
             from ..sphere import DEFAULT_VIEW, source_graph, v360_filter, view_params
 
-            view_value = {**DEFAULT_VIEW, **view}
             filter_graph, pad, input_projection = source_graph(probe)
-            camera = v360_filter(
-                input_projection,
-                projection,
-                view_params(view_value, projection, width, height),
-                width,
-                height,
-            )
-        except (KeyError, TypeError, ValueError) as exc:
+            if layout == "front-back":
+                from ..stabilize import front_back_views, read_orientation, travel_direction
+
+                ori = read_orientation(source, 0.0, float(probe.get("duration") or 0) + 1)
+                gravity = ori.gravity if ori is not None else None
+                travel = travel_direction(source, gravity) if gravity else None
+                front_back = front_back_views(gravity, job.get("angles") if isinstance(job.get("angles"), dict) else None,
+                                              travel=travel)
+                cams = [v360_filter(input_projection, "flat", view_params(v, "flat", width, height), width, height)
+                        for v in front_back]
+                # browsing proxy: 30 fps and linear sampling keep a full clip to a few minutes
+                cams = [c.replace(":interp=cubic", ":interp=linear") for c in cams]
+                camera = f"fps=30,split=2[fbf][fbb];[fbf]{cams[0]}[fbfv];[fbb]{cams[1]}[fbbv];[fbfv][fbbv]hstack=2"
+            else:
+                view_value = {**DEFAULT_VIEW, **view}
+                camera = v360_filter(
+                    input_projection,
+                    projection,
+                    view_params(view_value, projection, width, height),
+                    width,
+                    height,
+                )
+        except (KeyError, TypeError, ValueError, OSError) as exc:
             verify_source_unchanged()
             return {"status": "unsupported", "reason": f"Invalid 360 source view or probe metadata: {exc}"}
     else:
@@ -1030,6 +1048,8 @@ def prepare_source_proxy(job: dict) -> dict:
         "sourceIdentity": expected_identity,
         "view": view,
         "projection": projection,
+        "layout": layout,
+        "views": front_back,
         "width": width,
         "height": height,
         "codec": {"video": "png" if is_photo else "h264", "audio": None if is_photo else "aac"},
@@ -1045,7 +1065,7 @@ def prepare_source_proxy(job: dict) -> dict:
                     raise ReelsError("registered original changed during source proxy reuse")
                 return {
                     "status": "ready", "path": str(output), "proxy": True, "reused": True,
-                    "sourceKind": "image" if is_photo else "video",
+                    "sourceKind": "image" if is_photo else "video", "layout": layout,
                 }
         except (OSError, ValueError):
             pass
@@ -1071,15 +1091,24 @@ def prepare_source_proxy(job: dict) -> dict:
                 ]
                 run(command, timeout=300)
         elif is_spherical:
-            command = [
-                "ffmpeg", "-v", "error", "-y", "-i", source,
-                "-filter_complex", f"{filter_graph};[{pad}]{camera}[source]",
-                "-map", "[source]", "-map", "0:a:0?", "-fps_mode", "passthrough",
-                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
-                "-movflags", "+faststart", temporary,
-            ]
-            run(command, timeout=1800)
+            def encode(hardware: bool) -> None:
+                command = [
+                    "ffmpeg", "-v", "error", "-y", *(["-hwaccel", "videotoolbox"] if hardware else []), "-i", source,
+                    "-filter_complex", f"{filter_graph};[{pad}]{camera}[source]",
+                    "-map", "[source]", "-map", "0:a:0?", "-fps_mode", "passthrough",
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                    "-movflags", "+faststart", temporary,
+                ]
+                run(command, timeout=1800)
+
+            if layout == "front-back" and sys.platform == "darwin":
+                try:
+                    encode(True)  # hardware HEVC decoding, when the sandbox allows it
+                except (ReelsError, OSError, subprocess.SubprocessError):
+                    encode(False)
+            else:
+                encode(False)
         else:
             if not probe.get("width") or not probe.get("height"):
                 verify_source_unchanged()
@@ -1115,7 +1144,7 @@ def prepare_source_proxy(job: dict) -> dict:
             temporary.unlink()
     return {
         "status": "ready", "path": str(output), "proxy": True, "reused": False,
-        "sourceKind": "image" if is_photo else "video",
+        "sourceKind": "image" if is_photo else "video", "layout": layout,
     }
 
 

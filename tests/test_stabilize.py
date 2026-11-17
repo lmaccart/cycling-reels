@@ -216,3 +216,37 @@ class V360ConventionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FrontBackTests(unittest.TestCase):
+    @staticmethod
+    def axes(view):
+        m = st.v360_matrix(view["yaw"], view["pitch"], view["roll"])
+        return [tuple(m[r][c] for r in range(3)) for c in range(3)]  # right, down, look
+
+    def test_views_are_level_and_opposite(self):
+        down = (0.99, -0.08, 0.06)  # the camera hung on its side, as on the bike
+        n = math.sqrt(sum(c * c for c in down))
+        d = tuple(c / n for c in down)
+        front, back = st.front_back_views(down, travel=(0.0, 1.0, 0.2))
+        for view in (front, back):
+            right, vdown, look = self.axes(view)
+            self.assertAlmostEqual(sum(a * b for a, b in zip(right, d)), 0, places=4)  # horizon level
+            self.assertAlmostEqual(sum(a * b for a, b in zip(look, d)), 0, places=4)   # looking along the ground
+            self.assertGreater(sum(a * b for a, b in zip(vdown, d)), 0.999)           # upright
+        f_look, b_look = self.axes(front)[2], self.axes(back)[2]
+        self.assertAlmostEqual(sum(a * b for a, b in zip(f_look, b_look)), -1, places=4)
+        self.assertGreater(f_look[1], 0.9)  # faces the direction of travel
+
+    def test_travel_overrides_a_reversed_tag_but_a_close_tag_aims(self):
+        down = (1.0, 0.0, 0.0)
+        tags = {"road": {"yaw": 0, "pitch": 0, "fov": 90, "roll": 0}}  # looks along +z
+        reversed_front = self.axes(st.front_back_views(down, tags, travel=(0.0, 0.0, -1.0))[0])[2]
+        self.assertLess(reversed_front[2], -0.99)
+        close = self.axes(st.front_back_views(down, tags, travel=(0.0, 0.3, 1.0))[0])[2]
+        self.assertGreater(close[2], 0.999)  # snapped to the tagged axis
+        untagged = self.axes(st.front_back_views(down, None, travel=None)[0])[2]
+        self.assertAlmostEqual(sum(a * b for a, b in zip(untagged, down)), 0, places=4)
+
+    def test_without_gravity_plain_front_and_back(self):
+        self.assertEqual([v["yaw"] for v in st.front_back_views(None)], [0.0, 180.0])

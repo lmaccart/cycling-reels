@@ -1016,6 +1016,7 @@ class PreviewManager:
                     "identity": identity_value,
                     "kind": source_kind,
                     "view": view_value,
+                    "angles": (asset.get("tags") or {}).get("angles") or {},
                     "codec": vcodec,
                     "fps": probe.get("fps"),
                     "renderer": renderer_revision,
@@ -1028,6 +1029,7 @@ class PreviewManager:
             job_root = self.worker_root / f"source-{uuid.uuid4().hex}"
             job_root.mkdir(parents=True, mode=0o700)
             proxy_root = self.preview_root / "sources" / proxy_id
+            proxy_root.parent.mkdir(parents=True, exist_ok=True, mode=0o700)  # the sandbox may write only inside proxy_root
             revisions = {
                 "document": "source",
                 "library": str(self.workspace.library_revision()),
@@ -1047,6 +1049,7 @@ class PreviewManager:
                         "sourceKind": source_kind,
                         "probe": copy.deepcopy(probe),
                         "view": view_value,
+                        "angles": copy.deepcopy((asset.get("tags") or {}).get("angles") or {}),
                         "mediaRoot": str(self.workspace.project.media_dir.resolve()),
                         "workspaceRoot": str(Path(self.workspace.root).resolve()),
                         "revisions": revisions,
@@ -1075,6 +1078,7 @@ class PreviewManager:
                 "mediaPath": str(proxy),
                 "identity": identity_value,
                 "view": view_value,
+                "layout": result.get("layout") or "single",
                 "sourceKind": result.get("sourceKind") or ("image" if source_kind == "photo" else "video"),
                 "proxy": True,
                 "reused": bool(result.get("reused", False)),

@@ -30,6 +30,24 @@ struct SourceMonitor: View {
                         }
                     }
                 }
+                .overlay {
+                    if let id = store.selectedAssetID, store.sourceLayouts[id] == "front-back" {
+                        FrontBackLabels()
+                    }
+                }
+            } else if let id = store.selectedAssetID, ["pending", "loading"].contains(store.sourceStates[id] ?? ""),
+                      store.selectedAsset?["probe"]?["sphere"] != nil {
+                VStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Preparing the 360 front and back views…")
+                        .font(EditorType.body)
+                    Text("The first time takes a few minutes for a long clip; after that it opens instantly.")
+                        .font(EditorType.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 280)
+                }
+                .foregroundStyle(.white)
             } else {
                 ContentUnavailableView(
                     store.selectedAsset == nil ? "Choose a source clip" : "Source preview unavailable",
@@ -59,6 +77,30 @@ struct SourceMonitor: View {
         .onDisappear {
             model.pause()
         }
+    }
+}
+
+/// "Front" / "Back" over the two halves of a 360 Source proxy (1440×1280, aspect-fit with padding 0).
+private struct FrontBackLabels: View {
+    var body: some View {
+        GeometryReader { geo in
+            let aspect = 1440.0 / 1280.0
+            let width = min(geo.size.width, geo.size.height * aspect)
+            let height = width / aspect
+            let x0 = (geo.size.width - width) / 2
+            let y0 = (geo.size.height - height) / 2
+            ForEach(Array(["Front", "Back"].enumerated()), id: \.offset) { index, label in
+                Text(label.uppercased())
+                    .font(EditorType.panelTitle)
+                    .tracking(EditorType.panelTitleTracking)
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                    .foregroundStyle(.white)
+                    .position(x: x0 + width * (0.25 + 0.5 * Double(index)), y: y0 + 16)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
