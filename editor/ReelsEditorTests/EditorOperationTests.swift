@@ -25,6 +25,19 @@ private final class SpeedModalInput: NSObject {
 }
 
 @MainActor
+private final class FlagRowMouseInput: NSObject {
+    let events: [NSEvent]
+    private var index = 0
+    private(set) var released = false
+    init(_ events: [NSEvent]) { self.events = events }
+    @objc func post(_ timer: Timer) {
+        NSApp.postEvent(events[index], atStart: false)
+        released = events[index].type == .leftMouseUp
+        index = min(index + 1, events.count - 1)
+    }
+}
+
+@MainActor
 final class EditorOperationTests: XCTestCase {
     func testBrollInsertUsesPrimaryStableIDAndLocalTime() {
         let operation = BrollOperationBuilder.insert(
@@ -268,6 +281,122 @@ final class EditorOperationTests: XCTestCase {
 
     private func descendants(_ view: NSView) -> [NSView] {
         [view] + view.subviews.flatMap(descendants)
+    }
+
+    private enum FlagRowGesture { case click, drag }
+
+    /// Ask the production List's native drag source for its payload, not the store resolver.
+    private func flagRowPasteboard(store: EditorStore, flag: ClipFlag,
+                                   interaction: FlagRowGesture? = nil) async throws -> NSPasteboard {
+        let host = NSHostingView(rootView: List(selection: Binding(
+            get: { store.selectedAssetID }, set: { _ in }
+        )) {
+            Section("Flagged") {
+                ForEach([flag]) { FlagRow(store: store, flag: $0) }
+            }
+        }.listStyle(.sidebar))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 180),
+                              styleMask: .titled, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        window.makeKeyAndOrderFront(nil)
+        defer { window.close() }
+        host.layoutSubtreeIfNeeded()
+        try await eventually("Flagged List installs its native rows") {
+            self.descendants(host).compactMap { $0 as? NSTableView }.contains { $0.numberOfRows > 1 }
+        }
+        let table = try XCTUnwrap(descendants(host).first { $0 is NSTableView } as? NSTableView)
+        let dataSource = try XCTUnwrap(table.dataSource)
+        for row in 0..<table.numberOfRows { _ = table.view(atColumn: 0, row: row, makeIfNecessary: true) }
+        if let interaction {
+            // In-process events exercise drag initiation and click, never the installed app.
+            let rect = table.rect(ofRow: 1)
+            let point = table.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil)
+            var eventNumber = 0
+            let startTime = ProcessInfo.processInfo.systemUptime
+            func event(_ type: NSEvent.EventType, offset: CGFloat = 0) throws -> NSEvent {
+                eventNumber += 1
+                return try XCTUnwrap(NSEvent.mouseEvent(with: type,
+                    location: NSPoint(x: point.x + offset, y: point.y), modifierFlags: [],
+                    timestamp: startTime + Double(eventNumber) * 0.05, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: eventNumber, clickCount: 1, pressure: 1))
+            }
+            func gesture(_ steps: [(NSEvent.EventType, CGFloat)], until predicate: () -> Bool) async throws {
+                let down = try event(.leftMouseDown)
+                // SwiftUI can defer mouseDown into NSTableView's nested tracking loop.
+                let source = FlagRowMouseInput(try steps.map { try event($0.0, offset: $0.1) })
+                let input = Timer(timeInterval: 0.05, target: source,
+                                  selector: #selector(FlagRowMouseInput.post(_:)), userInfo: nil, repeats: true)
+                RunLoop.main.add(input, forMode: .common)
+                RunLoop.main.add(input, forMode: .eventTracking)
+                defer { input.invalidate() }
+                window.sendEvent(down)
+                try await eventually("Native row gesture completes") { source.released && predicate() }
+            }
+            switch interaction {
+            case .drag:
+                let dragPasteboard = NSPasteboard(name: .drag)
+                let beforeDrag = dragPasteboard.changeCount
+                try await gesture([
+                    (.leftMouseDragged, 10), (.leftMouseDragged, 25),
+                    (.leftMouseDragged, 40), (.leftMouseUp, 40)
+                ]) { dragPasteboard.changeCount != beforeDrag }
+                XCTAssertEqual(dragPasteboard.string(forType: .string), "flag:\(flag.id)")
+                XCTAssertNil(store.selectedAssetID, "Dragging must not open the source as a click")
+            case .click:
+                try await gesture([(.leftMouseUp, 0)]) {
+                    store.selectedAssetID == flag.asset && store.sourceIn == flag.inPoint && store.sourceOut == flag.outPoint
+                }
+            }
+        }
+        let pasteboard = NSPasteboard.withUniqueName()
+        for row in 0..<table.numberOfRows {
+            let rect = table.rect(ofRow: row)
+            _ = table.view(atColumn: 0, row: row, makeIfNecessary: true)
+            guard table.canDragRows(with: IndexSet(integer: row),
+                                    at: NSPoint(x: rect.midX, y: rect.midY)) else { continue }
+            let writer: (any NSPasteboardWriting)?
+            if let outline = table as? NSOutlineView, let item = outline.item(atRow: row) {
+                writer = outline.dataSource?.outlineView?(outline, pasteboardWriterForItem: item)
+            } else {
+                writer = dataSource.tableView?(table, pasteboardWriterForRow: row)
+            }
+            if let writer {
+                pasteboard.writeObjects([writer])
+                if pasteboard.string(forType: .string) != nil { return pasteboard }
+            }
+        }
+        pasteboard.releaseGlobally()
+        XCTFail("A flagged row must supply native text before the timeline can receive a drag")
+        throw NSError(domain: "FlagRowDrag", code: 1)
+    }
+
+    func testNativeFlagRowDragExportsAcceptedTextWithExactRange() async throws {
+        let store = EditorStore()
+        let flag = try XCTUnwrap(ClipFlag(.object([
+            "id": .string("f-native"), "asset": .string("source"),
+            "in": .number(0), "out": .number(55), "note": .string("flagged range")
+        ])))
+        store.flags = [flag]
+        store.library = [.object(["id": .string("source"), "kind": .string("video"),
+                                 "probe": .object(["duration": .number(120)])])]
+        let metadata = try XCTUnwrap(store.library.first)
+        store.service.callStub = { _, _ in metadata }
+        let pasteboard = try await flagRowPasteboard(store: store, flag: flag, interaction: .drag)
+        defer { pasteboard.releaseGlobally() }
+        let payload = try XCTUnwrap(pasteboard.string(forType: .string))
+        XCTAssertEqual(payload, "flag:f-native")
+        let clickPasteboard = try await flagRowPasteboard(store: store, flag: flag, interaction: .click)
+        defer { clickPasteboard.releaseGlobally() }
+        XCTAssertEqual(store.selectedAssetID, "source")
+        XCTAssertEqual(store.sourceIn, 0)
+        XCTAssertEqual(store.sourceOut, 55)
+        let resolved = try XCTUnwrap(TimelineEditingTargets.flaggedDrop(
+            id: payload, flags: store.flags, library: store.library
+        ))
+        XCTAssertEqual(resolved.assetID, "source")
+        XCTAssertEqual(resolved.sourceIn, 0)
+        XCTAssertEqual(resolved.sourceOut, 55)
     }
 
     private func renderedText(_ view: NSView) throws -> String {
@@ -706,13 +835,16 @@ final class EditorOperationTests: XCTestCase {
         try await eventually("Reveal opens the source selection and preserves its range") {
             store.selectedAssetID == "b" && store.sourceIn == 5 && store.sourceOut == 7
         }
-        let proposal = store.previewTimelineDrop("flag:\(flagged.id)", atFrame: current.editingDurationFrames,
+        let flagPasteboard = try await flagRowPasteboard(store: store, flag: flagged)
+        defer { flagPasteboard.releaseGlobally() }
+        let flagPayload = try XCTUnwrap(flagPasteboard.string(forType: .string))
+        let proposal = store.previewTimelineDrop(flagPayload, atFrame: current.editingDurationFrames,
                                                 trackID: "V1", commandInsert: false)
         XCTAssertNil(proposal.rejection)
         XCTAssertEqual(proposal.placement?.insert?["in"]?.numberValue, 1)
         XCTAssertEqual(proposal.placement?.insert?["out"]?.numberValue, 3)
         XCTAssertEqual(proposal.placement?.insert?["asset"]?.stringValue, "b")
-        store.insertDroppedItem("flag:\(flagged.id)", atFrame: current.editingDurationFrames, trackID: "V1")
+        store.insertDroppedItem(flagPayload, atFrame: current.editingDurationFrames, trackID: "V1")
         current = try await settle(after: current.revisions.document)
         let droppedFlag = try XCTUnwrap(current.nodes.first {
             $0.kind == "segment" && $0.assetId == "b" && $0.sourceIn == 1 && $0.sourceOut == 3
