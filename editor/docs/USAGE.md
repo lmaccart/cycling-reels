@@ -441,10 +441,14 @@ The timeline consumes the immediate snapshot first; the inspector switches from
 clip to reel properties on the following update. No sleep, fixed delay or backend
 round trip gates either pane. All inspector descendants use the presentation
 snapshot, including schema target lookup, collection children, read-only display,
-frame rate and title. Mutation handlers instead resolve live node IDs and read-only
-state, and enqueue synchronously; a deleted node cannot submit fields, overlays,
-removal, keyframes or transcript corrections. Transcript corrections resolve the
-current node's asset rather than a captured inspector node.
+frame rate and title. Every inspector action carries the displayed document ID.
+Mutation handlers resolve live node IDs and read-only state, and enqueue
+synchronously. Submission rechecks the document and target after waiting for
+earlier edits, before reading authoritative revisions: stale controls or queued
+work from another reel cannot edit the current reel, even when node IDs coincide.
+A deleted node cannot submit fields, overlays, removal, keyframes or transcript
+corrections. Transcript corrections resolve the current node's asset rather than
+a captured inspector node.
 
 `FullWindowDeleteTests/testFullWindowDeleteInputToRedraw` adds the media-loaded
 case: a 41.6-second V1 clip and positioned 55-second V3 clip, a real 360 front/back
@@ -454,6 +458,44 @@ It requires an existing own-footage preview cache (`REELS_TEST_PREVIEW_CACHE`) a
 Python environment (`REELS_TEST_PYTHON`); missing media is an explicit skip.
 All media is read-only except a temporary two-second front/back proxy made from
 the user's already-cached spherical footage. No generated imagery or GUI capture.
+
+The full-window fixture seeds all split fractions in a fresh `UserDefaults` suite.
+Split-created hosting roots propagate that preference dependency; native split
+autosave is disabled outside standard preferences, so AppKit cannot persist into
+the real app domain. The fixture compares `com.cycling.ReelsEditor` before/after
+setup, measurement and teardown solely to assert it is unchanged; it never loads
+layout from that domain or restores over it. The real-service delete fixture also
+uses isolated split preferences. After its full-window optimistic measurement,
+the rejection scenario unmounts `ContentView`'s alert presenter and verifies the
+real conflict/rollback in an offscreen timeline, without presenting an error window.
+
+Review follow-up verification (2026-11-17), isolated split preferences:
+
+- Release full-window input → redraw: **4.45 / 10.59 ms**; input → inspector
+  layout complete: **71.40 / 78.84 ms**. Inspector layout before redraw: **0 / 0 ms**.
+  Both monitors, unchanged player/web-view identity, reconciled Remotion revision
+  and unchanged production preference domain passed. Historical PR #40 baseline:
+  **42.24 / 60.42 ms** to redraw; these are offscreen requests, not screen presentation.
+- Focused Release: **3/3 passed**, including cross-document stale controls and
+  queued submission. Release latency/isolation group: **2/3 passed initially**;
+  the real-service rollback assertion alone failed and passed its only rerun.
+  Its four Release redraw samples on rerun were **6.64 / 7.53 / 8.64 / 6.86 ms**
+  (sequential / positioned / ripple / rejected edit).
+- Full Debug suite, once: **156 executed; 154 passed, one Release-only skip,
+  one rollback-geometry assertion failure**. That sole failed test passed its
+  only rerun. Replacing the alert-bearing host changed the timeline origin during
+  layout; rollback now compares restored/surviving clip positions in the same
+  layout instead of caching an origin across host updates. No production change
+  was needed for that assertion. W1 occlusion, ruler and no-activation/no-visible-window
+  checks passed. The cross-document and nested preference regressions passed in
+  Debug as well.
+- Compile-only Debug/Release builds, one multi-configuration hosted invocation,
+  then one invocation restricted to the two failed tests. No Python discovery,
+  installed-app launch, screen capture, system input or external AX calls.
+
+Evidence: `.cache/editor/delete-full-window/{ReviewSafety,ReviewSafetyFailedOnly}.xcresult`
+and `review-safety-{tests,failed-only}.log`. The full-window Release fixture ran once;
+it was not included in the failed-only rerun.
 
 The test records `XCTClockMetric`, `InputToRedraw` and `InputToInspector` signpost
 intervals. Redraw ends at the canvas's actual invalidation request; inspector ends

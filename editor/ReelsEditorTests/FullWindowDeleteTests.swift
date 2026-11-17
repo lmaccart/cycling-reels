@@ -137,6 +137,64 @@ private final class HostingWorkTrace {
 
 @MainActor
 final class FullWindowDeleteTests: XCTestCase {
+    private let productionDomain = "com.cycling.ReelsEditor"
+    private var productionDomainBefore: NSDictionary?
+    private var preferenceSuiteName: String?
+    private var preferences: UserDefaults!
+    private let fixtureSplitFractions: [String: [Double]] = [
+        "ReelsEditor.WorkspaceTimeline": [0.58, 0.42],
+        "ReelsEditor.ProjectMonitorsInspector": [0.19, 0.81],
+        "ReelsEditor.MonitorsInspector": [0.69, 0.31],
+        "ReelsEditor.SourceProgram": [0.5, 0.5]
+    ]
+
+    private func setUpPreferences() throws {
+        productionDomainBefore = UserDefaults.standard.persistentDomain(forName: productionDomain)
+            .map { NSDictionary(dictionary: $0) }
+        // Check even when setup throws; never hydrate the fixture from the real domain.
+        defer { assertProductionPreferencesUnchanged() }
+        addTeardownBlock { @MainActor [self] () async throws -> Void in
+            defer {
+                assertProductionPreferencesUnchanged()
+                productionDomainBefore = nil
+            }
+            // Test-body defers have already dismantled every hosting root and observer.
+            if let preferenceSuiteName {
+                preferences?.removePersistentDomain(forName: preferenceSuiteName)
+            }
+            preferences = nil
+            preferenceSuiteName = nil
+        }
+        let suiteName = "com.cycling.ReelsEditorTests.FullWindowDelete.\(UUID().uuidString)"
+        preferenceSuiteName = suiteName
+        preferences = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        for (name, fractions) in fixtureSplitFractions {
+            preferences.set(fractions, forKey: "ReelsEditor.Split.\(name)")
+        }
+    }
+
+    private func assertProductionPreferencesUnchanged(file: StaticString = #filePath, line: UInt = #line) {
+        let current = UserDefaults.standard.persistentDomain(forName: productionDomain)
+            .map { NSDictionary(dictionary: $0) }
+        XCTAssertEqual(current, productionDomainBefore,
+                       "Full-window fixtures must never modify the user's preferences", file: file, line: line)
+    }
+
+    private func dismantle(_ host: NSHostingView<AnyView>, window: NSWindow) {
+        host.rootView = AnyView(EmptyView())
+        host.layoutSubtreeIfNeeded()
+        window.contentView = nil
+        window.close()
+        XCTAssertFalse(descendants(host).contains { $0 is NSSplitView },
+                       "Split coordinators must be dismantled before clearing their preference suite")
+    }
+
+    private func fractions(of split: NSSplitView) -> [Double] {
+        let sizes = split.subviews.map { split.isVertical ? $0.frame.width : $0.frame.height }
+        let total = sizes.reduce(CGFloat.zero, +)
+        return total > 0 ? sizes.map { Double($0 / total) } : []
+    }
+
     private func descendants(_ view: NSView) -> [NSView] {
         [view] + view.subviews.flatMap(descendants)
     }
@@ -156,7 +214,52 @@ final class FullWindowDeleteTests: XCTestCase {
         }
     }
 
+    func testNestedSplitPreferencesAreIsolated() async throws {
+        try setUpPreferences()
+        let inner = NativeSplitView(
+            views: [AnyView(Color.clear), AnyView(Color.clear)],
+            vertical: true, autosaveName: "ReelsEditor.SourceProgram",
+            minimumSizes: [10, 10], initialFractions: [0.2, 0.8])
+        let outer = NativeSplitView(
+            views: [AnyView(inner), AnyView(Color.clear)],
+            vertical: false, autosaveName: "ReelsEditor.WorkspaceTimeline",
+            minimumSizes: [10, 10], initialFractions: [0.2, 0.8])
+        let host = NSHostingView(rootView: AnyView(outer.environment(\.splitViewPreferences, preferences)))
+        let window = FullWindowTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+                                          styleMask: .titled, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        defer { dismantle(host, window: window) }
+        host.layoutSubtreeIfNeeded()
+        try await eventually("Nested split hosting roots must receive the isolated preference store") {
+            self.descendants(host).compactMap { $0 as? NSSplitView }.count == 2
+        }
+        let splits = descendants(host).compactMap { $0 as? NSSplitView }
+        for split in splits {
+            XCTAssertNil(split.autosaveName, "AppKit autosave must not reach the standard domain")
+            let name = try XCTUnwrap(split.identifier?.rawValue)
+            let expected = try XCTUnwrap(fixtureSplitFractions[name])
+            let actual = fractions(of: split)
+            XCTAssertEqual(actual.count, expected.count)
+            for (actual, expected) in zip(actual, expected) {
+                XCTAssertEqual(actual, expected, accuracy: 0.005)
+            }
+        }
+        let innerSplit = try XCTUnwrap(splits.first { $0.identifier?.rawValue == "ReelsEditor.SourceProgram" })
+        innerSplit.setPosition((innerSplit.bounds.width - innerSplit.dividerThickness) * 0.4, ofDividerAt: 0)
+        try await eventually("Divider changes must persist to the isolated suite") {
+            guard let saved = self.preferences.array(forKey: "ReelsEditor.Split.ReelsEditor.SourceProgram") as? [Double],
+                  let first = saved.first else { return false }
+            return abs(first - 0.4) < 0.005
+        }
+        XCTAssertFalse(window.isVisible)
+        XCTAssertFalse(window.isKeyWindow)
+        XCTAssertFalse(NSApp.isActive)
+        XCTAssertEqual(NSApp.activationPolicy(), .prohibited)
+    }
+
     func testFullWindowDeleteInputToRedraw() async throws {
+        try setUpPreferences()
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -252,7 +355,7 @@ final class FullWindowDeleteTests: XCTestCase {
             "nodes": .array(nodes), "fps": .number(30), "durationFrames": .number(1950), "warnings": .array([]),
             "preview": manifest, "projectConfig": try XCTUnwrap(fixture["config"])
         ])))
-        let store = EditorStore()
+        let store = EditorStore(defaults: preferences)
         store.snapshot = initial
         store.authoritativeSnapshot = initial
         store.openPlanPath = "plans/full-window.json"
@@ -279,17 +382,30 @@ final class FullWindowDeleteTests: XCTestCase {
             if method == "document.snapshot" { return snapshotResponse }
             return .object([:])
         }
-        let host = NSHostingView(rootView: ContentView(store: store))
+        let host = NSHostingView(rootView: AnyView(
+            ContentView(store: store).environment(\.splitViewPreferences, preferences)))
         let window = FullWindowTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1920, height: 1080),
                                           styleMask: .titled, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = host
-        defer { window.close() }
+        defer { dismantle(host, window: window) }
         host.layoutSubtreeIfNeeded()
         try await eventually("Both monitors and the timeline must exist in the full window") {
             let views = self.descendants(host)
             return views.contains { $0 is TimelineCanvas } && views.contains { $0 is WKWebView }
                 && views.contains { ($0 as? AVPlayerView)?.player?.currentItem?.status == .readyToPlay }
+        }
+        let splits = descendants(host).compactMap { $0 as? NSSplitView }
+        XCTAssertEqual(Set(splits.compactMap { $0.identifier?.rawValue }), Set(fixtureSplitFractions.keys))
+        for split in splits {
+            XCTAssertNil(split.autosaveName, "Native autosave cannot use an isolated UserDefaults suite")
+            let name = try XCTUnwrap(split.identifier?.rawValue)
+            let expected = try XCTUnwrap(fixtureSplitFractions[name])
+            let actual = fractions(of: split)
+            XCTAssertEqual(actual.count, expected.count)
+            for (actual, expected) in zip(actual, expected) {
+                XCTAssertEqual(actual, expected, accuracy: 0.02, name)
+            }
         }
         let canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
         let web = try XCTUnwrap(descendants(host).compactMap { $0 as? WKWebView }.first)
@@ -339,7 +455,7 @@ final class FullWindowDeleteTests: XCTestCase {
         trace.names[ObjectIdentifier(canvas)] = "TimelineCanvas"
         for split in descendants(host).compactMap({ $0 as? NSSplitView }) {
             for (index, pane) in split.subviews.enumerated() {
-                trace.names[ObjectIdentifier(pane)] = "\(split.autosaveName ?? "split")[\(index)]"
+                trace.names[ObjectIdentifier(pane)] = "\(split.identifier?.rawValue ?? "split")[\(index)]"
             }
         }
         trace.install(descendants(host))

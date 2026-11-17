@@ -250,7 +250,7 @@ struct MusicPanel: View {
     @ViewBuilder private var inThisReel: some View {
         VStack(alignment: .leading, spacing: 6) {
             PanelTitle("In this reel")
-            if let node = store.musicNode {
+            if let snapshot = store.snapshot, let node = store.musicNode {
                 let slug = node.raw["track"]?.stringValue ?? node.raw.stringValue ?? "music"
                 let known = model.tracks.first { $0.slug == slug }
                 HStack(spacing: 8) {
@@ -269,11 +269,11 @@ struct MusicPanel: View {
                 HStack(spacing: 8) {
                     Text("Start").font(EditorType.caption).foregroundStyle(.secondary)
                     MusicStartField(seconds: node.raw["start"]?.numberValue ?? known?.defaultStart) { value in
-                        store.editField(nodeID: node.id, path: "/start", value: .number(value))
+                        store.editField(documentID: snapshot.documentId, nodeID: node.id, path: "/start", value: .number(value))
                     }
                     Text("Volume").font(EditorType.caption).foregroundStyle(.secondary)
                     MusicVolumeSlider(value: node.raw["volume"]?.numberValue ?? 0.5) { value in
-                        store.editField(nodeID: node.id, path: "/volume", value: .number(value))
+                        store.editField(documentID: snapshot.documentId, nodeID: node.id, path: "/volume", value: .number(value))
                     }
                 }
             } else {

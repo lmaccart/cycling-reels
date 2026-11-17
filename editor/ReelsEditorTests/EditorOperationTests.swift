@@ -297,11 +297,11 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(store.inspector.selectedNode?.id, "clip-0")
 
         // These are the real control actions, invoked while the old controls can remain onscreen.
-        store.editField(nodeID: "clip-0", path: "/volume", value: .number(0.5))
-        store.insertInspectorOverlay(parentID: "clip-0", collection: "text", value: .object([:]))
-        store.removeInspectorItem("clip-0")
-        await store.setKeyframes(nodeID: "clip-0", path: "/path", value: .array([]))
-        store.correctInspectorWords(nodeID: "clip-0", corrections: [.object(["index": .number(0), "word": .string("new")])])
+        store.editField(documentID: initial.documentId, nodeID: "clip-0", path: "/volume", value: .number(0.5))
+        store.insertInspectorOverlay(documentID: initial.documentId, parentID: "clip-0", collection: "text", value: .object([:]))
+        store.removeInspectorItem("clip-0", documentID: initial.documentId)
+        store.setKeyframes(documentID: initial.documentId, nodeID: "clip-0", path: "/path", value: .array([]))
+        store.correctInspectorWords(documentID: initial.documentId, nodeID: "clip-0", corrections: [.object(["index": .number(0), "word": .string("new")])])
         try await eventually("Delete reaches the serial service queue") { reply != nil }
         try await eventually("Inspector catches up before acknowledgement") { store.inspector.selectedNode == nil }
         XCTAssertEqual(batches.count, 1, "Deleted-node controls must not enqueue any edits")
@@ -351,17 +351,75 @@ final class EditorOperationTests: XCTestCase {
             if method == "document.apply" { batches.append(params["batch"] ?? .null) }
             return response
         }
-        store.editField(nodeID: "clip-0", path: "/volume", value: .number(0.5))
-        store.insertInspectorOverlay(parentID: "clip-0", collection: "text", value: .object([:]))
-        store.removeInspectorItem("clip-0")
-        await store.setKeyframes(nodeID: "clip-0", path: "/path", value: .array([]))
+        store.editField(documentID: initial.documentId, nodeID: "clip-0", path: "/volume", value: .number(0.5))
+        store.insertInspectorOverlay(documentID: initial.documentId, parentID: "clip-0", collection: "text", value: .object([:]))
+        store.removeInspectorItem("clip-0", documentID: initial.documentId)
+        store.setKeyframes(documentID: initial.documentId, nodeID: "clip-0", path: "/path", value: .array([]))
         // Generated captions still allow transcript correction, against the CURRENT asset.
-        store.correctInspectorWords(nodeID: "clip-0", corrections: [.object(["index": .number(0), "word": .string("new")])])
+        store.correctInspectorWords(documentID: initial.documentId, nodeID: "clip-0", corrections: [.object(["index": .number(0), "word": .string("new")])])
         await store.editTail?.value
         XCTAssertEqual(batches.count, 1, "Live read-only state must reject field, insertion, deletion and keyframe controls")
         let operation = try XCTUnwrap(batches.first?["operations"]?.arrayValue?.first)
         XCTAssertEqual(operation["op"]?.stringValue, "correct_words")
         XCTAssertEqual(operation["assetId"]?.stringValue, "current-asset")
+    }
+
+    func testDeferredInspectorRejectsCrossDocumentControlsAndQueuedSubmissions() async throws {
+        let store = EditorStore()
+        var first = try previewSnapshot(revision: "first", movie: URL(fileURLWithPath: "/unused"))
+        first.documentId = "first-reel"
+        first.nodes[0].assetId = "shared-asset"
+        var second = first
+        second.documentId = "second-reel"
+        second.revisions.document = "second"
+        store.snapshot = first
+        store.authoritativeSnapshot = first
+        store.selectedIDs = ["clip-0"]
+        try await eventually("Inspector displays the first reel") {
+            store.inspector.snapshot?.documentId == first.documentId
+        }
+        let inspectedDocumentID = try XCTUnwrap(store.inspector.snapshot?.documentId)
+        var batches: [JSONValue] = []
+        store.service.callStub = { method, params in
+            if method == "document.apply" { batches.append(params["batch"] ?? .null) }
+            return try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(second))
+        }
+        func useControls(documentID: String) {
+            for id in ["document", "project", "clip-0"] {
+                store.editField(documentID: documentID, nodeID: id, path: "/volume", value: .number(0.5))
+            }
+            for id in ["document", "clip-0"] {
+                store.insertInspectorOverlay(documentID: documentID, parentID: id, collection: "text", value: .object([:]))
+            }
+            store.removeInspectorItem("clip-0", documentID: documentID)
+            store.setKeyframes(documentID: documentID, nodeID: "clip-0", path: "/path", value: .array([]))
+            store.correctInspectorWords(documentID: documentID, nodeID: "clip-0",
+                                        corrections: [.object(["index": .number(0), "word": .string("new")])])
+        }
+        // Hold the serial queue without starting any RPC. Every control is valid when queued.
+        let gate = AsyncStream<Void>.makeStream()
+        defer { gate.continuation.finish() }
+        store.editTail = Task { for await _ in gate.stream {} }
+        useControls(documentID: inspectedDocumentID)
+        let queued = store.editTail
+        store.snapshot = second
+        store.authoritativeSnapshot = second
+        XCTAssertEqual(store.inspector.snapshot?.documentId, inspectedDocumentID)
+        // Same node IDs AND asset IDs exist in both reels; existence alone cannot reject these.
+        useControls(documentID: inspectedDocumentID)
+        XCTAssertTrue(store.editTail == queued, "Old controls must not add work after switching reels")
+        gate.continuation.finish()
+        await store.editTail?.value
+        XCTAssertTrue(batches.isEmpty, "Previously queued inspector edits must not borrow the new reel's revisions")
+        XCTAssertEqual(store.snapshot, second)
+        try await eventually("Inspector catches up to the second reel") {
+            store.inspector.snapshot?.documentId == second.documentId
+        }
+        store.editField(documentID: second.documentId, nodeID: "document", path: "/volume", value: .number(0.25))
+        store.editField(documentID: second.documentId, nodeID: "project", path: "/volume", value: .number(0.75))
+        await store.editTail?.value
+        XCTAssertEqual(batches.compactMap { $0["expected"]?["document"]?.stringValue }, ["second", "second"])
+        XCTAssertEqual(batches.compactMap { $0["operations"]?.arrayValue?.first?["id"]?.stringValue }, ["document", "project"])
     }
 
     private func descendants(_ view: NSView) -> [NSView] {
@@ -719,7 +777,10 @@ final class EditorOperationTests: XCTestCase {
             env["REELS_TEST_CODE_ROOT"] = code.path
             env["REELS_DELETE_SCENARIO"] = scenario
             env["REELS_HOME"] = root.path
-            let store = EditorStore()
+            let preferenceDomain = "com.cycling.ReelsEditorTests.Delete.\(UUID().uuidString)"
+            let preferences = try XCTUnwrap(UserDefaults(suiteName: preferenceDomain))
+            defer { preferences.removePersistentDomain(forName: preferenceDomain) }
+            let store = EditorStore(defaults: preferences)
             try store.service.start(repositoryRoot: root, environment: env)
             defer {
                 FileManager.default.createFile(atPath: root.appending(path: "apply.release").path, contents: nil)
@@ -740,16 +801,21 @@ final class EditorOperationTests: XCTestCase {
             await store.loadInspectorSchema(for: target.id)
             // Include the production nested NSHostingView / NativeSplitView boundary,
             // not a canvas manually fed the predicted snapshot.
-            let host = NSHostingView(rootView: ContentView(store: store))
+            let host = NSHostingView(rootView: AnyView(
+                ContentView(store: store).environment(\.splitViewPreferences, preferences)))
             let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1520, height: 940),
                                   styleMask: .titled, backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.contentView = host
-            defer { window.close() }
+            defer {
+                host.rootView = AnyView(EmptyView())
+                window.contentView = nil
+                window.close()
+            }
             try await eventually("Integrated timeline is hosted: \(scenario)") {
                 self.descendants(host).contains { $0 is TimelineCanvas }
             }
-            let canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
+            var canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
             func clip(_ node: EditorNode) -> NSAccessibilityElement? {
                 (canvas.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }.first {
                     $0.accessibilityLabel()?.contains(", V1, Video,") == true
@@ -817,6 +883,16 @@ final class EditorOperationTests: XCTestCase {
             await store.refreshSnapshot()
             XCTAssertNil(clip(target), scenario)
             if scenario == "rejected" {
+                // Optimistic timing above still hosts the complete ContentView.
+                // Unmount its alert presenter before provoking a real service error.
+                observation.invalidate()
+                host.rootView = AnyView(TimelinePanel(store: store))
+                host.layoutSubtreeIfNeeded()
+                try await eventually("Rollback timeline replaces the alert-bearing view") {
+                    self.descendants(host).compactMap { $0 as? TimelineCanvas }.contains { $0 !== canvas }
+                }
+                canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
+                try await eventually("Surviving clip reaches rollback timeline") { clip(survivor) != nil }
                 // A genuine revision conflict, not a fabricated error response.
                 _ = try await store.service.call("document.apply", params: .object(["batch": .object([
                     "reason": .string("External edit"), "expected": try XCTUnwrap(opened["revisions"]),
@@ -835,10 +911,12 @@ final class EditorOperationTests: XCTestCase {
             if scenario == "rejected" {
                 XCTAssertNotNil(store.errorMessage)
                 let restored = try XCTUnwrap(clip(target)).accessibilityFrame()
-                XCTAssertEqual(restored.minX, timelineOriginX
-                    + CGFloat(target.startFrame) * restored.width / CGFloat(target.frames), accuracy: 1)
+                let remaining = try XCTUnwrap(clip(survivor)).accessibilityFrame()
+                XCTAssertEqual(restored.minX - remaining.minX,
+                    CGFloat(target.startFrame - survivor.startFrame) * restored.width / CGFloat(target.frames),
+                    accuracy: 1, "Rollback must preserve the gap between the restored clip and its survivor")
                 XCTAssertEqual(store.snapshot?.nodes.first { $0.id == survivor.id }?.raw["volume"]?.numberValue, 0.5)
-                // Do not let the expected error alert interfere with the capture.
+                // The model error is asserted without ever presenting its modal alert.
                 store.errorMessage = nil
             } else {
                 XCTAssertNil(store.errorMessage, scenario)
