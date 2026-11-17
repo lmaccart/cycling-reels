@@ -42,6 +42,7 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "jobs.py": {"replace": 1, "unlink": 1},            # atomic write of private job records
         "live.py": {"unlink": 1},                          # the import's own .part temp inside inbox/
         "preview.py": {"replace": 2, "rmtree": 10, "unlink": 2},  # private job/export dirs (incl. the 360 proxy job); out/<slug>/ publish
+        "preview_cache.py": {"rename": 1, "rmtree": 1, "unlink": 1},  # trim of regenerable preview/revisions + preview/cache entries only (rename to .evict-<uuid>, then delete) and a superseded render.mp4; never sources/, spheres/, proxy locks/reservations, library/ or plans/
         "proxy_cache.py": {"unlink": 2},                   # reservation leases under preview/proxy-reservations only
         "proxy_metal.py": {"unlink": 6},                   # this locked proxy job's native/mux/request temporaries only
         "proxy_stabilize.py": {"replace": 1, "unlink": 1},  # CORI JSON and its own temporary in the private proxy cache
@@ -49,7 +50,7 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "renderer.py": {"rmtree": 2, "unlink": 1},         # candidate renderer snapshots under .cache/editor/live
         "service.py": {"unlink": 1},                       # stale .source-/.sphere- partials in preview/sources|spheres only
         "transactions.py": {"replace": 1, "unlink": 2, "remove": 1},  # temp files, scratch clone, guarded _delete_private
-        "worker.py": {"replace": 6, "rmtree": 5, "unlink": 3},        # inside the sandboxed worker's own job folder / private 360 proxy cache
+        "worker.py": {"replace": 6, "rmtree": 3, "unlink": 5},        # inside the sandboxed worker's own job folder / private 360 proxy cache; rmtree: _discard_tree clears read-only scratch (half clone, unpublished cache or product entry), unlink: also a half-restored product and exact-mode render.mp4 (re-encoded into exact.mp4) in this revision's own folder
         "document.py": {"remove": 1},
     }
     NAMES = {"unlink", "rmtree", "remove", "rename", "renames", "rmdir", "move", "removedirs", "truncate", "replace"}

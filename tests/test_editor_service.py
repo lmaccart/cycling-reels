@@ -254,6 +254,64 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.assertEqual(self.service.state["panels"], {"library": 230})
         self.assertNotIn("upload", self.service.state)
 
+    def _wait_trim(self):
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and self.service._trim_thread is not None:
+            time.sleep(0.01)
+        self.assertIsNone(self.service._trim_thread, "the cache trim did not finish")
+
+    def test_publishing_a_preview_trims_the_preview_cache_but_never_what_it_points_at(self):
+        preview = Path(self.workspace.root) / "preview"
+        self.fixture.project.config["editor"] = {"previewCacheGB": 0}
+        old = time.time() - 7200
+        stale = []
+        for seed in range(5):
+            folder = preview / "revisions" / f"{seed:020x}-{seed:08x}"
+            (folder / "public").mkdir(parents=True)
+            (folder / "public/seg0.mp4").write_bytes(b"x" * 100)
+            os.utime(folder / "public/seg0.mp4", (old, old))
+            os.utime(folder / "public", (old, old))
+            os.utime(folder, (old + seed, old + seed))  # seed 0 is the oldest
+            stale.append(folder)
+        proxy = preview / "sources/abc/proxy.mp4"
+        proxy.parent.mkdir(parents=True)
+        proxy.write_bytes(b"proxy")
+        os.utime(proxy.parent, (old, old))
+        revisions = {"document": "d1", "library": "l", "renderer": "r"}
+        self.service.document = SimpleNamespace(
+            snapshot=lambda: {"revisions": revisions},
+            publish_if_current=lambda expected, callback: callback())
+        current = preview / "revisions" / f"{9:020x}-{9:08x}"
+        (current / "public").mkdir(parents=True)
+        (current / "public/seg0.mp4").write_bytes(b"x" * 100)
+        (current / "public/props.json").write_text("{}")
+        os.utime(current, (old, old))  # old enough to rely on the manifest, not the grace period
+        try:
+            self.service._publish_preview({
+                "documentId": "doc", "revisions": revisions, "mode": "interactive",
+                "staticDir": str(current / "public"), "propsPath": str(current / "public/props.json")})
+            self._wait_trim()
+        finally:
+            self.service.document = None
+        self.assertTrue(current.is_dir(), "the published preview's folder is referenced by last-ready.json")
+        self.assertEqual(sorted(p.name for p in stale if p.exists()), sorted(p.name for p in stale[2:]),
+                         "unreferenced folders go oldest first, the newest three unowned ones stay")
+        self.assertEqual(proxy.read_bytes(), b"proxy")
+
+    def test_a_documents_preview_urls_beyond_the_newest_three_are_released(self):
+        root = Path(self.workspace.root)
+        keys = []
+        for number in range(5):
+            movie = root / f"preview/revisions/rev{number}/exact.mp4"
+            movie.parent.mkdir(parents=True)
+            movie.write_bytes(b"movie")
+            key = f"previews/d{number}/exact/u{number}"
+            self.service.http.register_file(f"{key}/exact.mp4", movie)
+            self.service._retire_superseded_previews({"httpKey": key, "documentId": "doc"})
+            keys.append(key)
+        registered = set(self.service.http.files)
+        self.assertEqual(registered, {f"{key}/exact.mp4" for key in keys[2:]})
+
     def test_automatic_and_native_preview_requests_coalesce_instead_of_cancelling_each_other(self):
         entered, release = threading.Event(), threading.Event()
         calls = []

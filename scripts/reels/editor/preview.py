@@ -11,12 +11,14 @@ import shutil
 import site
 import subprocess
 import sys
+import threading
 import uuid
 from pathlib import PurePosixPath
 from pathlib import Path
 from typing import Any, Callable
 
 from ..util import ReelsError
+from .preview_cache import DOCUMENT_MARKER, renderer_namespace
 
 
 def empty_preview(snapshot: dict, mode: str) -> dict | None:
@@ -595,6 +597,8 @@ class PreviewManager:
         self.preview_root = Path(workspace.root) / "preview"
         self.cache_root = self.preview_root / "cache/staged-media"
         self.bundle_cache = self.preview_root / "cache/bundles"
+        self._busy: dict[int, list[Path]] = {}
+        self._busy_lock = threading.Lock()
         for directory in (self.worker_root, self.cache_root, self.bundle_cache, self.preview_root / "revisions"):
             directory.mkdir(parents=True, exist_ok=True, mode=0o700)
 
@@ -630,8 +634,31 @@ class PreviewManager:
             roots.append(root.resolve(strict=True))
         return roots[0], roots[1]
 
+    def in_flight_paths(self) -> list[Path]:
+        """Revision and cache folders that running workers are writing; the cache trim leaves them alone."""
+        with self._busy_lock:
+            return [path for paths in self._busy.values() for path in paths]
+
     def _run_worker(self, job: dict, *, context=None, code_root: Path | None = None,
                     timeout: float = 900) -> dict:
+        revision = (job.get("revisions") or {}).get("renderer")
+        paths: list[Path] = []
+        if isinstance(revision, str) and revision:
+            namespace = renderer_namespace(revision)
+            paths = [self.cache_root / namespace, self.bundle_cache / namespace]
+        if job.get("revisionDir"):
+            paths.append(Path(job["revisionDir"]))
+        token = object()
+        with self._busy_lock:
+            self._busy[id(token)] = paths
+        try:
+            return self._run_sandboxed(job, context=context, code_root=code_root, timeout=timeout)
+        finally:
+            with self._busy_lock:
+                self._busy.pop(id(token), None)
+
+    def _run_sandboxed(self, job: dict, *, context=None, code_root: Path | None = None,
+                       timeout: float = 900) -> dict:
         revision = (job.get("revisions") or {}).get("renderer")
         if not isinstance(revision, str) or not revision:
             raise ReelsError("renderer job is missing its exact source revision")
@@ -793,6 +820,7 @@ class PreviewManager:
             }
             result = self._run_worker(job, context=context, code_root=code_root, timeout=1200 if mode == "exact" else 900)
             self._validate_preview_manifest(result)
+            self._record_document(revision_dir, snapshot.get("documentId"))
             # The result is revision-tagged and contains only private immutable paths.
             return result
         except Exception:
@@ -801,6 +829,17 @@ class PreviewManager:
             raise
         finally:
             shutil.rmtree(job_root, ignore_errors=True)
+
+    @staticmethod
+    def _record_document(revision_dir: Path, document_id: Any) -> None:
+        """Tell the cache trim which document owns this revision folder (it keeps the newest few per document).
+        Losing the note only makes the folder look unowned; it never fails a preview."""
+        if not isinstance(document_id, str) or not document_id or revision_dir.is_symlink() or not revision_dir.is_dir():
+            return
+        try:
+            (revision_dir / DOCUMENT_MARKER).write_text(json.dumps({"documentId": document_id}), encoding="utf-8")
+        except OSError:
+            pass
 
     def _validate_preview_manifest(self, result: dict) -> None:
         private_root = self.preview_root.resolve()

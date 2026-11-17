@@ -10,6 +10,9 @@
   "prune": {
     "minFreeGB": 100
   },
+  "editor": {
+    "previewCacheGB": 8
+  },
   "schedule": {
     "timezone": "America/Chicago",
     "times": ["18:30"]

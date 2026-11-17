@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import tempfile
 import types
 import unittest
@@ -328,6 +329,191 @@ class StagingCacheTests(unittest.TestCase):
         entry.symlink_to(target, target_is_directory=True)
         with self.assertRaisesRegex(ReelsError, "symlink"):
             self._run(built, "symlink")
+
+    # -- clones instead of copies, and a cache the editor may trim underneath a prepare ----------------
+
+    def _use_preview_layout(self):
+        """Put the cache where the editor does, so the real trim can evict from it."""
+        self.cache_root = self.root / "preview/cache/staged-media/renderer-x"
+        from reels.editor.preview_cache import PreviewCache
+        self.addCleanup(self._unlock_tree)
+        return PreviewCache(self.root, budget=0)
+
+    def _unlock_tree(self):
+        import os
+        for current, dirs, _ in os.walk(self.root):
+            for name in dirs:
+                os.chmod(os.path.join(current, name), 0o700)
+
+    def _assert_independent_copy(self, entry: Path, stage: Path):
+        names = sorted(path.name for path in entry.iterdir() if path.name != "cache.json")
+        self.assertEqual(sorted(path.name for path in stage.iterdir()), names)
+        for name in names:
+            cached, staged = entry / name, stage / name
+            self.assertEqual(cached.read_bytes(), staged.read_bytes())
+            self.assertNotEqual(cached.stat().st_ino, staged.stat().st_ino)
+            self.assertEqual((cached.stat().st_nlink, staged.stat().st_nlink), (1, 1))
+        worker._cache_tree_safe(entry)  # clones are separate inodes: the one-link invariant holds on both sides
+        worker._cache_tree_safe(stage)
+        self.assertEqual(stage.stat().st_mode & 0o777, 0o700)
+        return names
+
+    def test_revision_staging_is_cloned_from_the_cache_entry_on_miss_and_hit(self):
+        import os
+        built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
+        probe = self.root / "probe"
+        probe.write_bytes(b"x")
+        supported = worker._clonefile(probe, self.root / "probe-clone")
+        calls: list[tuple[str, bool]] = []
+        real = worker._clonefile
+
+        def spy(source, destination):
+            result = real(source, destination)
+            calls.append((source.name, result))
+            return result
+
+        with patch.object(worker, "_clonefile", spy):
+            built_stage, reused, _ = self._run(built, "clone")
+            hit_stage, hit_reused, _ = self._run(built, "clone")
+        self.assertEqual((reused, hit_reused), (False, True))
+        entry = self.cache_root / "clone"
+        for stage in (built_stage, hit_stage):
+            names = self._assert_independent_copy(entry, stage)
+            self.assertFalse((stage / "cache.json").exists())
+            self.assertEqual(sorted(name for name, _ in calls[:len(names)]), names)
+        self.assertEqual([result for _, result in calls], [supported] * len(calls))
+        # Rewriting a revision's copy (props, audio) never reaches the shared cache entry.
+        target = hit_stage / names[0]
+        target.chmod(0o600)
+        target.write_bytes(b"rewritten for this revision")
+        self.assertNotEqual((entry / names[0]).read_bytes(), b"rewritten for this revision")
+        worker._cache_tree_safe(entry)
+        self.assertTrue(all(os.stat(entry / name).st_nlink == 1 for name in names))
+
+    def test_unsupported_cloning_falls_back_to_a_plain_copy(self):
+        built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
+        with patch.object(worker, "_clonefile", return_value=False) as clone:
+            first, reused, first_stats = self._run(built, "copy")
+            second, hit_reused, hit_stats = self._run(built, "copy")
+        self.assertGreaterEqual(clone.call_count, 4)
+        self.assertEqual((reused, hit_reused), (False, True))
+        self.assertEqual((first_stats, hit_stats), ({"hits": 0, "misses": 2}, {"hits": 2, "misses": 0}))
+        for stage in (first, second):
+            self._assert_independent_copy(self.cache_root / "copy", stage)
+
+    @unittest.skipUnless(sys.platform == "darwin", "clonefile is macOS-only")
+    def test_a_missing_clone_source_is_reported_as_missing_not_as_unsupported(self):
+        with self.assertRaises(FileNotFoundError):
+            worker._clonefile(self.root / "no-such-file", self.root / "no-such-clone")
+        (self.root / "present").write_bytes(b"x")
+        (self.root / "taken").write_bytes(b"y")
+        with self.assertRaises(FileExistsError):
+            worker._clonefile(self.root / "present", self.root / "taken")
+
+    def test_entry_trimmed_while_a_prepare_clones_it_is_a_miss_and_restages(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
+        self._run(built, "key")
+        entry = self.cache_root / "key"
+        real = worker._clonefile
+        trimmed = []
+
+        def clone_after_trim(source, destination):
+            if not trimmed:
+                trimmed.append(trim._evict(entry))  # rename aside, then delete: the reader loses the folder
+            return real(source, destination)
+
+        self.encodes.clear()
+        with patch.object(worker, "_clonefile", clone_after_trim):
+            stage, reused, stats = self._run(built, "key")
+        self.assertEqual(trimmed, [True])
+        self.assertFalse(reused, "a lost entry is staged again, not reported as a cache hit")
+        self.assertEqual(stats, {"hits": 2, "misses": 0}, "the per-clip products survived, so no clip is re-encoded")
+        self.assertEqual(self.encodes, [])
+        self._assert_independent_copy(entry, stage)
+        self.assertEqual(len(list(stage.parent.glob(f"{stage.name}*"))), 1)
+
+    def test_entry_trimmed_before_its_marker_is_read_is_a_miss(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("one")])
+        self._run(built, "key")
+        entry = self.cache_root / "key"
+        real = worker._cache_tree_safe
+        calls = []
+
+        def safe_then_gone(root):
+            real(root)
+            if not calls and Path(root).resolve() == entry.resolve():
+                calls.append(trim._evict(entry))
+
+        with patch.object(worker, "_cache_tree_safe", safe_then_gone):
+            stage, reused, stats = self._run(built, "key")
+        self.assertEqual(calls, [True])
+        self.assertFalse(reused)
+        self.assertEqual(stats["misses"], 0)
+        self.assertTrue((stage / "seg0.mp4").is_file())
+
+    def test_product_trimmed_while_it_is_restored_is_a_miss_and_encodes_again(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (product,) = [path for path in (self.cache_root / "products").iterdir() if path.is_dir()]
+        real = worker._restore_product
+        trimmed = []
+
+        def restore_after_trim(entry, roles, marker):
+            if not trimmed:
+                trimmed.append(trim._evict(entry))
+            return real(entry, roles, marker)
+
+        self.encodes.clear()
+        with patch.object(worker, "_restore_product", restore_after_trim):
+            stage, reused, stats = self._run(built, "second")
+        self.assertEqual(trimmed, [True])
+        self.assertEqual(stats, {"hits": 0, "misses": 1})
+        self.assertEqual([entry[0] for entry in self.encodes], ["clip"])
+        self.assertIn(b"clip|", (stage / "seg0.mp4").read_bytes())
+        self.assertTrue((product / "cache.json").is_file(), "the re-encoded product is published again")
+
+    def _exact_fixture(self, final_bytes: bytes):
+        import os
+        browser = self.root / "browser"
+        browser.write_bytes(b"#!/bin/sh\n")
+        project = types.SimpleNamespace(cfg=lambda *_args: None, root=self.root / "project")
+        revision = self.root / "revision"
+        stage = revision / "public"
+        stage.mkdir(parents=True)
+        built = {"props": {"width": 1080}, "music": None, "total": 60, "fps": 30}
+        seen = {}
+
+        def run_remotion(project, props, static, intermediate, log):
+            seen["props"] = Path(props).is_file()
+            Path(intermediate).write_bytes(b"remotion intermediate")
+
+        def final_encode(project, intermediate, final, boost):
+            seen["intermediate_present"] = Path(intermediate).is_file()
+            Path(final).write_bytes(final_bytes)
+
+        self.render.run_remotion = run_remotion
+        self.render.final_encode = final_encode
+        environment = patch.dict(os.environ, {"REELS_BROWSER": str(browser)})
+        environment.start()
+        self.addCleanup(environment.stop)
+        return project, built, stage, revision, seen
+
+    def test_exact_mode_drops_the_intermediate_movie_once_exact_mp4_exists(self):
+        project, built, stage, revision, seen = self._exact_fixture(b"final movie")
+        result = worker._run_exact(project, built, stage, revision)
+        self.assertTrue(seen["intermediate_present"], "final_encode still reads render.mp4")
+        self.assertFalse((revision / "render.mp4").exists())
+        self.assertEqual((revision / "exact.mp4").read_bytes(), b"final movie")
+        self.assertEqual(result, {"exactPath": str(revision / "exact.mp4"), "attachedAudioPreviewPath": None,
+                                  "movie": str(revision / "exact.mp4")})
+
+    def test_exact_mode_keeps_the_intermediate_when_the_final_encode_left_nothing_usable(self):
+        project, built, stage, revision, _ = self._exact_fixture(b"")
+        worker._run_exact(project, built, stage, revision)
+        self.assertTrue((revision / "render.mp4").is_file())
 
 
 if __name__ == "__main__":

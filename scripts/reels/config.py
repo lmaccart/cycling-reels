@@ -81,6 +81,7 @@ DEFAULTS: dict[str, Any] = {
     "upload": {"endpoint": None, "bucket": None, "prefix": "reels/", "publicBaseUrl": None, "region": "auto"},
     "tools": {"ffmpeg": None, "ffprobe": None},
     "prune": {"minFreeGB": 100},  # ./reels prune --apply refuses unless free disk is under this
+    "editor": {"previewCacheGB": 8},  # budget for the editor's regenerable preview revisions + staged-media cache
     "units": "imperial",  # GPS numbers on screen: imperial (mph, ft) or metric (km/h, m)
 }
 
