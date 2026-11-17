@@ -151,7 +151,7 @@ private struct InspectorPane: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 PanelTitle("Effect Controls")
-                if let node = store.selectedNode {
+                if let node = store.inspector.selectedNode {
                     Text(node.title)
                         .font(EditorType.bodyEmphasis)
                         .lineLimit(1)
@@ -167,30 +167,30 @@ private struct InspectorPane: View {
             .background(EditorPalette.panel)
             Divider()
 
-            if let node = store.selectedNode {
+            if let snapshot = store.inspector.snapshot, let node = store.inspector.selectedNode {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         clipProperties(node)
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
-                            SchemaInspector(schema: store.inspectorSchema, fields: node.raw, nodeID: node.id, store: store)
+                            SchemaInspector(schema: store.inspectorSchema, fields: node.raw, documentID: snapshot.documentId, nodeID: node.id, store: store)
                         } else {
-                            nativeFallbackGroups(node: node, store: store)
+                            nativeFallbackGroups(node: node, documentID: snapshot.documentId, store: store)
                         }
                         if let words = node.raw["words"]?.arrayValue {
-                            TranscriptWordEditor(node: node, words: words, store: store)
+                            TranscriptWordEditor(node: node, words: words, documentID: snapshot.documentId, store: store)
                         }
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            } else if let snapshot = store.snapshot {
+            } else if let snapshot = store.inspector.snapshot {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         reelProperties(snapshot)
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
                             SchemaInspector(schema: store.inspectorSchema,
                                             fields: snapshot.plan,
-                                            nodeID: "document", store: store,
+                                            documentID: snapshot.documentId, nodeID: "document", store: store,
                                             targetKeys: ["document", "post", "hook", "endCard", "titleCard"])
                             if snapshot.projectConfig == nil && store.workspaceInfo["config"] == nil {
                                 Text("Showing default values: this reel's saved settings haven't loaded yet.")
@@ -200,16 +200,16 @@ private struct InspectorPane: View {
                             }
                             SchemaInspector(schema: store.inspectorSchema,
                                             fields: snapshot.projectConfig ?? store.workspaceInfo["config"] ?? .object([:]),
-                                            nodeID: "project", store: store,
+                                            documentID: snapshot.documentId, nodeID: "project", store: store,
                                             targetKeys: InspectorSchemaSupport.projectConfigTargets)
                             PermissionGrantSummary(store: store)
                         } else {
                             InspectorGroup(title: "Project settings", icon: "film.stack",
                                            fields: snapshot.projectConfig ?? .object([:]),
-                                           nodeID: "project", store: store)
+                                           documentID: snapshot.documentId, nodeID: "project", store: store)
                             InspectorGroup(title: "Project content", icon: "text.alignleft", fields: snapshot.plan,
                                            excluding: ["segments", "cutaways", "render", "fps", "width", "height", "dimensions"],
-                                           nodeID: "document", store: store)
+                                           documentID: snapshot.documentId, nodeID: "document", store: store)
                         }
                         if !snapshot.warnings.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
@@ -239,7 +239,7 @@ private struct InspectorPane: View {
     }
 
     private func clipProperties(_ node: EditorNode) -> some View {
-        let fps = store.fps
+        let fps = max(store.inspector.snapshot?.fps ?? 30, 1)
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text("CLIP PROPERTIES")
@@ -284,7 +284,7 @@ private struct InspectorPane: View {
             Text("REEL PROPERTIES")
                 .font(EditorType.panelTitle).tracking(EditorType.panelTitleTracking)
                 .foregroundStyle(.secondary)
-            Text(store.reelTitle).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+            Text(snapshot.reelTitle).font(.system(size: 13, weight: .semibold)).lineLimit(2)
             HStack(spacing: 14) {
                 timecodeCell("Duration", TimeFormat.timecode(snapshot.durationFrames, fps: snapshot.fps))
                 timecodeCell("Frame rate", "\(snapshot.fps.formatted(.number.precision(.fractionLength(0...2)))) fps")
@@ -305,26 +305,26 @@ private struct InspectorPane: View {
 
 @ViewBuilder
 @MainActor
-private func nativeFallbackGroups(node: EditorNode, store: EditorStore) -> some View {
+private func nativeFallbackGroups(node: EditorNode, documentID: String, store: EditorStore) -> some View {
     InspectorGroup(title: "Source & content", icon: "film", fields: node.raw, keys: [
         "asset", "moment", "in", "out", "captions", "text", "hook", "endCard", "payoff", "label", "title"
-    ], nodeID: node.id, store: store)
+    ], documentID: documentID, nodeID: node.id, store: store)
     InspectorGroup(title: "Framing & motion", icon: "crop.rotate", fields: node.raw, keys: [
         "focusX", "focusY", "crop", "framing", "frameMode", "speed", "motion", "zoom", "pan", "rotation", "stabilize", "view"
-    ], nodeID: node.id, store: store)
+    ], documentID: documentID, nodeID: node.id, store: store)
     InspectorGroup(title: "Cutaways", icon: "rectangle.on.rectangle", fields: node.raw, keys: [
         "cutaways", "broll", "overlays"
-    ], nodeID: node.id, store: store)
+    ], documentID: documentID, nodeID: node.id, store: store)
     InspectorGroup(title: "Effects & graphics", icon: "sparkles", fields: node.raw, keys: [
         "punch", "punches", "blur", "view360", "360", "route", "stats", "progress", "exhibits",
         "foreground", "handAnchor", "titleCard", "projection", "path"
-    ], nodeID: node.id, store: store)
+    ], documentID: documentID, nodeID: node.id, store: store)
     InspectorGroup(title: "Audio", icon: "waveform", fields: node.raw, keys: [
         "volume", "sound", "naturalSound", "bleeps", "sfx", "music", "musicStart", "mix", "beatSnap", "drop", "audio"
-    ], nodeID: node.id, store: store)
+    ], documentID: documentID, nodeID: node.id, store: store)
     InspectorGroup(title: "Timing & transitions", icon: "clock", fields: node.raw, keys: [
         "transition", "fade", "at", "for", "duration", "start", "loop", "beats"
-    ], nodeID: node.id, store: store)
+    ], documentID: documentID, nodeID: node.id, store: store)
     InspectorGroup(title: "Other format fields", icon: "slider.horizontal.3", fields: node.raw,
                    excluding: ["asset", "moment", "in", "out", "captions", "text", "hook", "endCard", "payoff",
                                "label", "title", "focusX", "focusY", "crop", "framing", "frameMode", "speed",
@@ -333,7 +333,7 @@ private func nativeFallbackGroups(node: EditorNode, store: EditorStore) -> some 
                                "exhibits", "foreground", "handAnchor", "titleCard", "projection", "path", "volume",
                                "sound", "naturalSound", "bleeps", "sfx", "music", "musicStart", "mix", "beatSnap",
                                "drop", "audio", "transition", "fade", "at", "for", "duration", "start", "loop", "beats", "words"],
-                   nodeID: node.id, store: store)
+                   documentID: documentID, nodeID: node.id, store: store)
 }
 
 private struct InspectorGroup: View {
@@ -342,6 +342,7 @@ private struct InspectorGroup: View {
     let fields: JSONValue
     var keys: [String]?
     var excluding: [String] = []
+    let documentID: String
     let nodeID: String
     @Bindable var store: EditorStore
 
@@ -367,6 +368,7 @@ private struct InspectorGroup: View {
                         name: key,
                         value: value,
                         path: [key],
+                        documentID: documentID,
                         nodeID: nodeID,
                         store: store
                     )
@@ -379,6 +381,7 @@ private struct InspectorGroup: View {
 private struct SchemaInspector: View {
     let schema: JSONValue
     let fields: JSONValue
+    let documentID: String
     let nodeID: String
     @Bindable var store: EditorStore
     var targetKeys: [String]? = nil
@@ -388,7 +391,7 @@ private struct SchemaInspector: View {
     }
 
     private var selectedNode: EditorNode? {
-        store.snapshot?.nodes.first(where: { $0.id == nodeID })
+        store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })
     }
     private var isReadOnly: Bool { selectedNode?.isReadOnly == true }
 
@@ -433,7 +436,7 @@ private struct SchemaInspector: View {
     var body: some View {
         Group {
             ForEach(activeTargetKeys, id: \.self) { key in
-                SchemaTargetGroups(schema: schema, targetKey: key, fields: fields, nodeID: nodeID, store: store)
+                SchemaTargetGroups(schema: schema, targetKey: key, fields: fields, documentID: documentID, nodeID: nodeID, store: store)
             }
             if !isReadOnly {
                 InspectorGroup(
@@ -441,6 +444,7 @@ private struct SchemaInspector: View {
                     icon: "curlybraces",
                     fields: fields,
                     excluding: Array(Set(coveredRoots + ["_editor"])),
+                    documentID: documentID,
                     nodeID: nodeID,
                     store: store
                 )
@@ -453,13 +457,14 @@ private struct SchemaTargetGroups: View {
     let schema: JSONValue
     let targetKey: String
     let fields: JSONValue
+    let documentID: String
     let nodeID: String
     @Bindable var store: EditorStore
     private var target: JSONValue { schema["targets"]?[targetKey] ?? .object([:]) }
     private var scope: String { target["scopePath"]?.stringValue ?? "" }
     private var groups: [JSONValue] { target["groups"]?.arrayValue ?? [] }
     private var scopedToSelectedNode: Bool { nodeID != "project" && nodeID != "document" }
-    private var selectedNode: EditorNode? { store.snapshot?.nodes.first(where: { $0.id == nodeID }) }
+    private var selectedNode: EditorNode? { store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID }) }
     private var selectedNodeReadOnly: Bool { selectedNode?.isReadOnly == true }
     private var assetRecord: JSONValue? {
         guard let id = selectedNode?.assetId else { return nil }
@@ -496,7 +501,7 @@ private struct SchemaTargetGroups: View {
                                         let pointer = "/" + path.map {
                                             $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
                                         }.joined(separator: "/")
-                                        store.editField(nodeID: nodeID, path: pointer, value: newValue)
+                                        store.editField(documentID: documentID, nodeID: nodeID, path: pointer, value: newValue)
                                     }
                                 }
                             } else {
@@ -506,6 +511,7 @@ private struct SchemaTargetGroups: View {
                                 path: path,
                                 schemaPath: schemaPath,
                                 rootFields: fields,
+                                documentID: documentID,
                                 nodeID: nodeID,
                                 schema: schema,
                                 descriptor: descriptor,
@@ -529,6 +535,7 @@ private struct SchemaFieldEditor: View {
     let path: [String]
     let schemaPath: String
     let rootFields: JSONValue
+    let documentID: String
     let nodeID: String
     let schema: JSONValue
     let descriptor: JSONValue
@@ -539,7 +546,7 @@ private struct SchemaFieldEditor: View {
         value == .null ? InspectorSchemaSupport.defaultValue(for: descriptor) : value
     }
     private var nodeReadOnly: Bool {
-        store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly == true
+        store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly == true
     }
 
     var body: some View {
@@ -556,17 +563,17 @@ private struct SchemaFieldEditor: View {
             case "collection":
                 SchemaCollectionField(
                     name: name, value: currentValue, path: path, schemaPath: schemaPath,
-                    rootFields: rootFields, nodeID: nodeID, schema: schema,
+                    rootFields: rootFields, documentID: documentID, nodeID: nodeID, schema: schema,
                     descriptor: descriptor, store: store
                 )
             case "group":
                 SchemaGroupField(
                     name: name, value: currentValue, path: path, schemaPath: schemaPath,
-                    rootFields: rootFields, nodeID: nodeID, schema: schema,
+                    rootFields: rootFields, documentID: documentID, nodeID: nodeID, schema: schema,
                     descriptor: descriptor, store: store
                 )
             case "keyframe", "keyframes":
-                KeyframeField(name: name, value: currentValue, path: path, nodeID: nodeID, store: store)
+                KeyframeField(name: name, value: currentValue, path: path, documentID: documentID, nodeID: nodeID, store: store)
             case "boolean":
                 ToggleRow(label: name, isOn: Binding(
                     get: { currentValue.boolValue ?? false },
@@ -609,7 +616,7 @@ private struct SchemaFieldEditor: View {
                     commit(.string($0))
                 }
             default:
-                JSONFieldEditor(name: name, value: currentValue, path: path, nodeID: nodeID, store: store)
+                JSONFieldEditor(name: name, value: currentValue, path: path, documentID: documentID, nodeID: nodeID, store: store)
             }
         }
     }
@@ -622,7 +629,7 @@ private struct SchemaFieldEditor: View {
         let pointer = "/" + path.map {
             $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
         }.joined(separator: "/")
-        store.editField(nodeID: nodeID, path: pointer, value: value)
+        store.editField(documentID: documentID, nodeID: nodeID, path: pointer, value: value)
     }
 }
 
@@ -703,6 +710,7 @@ private struct SchemaGroupField: View {
     let path: [String]
     let schemaPath: String
     let rootFields: JSONValue
+    let documentID: String
     let nodeID: String
     let schema: JSONValue
     let descriptor: JSONValue
@@ -724,7 +732,7 @@ private struct SchemaGroupField: View {
             let _ = collection["itemFields"] = descriptor["fields"] ?? .array([])
             SchemaCollectionField(
                 name: name, value: value, path: path, schemaPath: schemaPath,
-                rootFields: rootFields, nodeID: nodeID, schema: schema,
+                rootFields: rootFields, documentID: documentID, nodeID: nodeID, schema: schema,
                 descriptor: .object(collection), store: store
             )
         } else {
@@ -756,6 +764,7 @@ private struct SchemaGroupField: View {
                         path: childPath,
                         schemaPath: childSchemaPath,
                         rootFields: rootFields,
+                        documentID: documentID,
                         nodeID: nodeID,
                         schema: schema,
                         descriptor: child,
@@ -772,7 +781,7 @@ private struct SchemaGroupField: View {
         let pointer = "/" + path.map {
             $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
         }.joined(separator: "/")
-        store.editField(nodeID: nodeID, path: pointer, value: value)
+        store.editField(documentID: documentID, nodeID: nodeID, path: pointer, value: value)
     }
 }
 
@@ -782,6 +791,7 @@ private struct SchemaCollectionField: View {
     let path: [String]
     let schemaPath: String
     let rootFields: JSONValue
+    let documentID: String
     let nodeID: String
     let schema: JSONValue
     let descriptor: JSONValue
@@ -799,7 +809,7 @@ private struct SchemaCollectionField: View {
     private var maxItems: Int { Int(descriptor["maxItems"]?.numberValue ?? 100) }
     private var supportsOverlayInsertion: Bool {
         nodeID != "project"
-            && store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true
+            && store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true
             && ["nat", "bleep", "windows", "punch", "text", "stats", "exhibits", "sfx", "blur", "cutaways", "path"]
                 .contains(collectionName)
     }
@@ -817,21 +827,25 @@ private struct SchemaCollectionField: View {
                                 .lineLimit(1)
                             Spacer()
                             if let child, targetKey?.hasPrefix("segment.") == true {
-                                Button("Select") { store.selectNode(child.id) }
+                                Button("Select") {
+                                    guard store.snapshot?.documentId == documentID,
+                                          store.snapshot?.nodes.contains(where: { $0.id == child.id }) == true else { return }
+                                    store.selectNode(child.id)
+                                }
                                     .buttonStyle(.borderless)
                                     .controlSize(.mini)
                             }
                             if let child, values.count > minItems,
-                               store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
+                               store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
                                 Button {
-                                    store.removeInspectorItem(child.id)
+                                    store.removeInspectorItem(child.id, documentID: documentID)
                                 } label: {
                                     Image(systemName: "minus.circle").foregroundStyle(.secondary)
                                 }
                                 .buttonStyle(.plain)
                                 .help("Remove \(name) item \(index + 1)")
                             } else if child == nil, !itemFields.isEmpty, values.count > minItems,
-                                      store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
+                                      store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
                                 Button {
                                     var next = values
                                     next.remove(at: index)
@@ -845,7 +859,7 @@ private struct SchemaCollectionField: View {
                         }
                         if let targetKey, let child, !targetKey.hasPrefix("segment.") {
                             AnyView(SchemaInspector(
-                                schema: schema, fields: item, nodeID: child.id,
+                                schema: schema, fields: item, documentID: documentID, nodeID: child.id,
                                 store: store, targetKeys: [targetKey]
                             ))
                         } else if !itemFields.isEmpty {
@@ -862,6 +876,7 @@ private struct SchemaCollectionField: View {
                                     path: itemPath,
                                     schemaPath: field["path"]?.stringValue ?? schemaPath,
                                     rootFields: itemRoot,
+                                    documentID: documentID,
                                     nodeID: child?.id ?? nodeID,
                                     schema: schema,
                                     descriptor: field,
@@ -898,6 +913,7 @@ private struct SchemaCollectionField: View {
                 if valid {
                     Button {
                         store.insertInspectorOverlay(
+                            documentID: documentID,
                             parentID: nodeID == "document" ? "document" : nodeID,
                             collection: collectionName,
                             value: template
@@ -915,6 +931,7 @@ private struct SchemaCollectionField: View {
                 if valid {
                     Button {
                         store.insertInspectorOverlay(
+                            documentID: documentID,
                             parentID: nodeID == "document" ? "document" : nodeID,
                             collection: collectionName,
                             value: template
@@ -944,7 +961,7 @@ private struct SchemaCollectionField: View {
     }
 
     private func childNode(for item: JSONValue, targetKey: String?) -> EditorNode? {
-        guard let snapshot = store.snapshot else { return nil }
+        guard let snapshot = store.inspector.snapshot else { return nil }
         let expectedParent: String? = nodeID == "document" ? nil : nodeID
         let expectedKind: Set<String> = {
             guard let targetKey else { return [] }
@@ -979,7 +996,7 @@ private struct SchemaCollectionField: View {
         let pointer = "/" + path.map {
             $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1")
         }.joined(separator: "/")
-        store.editField(nodeID: nodeID, path: pointer, value: .array(values))
+        store.editField(documentID: documentID, nodeID: nodeID, path: pointer, value: .array(values))
     }
 
 }
@@ -988,6 +1005,7 @@ private struct JSONFieldEditor: View {
     let name: String
     let value: JSONValue
     let path: [String]
+    let documentID: String
     let nodeID: String
     @Bindable var store: EditorStore
     var descriptor: JSONValue? = nil
@@ -995,7 +1013,7 @@ private struct JSONFieldEditor: View {
 
     var body: some View {
         if descriptor?["type"]?.stringValue == "keyframes" || descriptor?["type"]?.stringValue == "keyframe" {
-            KeyframeField(name: name, value: value, path: path, nodeID: nodeID, store: store)
+            KeyframeField(name: name, value: value, path: path, documentID: documentID, nodeID: nodeID, store: store)
         } else {
         switch value {
         case .object(let object):
@@ -1003,7 +1021,7 @@ private struct JSONFieldEditor: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(object.keys.sorted(), id: \.self) { key in
                         if let child = object[key] {
-                            JSONFieldEditor(name: key, value: child, path: path + [key], nodeID: nodeID, store: store)
+                            JSONFieldEditor(name: key, value: child, path: path + [key], documentID: documentID, nodeID: nodeID, store: store)
                         }
                     }
                 }
@@ -1022,7 +1040,7 @@ private struct JSONFieldEditor: View {
                 VStack(alignment: .leading, spacing: 5) {
                     ForEach(Array(values.enumerated()), id: \.offset) { index, child in
                         HStack(alignment: .top, spacing: 4) {
-                            JSONFieldEditor(name: "\(index + 1)", value: child, path: path + [String(index)], nodeID: nodeID, store: store)
+                            JSONFieldEditor(name: "\(index + 1)", value: child, path: path + [String(index)], documentID: documentID, nodeID: nodeID, store: store)
                             Button {
                                 var next = values
                                 next.remove(at: index)
@@ -1089,7 +1107,7 @@ private struct JSONFieldEditor: View {
 
     private func commit(_ value: JSONValue) {
         let pointer = "/" + path.map { $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1") }.joined(separator: "/")
-        store.editField(nodeID: nodeID, path: pointer, value: value)
+        store.editField(documentID: documentID, nodeID: nodeID, path: pointer, value: value)
     }
 }
 
@@ -1343,6 +1361,7 @@ private struct KeyframeField: View {
     let name: String
     let value: JSONValue
     let path: [String]
+    let documentID: String
     let nodeID: String
     @Bindable var store: EditorStore
 
@@ -1388,9 +1407,7 @@ private struct KeyframeField: View {
 
     private func write(_ value: [JSONValue]) {
         let pointer = "/" + path.map { $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1") }.joined(separator: "/")
-        Task {
-            await store.setKeyframes(nodeID: nodeID, path: pointer, value: .array(value))
-        }
+        store.setKeyframes(documentID: documentID, nodeID: nodeID, path: pointer, value: .array(value))
     }
 
     private func update(index: Int, key: String, number: Double) {
@@ -1406,6 +1423,7 @@ private struct KeyframeField: View {
 private struct TranscriptWordEditor: View {
     let node: EditorNode
     let words: [JSONValue]
+    let documentID: String
     @Bindable var store: EditorStore
     @State private var drafts: [String] = []
 
@@ -1444,14 +1462,7 @@ private struct TranscriptWordEditor: View {
             guard drafts.indices.contains(index), drafts[index] != (word["w"]?.stringValue ?? "") else { return nil }
             return .object(["index": .number(Double(index)), "word": .string(drafts[index])])
         }
-        guard let assetId = node.assetId ?? node.raw["asset"]?.stringValue else { return }
-        Task {
-            await store.apply([.object([
-                "op": .string("correct_words"),
-                "assetId": .string(assetId),
-                "corrections": .array(corrections)
-            ])], reason: "Correct transcript words")
-        }
+        store.correctInspectorWords(documentID: documentID, nodeID: node.id, corrections: corrections)
     }
 }
 

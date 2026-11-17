@@ -31,8 +31,18 @@ final class EditorStore {
                 }
                 reconcileSphereAimSelection(previous: oldValue.nodes, next: snapshot.nodes)
             }
+            scheduleInspectorPresentation()
         }
     }
+
+    /// Inspector layout follows the timeline's update, never shares its prediction turn.
+    struct InspectorPresentation {
+        var snapshot: EditorSnapshot?
+        var selectedIDs: Set<String> = []
+        var selectedNode: EditorNode? { snapshot?.nodes.first { selectedIDs.contains($0.id) } }
+    }
+    private(set) var inspector = InspectorPresentation()
+    @ObservationIgnored private var inspectorObserver: CFRunLoopObserver?
     /// Last server-authoritative document state; `snapshot` may include predictions.
     @ObservationIgnored var authoritativeSnapshot: EditorSnapshot?
     /// Timeline edits shown on screen but not saved yet, oldest first.
@@ -47,7 +57,9 @@ final class EditorStore {
     var searchHits: [SearchHit] = []
     /// True from submitting a non-empty query until its first results event (or an error).
     var searchInFlight = false
-    var selectedIDs: Set<String> = []
+    var selectedIDs: Set<String> = [] {
+        didSet { scheduleInspectorPresentation() }
+    }
     var recentlyChangedIDs: Set<String> = []
     var selectedAssetID: String?
     var selectedAsset: JSONValue?
@@ -108,12 +120,12 @@ final class EditorStore {
         var logLines: [String]
     }
 
-    init(service: EditorService = EditorService()) {
+    init(service: EditorService = EditorService(), defaults: UserDefaults = .standard) {
         self.service = service
         let args = ProcessInfo.processInfo.arguments
         launchPlanPath = Self.argument("--plan", in: args)
         showPicker = launchPlanPath == nil
-        let saved = UserDefaults.standard.string(forKey: RepositoryLocator.defaultsKey)
+        let saved = defaults.string(forKey: RepositoryLocator.defaultsKey)
         if let candidate = RepositoryLocator.candidatePath(
             arguments: args, environment: ProcessInfo.processInfo.environment, saved: saved) {
             do {
@@ -151,6 +163,23 @@ final class EditorStore {
             self?.loadLibrary()
             Task { await self?.refreshPlans() }
         }
+    }
+
+    private func scheduleInspectorPresentation() {
+        guard inspectorObserver == nil else { return }
+        // SwiftUI/AppKit and Core Animation flush first. A main-actor Task or
+        // dispatch async can run before that flush and collapse both layouts again.
+        let observer = CFRunLoopObserverCreateWithHandler(
+            nil, CFRunLoopActivity.beforeWaiting.rawValue, false, CFIndex.max
+        ) { [weak self] _, _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.inspectorObserver = nil
+                self.inspector = InspectorPresentation(snapshot: self.snapshot, selectedIDs: self.selectedIDs)
+            }
+        }
+        inspectorObserver = observer
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
     }
 
     var needsRepositoryChoice: Bool { repositoryRoot == nil }
@@ -501,7 +530,8 @@ final class EditorStore {
     /// Publish on the input handler's turn; only persistence waits for earlier edits.
     @discardableResult
     func enqueue(_ operations: [JSONValue], reason: String,
-                 predict: OptimisticTimeline.Change? = nil) -> Task<Void, Never> {
+                 predict: OptimisticTimeline.Change? = nil,
+                 inspectorTarget: InspectorTarget? = nil) -> Task<Void, Never> {
         let token = UUID()
         if let predict, let current = snapshot {
             pendingPredictions.append((token, predict))
@@ -510,15 +540,20 @@ final class EditorStore {
         let previous = editTail
         let task = Task { @MainActor in
             await previous?.value
-            await self.send(operations, reason: reason, token: token)
+            await self.send(operations, reason: reason, token: token, inspectorTarget: inspectorTarget)
         }
         editTail = task
         return task
     }
 
-    private func send(_ operations: [JSONValue], reason: String, token: UUID) async {
+    private func send(_ operations: [JSONValue], reason: String, token: UUID,
+                      inspectorTarget: InspectorTarget?) async {
         defer { pendingPredictions.removeAll { $0.id == token } }
         guard let visibleSnapshot = snapshot else { return }
+        if let inspectorTarget {
+            guard canEditInspectorTarget(inspectorTarget),
+                  (authoritativeSnapshot ?? visibleSnapshot).documentId == inspectorTarget.documentID else { return }
+        }
         let baseSnapshot = authoritativeSnapshot ?? visibleSnapshot
         let baseRevisions = baseSnapshot.revisions
         var batch: [String: JSONValue] = [
@@ -603,42 +638,50 @@ final class EditorStore {
         Task { await sphereAim.open(nodeID: node.id, store: self) }
     }
 
-    func editField(nodeID: String, path: String, value: JSONValue) {
-        if snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly == true {
+    struct InspectorTarget {
+        let documentID: String
+        let nodeID: String
+        var allowsReadOnly = false
+    }
+
+    /// Presentation may lag; validate its document and live stable ID again at submission.
+    private func canEditInspectorTarget(_ target: InspectorTarget) -> Bool {
+        guard let snapshot, snapshot.documentId == target.documentID else { return false }
+        if target.nodeID == "document" || target.nodeID == "project" { return true }
+        guard let node = snapshot.nodes.first(where: { $0.id == target.nodeID }) else { return false }
+        guard target.allowsReadOnly || !node.isReadOnly else {
             notice = "Generated caption timing is read-only; correct transcript words instead."
-            return
+            return false
         }
-        Task {
-            await apply([.object([
-                "op": .string("set_field"),
-                "id": .string(nodeID),
-                "path": .string(path),
-                "value": value
-            ])], reason: "Adjust \(path.split(separator: "/").last ?? "property")")
-        }
+        return true
     }
 
-    func insertInspectorOverlay(parentID: String, collection: String, value: JSONValue) {
-        if snapshot?.nodes.first(where: { $0.id == parentID })?.isReadOnly == true {
-            notice = "Generated caption timing is read-only."
-            return
-        }
-        Task {
-            await apply([.object([
-                "op": .string("insert_overlay"),
-                "parentId": .string(parentID),
-                "collection": .string(collection),
-                "value": value
-            ])], reason: "Add \(collection)")
-        }
+    func editField(documentID: String, nodeID: String, path: String, value: JSONValue) {
+        let target = InspectorTarget(documentID: documentID, nodeID: nodeID)
+        guard canEditInspectorTarget(target) else { return }
+        enqueue([.object([
+            "op": .string("set_field"),
+            "id": .string(nodeID),
+            "path": .string(path),
+            "value": value
+        ])], reason: "Adjust \(path.split(separator: "/").last ?? "property")", inspectorTarget: target)
     }
 
-    func removeInspectorItem(_ id: String) {
-        guard let node = snapshot?.nodes.first(where: { $0.id == id }) else { return }
-        guard !node.isReadOnly else {
-            notice = "Generated caption timing is read-only."
-            return
-        }
+    func insertInspectorOverlay(documentID: String, parentID: String, collection: String, value: JSONValue) {
+        let target = InspectorTarget(documentID: documentID, nodeID: parentID)
+        guard canEditInspectorTarget(target) else { return }
+        enqueue([.object([
+            "op": .string("insert_overlay"),
+            "parentId": .string(parentID),
+            "collection": .string(collection),
+            "value": value
+        ])], reason: "Add \(collection)", inspectorTarget: target)
+    }
+
+    func removeInspectorItem(_ id: String, documentID: String) {
+        let target = InspectorTarget(documentID: documentID, nodeID: id)
+        guard canEditInspectorTarget(target),
+              let node = snapshot?.nodes.first(where: { $0.id == id }) else { return }
         let operation: JSONValue
         if node.kind.lowercased() == "segment" {
             operation = .object([
@@ -651,20 +694,30 @@ final class EditorStore {
                 "id": .string(id)
             ])
         }
-        Task { await apply([operation], reason: "Remove \(node.kind)") }
+        enqueue([operation], reason: "Remove \(node.kind)", inspectorTarget: target)
     }
 
-    func setKeyframes(nodeID: String, path: String, value: JSONValue) async {
-        guard snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true else {
-            notice = "Generated caption timing is read-only."
-            return
-        }
-        await apply([.object([
+    func setKeyframes(documentID: String, nodeID: String, path: String, value: JSONValue) {
+        let target = InspectorTarget(documentID: documentID, nodeID: nodeID)
+        guard canEditInspectorTarget(target) else { return }
+        enqueue([.object([
             "op": .string("set_keyframes"),
             "id": .string(nodeID),
             "path": .string(path),
             "value": value
-        ])], reason: "Edit keyframes")
+        ])], reason: "Edit keyframes", inspectorTarget: target)
+    }
+
+    func correctInspectorWords(documentID: String, nodeID: String, corrections: [JSONValue]) {
+        let target = InspectorTarget(documentID: documentID, nodeID: nodeID, allowsReadOnly: true)
+        guard canEditInspectorTarget(target),
+              let node = snapshot?.nodes.first(where: { $0.id == nodeID }),
+              let assetID = node.assetId ?? node.raw["asset"]?.stringValue else { return }
+        enqueue([.object([
+            "op": .string("correct_words"),
+            "assetId": .string(assetID),
+            "corrections": .array(corrections)
+        ])], reason: "Correct transcript words", inspectorTarget: target)
     }
 
     func undo() { Task { await history(method: "document.undo") } }

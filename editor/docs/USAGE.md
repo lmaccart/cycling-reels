@@ -401,9 +401,8 @@ refresh and a real revision conflict/rollback are covered in every configuration
 XCTest observes the hosted canvas's `needsDisplay` setter; production code has no
 test-only timing callbacks. The Release gate requires each scenario below 50 ms.
 This measures redraw requests, **not** screen presentation. Media decoding and
-automatic preview rendering are disabled for this fixture. Offscreen view bitmaps
-are in `.cache/editor/timeline-captures/delete-*.png`; no screen-capture or system
-Accessibility service is used.
+automatic preview rendering are disabled for this fixture. Windows remain
+unordered; no screen capture or system Accessibility service is used.
 
 `TimelineZoomControl` owns the timeline's zoom and exposes the logarithmic
 `sliderPosition` binding used directly by the production Slider. The canvas,
@@ -433,10 +432,184 @@ needed. Timing code was unchanged, so the Release latency test was not rerun.
 
 Delete predictions do not wait for a Task hop or earlier backend edits. Persistence
 still runs serially against the authoritative revision; pending predictions replay
-over refreshes and rejected edits roll back. Inspector sections and collection rows
-are lazy so offscreen camera controls do not block the timeline's update.
+over refreshes and rejected edits roll back.
 
-Recorded Release input-to-redraw results for that hosted fixture (574 nodes):
+The inspector reads `EditorStore.inspector`, a separate snapshot/selection
+presentation. Snapshot and selection changes coalesce into a one-shot main-run-loop
+`beforeWaiting` observer ordered after the SwiftUI/AppKit/Core Animation flush.
+The timeline consumes the immediate snapshot first; the inspector switches from
+clip to reel properties on the following update. No sleep, fixed delay or backend
+round trip gates either pane. All inspector descendants use the presentation
+snapshot, including schema target lookup, collection children, read-only display,
+frame rate and title. Every inspector action carries the displayed document ID.
+Mutation handlers resolve live node IDs and read-only state, and enqueue
+synchronously. Submission rechecks the document and target after waiting for
+earlier edits, before reading authoritative revisions: stale controls or queued
+work from another reel cannot edit the current reel, even when node IDs coincide.
+A deleted node cannot submit fields, overlays, removal, keyframes or transcript
+corrections. Transcript corrections resolve the current node's asset rather than
+a captured inspector node.
+
+`FullWindowDeleteTests/testFullWindowDeleteInputToRedraw` adds the media-loaded
+case: a 41.6-second V1 clip and positioned 55-second V3 clip, a real 360 front/back
+Source proxy, the actual cached Remotion bundle and protected interactive manifest,
+the complete inspector schema, Library and production nested split/hosting views.
+It requires an existing own-footage preview cache (`REELS_TEST_PREVIEW_CACHE`) and
+Python environment (`REELS_TEST_PYTHON`); missing media is an explicit skip.
+All media is read-only except a temporary two-second front/back proxy made from
+the user's already-cached spherical footage. No generated imagery or GUI capture.
+
+The full-window fixture seeds all split fractions in a fresh `UserDefaults` suite.
+Split-created hosting roots propagate that preference dependency; native split
+autosave is disabled outside standard preferences, so AppKit cannot persist into
+the real app domain. The fixture compares `com.cycling.ReelsEditor` before/after
+setup, measurement and teardown solely to assert it is unchanged; it never loads
+layout from that domain or restores over it. The real-service delete fixture also
+uses isolated split preferences. After its full-window optimistic measurement,
+the rejection scenario unmounts `ContentView`'s alert presenter and verifies the
+real conflict/rollback in an offscreen timeline, without presenting an error window.
+
+Review follow-up verification (2026-11-17), isolated split preferences:
+
+- Release full-window input → redraw: **4.45 / 10.59 ms**; input → inspector
+  layout complete: **71.40 / 78.84 ms**. Inspector layout before redraw: **0 / 0 ms**.
+  Both monitors, unchanged player/web-view identity, reconciled Remotion revision
+  and unchanged production preference domain passed. Historical PR #40 baseline:
+  **42.24 / 60.42 ms** to redraw; these are offscreen requests, not screen presentation.
+- Focused Release: **3/3 passed**, including cross-document stale controls and
+  queued submission. Release latency/isolation group: **2/3 passed initially**;
+  the real-service rollback assertion alone failed and passed its only rerun.
+  Its four Release redraw samples on rerun were **6.64 / 7.53 / 8.64 / 6.86 ms**
+  (sequential / positioned / ripple / rejected edit).
+- Full Debug suite, once: **156 executed; 154 passed, one Release-only skip,
+  one rollback-geometry assertion failure**. That sole failed test passed its
+  only rerun. Replacing the alert-bearing host changed the timeline origin during
+  layout; rollback now compares restored/surviving clip positions in the same
+  layout instead of caching an origin across host updates. No production change
+  was needed for that assertion. W1 occlusion, ruler and no-activation/no-visible-window
+  checks passed. The cross-document and nested preference regressions passed in
+  Debug as well.
+- Compile-only Debug/Release builds, one multi-configuration hosted invocation,
+  then one invocation restricted to the two failed tests. No Python discovery,
+  installed-app launch, screen capture, system input or external AX calls.
+
+Evidence: `.cache/editor/delete-full-window/{ReviewSafety,ReviewSafetyFailedOnly}.xcresult`
+and `review-safety-{tests,failed-only}.log`. The full-window Release fixture ran once;
+it was not included in the failed-only rerun.
+
+The test records `XCTClockMetric`, `InputToRedraw` and `InputToInspector` signpost
+intervals. Redraw ends at the canvas's actual invalidation request; inspector ends
+after its hosting view completes layout with the updated presentation. Neither is
+a screen-presentation measurement. Test-local AppKit instrumentation times each
+pane's hosting layout, constraints and intrinsic-size work, plus the canvas's
+accessibility setter (not an AX client). Reentrant spans are unioned rather than
+double-counted. Implementations are restored at test exit. Separate per-call
+diagnostics bound snapshot equality/hashing and unchanged Program bridge loading.
+Apply replies stay suspended until both panes update in every sample. The test also
+checks Source AVPlayer / Program WKWebView identity and the real reconciled
+`loadRevision` envelope received by Remotion.
+XCTest executes `iterationCount + 1` blocks; both the warm-up and measured sample
+must meet the Release budget, and both queued replies are drained afterward.
+There are no production timing callbacks or test-only branches.
+
+Run only that offscreen media-loaded gate:
+
+```bash
+TEST_RUNNER_REELS_TEST_PYTHON=/absolute/path/to/.venv/bin/python \
+TEST_RUNNER_REELS_TEST_PREVIEW_CACHE=/absolute/path/to/.cache/editor/live/preview \
+TEST_RUNNER_REELS_TEST_CODE_ROOT="$PWD" \
+xcodebuild -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
+  -configuration Release ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES \
+  -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath .cache/editor/delete-full-window/Release \
+  -only-testing:ReelsEditorTests/FullWindowDeleteTests/testFullWindowDeleteInputToRedraw \
+  -parallel-testing-enabled NO -collect-test-diagnostics never \
+  -enablePerformanceTestsDiagnostics NO test
+```
+
+Fixture limits versus the installed window:
+
+- Real Program WKWebView/Remotion and Source AVPlayer are present, but paused and
+  warmed before input. Source uses a two-second muted front/back proxy; this does
+  not reproduce playback, full-length proxy seeking or concurrent preparation.
+- One Library asset, two timeline nodes, no flags, camera-keyframe nodes or
+  waveform/thumbnail population. The installed project's complete Library and
+  accessibility-tree size are not reproduced or measured.
+- The edit service is stubbed and apply replies are gated. A real capability
+  server serves cached media, but there is no live broker/compiler, disk save,
+  preview preparation/job churn, context RPC workload or background refresh load.
+  The older media-disabled fixture separately covers real persistence/rollback.
+- The unordered 1920×1080 host reports visible occlusion only for view scheduling.
+  It has no normal app scene/focus or WindowServer presentation. Input is a direct
+  call to the production canvas key handler, not system key delivery.
+- The signpost ends at redraw **request**, not drawing/compositing or visible
+  disappearance. The installed app's reported 283 ms key-to-visible removal and
+  310 ms save are different endpoints; this fixture cannot close that gap.
+
+Full-window investigation (Release, offscreen; not screen-presentation latency):
+
+| Candidate | Input → redraw samples | Result |
+| --- | --- | --- |
+| PR #40 baseline | 42.24 / 60.42 ms | Reproduces the missed 50 ms budget |
+| Disable split-host intrinsic sizing alone | 35.13 / 56.48 ms | Insufficient; removed |
+| Add nested lazy stacks | 112.73 / 130.69 ms | Regression; removed |
+| Flatten schema section descriptors alone | 94.69 / 110.79 ms | Failed; removed |
+| Native inspector List + flat sections | 5.78 / 99.22 ms | Failed; removed |
+| Native List + flat sections + split-host sizing | 5.77 / 113.04 ms | Failed; removed |
+| Deferred inspector presentation | 15.05 / 34.43 ms | Passes both samples; inspector finishes at 276.70 / 266.55 ms |
+
+The baseline's inspector hosting layout occupied 49.71 ms before the redraw
+request, versus roughly 1 ms each for Source and Program hosting layout. Snapshot
+equality, hashing and unchanged bridge loading were each below 0.006 ms/call.
+Accessibility publication was 0 ms before redraw, about 0.005 ms total; no
+`selection.set` / preview preparation RPC ran before redraw.
+
+The three layout-optimization candidates above failed both-sample gating. The last
+still spent 65.96 ms in inspector hosting layout before the second redraw; those
+production changes were removed. The fix changes publication order instead of
+attempting to make the same inspector layout cheaper. Regression tests cover
+deferred deletion, stale-control rejection, rollback, coalesced selection/snapshot
+updates, live read-only state and current transcript-asset resolution.
+
+The deferred-publication Release run recorded **0 ms of inspector hosting layout
+before either redraw request**. Inspector layout still cost 175.30 / 161.60 ms
+overall; it moved behind the timeline update rather than becoming cheaper.
+The input handler took 0.24 / 0.19 ms, with no `selection.set` or `preview.prepare`
+calls during measurement. The media-disabled 574-node Release gate also passed:
+sequential 6.62 ms, positioned 5.37 ms, ripple 10.12 ms, rejected edit 12.71 ms.
+These and the historical baseline above are single-run offscreen diagnostics,
+not controlled installed-window presentation measurements.
+
+Verification used compile-only Debug/Release builds, one multi-configuration
+`xcodebuild test-without-building`, and one rerun restricted to failed tests:
+
+- Release: both inspector-consistency regressions and the older latency gate
+  passed on the initial invocation. The full-window fixture initially failed
+  before measurement because ffmpeg inherited and consumed the RPC input pipe;
+  `-nostdin` fixes that fixture transport bug. Its failed-test rerun passed the
+  full-window gate, monitor identity checks and reconciled Remotion revision check.
+- Full Debug suite, once: 154 executed; 151 passed, one explicit Release-only skip,
+  two failures (the fixture transport failure and the final global visible-window
+  assertion). The two failed tests passed their only rerun. Activation-policy and
+  active-application assertions passed throughout. The original visible-window
+  assertion failure was not reproduced or explained; diagnostics now include
+  unexpected window types/titles/frames instead of a bare assertion failure.
+- No installed-app launch, screen capture, system input or external AX call.
+
+Evidence under `.cache/editor/delete-full-window/`:
+`deferred-inspector-tests.log` / `DeferredInspector.xcresult`,
+`deferred-inspector-failed-only.log` / `DeferredInspectorFailedOnly.xcresult`.
+
+Additional-run evidence under `.cache/editor/delete-full-window/`:
+`release-flat-sections-1.log` / `ReleaseFlatSections1.xcresult`,
+`release-native-list-2.log` / `ReleaseNativeList2.xcresult`, and
+`release-list-sizing-3.log` / `ReleaseListSizing3.xcresult`.
+
+The native flag-row test inspects the production List's pasteboard provider in an
+unordered host and exercises `openFlag` directly. It no longer orders a window or
+tracks synthetic mouse gestures; native gesture delivery is not covered.
+
+Earlier PR #40 media-disabled fixture (574 nodes), retained for comparison:
 
 | Delete | Eager inspector baseline | Lazy inspector + synchronous enqueue |
 | --- | ---: | ---: |
