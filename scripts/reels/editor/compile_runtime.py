@@ -248,8 +248,10 @@ def timing_build(renderer, project, plan: dict) -> dict:
     if positioned(plan):
         requantize(plan, int(project.cfg("render", "fps")))
     if not plan.get("segments") and not positioned(plan):
-        return {"fps": int(project.cfg("render", "fps")), "total": 0, "segs": [],
+        return {"fps": int(project.cfg("render", "fps")), "total": 0, "editingDurationFrames": 0, "segs": [],
                 "props": {}, "sound": {}, "warnings": []}
+    if hasattr(renderer, "derive_render_plan"):
+        return serialize(renderer.build(project, plan, aligned=True, timing_only=True))
     fps = int(project.cfg("render", "fps"))
     errors: list[str] = []
     loop = renderer.check_loop(plan, errors)
@@ -378,7 +380,9 @@ def instrument(renderer: Any) -> None:
 
 def serialize(built: dict[str, Any]) -> dict[str, Any]:
     segments = []
-    for segment in built["segs"]:
+    # Disabled segments stay in the list (full length, flagged) so list position == plan index.
+    editing = built.get("editing", built)
+    for segment in editing["segs"]:
         cuts = []
         for cut in segment.spec.get("_cutaways") or []:
             child = cut["seg"]
@@ -395,6 +399,7 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
             "hasAudio": bool(segment.asset.get("probe", {}).get("hasAudio")),
             "spec": {key: value for key, value in segment.spec.items() if key != "_cutaways"},
             "frames": segment.frames, "trans": segment.trans, "start": segment.start, "cutaways": cuts,
+            **({"disabled": True} if getattr(segment, "disabled", False) else {}),
         })
     sound = dict(built.get("sound") or {})
     sound["cues"] = [
@@ -403,6 +408,8 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
     ]
     return {
         "fps": built["fps"], "total": built["total"], "warnings": built["warnings"],
+        "editingDurationFrames": int(editing["total"]),
+        **({"editingProps": editing["props"], "editingSound": editing["sound"]} if editing is not built else {}),
         "segs": segments, "props": built["props"], "sound": sound, "loop": built.get("loop"),
         **({"timelineCapabilities": built["timelineCapabilities"]} if built.get("timelineCapabilities") else {}),
     }
@@ -455,7 +462,9 @@ def main() -> None:
                         "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {}),
                     }
                 else:
-                    result = serialize(renderer.build(project, deepcopy(plan)))
+                    result = serialize(renderer.build(
+                        project, deepcopy(plan),
+                        **({"aligned": True} if hasattr(renderer, "derive_render_plan") else {})))
                 stage = "inputs"
                 mirror.verify()
             response = {

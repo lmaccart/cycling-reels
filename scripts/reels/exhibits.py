@@ -437,6 +437,8 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
     n = {None: 0}
     for seg_i, raw in _raw(plan):
         sg = segs[seg_i] if seg_i is not None and seg_i < len(segs) else None
+        if sg is not None:
+            seg_i = sg.index
         n[seg_i] = n.get(seg_i, 0) + 1
         where = f"segment {seg_i + 1} exhibit {n[seg_i]}" if seg_i is not None else f"exhibit {n[None]}"
         if not isinstance(raw, dict):

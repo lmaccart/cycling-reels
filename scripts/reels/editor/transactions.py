@@ -239,9 +239,12 @@ if not plan.get("segments") and not plan.get("timeline"):
         "segs": [], "props": {}, "sound": {"cues": []}, "loop": None,
         "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})}))
     sys.exit(0)
-built = build(p, plan)
+built = build(p, plan, **({"aligned": True,
+    "timing_only": bool(json.loads(overrides_path.read_text()).get("__editor_timing_only__"))}
+    if hasattr(renderer, "derive_render_plan") else {}))
+editing = built.get("editing", built)
 segs = []
-for sg in built["segs"]:
+for sg in editing["segs"]:
     spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
     cuts = []
     for cut in sg.spec.get("_cutaways") or []:
@@ -255,11 +258,14 @@ for sg in built["segs"]:
                  "sourceDuration":sg.asset.get("probe", {}).get("duration"),
                  "hasAudio":bool(sg.asset.get("probe", {}).get("hasAudio")),
                  "spec":spec, "frames":sg.frames, "trans":sg.trans, "start":sg.start,
-                 "cutaways":cuts})
+                 "cutaways":cuts, **({"disabled": True} if getattr(sg, "disabled", False) else {})})
 sound = dict(built.get("sound") or {})
 sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
 result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],
+           "editingDurationFrames": editing["total"],
            "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+if editing is not built:
+    result.update(editingProps=editing["props"], editingSound=editing["sound"])
 if built.get("timelineCapabilities"):
     result["timelineCapabilities"] = built["timelineCapabilities"]
 result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda value: sorted(value) if isinstance(value, set) else str(value)), encoding="utf-8")
@@ -413,7 +419,8 @@ class DocumentStore:
         project = self._project_for_renderer(renderer_revision, project)
         token = self._compile_token
         origin = token[0] if token else getattr(self._compile_state, "origin", "system")
-        if (origin in ("manual", "system")
+        timing_only = getattr(self._compile_state, "timing_only", False)
+        if (origin in ("manual", "system") and not timing_only
                 and not getattr(self._compile_state, "force_cold", False)
                 and (not self._head_revision() or renderer_revision == self._renderer_revision())):
             from .compile_worker import WorkerUnavailable, WorkerRejected, WorkerCancelled
@@ -448,6 +455,8 @@ class DocumentStore:
                     current.remove(process)
         if self._closed or (token is not None and self._epoch(origin) != token[1]):
             raise DocumentError("cancelled", "validation was cancelled before cold fallback")
+        if timing_only:
+            overrides = {**overrides, "__editor_timing_only__": True}
         return _worker_compile(project, plan, overrides, process_started=started, process_finished=finished,
                                originals=getattr(self.workspace, "_originals", None))
 
@@ -1462,7 +1471,8 @@ class DocumentStore:
                     and (compiled_before.get("timelineCapabilities") or {}).get("version") == 1
                     and any(isinstance(op, dict) and (
                         op.get("op") in ("reorder_segments", "trim_segment", "split_segment",
-                                         "insert_segment", "remove_segments", "move_segments", "set_node_track")
+                                         "insert_segment", "remove_segments", "move_segments", "set_node_track",
+                                         "duplicate_segments", "ripple_remove", "paste_segments", "set_enabled")
                         or (op.get("op") == "set_field" and op.get("path") in (
                             "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap",
                             "/music", "/render/fps",
@@ -1583,6 +1593,12 @@ class DocumentStore:
         from ..timeline import positioned, requantize
         from .overwrite import apply_overwrite, positioned_source_edit, video_source_bounds
         op = operation.get("op")
+        if (ctx.get("timingOnly") and op in ("move_overlay", "resize_overlay", "remove_overlay")
+                and operation.get("id") not in plan["_editor"]["nodes"]
+                and operation.get("id") not in ctx.get("generatedAliases", {})):
+            # Generated IDs require overlays, after the preceding operation remapped global events.
+            ctx["compiled"] = self._compile(plan, ctx["aux"])
+            ctx["timingOnly"] = False
         capable = (ctx["compiled"].get("timelineCapabilities") or {}).get("version") == 1
         if positioned(plan):
             requantize(plan, ctx["fps"])
@@ -1590,13 +1606,16 @@ class DocumentStore:
         entry = plan["_editor"]["nodes"].get(str(operation.get("id")), {})
         source_kind = entry.get("kind")
         if ((capable and op == "set_node_track" and entry.get("kind") in ("segment", "cutaway"))
-                or (positioned(plan) and op in ("insert_segment", "reorder_segments"))):
+                or (positioned(plan) and op in ("insert_segment", "reorder_segments", "paste_segments"))):
             edit = str(uuid.uuid5(uuid.NAMESPACE_URL, canonical_json({
                 "operation": operation, "document": self._revisions()["document"]})))
             if op == "set_node_track":
                 node = next(item for item in editing_snapshot(plan, ctx["compiled"], self._revisions())["nodes"]
                             if item["id"] == operation["id"])
                 placements = [{"id": operation["id"], "track": operation["track"], "atFrame": node["startFrame"]}]
+            elif op == "paste_segments":
+                from .segment_ops import paste_placements
+                placements = paste_placements(plan, operation, ctx["fps"], self.project)
             elif op == "insert_segment":
                 value = deepcopy(operation["value"])
                 value.pop("timeline", None)
@@ -1644,7 +1663,7 @@ class DocumentStore:
         locked = locked_target(plan, operation)
         if locked:
             raise DocumentError("track_locked", locked)
-        if operation.get("op") == "remove_segments":
+        if operation.get("op") in ("remove_segments", "ripple_remove"):
             for source in operation.get("ids") or []:
                 entry = plan["_editor"]["nodes"].get(source)
                 if entry:
@@ -1667,8 +1686,9 @@ class DocumentStore:
                     video_source_bounds(asset, clip["in"], clip["out"], clip.get("speed", 1))
                 frames = max(1, round(source_duration(clip) * plan["timeline"]["fps"]))
                 clip["timeline"].update(durationFrames=frames, transitionInFrames=0)
-                plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
-                                                        clip["timeline"]["startFrame"] + frames)
+                if clip.get("enabled") is not False:
+                    plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
+                                                            clip["timeline"]["startFrame"] + frames)
         # Moving identical clips must preserve identities, not just fingerprints.
         from .document import _descriptors
         descriptors = _descriptors(plan)
@@ -1691,11 +1711,26 @@ class DocumentStore:
                 metadata[node_id]["fingerprint"] = fingerprint(descriptor["raw"])
             else:
                 metadata.pop(node_id, None)
+        fresh = {id(root) for root in ctx.pop("newObjects", ())}
+        if fresh:
+            # Brand-new segments (copies, pastes) get their own IDs now. Left to ensure_node_ids, a copy
+            # that sits before an identical original would take over the original's ID.
+            roots = [item["path"] for item in descriptors if item["kind"] == "segment" and id(item["raw"]) in fresh]
+            created: dict[str, str] = {}
+            for item in descriptors:
+                if any(item["path"] == root or item["path"].startswith(root + "/") for root in roots):
+                    created[item["path"]] = new_id = str(uuid.uuid4())
+                    metadata[new_id] = {"kind": item["kind"], "parentId": created.get(item["parentPath"]),
+                                        "locator": item["path"], "fingerprint": fingerprint(item["raw"])}
         for node_id, entry in ctx.pop("newNodeMetadata", {}).items():
             if node_id not in metadata:
                 metadata[node_id] = entry
         plan["_editor"]["nodes"] = metadata
         ensure_node_ids(plan)
+        copied = ctx.pop("copyPairs", None)
+        if copied:
+            from .segment_ops import inherit_tracks
+            inherit_tracks(plan, copied)
         if source_kind == "cutaway":
             # Promotion and later cutaway edits resolve through compiled specs
             # and rawIndex. Refresh after removal too, before indexes can shift.
@@ -1704,7 +1739,8 @@ class DocumentStore:
             return
         op = operation.get("op")
         edited_kind = metadata.get(str(operation.get("id")), {}).get("kind")
-        timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments")
+        timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments",
+                                "duplicate_segments", "ripple_remove", "paste_segments")
         timing_changed |= op == "trim_segment" and edited_kind == "segment"
         timing_changed |= op == "set_field" and operation.get("path") in (
             "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps", "/render",
@@ -1715,14 +1751,27 @@ class DocumentStore:
             return
         self._refresh_edit_timing(ctx)
         compiled = ctx["compiled"]
-        if positioned(plan):
+        absolute = positioned(plan)
+        intervals = ctx.pop("removedIntervals", [])
+        if absolute and op != "ripple_remove":
             return  # absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
         old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment"]
         new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
         old_fps, new_fps = old_snapshot["fps"], new_snapshot["fps"]
-        old_total, new_total = old_snapshot["durationFrames"] / old_fps, new_snapshot["durationFrames"] / new_fps
-        def remap(at):
+        old_total = old_snapshot.get("editingDurationFrames", old_snapshot["durationFrames"]) / old_fps
+        new_total = new_snapshot.get("editingDurationFrames", new_snapshot["durationFrames"]) / new_fps
+        def source_time(at, anchor, target):
+            offset = at - anchor["startFrame"] / old_fps
+            if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
+                offset = (offset * anchor.get("speed", 1) + anchor["sourceIn"] - target["sourceIn"]) / target.get("speed", 1)
+            return target["startFrame"] / new_fps + max(0.0, offset)
+        def remap(at, *, endpoint=False):
+            if absolute:
+                frame = at * old_fps
+                if not endpoint and any(a <= frame < b for a, b in intervals):
+                    return None
+                return max(0.0, (frame - sum(max(0, min(frame, b) - a) for a, b in intervals)) / new_fps)
             if at >= old_total:
                 return max(0.0, at + new_total - old_total)
             if op == "split_segment":
@@ -1733,10 +1782,7 @@ class DocumentStore:
             target = new_nodes.get(anchor["id"])
             if target is None:
                 return None
-            offset = at - anchor["startFrame"] / old_fps
-            if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
-                offset = (offset * anchor.get("speed", 1) + anchor["sourceIn"] - target["sourceIn"]) / target.get("speed", 1)
-            return max(target["startFrame"] / new_fps, target["startFrame"] / new_fps + offset)
+            return source_time(at, anchor, target)
         for collection in ("text", "musicDrops", "sfx", "exhibits"):
             events = plan.get(collection)
             if not isinstance(events, list):
@@ -1755,7 +1801,8 @@ class DocumentStore:
                     event["endAt"] = round(at, 6)
                     kept.append(event)
                     continue
-                end = remap(float(event.get("endAt", old_at + float(event.get("for", 0) or 0))))
+                old_end = float(event.get("endAt", old_at + float(event.get("for", 0) or 0)))
+                end = remap(old_end, endpoint=True)
                 event["at"] = round(at, 6)
                 if "for" in event and end is not None:
                     event["for"] = round(max(0.0, end - at), 6)
@@ -1776,12 +1823,16 @@ class DocumentStore:
         else:
             prior_token = self._compile_token
             self._compile_token = ctx.get("cancelToken", prior_token)
+            prior_timing = getattr(self._compile_state, "timing_only", False)
+            self._compile_state.timing_only = True
             try:
                 compiled = self._compile(ctx["plan"], ctx["aux"])
             finally:
                 self._compile_token = prior_token
+                self._compile_state.timing_only = prior_timing
         ctx["compiled"] = compiled
         ctx["fps"] = int(compiled["fps"])
+        ctx["timingOnly"] = True
 
     def _apply_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
         plan: dict[str, Any] = ctx["plan"]
@@ -1812,6 +1863,19 @@ class DocumentStore:
                     raise ValueError(f"{node_id} is not a primary segment")
                 affected.add(node_id)
                 segments.pop(next(i for i, candidate in enumerate(segments) if candidate is item))
+            return
+
+        if op in ("duplicate_segments", "ripple_remove", "paste_segments", "set_enabled"):
+            from . import segment_ops
+            if op == "duplicate_segments":
+                segment_ops.duplicate(plan, operation.get("ids") or [], ctx)
+            elif op == "ripple_remove":
+                ctx["removedIntervals"] = segment_ops.ripple_remove(plan, operation.get("ids") or [], affected)
+            elif op == "paste_segments":
+                ctx["newObjects"] = segment_ops.paste_sequential(plan, ctx["compiled"], operation)
+            else:
+                segment_ops.set_enabled(plan, operation.get("ids") or [], operation.get("enabled"))
+                affected.update(str(item) for item in operation.get("ids") or [])
             return
 
         if op == "reorder_segments":

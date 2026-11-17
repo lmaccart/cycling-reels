@@ -73,6 +73,8 @@ def place(plan: dict, segs: list, fps: int) -> None:
         segment.trans = integer(record.get("transitionInFrames", 0), "transitionInFrames")
         if segment.trans > frames:
             raise ValueError("transition cannot exceed its clip")
+        if getattr(segment, "disabled", False):
+            continue  # a disabled clip is never drawn, so it can't collide with anything
         tracks.setdefault(record["track"], []).append(segment)
     for clips in tracks.values():
         clips.sort(key=lambda item: (item.start, item.index))
@@ -80,7 +82,7 @@ def place(plan: dict, segs: list, fps: int) -> None:
             overlap = left.end - right.start
             if overlap > 0 and (overlap != right.trans or left.start > right.start):
                 raise ValueError("clips on the same track overlap without a preserved transition")
-    duration(plan, segs, fps)
+    duration(plan, [segment for segment in segs if not getattr(segment, "disabled", False)], fps)
 
 
 def requantize(plan: dict, fps: int) -> None:
@@ -98,5 +100,5 @@ def requantize(plan: dict, fps: int) -> None:
     plan["timeline"].update(fps=fps, durationFrames=max(
         1, round(plan["timeline"]["durationFrames"] * fps / old),
         max((item["timeline"]["startFrame"] + item["timeline"]["durationFrames"]
-             for item in plan.get("segments") or []), default=0),
+             for item in plan.get("segments") or [] if item.get("enabled") is not False), default=0),
     ))

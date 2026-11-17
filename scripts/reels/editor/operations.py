@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 
 class OperationModel(BaseModel):
@@ -34,6 +34,48 @@ class InsertSegment(OperationModel):
 class RemoveSegments(OperationModel):
     op: Literal["remove_segments"]
     ids: list[str] = Field(min_length=1)
+
+
+class DuplicateSegments(OperationModel):
+    """Copy primary segments (linked cutaways, text, sfx… come with them, all with new IDs).
+
+    Sequential plans: the copies go directly after the last original, in plan order, and later
+    clips ripple right. Positioned plans: the copies sit after the last original's end on the same
+    tracks, shifted by the span of the selection; nothing else moves, and an occupied range is an error."""
+    op: Literal["duplicate_segments"]
+    ids: list[str] = Field(min_length=1)
+
+
+class RippleRemove(OperationModel):
+    """Remove primary segments and close the gap, in positioned plans too (remove_segments leaves a
+    gap there). Positioned plans shift every later clip on every track left by the removed length;
+    a clip that straddles the removed range is an error."""
+    op: Literal["ripple_remove"]
+    ids: list[str] = Field(min_length=1)
+
+
+class PasteSegments(OperationModel):
+    """Insert copies of segment dicts (as returned by get_project; timeline/_editor/ID metadata are
+    stripped and reissued). Sequential plans insert at the nearest cut at or before atFrame.
+    Positioned plans anchor the earliest clip at atFrame on track (default: first video track),
+    regardless of values order, preserving relative timeline offsets with move_segments overwrite
+    rules. Without timeline starts, values are laid back-to-back in input order using resolved
+    moment/source durations and speed (or photo duration)."""
+    op: Literal["paste_segments"]
+    values: list[dict[str, Any]] = Field(min_length=1, max_length=500)
+    atFrame: int = Field(ge=0, description="Global reel frame.")
+    track: str | None = Field(default=None, pattern=r"^V[1-9][0-9]*$")
+
+
+class SetEnabled(OperationModel):
+    """Only set/clear the primary segment's enabled flag. Editing clips and events keep their
+    full timeline timing. A derived render plan drops disabled footage and its owned items,
+    drops global events anchored inside its interval, and closes sequential gaps without
+    changing the saved plan. Positioned rendering leaves holes.
+    Stored as "enabled": false on the segment (the key is absent when enabled)."""
+    op: Literal["set_enabled"]
+    ids: list[str] = Field(min_length=1)
+    enabled: StrictBool
 
 
 class ReorderSegments(OperationModel):
@@ -182,7 +224,8 @@ class SetNodeTrack(OperationModel):
 EditingOperation = Annotated[
     Union[SetField, InsertSegment, RemoveSegments, ReorderSegments, MoveSegments, TrimSegment,
           SplitSegment, InsertOverlay, RemoveOverlay, MoveOverlay, ResizeOverlay, CorrectWords,
-          AddTrack, TrackRef, SetNodeTrack],
+          AddTrack, TrackRef, SetNodeTrack, DuplicateSegments, RippleRemove, PasteSegments,
+          SetEnabled],
     Field(discriminator="op"),
 ]
 

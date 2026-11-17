@@ -39,7 +39,8 @@ def normalize_compiled(compiled: dict[str, Any]) -> dict[str, Any]:
                          "spec": child["spec"]})
         return {"index": value.index, "kind": value.kind, "asset": deepcopy(value.asset),
                 "spec": spec, "frames": value.frames, "trans": value.trans,
-                "start": value.start, "cutaways": cuts}
+                "start": value.start, "cutaways": cuts,
+                **({"disabled": True} if getattr(value, "disabled", False) else {})}
     return {**compiled, "segs": [segment(value) for value in compiled.get("segs", [])]}
 
 
@@ -200,9 +201,9 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
     id_by_path = {entry["locator"]: node_id for node_id, entry in meta.items()}
     fps = int(compiled["fps"])
     segs = compiled.get("segs") or []
-    total = int(compiled["total"])
-    props = compiled.get("props") or {}
-    sound = compiled.get("sound") or {}
+    total = int(compiled.get("editingDurationFrames", compiled["total"]))
+    props = compiled.get("editingProps", compiled.get("props")) or {}
+    sound = compiled.get("editingSound", compiled.get("sound")) or {}
     descriptors = _descriptors(plan)
     raw_nodes: dict[str, dict] = {}
     nodes: list[dict] = []
@@ -301,13 +302,16 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
         node_id = id_by_path[path]
         start = int(seg["start"])
         end = start + int(seg["frames"])
+        ghost = bool(seg.get("disabled"))
+        prop_index = i
         resolve(path, seg["spec"], start, end, assetId=seg["asset"]["id"], sourceIn=seg["spec"].get("in"),
             sourceOut=seg["spec"].get("out"), speed=seg["spec"].get("speed", 1),
             transitionInFrames=int(seg.get("trans", 0)), mediaKind=seg.get("kind"),
-            assetKind=seg.get("kind"), sourceDuration=seg.get("sourceDuration"))
+            assetKind=seg.get("kind"), sourceDuration=seg.get("sourceDuration"),
+            **({"enabled": False} if ghost else {}))
         if ((compiled.get("timelineCapabilities") or {}).get("version") == 1
                 and seg.get("hasAudio") and seg["spec"].get("volume") != 0):
-            visual = (props.get("segments") or [])[i] if i < len(props.get("segments") or []) else {}
+            visual = (props.get("segments") or [])[prop_index] if prop_index < len(props.get("segments") or []) else {}
             audio = {
                 "asset": seg["asset"]["id"], "in": seg["spec"].get("in"), "out": seg["spec"].get("out"),
                 "speed": seg["spec"].get("speed", 1), "volume": visual.get("volume", 0),
@@ -367,7 +371,7 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
                 generated("generated_punch", "effects", value, id_by_path.get(path + "/punch", node_id),
                           assetId=seg["asset"]["id"])
         segment_props = (props.get("segments") or [])
-        visual = segment_props[i] if i < len(segment_props) else {}
+        visual = segment_props[prop_index] if prop_index < len(segment_props) else {}
         for j, patch in enumerate(visual.get("blur") or []):
             keys = patch.get("keys") or []
             if not keys:
@@ -487,6 +491,9 @@ def editing_snapshot(plan: dict[str, Any], compiled: dict[str, Any], revisions: 
         "tracks": track_list(plan.get("_editor"), plan=plan),
         "fps": int(compiled["fps"]),
         "durationFrames": int(compiled["total"]),
+        "editingDurationFrames": max(int(compiled["total"]),
+                                     int(compiled.get("editingDurationFrames", compiled["total"])),
+                                     max((node["endFrame"] for node in nodes if node["kind"] == "segment"), default=0)),
         "warnings": list(compiled.get("warnings") or []),
         "timelineCapabilities": deepcopy(capabilities),
         "preview": preview,

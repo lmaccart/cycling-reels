@@ -38,8 +38,8 @@ Projects and footage:
 - `export.start` renders the open plan into `out/<slug>/` like `./reels render`. Nothing is approved, scheduled or published.
 
 Snapshots include `documentId`, `revisions: {document,library,renderer}`, `plan`
-(raw, never normalized), `nodes`, `fps`, `durationFrames`, `warnings`, and
-`preview`, merged `projectConfig`/`config`, and scoped permission records. Nodes
+(raw, never normalized), `nodes`, `fps`, `durationFrames`, `editingDurationFrames`,
+`warnings`, and `preview`, merged `projectConfig`/`config`, and scoped permission records. Nodes
 have stable `id`, `kind`, `lane`, `parentId`, `startFrame`,
 `endFrame`, `frames`, and `raw` values; source nodes also include `assetId`,
 `sourceIn`, `sourceOut`. Times on the wire are frames unless explicitly source
@@ -47,12 +47,45 @@ seconds or schema-local `at`/`for` seconds. `assetKind` distinguishes video/phot
 `generated`, `readOnly` and `timingState` describe projected nodes. A `viewOnly`
 offline snapshot cannot be exported. The renderer is timing authority.
 
+`durationFrames` / compiled `total` are derived rendered duration. `editingDurationFrames` covers
+the complete editing timeline, with every disabled clip and later clip still in place. Use it
+for viewport/scroll extent, not playback/export. Compiled `segs` and snapshot nodes use editing
+coordinates; `props` and `sound` use render coordinates. Internal `editingProps` / `editingSound`
+retain editing-coordinate projections for node resolution; clients need not consume them.
+Disabled source-audio, caption, effect and cutaway nodes stay on the editing timeline with
+their owner; their presence is not evidence of rendered output. No legacy suspension tokens
+are read or emitted.
+
 Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai),
 `operations`, and optional `lease`. Operations use `op`:
 
 - `insert_segment`: `value`, optional `beforeId`
 - `remove_segments`: `ids`
 - `reorder_segments`: `ids`, optional `beforeId`
+- `duplicate_segments`: `ids` (primary segments). Copies get new IDs (linked cutaways, text,
+  sfx… are copied with them). Sequential plans: inserted directly after the last original in
+  plan order, later clips ripple right. Positioned plans: placed on the same tracks, shifted by
+  the span of the selection (so a single clip lands right after itself); nothing else moves and
+  an occupied range is rejected (disabled segments do not occupy ranges).
+- `ripple_remove`: `ids`. Like `remove_segments`, but later items close the gap in positioned
+  plans too (every track shifts left by the removed length; a clip crossing the removed range
+  is rejected). Global text, sfx, music drops and exhibits use those same merged removed intervals:
+  events starting inside a removed interval are deleted; later events move left, crossing spans shrink.
+- `paste_segments`: `values` (segment dicts as copied from `get_project`; `timeline`, `_editor`
+  and ID metadata are stripped and reissued), `atFrame` (global frame), optional `track`.
+  Sequential plans insert at the nearest cut at or before `atFrame`. Positioned plans anchor the
+  earliest copied clip at `atFrame` regardless of `values` order, preserving relative offsets, on
+  `track` (default the first video track) with `move_segments` overwrite rules. Values without
+  timeline starts are laid back-to-back in input order using resolved moment/source ranges and speed
+  (photos use their duration), not an assumed video length.
+- `set_enabled`: `ids`, `enabled`. Stores `"enabled": false` on the segment (absent = enabled).
+  Nothing else in the plan changes. Disabled segments and all their events/cutaways remain at
+  full editing length; split/trim/speed/move/undo use the same editing coordinates as enabled clips.
+  No timing tokens or suspended-event state are saved. One pure render projection drops disabled
+  footage and owned items; global text/sfx/music drops/exhibits anchored inside disabled intervals
+  are omitted. Later global events shift left in sequential renders; positioned renders leave holes.
+  Compiled segs / nodes retain `disabled: true` / `enabled: false`. Child track assignments, including
+  scalar text, are copied by their corresponding locators.
 - `trim_segment` / `trim_cutaway`: `id`, `sourceIn`, `sourceOut`
 - `split_segment`: `id`, `atFrame` (global frame)
 - `insert_overlay`: `parentId` (or document), `collection`, `value`
@@ -67,6 +100,11 @@ must be structured and leave HEAD untouched. Undo/redo create new revisions.
 Field paths are relative to a stable node, e.g. `/volume`, never
 `/segments/0/volume`. AI batches cannot borrow a manual lease token. The MCP
 operation inventory is a discriminated JSON schema in `operations.py`.
+
+When every primary segment is disabled, `preview.prepare` (interactive or exact) returns
+`state: "empty"` without staging media. The service cancels pending preview work, clears previous
+URLs, persists the empty manifest and emits `preview.ready` with the empty state. Reopening an
+all-disabled plan cannot restore a prior preview URL. Normal export still requires enabled footage.
 
 Preview manifests carry `revisions`, `revision`, `mode`, `props`, `url` and
 `staticBaseUrl`. Exact also provides `movie`/`movieURL`. An Interactive→Exact

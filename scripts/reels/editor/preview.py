@@ -19,6 +19,20 @@ from typing import Any, Callable
 from ..util import ReelsError
 
 
+def empty_preview(snapshot: dict, mode: str) -> dict | None:
+    """Empty footage has no preview artifact, including when every timeline clip is disabled."""
+    plan = snapshot.get("plan") or {}
+    segments = plan.get("segments") or []
+    if any(segment.get("enabled") is not False for segment in segments):
+        return None
+    if not segments and plan.get("timeline"):
+        return None  # an explicitly positioned blank canvas can still render
+    revisions = snapshot.get("revisions") or {}
+    return {"state": "empty", "mode": mode, "documentId": snapshot.get("documentId"),
+            "revisions": dict(revisions), "revision": str(revisions.get("document", "")),
+            "reason": "Enable footage to preview this reel." if segments else "Add footage to preview this reel."}
+
+
 def _inside(path: Path, root: Path) -> bool:
     try:
         path.relative_to(root)
@@ -716,6 +730,9 @@ class PreviewManager:
         revisions = snapshot.get("revisions")
         if not isinstance(revisions, dict) or not all(revisions.get(key) is not None for key in ("document", "library", "renderer")):
             raise ReelsError("preview requires document, library, and renderer revisions")
+        empty = empty_preview(snapshot, mode)
+        if empty is not None:
+            return empty
         if code_root is None:
             from .renderer import RendererManager
 

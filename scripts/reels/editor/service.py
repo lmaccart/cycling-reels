@@ -170,7 +170,8 @@ class EditorService:
             if not isinstance(operation, dict):
                 continue
             name = operation.get("op", "")
-            if name in ("insert_segment", "remove_segments", "reorder_segments", "split_segment"):
+            if name in ("insert_segment", "remove_segments", "reorder_segments", "split_segment",
+                        "duplicate_segments", "ripple_remove", "paste_segments", "set_enabled"):
                 targets.add("spine")
             for key in ("id", "parentId", "assetId"):
                 if operation.get(key):
@@ -542,6 +543,8 @@ class EditorService:
 
     def _register_preview(self, manifest):
         manifest = dict(manifest)
+        if manifest.get("state") == "empty":
+            return manifest
         revisions = manifest.get("revisions", self.current_revisions())
         key = manifest.get("httpKey") or ("previews/" + str(revisions.get("document", uuid.uuid4().hex))
                                            + "/" + str(manifest.get("mode", "interactive")) + "/" + uuid.uuid4().hex)
@@ -570,6 +573,11 @@ class EditorService:
         return Path(self.workspace.root) / "preview" / "documents" / f"{key}.json"
 
     def _restore_preview(self, snapshot):
+        from .preview import empty_preview
+        empty = empty_preview(snapshot, "interactive")
+        if empty is not None:
+            self.preview = empty
+            return
         path = self._preview_record_path(snapshot.get("documentId"))
         if path.is_symlink() or not path.is_file():
             return
@@ -618,11 +626,14 @@ class EditorService:
         snapshot = copy.deepcopy(self.snapshot())
         if snapshot.get("viewOnly"):
             raise ProtocolError("offline_media", "This is an offline, read-only snapshot. The last good preview is retained; reconnect registered originals to prepare another.")
-        if not (snapshot.get("plan") or {}).get("segments") and not (snapshot.get("plan") or {}).get("timeline"):
-            # Nothing to render yet (a new project); the monitor shows its empty state.
+        from .preview import empty_preview
+        empty = empty_preview(snapshot, mode)
+        if empty is not None:
             with self.lock:
-                self.preview = {"state": "empty", "reason": "Add footage to preview this reel."}
-            return {"state": "empty", "reason": self.preview["reason"]}
+                self._preview_sequence += 1
+                self.preview = empty
+            self.jobs.cancel_kind("preview")
+            return self._publish_preview(empty)
         with self.lock:
             existing_id = (self.preview.get("jobId") if self.preview.get("state") == "preparing"
                            and self.preview.get("requestedRevisions") == snapshot["revisions"]

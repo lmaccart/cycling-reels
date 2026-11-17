@@ -98,7 +98,7 @@ def quiet_nat(project: Project, segs: list, nat: list[dict], fps: int, warnings:
     from .media import run
 
     for w in nat:
-        sg = segs[w["seg"]]
+        sg = next(s for s in segs if s.index == w["seg"])
         a = sg.spec["in"] + (w["startFrame"] - sg.start) / fps * sg.spec["speed"]
         t = (w["endFrame"] - w["startFrame"]) / fps * sg.spec["speed"]
         proc = run(["ffmpeg", "-nostdin", "-hide_banner", "-ss", f"{a:.3f}", "-t", f"{t:.3f}", "-i", project.abs(sg.asset["media"]),
@@ -332,8 +332,9 @@ def build_cues(
                 autos.append(cue)
             return cue
 
-        for sg in segs:
-            if sg.trans and not ({sg.index, sg.index - 1} & talking):
+        for position, sg in enumerate(segs):
+            previous = segs[position - 1] if position else None
+            if sg.trans and sg.index not in talking and (previous is None or previous.index not in talking):
                 mid = sg.start + sg.trans / 2
                 auto("transition", f"segment {sg.index + 1} fade", centre=mid, anchor=mid)
             path = (sg.spec.get("sphere") or {}).get("path")
@@ -352,7 +353,8 @@ def build_cues(
             warnings.append(f"{len(payoffs)} segments marked payoff — a reel usually has one")
         for sg in payoffs:
             auto("payoff", f"segment {sg.index + 1} payoff", start=sg.start + sg.trans / 2)
-            prev = segs[sg.index - 1] if sg.index > 0 else None
+            pos = segs.index(sg)
+            prev = segs[pos - 1] if pos > 0 else None
             name, _ = _rule(rules, "payoffRiser")
             got = sound(name, "payoffRiser", manual=False) if name else None
             if prev and got:

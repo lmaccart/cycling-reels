@@ -64,6 +64,7 @@ class Seg:
     frames: int
     trans: int = 0
     start: int = 0
+    disabled: bool = False  # editing-only flag; render projection removes the segment
 
     @property
     def end(self) -> int:
@@ -393,7 +394,9 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
         frames = max(1, round(seconds * fps))
         if frames < 10:
             warnings.append(f"{where}: only {frames} frames long")
-        sg = Seg(index=len(segs), kind=asset["kind"], asset=asset, spec=spec, frames=frames)
+        if "enabled" in s and not isinstance(s["enabled"], bool):
+            errors.append(f"{where}: enabled must be true or false")
+        sg = Seg(index=len(segs), kind=asset["kind"], asset=asset, spec=spec, frames=frames, disabled=s.get("enabled") is False)
         spec["_cutaways"] = _cutaways(project, sg, s.get("cutaways"), fps, errors, warnings, verified, where)
         segs.append(sg)
 
@@ -407,10 +410,12 @@ def normalize(project: Project, plan: dict) -> tuple[list[Seg], list[str]]:
             raise ReelsError(str(exc)) from exc
         return segs, warnings
     tf = int(project.cfg("render", "transitionFrames"))
-    for i, sg in enumerate(segs):
-        if i > 0 and sg.spec["transition"] == "fade":
-            sg.trans = max(0, min(tf, segs[i - 1].frames - 1, sg.frames - 1))
-        sg.start = 0 if i == 0 else segs[i - 1].start + segs[i - 1].frames - sg.trans
+    prev: Seg | None = None
+    for sg in segs:
+        if prev is not None and sg.spec["transition"] == "fade":
+            sg.trans = max(0, min(tf, prev.frames - 1, sg.frames - 1))
+        sg.start = 0 if prev is None else prev.start + prev.frames - sg.trans
+        prev = sg
     return segs, warnings
 
 
@@ -580,7 +585,7 @@ def _beats(plan: dict, segs: list[Seg], total: int, fps: int, default_style: str
             pos = "lower"
         owner = re.match(r"segment (\d+) text", where)
         if positioned(plan) and owner:
-            host = segs[int(owner[1])-1]
+            host = next(sg for sg in segs if sg.index == int(owner[1]) - 1)
             s, e = max(s, host.start), min(e, host.end)
             if e <= s:
                 return
@@ -1097,11 +1102,89 @@ def resolve_music(project: Project, plan: dict, segs: list[Seg], fps: int, warni
     return music
 
 
-def build(project: Project, plan: dict) -> dict:
+def derive_render_plan(plan: dict, editing: list[Seg], fps: int) -> dict:
+    """Pure editing → render projection. No tokens, suspended events, or persisted timing state."""
+    disabled = [sg for sg in editing if sg.disabled]
+    result = plan
+    if positioned(plan):
+        header = plan["timeline"]
+        end = max((s["timeline"]["startFrame"] + s["timeline"]["durationFrames"]
+                   for s in plan.get("segments") or [] if s.get("enabled") is not False), default=0)
+        if end > header["durationFrames"]:
+            result = {**plan, "timeline": {**header, "durationFrames": end}}
+    if not disabled:
+        return result
+    result = deepcopy(result)
+    result["segments"] = [s for s in result["segments"] if s.get("enabled") is not False]
+    intervals = []
+    spans = [(sg.start, sg.end if positioned(plan) or i + 1 == len(editing) else editing[i + 1].start)
+             for i, sg in enumerate(editing) if sg.disabled]
+    for start, end in sorted(spans):
+        if intervals and start <= intervals[-1][1]:
+            intervals[-1][1] = max(intervals[-1][1], end)
+        else:
+            intervals.append([start, end])
+
+    def remap(seconds):
+        frame = float(seconds) * fps
+        if not positioned(plan):
+            frame -= sum(max(0, min(frame, b) - a) for a, b in intervals)
+        return round(frame / fps, 6)
+
+    for name in ("text", "sfx", "musicDrops", "exhibits"):
+        if not isinstance(result.get(name), list):
+            continue
+        kept = []
+        for event in result[name]:
+            if name == "text" and isinstance(event, str):
+                event = {"text": event}
+            if not isinstance(event, dict):
+                kept.append(event)
+                continue
+            at = event.get("at", event.get("endAt", 0))
+            if any(a <= float(at) * fps < b for a, b in intervals):
+                continue
+            if "for" in event:
+                event["for"] = round(max(0, remap(float(at) + float(event["for"])) - remap(at)), 6)
+            for field in ("at", "endAt"):
+                if field in event:
+                    event[field] = remap(event[field])
+            kept.append(event)
+        result[name] = kept
+    return result
+
+
+def build(project: Project, plan: dict, *, aligned: bool = False, timing_only: bool = False) -> dict:
+    """Keep editing and rendering timelines separate; all render consumers use this projection."""
+    has_disabled = any(isinstance(s, dict) and s.get("enabled") is False for s in plan.get("segments") or [])
+    editing = _build(project, plan, timing_only=timing_only or (has_disabled and not aligned), editing_layout=True)
+    rendered = derive_render_plan(plan, editing["segs"], editing["fps"])
+    if rendered is plan:
+        return editing
+    if not rendered["segments"]:
+        if not aligned:
+            raise ReelsError("plan problems:\n  - every segment is disabled: enable one to render this reel")
+        result = empty_build(rendered, editing["warnings"], editing["fps"])
+    else:
+        indexes = [sg.index for sg in editing["segs"] if not sg.disabled] if aligned else None
+        result = _build(project, rendered, timing_only=timing_only, indexes=indexes)
+    result["editing"] = editing
+    result["disabled"] = [sg for sg in editing["segs"] if sg.disabled]
+    return result
+
+
+def _build(project: Project, plan: dict, *, timing_only: bool = False,
+           indexes: list[int] | None = None, editing_layout: bool = False) -> dict:
     fps = int(project.cfg("render", "fps"))
     if positioned(plan) and plan["timeline"].get("fps") != fps:
         plan = deepcopy(plan)
         requantize(plan, fps)
+    if editing_layout and positioned(plan):
+        # The editing extent includes every placement, independently of the render header.
+        end = max((s["timeline"]["startFrame"] + s["timeline"]["durationFrames"]
+                   for s in plan.get("segments") or []), default=0)
+        plan = {**plan, "timeline": {**plan["timeline"],
+                "durationFrames": max(plan["timeline"]["durationFrames"], end)}}
     errors: list[str] = []
     loop, on_beats = check_loop(plan, errors), check_beats_punch(plan, errors)
     if positioned(plan):
@@ -1117,6 +1200,9 @@ def build(project: Project, plan: dict) -> dict:
     if errors:
         raise ReelsError("plan problems:\n  - " + "\n  - ".join(errors))
     segs, warnings = normalize(project, plan)
+    if indexes is not None:
+        for sg, index in zip(segs, indexes):
+            sg.index = index
     if positioned(plan) and (plan.get("loop") or isinstance(plan.get("music"), dict) and plan["music"].get("cutOnBeat")):
         warnings.append("Explicit timeline placement keeps clip frames fixed; automatic beat/loop retiming is disabled.")
     acfg = project.config["audio"]
@@ -1127,6 +1213,12 @@ def build(project: Project, plan: dict) -> dict:
         segs[-1].spec["_keepOut"] = True
     music = resolve_music(project, plan, segs, fps, warnings, loop=loop, grid_for="punchOnBeats" if on_beats else "")
     fit_cutaways(segs, fps, warnings)  # after retiming: segments may have moved their out by up to a beat
+    total = max(timeline_duration(plan, [sg for sg in segs if not sg.disabled], fps),
+                max((sg.end for sg in segs), default=0)) if positioned(plan) else timeline_duration(plan, segs, fps)
+    if timing_only:
+        return {"fps": fps, "total": total, "segs": segs,
+                "props": {"timeline": plan["timeline"]} if positioned(plan) else {},
+                "sound": {}, "warnings": warnings, "timelineCapabilities": dict(TIMELINE_CAPABILITIES)}
     warnings += reuse_warnings(str(plan.get("slug") or ""), segs)
     if loop:
         first = (segs[0].spec.get("_cutaways") or [None])[0]
@@ -1135,7 +1227,6 @@ def build(project: Project, plan: dict) -> dict:
             warnings.append("loop: a cutaway covers the seam, but the seam check measures the clip under it — start the first "
                             "cutaway after 0 s and end the last one before the reel does")  # fmt: skip
     baked = music if music and not music.get("instagram") else None
-    total = timeline_duration(plan, segs, fps)
     secs = total / fps
     if secs < 5:
         warnings.append(f"reel is only {secs:.1f}s — 7–30s performs best")
@@ -1399,7 +1490,20 @@ def build(project: Project, plan: dict) -> dict:
     loop_info = {"swap": swap_halves(segs, fps), "bars": (music or {}).get("loop")} if loop else None  # as retimed
     return {"segs": segs, "props": props, "warnings": warnings, "music": music, "sound": sound, "total": int(total), "fps": fps,
             "timelineCapabilities": dict(TIMELINE_CAPABILITIES),
-            "loop": loop_info, "post": extras, "exhibits": shown, "grade": plan.get("grade")}  # fmt: skip
+            "loop": loop_info, "post": extras, "exhibits": shown, "grade": plan.get("grade"), "disabled": []}  # fmt: skip
+
+
+def empty_build(plan: dict, warnings: list[str], fps: int) -> dict:
+    """The empty derived render; the caller retains its independent editing layout."""
+    explicit = positioned(plan)
+    props = {"segments": [], "hook": None, "captions": [], "beats": [], "stats": [], "music": None, "endCard": None,
+             **({"timeline": dict(plan["timeline"])} if explicit else {})}
+    return {"segs": [], "disabled": [], "props": props,
+            "warnings": warnings + ["Every segment is disabled: enable one to render this reel."],
+            "music": None, "sound": {"nat": [], "drops": [], "cues": [], "cleanNat": False, "music": False},
+            "total": 0, "fps": fps,
+            "timelineCapabilities": dict(TIMELINE_CAPABILITIES), "loop": None, "post": {}, "exhibits": [],
+            "grade": plan.get("grade")}  # fmt: skip
 
 
 # --------------------------------------------------------------------------
@@ -1855,7 +1959,7 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
 
 def check_plan(project: Project, plan_path: str | Path) -> dict:
     plan = load_plan(project, plan_path)
-    built = build(project, plan)
+    built = build(project, plan, aligned=True)  # plan numbering; disabled segments are listed, not rendered
     fps, total = built["fps"], built["total"]
     props = built["props"]
     music = built["music"]
@@ -1866,11 +1970,16 @@ def check_plan(project: Project, plan_path: str | Path) -> dict:
         if ig:
             how = "posted by hand" if ig["manual"] else "attached when scheduled"
             music_txt += f" (Instagram audio, {how}: song {ig['audioVolume']} / ride audio {ig['videoVolume']})"
-    log(f"{plan['slug']}  ·  {total / fps:.1f}s ({total} frames)  ·  {len(built['segs'])} segments  ·  music: {music_txt}")
+    off = f" (+{len(built['disabled'])} disabled)" if built["disabled"] else ""
+    log(f"{plan['slug']}  ·  {total / fps:.1f}s ({total} frames)  ·  {len(built['segs'])} segments{off}  ·  music: {music_txt}")
     sync = (music or {}).get("beatSync")
     if sync:
         log(f"  cuts on the beat ({sync['bpm']:g} bpm): " + ", ".join(f"{c:.2f}s" for c in sync["cuts"]))
-    for sg in built["segs"]:
+    for sg in sorted([*built["segs"], *built["disabled"]], key=lambda item: item.index):
+        if sg.disabled:
+            what = f"{fmt_ts(sg.spec['in'])}-{fmt_ts(sg.spec['out'])}" if sg.kind == "video" else "photo"
+            log(f"  {sg.index + 1:>2}  {'—':>7}  {sg.frames / fps:4.1f}s  {sg.asset['id']:<34} {what:<17} disabled (skipped by render)")
+            continue
         cam = sg.spec.get("sphere")
         cam_txt = ""
         if cam:
