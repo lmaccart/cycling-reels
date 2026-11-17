@@ -14,6 +14,7 @@ import numpy as np
 from PIL import Image
 
 from reels import grade
+from reels import render as stage_module
 from reels.config import Project
 from reels.render import Seg, stage_photo, stage_video
 
@@ -360,6 +361,36 @@ class StagingTests(unittest.TestCase):
         measured = stage_video(self.project, self.seg(), out, 30, audio=False, grade=grade.settings(None, {"look": "house", "rescue": 1.0}))
         self.assertEqual(measured["rescue"], 1.0)
         self.assertTrue(out.is_file())
+
+    def test_grading_is_one_encode_and_matches_the_two_pass_reference(self):
+        """Staging grades in a single encode (no lossless intermediate) and gives the same pixels and numbers
+        as measuring a plain staged clip and grading it afterwards (grade.apply)."""
+        g = grade.settings(None, {"look": "house", "rescue": 1.0})
+        calls = []
+        real = stage_module.run
+        with patch.object(stage_module, "run", side_effect=lambda cmd, **kw: (calls.append([str(c) for c in cmd]), real(cmd, **kw))[1]):
+            out = self.dir / "one.mp4"
+            measured = stage_video(self.project, self.seg(), out, 30, audio=False, grade=g)
+        encodes = [c for c in calls if "libx264" in c]
+        self.assertEqual(len(encodes), 1)
+        self.assertNotIn("-qp", encodes[0])
+        self.assertTrue(any("lut3d" in c for c in encodes[0]))
+        ref_in, ref = self.dir / "plain.mp4", self.dir / "ref.mp4"
+        stage_video(self.project, self.seg(), ref_in, 30, audio=False, grade=grade.settings(None, "none"))
+        expected = grade.apply(ref_in, ref, frames=30, fps=30, probe={"width": 216, "height": 384}, s=g)
+        for k in ("overcast", "blueSky", "wb", "black", "scale", "gamma", "rescue", "look"):
+            self.assertEqual(measured[k], expected[k], k)
+        a, b = decode_rgb(out, "bt709", "tv"), decode_rgb(ref, "bt709", "tv")
+        self.assertLess(float(np.abs(a - b).max()), 2 / 255)
+
+    def test_sampling_a_graph_reads_the_same_frames_as_sampling_a_file(self):
+        plain = self.dir / "plain.mp4"
+        stage_video(self.project, self.seg(), plain, 30, audio=False, grade=grade.settings(None, "none"))
+        from_file = grade.sample(plain, 30, 216, 384)
+        graph = f"[0:v]fps=30,{grade.select_expr(30)},setsar=1,{grade.to_bt709(grade.source_colour(self.seg().asset['probe'], self.src))}[v]"
+        from_graph = grade.sample_graph(["-i", self.src], graph, "v", 216, 384)
+        self.assertEqual(from_graph.shape, from_file.shape)
+        self.assertLess(float(np.abs(from_graph - from_file).max()), 0.02)
 
     def test_photos_are_graded_in_place(self):
         photo = self.dir / "photo.jpg"
