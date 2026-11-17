@@ -437,8 +437,8 @@ def _copy_current_audio(project: Project, built: dict, staging: Path) -> None:
 def _clonefile(source: Path, destination: Path) -> bool:
     """APFS copy-on-write clone of one file or directory tree: a new inode, no extra bytes on disk.
 
-    False means cloning is unavailable here (not macOS, another volume, a filesystem or sandbox that
-    refuses it) and the caller copies instead. A vanished source raises FileNotFoundError."""
+    False means cloning is unavailable here (not macOS, another volume or an unsupported filesystem).
+    Other failures propagate; a vanished source raises FileNotFoundError."""
     if sys.platform != "darwin":
         return False
     import ctypes
@@ -454,7 +454,9 @@ def _clonefile(source: Path, destination: Path) -> bool:
         raise FileNotFoundError(code, os.strerror(code), str(source))
     if code == errno.EEXIST:
         raise FileExistsError(code, os.strerror(code), str(destination))
-    return False
+    if code in (errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV):
+        return False
+    raise OSError(code, os.strerror(code), str(source))
 
 
 def _clone_entry(source: Path, destination: Path) -> None:

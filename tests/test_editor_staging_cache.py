@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import ctypes
+import errno
 import sys
 import tempfile
 import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import reels
 from reels.editor import worker
@@ -391,7 +393,16 @@ class StagingCacheTests(unittest.TestCase):
         built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
         probe = self.root / "probe"
         probe.write_bytes(b"x")
-        supported = worker._clonefile(probe, self.root / "probe-clone")
+        supported = False
+        if sys.platform == "darwin":
+            # Probe libc independently: a worker that always copies must fail on a clone-capable volume.
+            clone = ctypes.CDLL(None, use_errno=True).clonefile
+            clone.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32]
+            clone.restype = ctypes.c_int
+            if clone(os.fsencode(probe), os.fsencode(self.root / "probe-clone"), 0) == 0:
+                supported = True
+            else:
+                self.assertIn(ctypes.get_errno(), (errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV))
         calls: list[tuple[str, bool]] = []
         real = worker._clonefile
 
@@ -428,6 +439,42 @@ class StagingCacheTests(unittest.TestCase):
         self.assertEqual((first_stats, hit_stats), ({"hits": 0, "misses": 2}, {"hits": 2, "misses": 0}))
         for stage in (first, second):
             self._assert_independent_copy(self.cache_root / "copy", stage)
+
+    def test_only_unsupported_clone_errors_fall_back_to_a_plain_copy(self):
+        for code in sorted({errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV}):
+            with self.subTest(errno=code):
+                entry = self.root / f"entry-{code}"
+                entry.mkdir()
+                (entry / "seg0.mp4").write_bytes(b"staged clip")
+                stage = self.root / f"stage-{code}"
+                clone = Mock(return_value=-1)
+                with (
+                    patch.object(sys, "platform", "darwin"),
+                    patch("ctypes.CDLL", return_value=types.SimpleNamespace(clonefile=clone)),
+                    patch("ctypes.get_errno", return_value=code),
+                ):
+                    self.assertTrue(worker._stage_from_cache(entry, stage))
+                clone.assert_called_once()
+                self._assert_independent_copy(entry, stage)
+
+    def test_clone_io_and_space_errors_propagate_without_copying(self):
+        for code in (errno.EIO, errno.ENOSPC):
+            with self.subTest(errno=code):
+                entry = self.root / f"entry-{code}"
+                entry.mkdir()
+                (entry / "seg0.mp4").write_bytes(b"staged clip")
+                stage = self.root / f"stage-{code}"
+                clone = Mock(return_value=-1)
+                with (
+                    patch.object(sys, "platform", "darwin"),
+                    patch("ctypes.CDLL", return_value=types.SimpleNamespace(clonefile=clone)),
+                    patch("ctypes.get_errno", return_value=code),
+                    self.assertRaises(OSError) as raised,
+                ):
+                    worker._stage_from_cache(entry, stage)
+                self.assertEqual(raised.exception.errno, code)
+                clone.assert_called_once()
+                self.assertFalse((stage / "seg0.mp4").exists())
 
     @unittest.skipUnless(sys.platform == "darwin", "clonefile is macOS-only")
     def test_a_missing_clone_source_is_reported_as_missing_not_as_unsupported(self):
