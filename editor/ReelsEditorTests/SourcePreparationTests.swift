@@ -16,7 +16,7 @@ final class SourcePreparationTests: XCTestCase {
         var delays: [TimeInterval] = []
         for attempt in 1...SourcePreparation.maxAttempts {
             XCTAssertEqual(prep.requested("a"), attempt)
-            XCTAssertTrue(prep.accepted("a", attempt: attempt, jobID: "job-\(attempt)"))
+            XCTAssertEqual(prep.accepted("a", attempt: attempt, jobID: "job-\(attempt)"), .waiting)
             switch prep.finished("a", attempt == 2 ? .lost : .failed) {
             case .retry(let delay): delays.append(delay)
             case .giveUp: XCTAssertEqual(attempt, SourcePreparation.maxAttempts)
@@ -57,25 +57,48 @@ final class SourcePreparationTests: XCTestCase {
     func testAnEventThatBeatsTheReplyEndsTheRequest() {
         var prep = SourcePreparation()
         let attempt = prep.requested("a")
-        XCTAssertTrue(prep.concerns("a", jobID: "job-1", .ready))
+        XCTAssertTrue(prep.admit("a", jobID: "job-1", .ready, message: nil))
         XCTAssertEqual(prep.finished("a", .ready), .show)
         // The late reply must not start a wait for a job that is already done.
-        XCTAssertFalse(prep.accepted("a", attempt: attempt, jobID: "job-1"))
+        XCTAssertEqual(prep.accepted("a", attempt: attempt, jobID: "job-1"), .stale)
         XCTAssertNil(prep.job(for: "a"))
         XCTAssertNil(prep.asset(forJob: "job-1"))
+    }
+
+    func testAStaleFailureBeforeTheReplyDoesNotEndTheNewRequest() {
+        var prep = SourcePreparation()
+        _ = prep.requested("a")
+        XCTAssertEqual(prep.accepted("a", attempt: 1, jobID: "job-1"), .waiting)
+        XCTAssertEqual(prep.finished("a", .failed), .retry(after: 2))
+        let attempt = prep.requested("a")
+        // job-1's failure is delivered again late, after the retry was sent but before its reply.
+        XCTAssertFalse(prep.admit("a", jobID: "job-1", .failed, message: "old"))
+        XCTAssertTrue(prep.isWaiting("a"))
+        XCTAssertEqual(prep.accepted("a", attempt: attempt, jobID: "job-2"), .waiting)
+        XCTAssertEqual(prep.job(for: "a"), "job-2")
+        XCTAssertFalse(prep.admit("a", jobID: "job-1", .failed, message: "old"))
+        XCTAssertTrue(prep.admit("a", jobID: "job-2", .failed, message: "new"))
+    }
+
+    func testTheCurrentJobsFailureBeforeTheReplyIsHeldForIt() {
+        var prep = SourcePreparation()
+        let attempt = prep.requested("a")
+        XCTAssertFalse(prep.admit("a", jobID: "job-1", .failed, message: "sandbox hiccup"))
+        XCTAssertEqual(prep.accepted("a", attempt: attempt, jobID: "job-1"),
+                       .ended(.failed, message: "sandbox hiccup"))
+        XCTAssertEqual(prep.finished("a", .failed), .retry(after: 2))
     }
 
     func testOnlyTheCurrentJobsFailureCounts() {
         var prep = SourcePreparation()
         let attempt = prep.requested("a")
-        XCTAssertTrue(prep.concerns("a", jobID: "job-1", .failed))  // before the reply names the job
-        XCTAssertTrue(prep.accepted("a", attempt: attempt, jobID: "job-2"))
+        XCTAssertEqual(prep.accepted("a", attempt: attempt, jobID: "job-2"), .waiting)
         XCTAssertEqual(prep.asset(forJob: "job-2"), "a")
-        XCTAssertFalse(prep.concerns("a", jobID: "job-1", .failed))
-        XCTAssertTrue(prep.concerns("a", jobID: "job-2", .cancelled))
-        XCTAssertTrue(prep.concerns("a", jobID: "job-1", .ready))
+        XCTAssertFalse(prep.admit("a", jobID: "job-1", .failed, message: nil))
+        XCTAssertTrue(prep.admit("a", jobID: "job-2", .cancelled, message: nil))
+        XCTAssertTrue(prep.admit("a", jobID: "job-1", .ready, message: nil))
         // Nothing awaited: a stray failure changes nothing.
-        XCTAssertFalse(prep.concerns("other", jobID: "job-9", .failed))
+        XCTAssertFalse(prep.admit("other", jobID: "job-9", .failed, message: nil))
     }
 
     func testTheAppWaitsLongerThanTheServiceDeadline() {

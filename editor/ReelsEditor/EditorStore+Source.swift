@@ -30,9 +30,26 @@ struct SourcePreparation {
     /// Extra wait past that deadline, so the app never gives up on a job the service can still finish.
     static let grace: TimeInterval = 120
 
+    /// What the reply to a request means once it names the job (`accepted`).
+    enum Acceptance: Equatable {
+        /// The request is no longer awaited: its job already ended or a newer request replaced it.
+        case stale
+        /// Wait for the job's event.
+        case waiting
+        /// The job's own event came before the reply and was held until now.
+        case ended(Outcome, message: String?)
+    }
+
+    private struct HeldEvent {
+        let job: String
+        let outcome: Outcome
+        let message: String?
+    }
+
     private(set) var attempts: [String: Int] = [:]
-    /// The request each asset is waiting on: its attempt number and, once the reply is in, the job ID.
-    private var awaiting: [String: (attempt: Int, job: String?)] = [:]
+    /// The request each asset is waiting on: its attempt number, once the reply is in the job ID,
+    /// and until then the failures that arrived with no way to tell whose job they are about.
+    private var awaiting: [String: (attempt: Int, job: String?, held: [HeldEvent])] = [:]
 
     static func outcome(event: String, state: String?) -> Outcome? {
         switch event {
@@ -58,28 +75,36 @@ struct SourcePreparation {
     mutating func requested(_ assetID: String) -> Int {
         let attempt = attempts[assetID, default: 0] + 1
         attempts[assetID] = attempt
-        awaiting[assetID] = (attempt, nil)
+        awaiting[assetID] = (attempt, nil, [])
         return attempt
     }
 
-    /// The service took attempt `attempt` on as `jobID`. False when that request is no longer
-    /// awaited: its job already ended (the event beat the reply) or a newer request replaced it.
-    mutating func accepted(_ assetID: String, attempt: Int, jobID: String) -> Bool {
-        guard awaiting[assetID]?.attempt == attempt else { return false }
-        awaiting[assetID] = (attempt, jobID)
-        return true
+    /// The service took attempt `attempt` on as `jobID`. A failure held for that job ends the
+    /// request now; failures held for other (older) jobs are dropped.
+    mutating func accepted(_ assetID: String, attempt: Int, jobID: String) -> Acceptance {
+        guard let waiting = awaiting[assetID], waiting.attempt == attempt else { return .stale }
+        awaiting[assetID] = (attempt, jobID, [])
+        if let event = waiting.held.first(where: { $0.job == jobID }) {
+            return .ended(event.outcome, message: event.message)
+        }
+        return .waiting
     }
 
     func isWaiting(_ assetID: String) -> Bool { awaiting[assetID] != nil }
     func job(for assetID: String) -> String? { awaiting[assetID]?.job }
     func asset(forJob jobID: String) -> String? { awaiting.first { $0.value.job == jobID }?.key }
 
-    /// Whether an event is about the request the asset is waiting on. A ready source is always
-    /// welcome; a failure counts only for the current job (or before its ID is known).
-    func concerns(_ assetID: String, jobID: String?, _ outcome: Outcome) -> Bool {
+    /// Whether to act on an event now. A ready source is always welcome. A failure counts only for
+    /// the job the asset is waiting on; one that arrives before the reply names that job is held
+    /// for `accepted`, since it may be a late failure of an earlier job.
+    mutating func admit(_ assetID: String, jobID: String?, _ outcome: Outcome, message: String?) -> Bool {
         if outcome == .ready { return true }
         guard let waiting = awaiting[assetID] else { return false }
-        guard let current = waiting.job, let jobID else { return true }
+        guard let jobID else { return true }  // nothing to match it against
+        guard let current = waiting.job else {
+            awaiting[assetID]?.held.append(HeldEvent(job: jobID, outcome: outcome, message: message))
+            return false
+        }
         return current == jobID
     }
 
@@ -125,10 +150,16 @@ extension EditorStore {
         sourceStates[assetID] = "pending"
         do {
             let job = try await service.call("source.prepare", params: .object(["id": .string(assetID)]))
-            guard let jobID = job["id"]?.stringValue,
-                  sourcePreparation.accepted(assetID, attempt: attempt, jobID: jobID) else { return }
-            armSourceWatchdog(assetID, jobID: jobID,
-                              after: SourcePreparation.patience(serverTimeout: job["timeoutSeconds"]?.numberValue))
+            guard let jobID = job["id"]?.stringValue else { return }
+            switch sourcePreparation.accepted(assetID, attempt: attempt, jobID: jobID) {
+            case .stale:
+                return
+            case .waiting:
+                armSourceWatchdog(assetID, jobID: jobID,
+                                  after: SourcePreparation.patience(serverTimeout: job["timeoutSeconds"]?.numberValue))
+            case .ended(let outcome, let message):
+                finishSource(assetID, outcome, message: message)
+            }
         } catch {
             finishSource(assetID, .unavailable, message: error.localizedDescription)
         }
@@ -136,15 +167,17 @@ extension EditorStore {
 
     /// source.ready, source.unavailable or source.error.
     func receiveSource(name: String, payload: JSONValue, url: URL?) {
+        let message = payload["message"]?.stringValue ?? payload["reason"]?.stringValue
         guard let assetID = payload["assetId"]?.stringValue ?? payload["id"]?.stringValue,
               var outcome = SourcePreparation.outcome(event: name, state: payload["state"]?.stringValue),
-              sourcePreparation.concerns(assetID, jobID: payload["jobId"]?.stringValue, outcome) else { return }
+              sourcePreparation.admit(assetID, jobID: payload["jobId"]?.stringValue, outcome, message: message)
+        else { return }
         if outcome == .ready {
             if let layout = payload["layout"]?.stringValue { sourceLayouts[assetID] = layout }
             if let url { timelineSourceURLs[assetID] = url } else { outcome = .unavailable }
             if assetID == selectedAssetID, let asset = payload["asset"] { selectedAsset = asset }
         }
-        finishSource(assetID, outcome, message: payload["message"]?.stringValue ?? payload["reason"]?.stringValue)
+        finishSource(assetID, outcome, message: message)
     }
 
     /// job.changed for a source job: the service is still on it, so the wait starts over.
