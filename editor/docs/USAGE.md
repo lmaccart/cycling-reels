@@ -106,7 +106,13 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
   while the mouse is held down. The final playhead position is saved on release.
   Clicking or dragging anywhere else in the tracks never moves the playhead.
   Timeline drawing pauses while the window is occluded and refreshes when it
-  becomes visible again; playback continues.
+  becomes visible again.
+- Playback pauses when the app is hidden (⌘H), the window is minimized, or the
+  window is fully covered or on another Space: Program (Fast and Exact), the
+  Source monitor and the 360 aim view. A hidden web page is throttled by macOS
+  and would drift behind the clock, so the timecode freezes at the paused frame
+  instead. Playback does not resume when the window comes back; press Space (or
+  Play) to continue.
 - Drag across empty track space to draw a selection box, like Premiere: every
   clip it touches is selected (locked tracks are skipped). Hold ⌘ or ⇧ to add
   to the current selection. A plain click on empty space deselects.

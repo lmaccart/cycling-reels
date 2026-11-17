@@ -43,6 +43,8 @@ final class EditorStore {
     }
     private(set) var inspector = InspectorPresentation()
     @ObservationIgnored private var inspectorObserver: CFRunLoopObserver?
+    /// Pauses playback when the editor is hidden, so the timecode freezes instead of drifting.
+    @ObservationIgnored private let playbackVisibility = PlaybackVisibilityMonitor()
     /// Last server-authoritative document state; `snapshot` may include predictions.
     @ObservationIgnored var authoritativeSnapshot: EditorSnapshot?
     /// Timeline edits shown on screen but not saved yet, oldest first.

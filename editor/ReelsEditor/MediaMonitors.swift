@@ -171,8 +171,18 @@ final class SourcePlayerModel: ObservableObject {
     private var itemStatusObservation: NSKeyValueObservation?
     private var requestedPosterKey: String?
     private var posterGeneration = 0
+    private var pauseObserver: NSObjectProtocol?
+
+    init() {
+        pauseObserver = NotificationCenter.default.addObserver(
+            forName: .reelsPausePlayback, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pause() }
+        }
+    }
 
     isolated deinit {
+        if let pauseObserver { NotificationCenter.default.removeObserver(pauseObserver) }
         if let timeJumpObserver { NotificationCenter.default.removeObserver(timeJumpObserver) }
         rateObservation?.invalidate()
         itemStatusObservation?.invalidate()
@@ -446,6 +456,7 @@ final class ExactProgramPlayerModel: ObservableObject {
     private var revision: String?
     private var rate = 1.0
     private var observer: NSObjectProtocol?
+    private var pauseObserver: NSObjectProtocol?
     private var rateObserver: NSObjectProtocol?
     private var timeObserver: Any?
     private var lastSeekGeneration: Int?
@@ -476,11 +487,17 @@ final class ExactProgramPlayerModel: ObservableObject {
                 self?.setRate(rate)
             }
         }
+        pauseObserver = NotificationCenter.default.addObserver(
+            forName: .reelsPausePlayback, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pausePlayback() }
+        }
     }
 
     deinit {
         if let observer { NotificationCenter.default.removeObserver(observer) }
         if let rateObserver { NotificationCenter.default.removeObserver(rateObserver) }
+        if let pauseObserver { NotificationCenter.default.removeObserver(pauseObserver) }
     }
 
     func update(url: URL, revision: String?, frame: Int, seekGeneration: Int,
@@ -592,6 +609,13 @@ final class ExactProgramPlayerModel: ObservableObject {
         else if !seeking { player.playImmediately(atRate: Float(rate)) }
     }
 
+    /// Hidden-window pause: stays paused until the user presses play.
+    private func pausePlayback() {
+        guard isActive else { return }
+        wantsPlayback = false
+        player?.pause()
+    }
+
     private func setRate(_ value: Double) {
         rate = min(4, max(0.25, value))
         if let player, player.rate != 0 { player.rate = Float(rate) }
@@ -672,6 +696,7 @@ struct ProgramWebView: NSViewRepresentable {
         private(set) var lastFrame = 0
         private var playbackObserver: NSObjectProtocol?
         private var rateObserver: NSObjectProtocol?
+        private var pauseObserver: NSObjectProtocol?
         private var currentRate = 1.0
         private var isPlaying = false
         private var playbackProbe = PreviewPlaybackProbe()
@@ -693,11 +718,17 @@ struct ProgramWebView: NSViewRepresentable {
                 guard let rate = notification.object as? Double else { return }
                 Task { @MainActor in self?.setPlaybackRate(rate) }
             }
+            pauseObserver = NotificationCenter.default.addObserver(
+                forName: .reelsPausePlayback, object: nil, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.pausePlayback() }
+            }
         }
 
         deinit {
             if let playbackObserver { NotificationCenter.default.removeObserver(playbackObserver) }
             if let rateObserver { NotificationCenter.default.removeObserver(rateObserver) }
+            if let pauseObserver { NotificationCenter.default.removeObserver(pauseObserver) }
         }
 
         func load(_ url: URL?, manifest: JSONValue?, revision: String?, frame: Int,
@@ -868,6 +899,14 @@ struct ProgramWebView: NSViewRepresentable {
             send(["type": isPlaying ? "play" : "pause", "revision": revision])
         }
 
+        /// Hidden-window pause: a throttled page drifts from wall-clock, so stop it and
+        /// freeze the timecode. Stays paused until the user presses play.
+        private func pausePlayback() {
+            guard isPlaying, let revision = loadedRevision else { return }
+            isPlaying = false
+            send(["type": "pause", "revision": revision])
+        }
+
         private func setPlaybackRate(_ rate: Double) {
             currentRate = min(4, max(0.25, rate))
             if let revision = loadedRevision {
@@ -896,5 +935,48 @@ struct ProgramWebView: NSViewRepresentable {
         private func sameOrigin(_ lhs: URL, _ rhs: URL) -> Bool {
             PreviewBridgeContract.sameOrigin(lhs, rhs)
         }
+    }
+}
+
+/// Pauses every playing monitor when the editor stops being visible. A hidden WebKit
+/// page is throttled and the Remotion Player restarts its clock on every buffering
+/// resume, so the preview drifts behind wall-clock; pausing freezes the timecode
+/// instead. Nothing resumes when the window returns: the user presses play.
+@MainActor
+final class PlaybackVisibilityMonitor {
+    private var observers: [NSObjectProtocol] = []
+
+    init() {
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(
+            forName: NSApplication.didHideNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { Self.pausePlayback() }
+        })
+        observers.append(center.addObserver(
+            forName: NSWindow.didMiniaturizeNotification, object: nil, queue: .main
+        ) { note in
+            MainActor.assumeIsolated {
+                if (note.object as? NSWindow)?.canBecomeMain == true { Self.pausePlayback() }
+            }
+        })
+        observers.append(center.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification, object: nil, queue: .main
+        ) { note in
+            MainActor.assumeIsolated {
+                // Only a main-capable window: popovers, panels and sheets come and go.
+                guard let window = note.object as? NSWindow, window.canBecomeMain,
+                      !window.occlusionState.contains(.visible) else { return }
+                Self.pausePlayback()
+            }
+        })
+    }
+
+    isolated deinit {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    private static func pausePlayback() {
+        NotificationCenter.default.post(name: .reelsPausePlayback, object: nil)
     }
 }
