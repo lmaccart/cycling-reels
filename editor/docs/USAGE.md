@@ -134,6 +134,9 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Flags appear under **Flagged** at the top of the Footage list (and a small
   flag on the clip's row). Click one to open it in Source with its range marked
   In/Out; right-click to edit the note or remove it.
+- Drag a Flagged row directly onto an unlocked video track to use its saved
+  In/Out range at the drop time. No prior click or Source selection is needed;
+  clicking the row still opens the range without inserting it.
 - Flags live in `flags.json`, shared with `./reels flag` / `./reels flags` and
   Claude Code. They never change footage, tags or plans.
 

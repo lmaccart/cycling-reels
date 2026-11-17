@@ -426,7 +426,7 @@ enum PlanRowSummary {
 }
 
 /// A flagged range in the Library: click to open it in Source with In/Out marked.
-private struct FlagRow: View {
+struct FlagRow: View {
     @Bindable var store: EditorStore
     let flag: ClipFlag
     @State private var editing = false
@@ -435,28 +435,27 @@ private struct FlagRow: View {
     private var asset: JSONValue? { store.library.first { $0["id"]?.stringValue == flag.asset } }
 
     var body: some View {
-        Button { store.openFlag(flag) } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "flag.fill")
-                    .foregroundStyle(EditorPalette.warning)
-                    .font(.system(size: 11))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(flag.note ?? asset.map(AssetPresentation.title) ?? flag.asset)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(2)
-                    Text([flag.range, asset.map(AssetPresentation.title).flatMap { flag.note == nil ? nil : $0 } ?? flag.asset]
-                        .compactMap { $0 }.joined(separator: " · "))
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
+        // A Button consumes the row's mouse tracking before its drag can begin.
+        HStack(spacing: 8) {
+            Image(systemName: "flag.fill")
+                .foregroundStyle(EditorPalette.warning)
+                .font(.system(size: 11))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(flag.note ?? asset.map(AssetPresentation.title) ?? flag.asset)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(2)
+                Text([flag.range, asset.map(AssetPresentation.title).flatMap { flag.note == nil ? nil : $0 } ?? flag.asset]
+                    .compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .padding(.vertical, 2)
-            .contentShape(Rectangle())
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
         .help("Open in Source with this range marked")
+        .onTapGesture { store.openFlag(flag) }
         .draggable("flag:\(flag.id)")
         .contextMenu {
             Button("Edit note…") { draft = flag.note ?? ""; editing = true }
@@ -468,7 +467,10 @@ private struct FlagRow: View {
                 editing = false
             }
         }
+        .accessibilityElement(children: .combine)
         .accessibilityLabel("Flagged clip \(flag.note ?? flag.asset)")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { store.openFlag(flag) }
     }
 }
 
