@@ -457,8 +457,7 @@ class EditorService:
         segment seconds — what the live 360 viewer edits."""
         import copy as _copy
 
-        from ..library import load_asset, resolve_id, resolve_moment
-        from ..sphere import plan_camera
+        from ..library import load_asset, resolve_id
         from .document import node_location
 
         plan = _copy.deepcopy(self._doc()._current_raw_plan())
@@ -475,13 +474,10 @@ class EditorService:
         if asset.get("kind") != "video" or not (asset.get("probe") or {}).get("sphere"):
             raise ProtocolError("not_360", "This clip isn't 360 video.")
         tags = asset.get("tags") or {}
-        moment_view = None
-        spec = dict(target)
-        if "moment" in spec:
-            moment = resolve_moment(asset, spec["moment"])
-            spec.setdefault("in", moment["in"])
-            spec.setdefault("out", moment["out"])
-            moment_view = moment.get("view")
+        # The compiler owns visible bounds after beat/music retiming, separately
+        # from the authored duration against which camera keys were resolved.
+        node = next((n for n in self._doc().snapshot()["nodes"] if n["id"] == node_id), None)
+        spec = node.get("resolved", {}) if node else {}
         try:
             start, end = float(spec["in"]), float(spec["out"])
             speed = float(spec.get("speed") or 1.0)
@@ -489,23 +485,19 @@ class EditorService:
             raise ProtocolError("invalid_clip", "This clip has no in/out range.")
         seconds = max(0.0, (end - start) / speed)
         window = spec.get("cameraWindow") if isinstance(spec.get("cameraWindow"), dict) else None
-        camera_spec = {**spec, "path": window["path"]} if window and isinstance(window.get("path"), list) else spec
-        errors: list[str] = []
-        warnings: list[str] = []
-        span = float(window["durationSeconds"]) if window and isinstance(window.get("durationSeconds"), (int, float)) else seconds
-        camera = plan_camera(camera_spec, tags, moment_view, span, errors, warnings, "clip")
+        camera = spec["sphere"]
         path = camera.get("path") or []
-        playback_path = path
         playback_offset = float(window.get("offsetSeconds") or 0) if window else 0.0
-        if window:
+        playback_path = [{**key, "at": key["at"] + playback_offset} for key in path]
+        if window or camera["durationSeconds"] != seconds:
             from .timing import window_piece_keys
-            path = window_piece_keys(path, playback_offset, seconds, projection=camera["projection"])
+            path = window_piece_keys(playback_path, playback_offset, seconds, projection=camera["projection"])
         return {
             "id": node_id, "assetId": asset["id"], "in": start, "out": end, "speed": speed, "seconds": seconds,
             "projection": camera["projection"], "view": camera["view"], "path": path,
             "playbackPath": playback_path, "playbackOffsetSeconds": playback_offset,
             "stabilize": target.get("stabilize"), "stabilizeSetting": camera.get("stabilize"),
-            "angles": tags.get("angles") or {}, "errors": errors,
+            "angles": tags.get("angles") or {}, "errors": [],
         }
 
     def _require_asset_id(self, value):

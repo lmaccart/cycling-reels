@@ -174,6 +174,7 @@ def _visual(
         warnings.append(f"{where}: {asset['id']} was tagged skip")
 
     is_360 = bool(asset["probe"].get("sphere"))
+    piece_mode = timeline_mode or is_360 and isinstance(spec.get("cameraWindow"), dict)
     moment_view = None
     if asset["kind"] == "video":
         dur = float(asset["probe"]["duration"])
@@ -194,7 +195,7 @@ def _visual(
             return None
         spec["in"] = _num(spec, "in", 0, 0, dur, errors, where)
         spec["out"] = min(_num(spec, "out", dur, 0, dur + 0.05, errors, where), dur)
-        if spec["out"] <= spec["in"] or (not timeline_mode and spec["out"] - spec["in"] < 0.3):
+        if spec["out"] <= spec["in"] or (not piece_mode and spec["out"] - spec["in"] < 0.3):
             errors.append(f"{where}: out must be at least 0.3 s after in")
             return None
         spec["speed"] = _num(spec, "speed", 1.0, 0.25, 4.0, errors, where)
@@ -209,7 +210,7 @@ def _visual(
         if is_360:
             spec["sphere"] = camera(seconds)
     else:
-        spec["duration"] = _num(spec, "duration", 2.5, 1e-9 if timeline_mode else 0.8, 12, errors, where)
+        spec["duration"] = _num(spec, "duration", 2.5, 1e-9 if piece_mode else 0.8, 12, errors, where)
         spec["motion"] = _pick(spec, "motion", "zoom-in", MOTIONS, errors, where)
         spec["fit"] = _pick(spec, "fit", "cover", FITS, errors, where)
         spec["focusX"] = _num(spec, "focusX", tags.get("focusX", 0.5), 0, 1, errors, where)
@@ -261,8 +262,11 @@ def _cutaways(
             errors.append(f"{cw}: {', '.join(misplaced)} belong on the segment — under a cutaway its own audio, captions and text keep going")
             continue
         at = _num(c, "at", 0, 0, 600, errors, cw)
+        # A sliced camera/motion window retains its authored clock, but visible
+        # bounds may now be below the video/photo authoring minima. Sequential
+        # cutaways still have to meet the on-screen minimum below.
         got = _visual(project, {key: v for key, v in c.items() if key != "at"}, cw, errors, warnings, verified,
-                      timeline_mode=bool(sg.spec.get("timeline")))
+                      timeline_mode=bool(sg.spec.get("timeline") or c.get("motionWindow") or c.get("cameraWindow")))
         if got is None:
             continue
         asset, spec, seconds = got

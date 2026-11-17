@@ -451,7 +451,7 @@ def plan_camera(
     where: str,
     raw_segment: dict | None = None,
 ) -> dict:
-    """Resolves a plan segment's view / path / projection for 360 footage."""
+    """Resolve the camera against its authored duration, independent of visible retiming."""
     angles = tags.get("angles") or {}
     projection = spec.get("projection") or "flat"
     if projection not in PROJECTIONS:
@@ -478,7 +478,8 @@ def plan_camera(
     from .stabilize import parse_setting
 
     stabilize = parse_setting(spec.get("stabilize"), errors, where)
-    return {"projection": projection, "view": view, "path": path, "stabilize": stabilize}
+    return {"projection": projection, "view": view, "path": path, "stabilize": stabilize,
+            "durationSeconds": seconds}
 
 
 def describe(sph: dict) -> str:

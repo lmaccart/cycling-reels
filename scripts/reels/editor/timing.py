@@ -79,7 +79,7 @@ def _clip_events(value: Any, start: float, end: float, *, rebase: bool = False) 
 
 
 def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
-                    minimum: float = 0.4, frame_exact=False, resolved: list | None = None) -> Any:
+                    minimum: float = 0.4, frame_exact=False, resolved: list | None = None, fps: int = 30) -> Any:
     if not isinstance(value, list):
         return deepcopy(value)
     out = []
@@ -88,9 +88,12 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
         if not isinstance(cutaway, dict) or cutaway.get("at") is None:
             out.append(deepcopy(cutaway))
             continue
-        source = {**(cameras.get(index, {}).get("spec") or {}), **cutaway}
+        compiled = cameras.get(index, {})
+        # Compiler bounds describe what is visible after beat/music retiming.
+        # Raw bounds still describe the authored item and may be longer.
+        source = {**cutaway, **(compiled.get("spec") or {})}
         speed = float(source.get("speed", 1.0) or 1.0)
-        at = float(cutaway["at"])
+        at = compiled["start"] / fps if compiled else float(cutaway["at"])
         if source.get("duration") is not None and "in" not in source:
             duration = float(source["duration"])
         elif source.get("out") is not None and source.get("in") is not None:
@@ -112,8 +115,8 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
             item["duration"] = rounded(right - left)
             window = cutaway.get("motionWindow") or {"offsetSeconds": 0, "durationSeconds": duration}
             item["motionWindow"] = {**window, "offsetSeconds": window["offsetSeconds"] + left-at}
-        if isinstance(item.get("path"), list) or isinstance(item.get("cameraWindow"), dict):
-            camera = (cameras.get(index, {}).get("spec") or {}).get("sphere")
+        camera = (compiled.get("spec") or {}).get("sphere")
+        if camera or isinstance(item.get("path"), list) or isinstance(item.get("cameraWindow"), dict):
             _slice_camera(source, item, left-at, duration=duration, camera=camera)
         if isinstance(item.get("sphere"), dict) and isinstance(item["sphere"].get("path"), list):
             item["sphere"]["path"] = _slice_keys(item["sphere"]["path"], left-at, right-at, rebase=True)
@@ -211,7 +214,8 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
     from ..sphere import MIN_KEY_GAP_MS, key_time_ms, plan_camera
 
     duration = window.get("durationSeconds")
-    if not isinstance(window.get("path"), list) or not isinstance(duration, (int, float)):
+    if ("path" not in window or window["path"] is not None and not isinstance(window["path"], list)
+            or not isinstance(duration, (int, float))):
         return None
     seconds = source_duration(segment)
     errors: list[str] = []
@@ -222,8 +226,11 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
                          seconds, errors, [], "edited camera")["path"]
     if errors:
         raise ValueError("; ".join(errors))
-    if not outside or not inside:
+    if not inside:
         return None
+    if not outside:
+        return {**deepcopy(window), "offsetSeconds": 0,
+                "durationSeconds": max(duration, seconds), "path": inside}
     offset = float(window.get("offsetSeconds", 0))
     # Physical local time is key.at - window.offsetSeconds. Translate exterior
     # keys, offset AND duration together; only editable local keys use ms ticks.
@@ -270,10 +277,8 @@ def _slice_camera(segment: dict, result: dict, start: float, *,
         if window and camera["path"]:
             for key in camera["path"]:
                 key["at"] -= window["offsetSeconds"]
-    if not camera.get("path"):
-        return
     result["view"] = deepcopy(camera["view"])
-    window = window or {"offsetSeconds": 0, "durationSeconds": duration,
+    window = window or {"offsetSeconds": 0, "durationSeconds": camera["durationSeconds"],
                         "path": camera["path"]}
     result["cameraWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + start}
     result["path"] = window_piece_keys(camera["path"], start, source_duration(result),
@@ -306,7 +311,7 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *,
         if key == "cutaways":
             result[key] = _slice_cutaways(result[key], start, end, rebase=rebase,
                 minimum=minimum_cutaway_frames / fps if minimum_cutaway_frames is not None else 0.4,
-                frame_exact=minimum_cutaway_frames is not None, resolved=(resolved or {}).get("cutaways"))
+                frame_exact=minimum_cutaway_frames is not None, resolved=(resolved or {}).get("cutaways"), fps=fps)
         elif key == "path":
             continue  # camera playback windows and editing handles are sliced together below
         elif isinstance(result[key], dict) and "at" in result[key]:
@@ -314,7 +319,7 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *,
             result[key] = clipped[0] if clipped else False
         else:
             result[key] = _clip_events(result[key], start, end, rebase=rebase)
-    if isinstance(segment.get("path"), list) or isinstance(segment.get("cameraWindow"), dict):
+    if camera or isinstance(segment.get("path"), list) or isinstance(segment.get("cameraWindow"), dict):
         _slice_camera(segment, result, start,
                       duration=source_duration((resolved or {}).get("spec") or segment), camera=camera)
     if isinstance(result.get("blur"), list):

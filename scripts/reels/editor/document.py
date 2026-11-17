@@ -86,7 +86,7 @@ def _descriptors(plan: dict[str, Any]) -> list[dict[str, Any]]:
             for i, child in enumerate(children):
                 add(child, parts + [key, i], child_kind, path)
         if kind == "cutaway":
-            fields(value, parts, path, ("sphere", "path"))
+            fields(value, parts, path, ("sphere",))  # path children were already visited above
 
     def fields(owner, parts, parent, names):
         for key in names:
