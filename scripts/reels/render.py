@@ -1519,6 +1519,15 @@ def stage_video(
     `edges` = (fade in, fade out) the audio — a loop's seam leaves them off; `audio=False` = picture only (cutaways).
     Colour is always converted to BT.709 from the clip's real tags; `grade` (resolved settings, grade.py) then
     grades the staged clip in a second pass and returns what it measured."""
+    with tempfile.TemporaryDirectory(prefix=".sphere-stage-", dir=out.parent) as work:
+        return _stage_video(project, sg, out, fps, clean=clean, scale=scale, edges=edges,
+                            audio=audio, grade=grade, work=Path(work))
+
+
+def _stage_video(
+    project: Project, sg: Seg, out: Path, fps: int, *, clean: bool, scale: float,
+    edges: tuple[bool, bool], audio: bool, grade: dict | None, work: Path,
+) -> dict | None:
     probe, spec = sg.asset["probe"], sg.spec
     src = project.abs(sg.asset["media"])
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
@@ -1528,8 +1537,17 @@ def stage_video(
     speed = spec["speed"]
     pre = hdr_filters(probe) + [f"setpts=(PTS-STARTPTS)/{speed:g}", f"fps={fps}"]
     tail = f"setsar=1,{grading.to_bt709(grading.source_colour(probe, src))},tpad=stop_mode=clone:stop_duration=2[v]"
-
+    metal = None
+    metal_video = work / "metal.mp4"
     if spec.get("sphere"):
+        from .sphere_metal import render as render_metal
+
+        metal = render_metal(project, sg, metal_video, fps, tw, th, work)
+
+    if metal:
+        # Already retimed, projected and BT.709 limited. Never repeat colour/look.
+        graph = ""
+    elif spec.get("sphere"):
         # 360: rebuild the sphere, then point a virtual camera (fixed, or moving along a path)
         src_graph, pad, inproj = source_graph(probe)
         stab = None
@@ -1583,14 +1601,24 @@ def stage_video(
         else:
             graph += f";[0:a:0]{','.join(af + fades)}[a]"
     cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-ss", f"{spec['in']:.12f}", "-t", f"{spec['out'] - spec['in']:.12f}", "-i", src]
-    cmd += ["-filter_complex", graph, "-map", "[v]"]
+    if metal:
+        cmd += ["-i", metal_video]
+    if graph:
+        cmd += ["-filter_complex", graph.lstrip(";")]
+    cmd += ["-map", "1:v:0" if metal else "[v]"]
     cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"] if use_audio else ["-an"]
     graded = grade is not None and grading.active(grade)
     first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
     quality = ["-qp", "0"] if graded else ["-crf", "16"]  # lossless when a grade pass follows
-    cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "libx264", "-preset", "veryfast", *quality]
-    cmd += ["-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS, "-movflags", "+faststart", first]
+    if metal:
+        cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "copy",
+                *grading.ENCODE_TAGS, "-movflags", "+faststart", work / "muxed.mp4"]
+    else:
+        cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "libx264", "-preset", "veryfast", *quality]
+        cmd += ["-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS, "-movflags", "+faststart", first]
     run(cmd, cwd=out.parent)
+    if metal:
+        (work / "muxed.mp4").replace(first)
     if not graded:
         return None
     measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe=probe, s=grade)

@@ -60,6 +60,9 @@ cmd_setup() {
   say "Building the editor preview bundle"
   npm --prefix "$REPO/remotion" run build:editor-preview
 
+  say "Building the offline Metal sphere renderer"
+  "$REPO/editor/tools/reels-sphere/build"
+
   say "Building the app (Release)"
   mkdir -p "$BUILD_DIR"
   xcodebuild -project "$REPO/editor/ReelsEditor.xcodeproj" -scheme ReelsEditor -configuration Release \

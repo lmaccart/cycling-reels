@@ -251,12 +251,13 @@ def camera_filter(
     projection = sph_spec["projection"]
     keys = sph_spec.get("path") or []
     start = keys[0] if keys else sph_spec["view"]
-    first = view_params(start, projection, w, h)
+    base = view_params(start, projection, w, h)
+    first = base
     if not keys and not stab:
         return v360_filter(inproj, projection, first, w, h)
 
     def frame_params(n: int) -> dict:
-        p = view_params(path_value(keys, n / fps, projection), projection, w, h) if keys else dict(first)
+        p = view_params(path_value(keys, n / fps, projection), projection, w, h) if keys else dict(base)
         if stab:
             a = stab[min(n, len(stab) - 1)]
             p["yaw"], p["pitch"], p["roll"] = v360_angles(mmul(a, v360_matrix(p["yaw"], p["pitch"], p["roll"])))

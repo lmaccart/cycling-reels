@@ -921,6 +921,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_ingest)
     add_prewarm_commands(sub)
 
+    s = sub.add_parser("bench-sphere-metal", help="compare actual Metal/v360 staging on read-only own footage; delete temporary media")
+    s.add_argument("--root", help="library/plan root (default: this project)")
+    s.add_argument("--plan", required=True)
+    s.add_argument("--segment", type=int, default=1)
+    s.add_argument("--seconds", type=float, default=30)
+    s.add_argument("--scale", type=float, default=1)
+    s.add_argument("--report", help="numeric JSON report only; no footage retained")
+    s.set_defaults(fn=lambda project, args: importlib.import_module(".editor.bench_sphere_metal", package=__package__).command(project, args))
+
     s = sub.add_parser("pending", help="list assets waiting to be tagged")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_pending)
