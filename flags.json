@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "flags": [
+    {
+      "id": "f-87d54d",
+      "asset": "261031-gs010110-08e8",
+      "in": 0.0,
+      "out": 55.0,
+      "note": "sprinting away from the group (look back) (±15 s around 0:12.0-0:40.0)",
+      "createdAt": "2026-11-16T23:45:11+00:00"
+    },
+    {
+      "id": "f-c9cf1e",
+      "asset": "261031-gs010112-b674",
+      "in": 163.0,
+      "out": 211.0,
+      "note": "riders swarm past in the sprint (look forward/right) (±15 s around 2:58.0-3:16.0)",
+      "createdAt": "2026-11-16T23:45:11+00:00"
+    },
+    {
+      "id": "f-701fd2",
+      "asset": "261107-gs010116-3bc9",
+      "in": 0.0,
+      "out": 27.0,
+      "note": "rider sprints by side-on (look behind) (±15 s around 0:06.0-0:12.0)",
+      "createdAt": "2026-11-16T23:45:11+00:00"
+    }
+  ]
+}

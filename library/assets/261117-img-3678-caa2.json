@@ -1,0 +1,108 @@
+{
+  "id": "261117-img-3678-caa2",
+  "kind": "video",
+  "media": "library/media/261117-img-3678-caa2.mov",
+  "originalName": "IMG_3678.MOV",
+  "hash": "caa2540a586245cb9f48271a9e55ad6f405808a1",
+  "created": "2026-11-17T08:45:13",
+  "ingestedAt": "2026-11-17T15:37:16+00:00",
+  "probe": {
+    "duration": 13.017,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-17T08:45:13-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "selfie after the last rep under trees, hair out of the helmet: that was 323, that was the last rep, 323 watts; then looks down (top of helmet fills frame); alright let's go down, let's go down now",
+    "hooks": [
+      "that was the last rep"
+    ],
+    "moments": [
+      {
+        "id": "m-e10910",
+        "in": 0.0,
+        "out": 4.4,
+        "label": "selfie after the final rep, glancing sideways: that was 323, that was the last rep, 323 watts",
+        "score": 5,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "result",
+        "face": true,
+        "opener": true,
+        "thread": "road-to-5-ep3",
+        "beat": "result"
+      },
+      {
+        "id": "m-52ba5b",
+        "in": 9.0,
+        "out": 13.0,
+        "label": "selfie looking back up, mouth open: alright, let's go down, let's go down now",
+        "score": 2,
+        "focusX": 0.45,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "reaction",
+        "speaker": "me",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261117-img-3678-caa2.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -27.5,
+      "peakDb": 0.0
+    },
+    "speechSeconds": 5.31,
+    "speechRanges": [
+      [
+        0.22,
+        2.34
+      ],
+      [
+        3.1,
+        4.26
+      ],
+      [
+        9.18,
+        9.96
+      ],
+      [
+        11.77,
+        13.02
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261117-img-3678-caa2.jpg"
+  ],
+  "strava": {
+    "activity": "21022620416",
+    "offset": 2648.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-17T16:16:14+00:00"
+}

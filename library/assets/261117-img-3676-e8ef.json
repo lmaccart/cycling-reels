@@ -1,0 +1,91 @@
+{
+  "id": "261117-img-3676-e8ef",
+  "kind": "video",
+  "media": "library/media/261117-img-3676-e8ef.mov",
+  "originalName": "IMG_3676.MOV",
+  "hash": "e8ef7e0a0c41bdb6533fea06f5b16a6bdd126e54",
+  "created": "2026-11-17T08:14:38",
+  "ingestedAt": "2026-11-17T15:37:11+00:00",
+  "probe": {
+    "duration": 6.433,
+    "width": 2160,
+    "height": 3840,
+    "fps": 60.0,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-17T08:14:38-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 3,
+    "issues": [
+      "shaky"
+    ],
+    "people": "me",
+    "summary": "shaky handheld selfie under trees right after the first interval: interval one, 327, 3 minutes rest",
+    "hooks": [
+      "interval one, 327"
+    ],
+    "moments": [
+      {
+        "id": "m-81d322",
+        "in": 0.3,
+        "out": 6.4,
+        "label": "shaky selfie under trees after rep one, breathing hard: it's interval one, 327, 3 minutes rest",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.45,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "suffering",
+        "line": "result",
+        "face": true,
+        "opener": false,
+        "thread": "road-to-5-ep3",
+        "beat": "effort"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261117-img-3676-e8ef.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -24.5,
+      "peakDb": -3.9
+    },
+    "speechSeconds": 3.34,
+    "speechRanges": [
+      [
+        0.66,
+        1.77
+      ],
+      [
+        2.33,
+        3.34
+      ],
+      [
+        5.21,
+        6.43
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261117-img-3676-e8ef.jpg"
+  ],
+  "strava": {
+    "activity": "21022620416",
+    "offset": 813.0,
+    "clock": "phone",
+    "shift": 0.0
+  },
+  "taggedAt": "2026-11-17T16:16:14+00:00"
+}

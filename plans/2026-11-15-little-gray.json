@@ -13,6 +13,13 @@
   },
   {
    "asset": "261108-img-3606-dbcd",
+   "in": 7.3,
+   "out": 8.2,
+   "speed": 0.45,
+   "payoff": true
+  },
+  {
+   "asset": "261108-img-3606-dbcd",
    "in": 3.3,
    "out": 7.3,
    "captions": "transcript",
@@ -24,13 +31,6 @@
      "value": "strava:avg-speed"
     }
    ]
-  },
-  {
-   "asset": "261108-img-3606-dbcd",
-   "in": 7.3,
-   "out": 8.2,
-   "speed": 0.45,
-   "payoff": true
   }
  ],
  "music": {
