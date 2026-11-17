@@ -21,6 +21,7 @@ from copy import copy, deepcopy
 from pathlib import Path
 from typing import Any, Callable
 
+from .. import grade as grade_mod
 from ..config import DEFAULTS, Project, deep_merge
 from ..util import ReelsError, read_json
 from .document import (
@@ -2016,6 +2017,12 @@ class DocumentStore:
                 raise ValueError("render defaults belong to project config: use id='project' and path='/render/…'")
             components = [c.replace("~1", "/").replace("~0", "~") for c in path.lstrip("/").split("/")]
             parent = target
+            if (len(components) > 1 and components[0] == "grade" and components[1] != "look"
+                    and isinstance(target, dict) and target.get("grade") is None):
+                # A new grade object without `look` would render as "house": pin the look the clip shows now.
+                inherited = grade_mod.settings(self.project.config.get("render", {}).get("grade"),
+                                               None if target is plan else plan.get("grade"))
+                target["grade"] = {"look": inherited["look"]}
             for component in components[:-1]:
                 if isinstance(parent, list):
                     raise ValueError("array elements must be edited through stable node IDs")

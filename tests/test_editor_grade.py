@@ -79,14 +79,26 @@ class GradeEditTests(unittest.TestCase):
         store, path = self.store()
         self.apply(store, {"op": "set_field", "id": "document", "path": "/grade/strength", "value": 0.8})
         self.apply(store, {"op": "set_field", "id": "document", "path": "/grade/rescue", "value": False})
-        self.assertEqual(json.loads(path.read_text())["grade"], {"strength": 0.8, "rescue": False})
+        self.assertEqual(json.loads(path.read_text())["grade"], {"look": "none", "strength": 0.8, "rescue": False})
+
+    def test_first_edit_keeps_the_resolved_look(self):
+        from reels import grade
+        store, path = self.store(grade={"look": "moody"})
+        node = next(n for n in store.snapshot()["nodes"] if n["kind"] == "segment")
+        self.apply(store, {"op": "set_field", "id": node["id"], "path": "/grade/warmth", "value": 0.3})
+        plan = json.loads(path.read_text())
+        self.assertEqual(plan["segments"][0]["grade"], {"look": "moody", "warmth": 0.3})
+        self.assertEqual(grade.settings(None, plan["grade"], plan["segments"][0]["grade"])["look"], "moody")
+        store, path = self.store()
+        self.apply(store, {"op": "set_field", "id": "document", "path": "/grade/look", "value": "moody"})
+        self.assertEqual(json.loads(path.read_text())["grade"], {"look": "moody"})
 
     def test_clip_grade_is_local_to_that_clip(self):
         store, path = self.store()
         node = next(n for n in store.snapshot()["nodes"] if n["kind"] == "segment")
         self.apply(store, {"op": "set_field", "id": node["id"], "path": "/grade/warmth", "value": 0.3})
         segments = json.loads(path.read_text())["segments"]
-        self.assertEqual(segments[0]["grade"], {"warmth": 0.3})
+        self.assertEqual(segments[0]["grade"], {"look": "none", "warmth": 0.3})
         self.assertNotIn("grade", segments[1])
 
     def test_a_string_grade_is_not_overwritten_by_a_nested_edit(self):

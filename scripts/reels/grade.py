@@ -114,11 +114,15 @@ def settings(config: dict | None, plan_grade: Any = None, seg_grade: Any = None)
     """The grade for one clip: project default (config render.grade) < the plan's `grade` < the segment's.
     `"none"` / false turns grading off at that level; `rescue: true/false` (the editor's toggle) = "auto"/"off"."""
     s = {**DEFAULTS, **(config or {})}
+    chosen = False  # a level named the look ("none" or a dict with `look`): later dicts without one keep it
     for g in (plan_grade, seg_grade):
         if g is False or g == "none":
             s["look"] = "none"
+            chosen = True
         elif isinstance(g, dict):
-            if "look" not in g and s["look"] == "none":
+            if "look" in g:
+                chosen = True
+            elif not chosen and s["look"] == "none":
                 s["look"] = "house"  # an explicit grade block asks for a grade
             s.update(g)
     if s.get("rescue") is True:

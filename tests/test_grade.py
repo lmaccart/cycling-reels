@@ -80,7 +80,12 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(grade.settings(None)["look"], "none")
         self.assertFalse(grade.active(grade.settings(None)))
         self.assertEqual(grade.settings(None, {"strength": 0.8})["look"], "house")
-        self.assertEqual(grade.settings(None, "none", {"warmth": 0.1})["look"], "house")
+        self.assertEqual(grade.settings(None, "none", {"warmth": 0.1})["look"], "none")
+        self.assertEqual(grade.settings(None, {"look": "none"}, {"warmth": 0.1})["look"], "none")
+        self.assertEqual(grade.settings(None, {"look": "house"}, {"look": "none"})["look"], "none")
+        self.assertEqual(grade.settings({"strength": 0.9})["look"], "none")
+        self.assertEqual(grade.settings({"strength": 0.9}, {"warmth": 0.1})["look"], "house")
+        self.assertEqual(grade.settings({"look": "moody"}, {"warmth": 0.1})["look"], "moody")
         self.assertEqual(grade.settings(None, {"look": "moody"}, {"warmth": 0.1})["look"], "moody")
         self.assertEqual(grade.settings({"look": "house"}, None)["look"], "house")
 
