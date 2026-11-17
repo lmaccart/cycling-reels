@@ -34,6 +34,8 @@ final class EditorStore {
     var library: [JSONValue] = []
     var flags: [ClipFlag] = []
     var searchHits: [SearchHit] = []
+    /// True from submitting a non-empty query until its first results event (or an error).
+    var searchInFlight = false
     var selectedIDs: Set<String> = []
     var recentlyChangedIDs: Set<String> = []
     var selectedAssetID: String?
@@ -1311,9 +1313,11 @@ final class EditorStore {
         let generation = semanticGeneration
         guard !query.isEmpty else {
             searchHits = []
+            searchInFlight = false
             loadLibrary()
             return
         }
+        searchInFlight = true
         searchTask = Task {
             do {
                 let result = try await service.call("search.query", params: .object([
@@ -1328,6 +1332,7 @@ final class EditorStore {
                 searchHits = Self.hits(from: result, related: false, keys: ["matches", "regexRows", "results"])
             } catch {
                 guard generation == semanticGeneration else { return }
+                searchInFlight = false
                 errorMessage = error.localizedDescription
             }
         }
@@ -1490,6 +1495,7 @@ final class EditorStore {
                let expectedSearchFilterHash, eventFilterHash != expectedSearchFilterHash { return }
             switch payload["type"]?.stringValue {
             case "regex":
+                searchInFlight = false
                 searchHits = Self.hits(from: payload, related: false, keys: ["matches", "regexRows"])
             case "semantic":
                 let regex = Self.hits(from: payload, related: false, keys: ["regexRows"])
@@ -1504,6 +1510,7 @@ final class EditorStore {
             }
         } else if name.hasPrefix("search.") {
             if name.contains("error") {
+                searchInFlight = false
                 notice = Self.errorMessage(from: payload, fallback: "Search failed.")
             }
         } else if name.hasPrefix("preview.") {

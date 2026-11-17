@@ -38,6 +38,20 @@ class ServiceBoundaryTests(unittest.TestCase):
         coordinator = self.service.search_coordinator()
         self.assertIsNone(coordinator.semantic_runner)
 
+    def test_search_query_makes_no_semantic_call_or_event(self):
+        calls = []
+        self.service.claude.search = lambda *a, **k: calls.append((a, k))
+        self.service.dispatch("search.query", {"query": "bridge", "filters": {}, "generation": 1})
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not any(
+                a and a[0] == "search.results" for a, _ in self.events):
+            time.sleep(0.02)
+        time.sleep(0.8)  # past the old 600 ms semantic delay
+        names = [(a[1] or {}).get("type") for a, _ in self.events if a and a[0] == "search.results"]
+        self.assertIn("regex", names)
+        self.assertNotIn("semantic", names)
+        self.assertEqual(calls, [])
+
     def test_workspace_roots_are_explicit(self):
         info = self.service.dispatch("workspace.info", {})
         self.assertEqual(info["dataRoot"], str(self.fixture.root))

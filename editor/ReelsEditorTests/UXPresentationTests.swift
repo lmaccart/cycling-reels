@@ -40,6 +40,7 @@ final class UXPresentationTests: XCTestCase {
         XCTAssertTrue(AssetPresentation.showsNoResults(clipCount: 0, hitCount: 0))
         XCTAssertFalse(AssetPresentation.showsNoResults(clipCount: 3, hitCount: 0))
         XCTAssertFalse(AssetPresentation.showsNoResults(clipCount: 0, hitCount: 1))
+        XCTAssertFalse(AssetPresentation.showsNoResults(clipCount: 0, hitCount: 0, searchInFlight: true))
     }
 
     func testMoments() throws {

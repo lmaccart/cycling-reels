@@ -240,6 +240,7 @@ private struct LibraryPane: View {
     @Bindable var store: EditorStore
     @State private var section = "Footage"
     @State private var localQuery = ""
+    private var localClips: [JSONValue] { store.library.filter { AssetPresentation.matches($0, query: localQuery) } }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -280,7 +281,7 @@ private struct LibraryPane: View {
                 HStack {
                     Text(localQuery.isEmpty ? "Clips" : "Matches")
                     Spacer()
-                    Text(localQuery.isEmpty ? "\(store.library.count)" : "\(store.searchHits.count + store.library.filter { AssetPresentation.matches($0, query: localQuery) }.count)")
+                    Text(localQuery.isEmpty ? "\(store.library.count)" : "\(store.searchHits.count + localClips.count)")
                         .monospacedDigit()
                 }
                 .font(.system(size: 11, weight: .medium))
@@ -340,7 +341,7 @@ private struct LibraryPane: View {
             get: { store.selectedAssetID },
             set: { id in if let id, let item = store.library.first(where: { $0["id"]?.stringValue == id }) { store.selectAsset(item) } }
         )) {
-            let clips = store.library.filter { AssetPresentation.matches($0, query: localQuery) }
+            let clips = localClips
             if !clips.isEmpty {
                 Section("Clips") {
                     ForEach(Array(clips.prefix(50).enumerated()), id: \.offset) { _, item in
@@ -365,7 +366,7 @@ private struct LibraryPane: View {
         }
         .listStyle(.sidebar)
         .overlay {
-            if AssetPresentation.showsNoResults(clipCount: store.library.filter { AssetPresentation.matches($0, query: localQuery) }.count, hitCount: store.searchHits.count) {
+            if AssetPresentation.showsNoResults(clipCount: localClips.count, hitCount: store.searchHits.count, searchInFlight: store.searchInFlight) {
                 ContentUnavailableView("No matching footage", systemImage: "text.magnifyingglass",
                                        description: Text("Try a word from the transcript, a place, or an activity. Regular expressions work too."))
             }

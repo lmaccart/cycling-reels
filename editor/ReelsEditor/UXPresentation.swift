@@ -90,8 +90,10 @@ enum AssetPresentation {
         return words.allSatisfy { haystack.contains($0) }
     }
 
-    /// The empty-results overlay: only when neither local clips nor search hits exist.
-    static func showsNoResults(clipCount: Int, hitCount: Int) -> Bool { clipCount == 0 && hitCount == 0 }
+    /// The empty-results overlay: only when neither local clips nor search hits exist and no query is in flight.
+    static func showsNoResults(clipCount: Int, hitCount: Int, searchInFlight: Bool = false) -> Bool {
+        clipCount == 0 && hitCount == 0 && !searchInFlight
+    }
 
     static func moments(_ item: JSONValue?) -> [Moment] {
         guard let item, let list = tags(item)?["moments"]?.arrayValue else { return [] }
