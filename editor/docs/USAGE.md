@@ -393,10 +393,21 @@ automatic preview rendering are disabled for this fixture. Offscreen view bitmap
 are in `.cache/editor/timeline-captures/delete-*.png`; no screen-capture or system
 Accessibility service is used.
 
-The slider test invokes the production SwiftUI Slider's public increment/decrement
-provider methods directly inside the unordered host and checks the resulting clip
-geometry in both directions. It uses neither a zoom shortcut nor private
-`KeyViewProxy` classes, and makes no external AX/client or screen-input calls.
+The slider test sends mouse events directly to the production `NSHostingView` in
+an unordered window and checks clip geometry after zooming out, zooming in, and
+returning to the same slider position. The 90-point Slider is located relative to
+the trailing Fit button using public AppKit geometry. SwiftUI exposes neither an
+`NSSlider` nor a virtual slider provider in this unordered host. The test uses no
+zoom shortcut, private view proxy, system input, or external AX/client calls.
+
+Slider verification remains **failing**, not skipped: the unordered host now
+publishes valid clip geometry after a playhead-only refresh, but direct hosted
+mouse events leave the clip width unchanged (33.6 points in the recorded run).
+The test still requires smaller/larger widths and a round trip; it does not
+substitute zoom shortcuts or a model-only binding. This result does not establish
+a production slider defect. Three authorized slider-only runs are recorded in
+`.cache/agents/ui-delete-slider-authorized-{1,2,3}.log` and matching `.xcresult`
+bundles; no additional host run was made.
 
 Delete predictions do not wait for a Task hop or earlier backend edits. Persistence
 still runs serially against the authoritative revision; pending predictions replay

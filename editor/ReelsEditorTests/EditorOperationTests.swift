@@ -723,35 +723,18 @@ final class EditorOperationTests: XCTestCase {
         window.isReleasedWhenClosed = false
         window.contentView = host
         defer { window.close() }
-        // SwiftUI can render Slider without an NSSlider subview. Traverse only
-        // this host's in-process provider tree; never use AXUIElement or the
-        // system Accessibility service, and never depend on private view classes.
-        func zoomSlider() -> AnyObject? {
-            var visited: Set<ObjectIdentifier> = []
-            func find(in element: AnyObject) -> AnyObject? {
-                guard visited.insert(ObjectIdentifier(element)).inserted else { return nil }
-                // Use public selectors, not formal protocol adoption or a label
-                // mapping: SwiftUI's virtual elements need not match either.
-                if element.accessibilityRole?() == .slider { return element }
-                for child in element.accessibilityChildren?() ?? [] {
-                    if let slider = find(in: child as AnyObject) { return slider }
-                }
-                return nil
-            }
-            // The production TimelinePanel has exactly one Slider. Include native
-            // view roots as well as virtual provider children, without private types.
-            for view in descendants(host) {
-                if let slider = find(in: view) { return slider }
-            }
-            return nil
+        // SwiftUI draws this Slider itself and exposes no slider provider in an
+        // unordered window. Exercise its normal mouse handling inside XCTest,
+        // without system input, accessibility actions, or private view proxies.
+        try await eventually("Production timeline canvas is hosted offscreen") {
+            self.descendants(host).contains { $0 is TimelineCanvas }
         }
-        try await eventually("Production zoom slider and canvas are hosted offscreen") {
-            zoomSlider() != nil
-                && self.descendants(host).contains { $0 is TimelineCanvas }
-        }
-        let slider = try XCTUnwrap(zoomSlider())
         let canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
         host.layoutSubtreeIfNeeded()
+        // The canvas was first updated before AppKit attached it to a window;
+        // republish its screen-space geometry after attachment, as the hosted
+        // delete test does. This does not change zoom.
+        store.setPlayhead(1)
         func clipWidth() -> CGFloat {
             (canvas.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
                 .first { $0.accessibilityLabel()?.contains(", V1, Video,") == true }?
@@ -759,16 +742,48 @@ final class EditorOperationTests: XCTestCase {
         }
         try await eventually("Hosted clip geometry is available") { clipWidth() > 0 }
         let originalWidth = clipWidth()
-        // Invoke the production Slider's public provider actions directly in this
-        // process. Both directions must reach its Binding and the hosted canvas.
-        XCTAssertTrue(slider.accessibilityPerformDecrement?() == true)
-        try await eventually("The production slider zooms out") { clipWidth() < originalWidth - 1 }
-        XCTAssertLessThan(clipWidth(), originalWidth - 1)
-        XCTAssertTrue(slider.accessibilityPerformIncrement?() == true)
-        try await eventually("The production slider restores the original zoom") {
-            abs(clipWidth() - originalWidth) < 1
+        XCTAssertGreaterThan(originalWidth, 0)
+        // The slider is the 90-point control immediately before the trailing Fit
+        // button, with the toolbar's 8-point spacing. Resolve that button through
+        // public AppKit geometry rather than SwiftUI's private view class names.
+        let fitFrame = try XCTUnwrap(descendants(host).compactMap { view -> NSRect? in
+            guard view is NSButton else { return nil }
+            return host.convert(view.bounds, from: view)
+        }.max { $0.maxX < $1.maxX })
+        let sliderFrame = NSRect(x: fitFrame.minX - 8 - 90, y: fitFrame.midY - 8, width: 90, height: 16)
+        func dragSlider(from start: CGFloat, to end: CGFloat) async throws {
+            func event(_ type: NSEvent.EventType, fraction: CGFloat) throws -> NSEvent {
+                let point = NSPoint(x: sliderFrame.minX + sliderFrame.width * fraction,
+                                    y: sliderFrame.midY)
+                return try XCTUnwrap(NSEvent.mouseEvent(
+                    with: type, location: host.convert(point, to: nil), modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil,
+                    eventNumber: 0, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1))
+            }
+            let down = try event(.leftMouseDown, fraction: start)
+            let point = host.convert(down.locationInWindow, from: nil)
+            // Run normal hit testing to resolve SwiftUI's drawn gesture region.
+            let target = try XCTUnwrap(host.hitTest(host.convert(point, to: host.superview)))
+            XCTAssertTrue(target === host, "The Slider must receive input, not a toolbar button")
+            target.mouseDown(with: down)
+            try await Task.sleep(for: .milliseconds(20))
+            target.mouseDragged(with: try event(.leftMouseDragged, fraction: end))
+            try await Task.sleep(for: .milliseconds(20))
+            target.mouseUp(with: try event(.leftMouseUp, fraction: end))
         }
-        XCTAssertEqual(clipWidth(), originalWidth, accuracy: 1)
+        try await dragSlider(from: 0.5, to: 0.25)
+        try await eventually("The production slider zooms out") { clipWidth() < originalWidth - 1 }
+        let smallerWidth = clipWidth()
+        XCTAssertLessThan(smallerWidth, originalWidth - 1)
+        try await dragSlider(from: 0.25, to: 0.75)
+        try await eventually("The production slider zooms in") { clipWidth() > smallerWidth + 1 }
+        XCTAssertGreaterThan(clipWidth(), smallerWidth + 1)
+        try await dragSlider(from: 0.75, to: 0.25)
+        try await eventually("Returning the slider restores the same clip geometry") {
+            abs(clipWidth() - smallerWidth) < 1
+        }
+        XCTAssertEqual(clipWidth(), smallerWidth, accuracy: 1)
         XCTAssertFalse(window.isVisible)
         XCTAssertFalse(window.isKeyWindow)
         XCTAssertFalse(NSApp.isActive)
