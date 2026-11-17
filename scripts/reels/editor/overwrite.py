@@ -28,7 +28,7 @@ def video_source_bounds(asset, source_in, source_out, speed=1):
     return source_in, source_out, speed
 
 
-def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=None):
+def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=None, compiled=None):
     start, end = _bounds(clip)
     a, b = (left - start) / fps, (right - start) / fps
     memo = {}
@@ -51,7 +51,12 @@ def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=Non
                 # new interval to restart independently on each retained piece.
                 text.setdefault("at", .15)
                 text.setdefault("for", 2.2)
-    value = slice_local_events(marked, a, b, rebase=True, minimum_cutaway_frames=1, fps=fps)
+    resolved = None
+    if compiled is not None and root_id:
+        index = int(old_nodes[root_id]["locator"].split("/")[2])
+        resolved = compiled["segs"][index]
+    value = slice_local_events(marked, a, b, rebase=True, minimum_cutaway_frames=1, fps=fps,
+                               resolved=resolved)
     value.pop(_IDENTITY, None)
     if isinstance(clip.get("path"), list):
         window = clip.get("cameraWindow") or {
@@ -276,7 +281,7 @@ def apply_overwrite(ctx, operation, project):
         ctx["affected"].add(node_id)
         used_children = set()
         for number, (left, right) in enumerate(spans):
-            piece = _slice(clip, left, right, fps, old_objects, project, old_nodes)
+            piece = _slice(clip, left, right, fps, old_objects, project, old_nodes, compiled)
             piece_id = node_id if number == 0 else deterministic_id("frag-", edit, node_id, left, right)
             bindings[id(piece)] = (piece_id, node_id)
             # Match child content after slicing by collection/order, retaining
@@ -393,7 +398,7 @@ def positioned_source_edit(ctx, operation, project, revisions):
         pieces = []
         used_children = set()
         for number, (left, right) in enumerate(spans):
-            piece = _slice(clip, left, right, fps, objects, project, nodes)
+            piece = _slice(clip, left, right, fps, objects, project, nodes, ctx["compiled"])
             key = node_id if number == 0 else deterministic_id("frag-", edit, node_id, left, right)
             bindings[id(piece)] = (key, node_id)
             assigned_here = set()
@@ -422,7 +427,7 @@ def positioned_source_edit(ctx, operation, project, revisions):
         # Use the same ID-preserving slicer, then replace source bounds. Extending
         # beyond old bounds has already been checked against the actual source.
         synthetic_left = a + (source_in - float(clip["in"])) / speed * fps
-        piece = _slice(clip, synthetic_left, synthetic_left + frames, fps, objects, project, nodes)
+        piece = _slice(clip, synthetic_left, synthetic_left + frames, fps, objects, project, nodes, ctx["compiled"])
         piece.update({"in": source_in, "out": source_out})
         piece["timeline"].update(startFrame=a, durationFrames=frames)
         bindings[id(piece)] = node_id

@@ -129,6 +129,8 @@ what renders.
 - **Add keyframe** (or double-click the picture) stores the angle at the
   playhead in the clip's `path`. Once there are keyframes, aiming at a keyframe
   updates it and aiming between keyframes adds one. Keyframes must be 0.1 s apart.
+  Between keyframes the camera turns the shortest way (no axis spins the long
+  way round), exactly as the render does.
 - **Hard cut** makes the camera jump to that keyframe's angle instead of panning
   there. The strip under the picture shows keyframes (filled = hard cut); click
   one to jump to it.
@@ -139,6 +141,35 @@ what renders.
   smooths more, Lock holds the direction the camera faced at the clip's start.
   It costs nothing in picture (the sphere is rotated, not cropped), but
   stabilized clips take a few seconds per second of footage to stage.
+- While the panel is open it follows the timeline: selecting another 360 clip
+  aims that one, and with nothing selected it aims the 360 clip under the
+  playhead. Splitting a selected clip moves selection and aim to the new right
+  piece when the playhead is there. Undo/redo restores the corresponding selection
+  and aim target through the normal selection/Inspector pathway, including the
+  service and terminal context. Clearing the selection keeps playhead-following active across
+  aim edits and refreshes. Split playback retains the original path's easing
+  intervals and hard cuts; bounded start/end keys are editing handles, not a
+  replacement playback path.
+  Editable key times use the compiler's millisecond grid and 100 ms minimum gap.
+  Aim edits rebase the whole camera window (keys, offset and duration) to a
+  nonnegative integer-second editing origin, so fractional and negative offsets
+  stay editable and local hard cuts retain their exact frame. Exterior window
+  keys retain fractional coordinates: `key.at - offsetSeconds` is invariant,
+  including when a later trim reveals them; those keys are not rounded again.
+  Named/string and sparse keys retain compiler-resolved tagged/moment defaults
+  and exterior poses when clearing old angle overrides. Ordinary trims, splits
+  and cutaway slices sample that same resolved camera, not empty-tag defaults.
+  Deleting an endpoint key holds the nearest remaining pose.
+  Tiny-planet paths interpolate after applying their fixed downward pitch.
+  Loop seams and automatic camera-move cues compare quaternion rotation, not Euler
+  readouts at the poles; FOV is checked separately. Camera-move cues use a 20° rotation
+  threshold on any axis (including roll), or a 25° FOV change.
+- A **Custom** stabilize value (a number of seconds set in the plan) is shown
+  with that same smoothing, not as Medium.
+- `scripts/reels/editor/bench_sphere_keys.py` stages an isolated temporary plan and
+  compares keyframe/midpoint frames with single-frame v360 references. It resolves
+  abbreviated asset IDs against the original library before copying metadata;
+  originals and the input plan remain read-only.
 - Space plays the clip in the 360 view; **Done** returns to the Program preview.
 
 ### Footage dragging

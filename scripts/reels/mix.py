@@ -213,14 +213,14 @@ def _overlaps_speech(s: int, e: int, pages: list[dict]) -> bool:
     return any(s < p["endFrame"] and p["startFrame"] < e for p in pages)
 
 
-def _move_mids(path: list[dict]) -> list[float]:
-    """Seconds (from the segment start) at the middle of each real camera move in a 360 path."""
+def _move_mids(path: list[dict], projection: str = "flat") -> list[float]:
+    """Midpoints of moves >=20° (any axis) or >=25° FOV, not Euler representation changes."""
+    from .sphere import orientation_distance
+
     mids = []
     for a, b in zip(path, path[1:]):
-        dyaw = abs((float(b.get("yaw", 0)) - float(a.get("yaw", 0)) + 180) % 360 - 180)
-        dpitch = abs(float(b.get("pitch", 0)) - float(a.get("pitch", 0)))
         dfov = abs(float(b.get("fov", 0)) - float(a.get("fov", 0)))
-        if dyaw >= 30 or dpitch >= 20 or dfov >= 25:
+        if orientation_distance(a, b, projection) >= 20 or dfov >= 25:
             mids.append((a["at"] + b["at"]) / 2)
     return mids
 
@@ -339,7 +339,7 @@ def build_cues(
                 auto("transition", f"segment {sg.index + 1} fade", centre=mid, anchor=mid)
             path = (sg.spec.get("sphere") or {}).get("path")
             if path and sg.index not in talking:
-                for m in _move_mids(path):
+                for m in _move_mids(path, sg.spec["sphere"]["projection"]):
                     f = sg.start + m * fps
                     if f < sg.end:
                         auto("cameraMove", f"segment {sg.index + 1} camera move", centre=f, anchor=f)

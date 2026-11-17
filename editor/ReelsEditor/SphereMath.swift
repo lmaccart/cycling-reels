@@ -59,9 +59,10 @@ enum SphereMath {
     /// Inverse of `v360Matrix`, degrees.
     static func v360Angles(_ m: simd_double3x3) -> (yaw: Double, pitch: Double, roll: Double) {
         let sp = min(1, max(-1, -element(m, 1, 2)))
-        let pitch = asin(sp)
+        let cp = hypot(element(m, 0, 2), element(m, 2, 2))
+        let pitch = atan2(sp, cp)
         let yaw: Double, roll: Double
-        if abs(sp) < 0.99999 {
+        if cp > 1e-12 {
             yaw = atan2(element(m, 0, 2), element(m, 2, 2))
             roll = atan2(element(m, 1, 0), element(m, 1, 1))
         } else {
@@ -87,27 +88,61 @@ enum SphereMath {
         return u * u * u * (u * (u * 6 - 15) + 10)
     }
 
+    /// Unit quaternion (w, x, y, z) of v360's yaw · pitch · roll rotation, degrees.
+    static func viewQuaternion(yaw: Double, pitch: Double, roll: Double) -> (Double, Double, Double, Double) {
+        let a = yaw * .pi / 360, b = pitch * .pi / 360, c = roll * .pi / 360
+        let (ca, sa, cb, sb, cc, sc) = (cos(a), sin(a), cos(b), sin(b), cos(c), sin(c))
+        return (ca * cb * cc + sa * sb * sc, ca * sb * cc + sa * cb * sc,
+                sa * cb * cc - ca * sb * sc, ca * cb * sc - sa * sb * cc)
+    }
+
+    /// Shortest-arc slerp (flips `b` when the dot product is negative); nlerp when nearly equal.
+    /// Same steps and thresholds as `stabilize.qslerp` in Python.
+    static func slerp(_ a: (Double, Double, Double, Double), _ b0: (Double, Double, Double, Double),
+                      _ u: Double) -> (Double, Double, Double, Double) {
+        var b = b0
+        var dot = a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3
+        if dot < 0 { b = (-b.0, -b.1, -b.2, -b.3); dot = -dot }
+        if dot > 0.9995 {
+            let q = (a.0 + (b.0 - a.0) * u, a.1 + (b.1 - a.1) * u, a.2 + (b.2 - a.2) * u, a.3 + (b.3 - a.3) * u)
+            let n = (q.0 * q.0 + q.1 * q.1 + q.2 * q.2 + q.3 * q.3).squareRoot()
+            return n > 0 ? (q.0 / n, q.1 / n, q.2 / n, q.3 / n) : (1, 0, 0, 0)
+        }
+        let th = acos(min(1, dot)), s = sin(th)
+        let wa = sin((1 - u) * th) / s, wb = sin(u * th) / s
+        return (wa * a.0 + wb * b.0, wa * a.1 + wb * b.1, wa * a.2 + wb * b.2, wa * a.3 + wb * b.3)
+    }
+
     /// Camera path value at time `t`. `keys` sorted by `at`, non-empty.
-    static func pathValue(_ keys: [SphereKey], at t: Double) -> SphereView {
+    /// Orientation follows the shortest arc (eased quaternion slerp); fov eases linearly.
+    /// Mirrors `sphere.path_value` in Python, held together by tests/fixtures/sphere_path_golden.json.
+    static func pathValue(_ keys: [SphereKey], at t: Double, projection: SphereProjection = .flat) -> SphereView {
         guard let first = keys.first else { return SphereView(yaw: 0, pitch: 0, fov: 90, roll: 0) }
-        if t <= first.at { return first.view }
+        if t <= first.at { return effectiveView(first.view, projection: projection) }
         for i in 0..<(keys.count - 1) {
             let a = keys[i], b = keys[i + 1]
+            let av = effectiveView(a.view, projection: projection)
+            let bv = effectiveView(b.view, projection: projection)
             if b.cut {
-                if t < b.at { return a.view }
+                if t < b.at { return av }
                 continue
             }
             if t <= b.at {
                 let e = ease((t - a.at) / max(1e-6, b.at - a.at))
-                let dy = wrapYaw(b.view.yaw - a.view.yaw)
-                return SphereView(
-                    yaw: wrapYaw(a.view.yaw + dy * e),
-                    pitch: a.view.pitch + (b.view.pitch - a.view.pitch) * e,
-                    fov: a.view.fov + (b.view.fov - a.view.fov) * e,
-                    roll: a.view.roll + (b.view.roll - a.view.roll) * e)
+                if e <= 0 || e >= 1 {
+                    var v = e <= 0 ? av : bv
+                    v.yaw = wrapYaw(v.yaw)
+                    return v
+                }
+                let qa = viewQuaternion(yaw: av.yaw, pitch: av.pitch, roll: av.roll)
+                let qb = viewQuaternion(yaw: bv.yaw, pitch: bv.pitch, roll: bv.roll)
+                let q = slerp(qa, qb, e)
+                let angles = v360Angles(matrix(quaternion: q.0, x: q.1, y: q.2, z: q.3))
+                return SphereView(yaw: wrapYaw(angles.yaw), pitch: angles.pitch,
+                                  fov: a.view.fov + (b.view.fov - a.view.fov) * e, roll: angles.roll)
             }
         }
-        return keys[keys.count - 1].view
+        return effectiveView(keys[keys.count - 1].view, projection: projection)
     }
 
     /// Tiny planet always looks straight down (pitch -90); yaw and roll come from the view.

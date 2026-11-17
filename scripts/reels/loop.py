@@ -30,14 +30,18 @@ def _view_at_end(sg, fps: int) -> dict | None:
     sph = sg.spec.get("sphere")
     if not sph:
         return None
-    return path_value(sph["path"], (sg.frames - 1) / fps) if sph["path"] else sph["view"]
+    keys = sph["path"] or [{"at": 0, **sph["view"]}]
+    return path_value(keys, (sg.frames - 1) / fps, sph["projection"])
 
 
 def _view_at_start(sg) -> dict | None:
+    from .sphere import path_value
+
     sph = sg.spec.get("sphere")
     if not sph:
         return None
-    return sph["path"][0] if sph["path"] else sph["view"]
+    keys = sph["path"] or [{"at": 0, **sph["view"]}]
+    return path_value(keys, 0, sph["projection"])
 
 
 def swap_halves(segs: list, fps: int) -> tuple[bool, str]:
@@ -56,10 +60,12 @@ def swap_halves(segs: list, fps: int) -> tuple[bool, str]:
     if va or vb:
         if not (va and vb) or (a["sphere"]["projection"] != b["sphere"]["projection"]):
             return False, "the two halves use different 360 projections"
-        dyaw = abs((va["yaw"] - vb["yaw"] + 180) % 360 - 180)
-        if dyaw > 1 or abs(va["pitch"] - vb["pitch"]) > 1 or abs(va["fov"] - vb["fov"]) > 1:
-            return False, (f"the 360 view changes at the seam (yaw {vb['yaw']:g}→{va['yaw']:g}, pitch {vb['pitch']:g}→{va['pitch']:g}, "
-                           f"fov {vb['fov']:g}→{va['fov']:g}) — end the last segment on the view the first one starts with")  # fmt: skip
+        from .sphere import orientation_distance
+
+        rotation = orientation_distance(va, vb)
+        if rotation > 1 or abs(va["fov"] - vb["fov"]) > 1:
+            return False, (f"the 360 view changes at the seam (rotation {rotation:g}°, "
+                           f"fov {vb['fov']:g}→{va['fov']:g}) — end the last segment on the view the first one starts with")
     else:
         for k in ("frame", "zoom", "focusX", "focusY"):
             if a[k] != b[k] and not (isinstance(a[k], float) and abs(a[k] - b[k]) <= _TOL):
@@ -94,7 +100,7 @@ def seam_frames(project: Project, segs: list, fps: int, folder: Path) -> tuple[P
     tail_spec = dict(last.spec, **{"in": max(0.0, last.spec["out"] - two)})
     sph = last.spec.get("sphere")
     if sph and sph["path"]:  # hold the view the camera move ends on
-        tail_spec["sphere"] = dict(sph, view=path_value(sph["path"], (last.frames - 1) / fps), path=None)
+        tail_spec["sphere"] = dict(sph, view=path_value(sph["path"], (last.frames - 1) / fps, sph["projection"]), path=None)
     tail = replace(last, spec=tail_spec, frames=2)
     stage_video(project, head, folder / "seam-head.mp4", fps)
     stage_video(project, tail, folder / "seam-tail.mp4", fps)

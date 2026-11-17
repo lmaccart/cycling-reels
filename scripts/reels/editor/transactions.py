@@ -1915,7 +1915,8 @@ class DocumentStore:
                 source_in, source_out = float(operation["sourceIn"]), float(operation["sourceOut"])
                 if resolved.get("sourceDuration") is not None and source_out > resolved["sourceDuration"]:
                     raise ValueError("cutaway sourceOut exceeds the original source duration")
-                trim_local_source(segment, source_in, source_out, precision=12 if plan.get("timeline") else 3)
+                trim_local_source(segment, source_in, source_out, precision=12 if plan.get("timeline") else 3,
+                                  resolved={"spec": resolved["resolved"]})
                 affected.add(node_id)
                 return
             if entry["kind"] != "segment" or op == "trim_cutaway":
@@ -1927,7 +1928,7 @@ class DocumentStore:
             trim_segment(
                 plan, index, float(operation["sourceIn"]), float(operation["sourceOut"]),
                 fps=ctx["fps"], start_frame=int(compiled_seg["start"]), old_frames=int(compiled_seg["frames"]),
-                ripple=False,
+                ripple=False, resolved=compiled_seg,
             )
             affected.add(node_id)
             return
@@ -1946,7 +1947,7 @@ class DocumentStore:
             if not 0 < local_frame < int(compiled_seg["frames"]):
                 raise ValueError("split frame must be inside the segment")
             left, right = split_segment(segment, local_frame, fps=ctx["fps"],
-                                        total_frames=int(compiled_seg["frames"]))
+                                        total_frames=int(compiled_seg["frames"]), resolved=compiled_seg)
             plan["segments"][index:index + 1] = [left, right]
             ctx["idReplacement"] = {node_id: left}
             affected.add(node_id)
@@ -2097,12 +2098,49 @@ class DocumentStore:
                     raise ValueError(f"{component!r} holds a value, not an object, so {path} can't be set inside it")
             key = components[-1]
             value = deepcopy(operation.get("value"))
+            camera_edit = isinstance(target, dict) and components[0] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection")
+            window = target.get("cameraWindow") if camera_edit else None
+            tags, moment = {}, {}
+            if camera_edit and (window or node_id in ctx.get("clearedCameraWindows", {})):
+                from ..library import load_asset, resolve_moment
+                from ..sphere import plan_camera
+
+                asset = load_asset(self.project, target["asset"])
+                tags = asset.get("tags") or {}
+                moment = resolve_moment(asset, target["moment"]) if "moment" in target else {}
+                if isinstance(window, dict):
+                    # Freeze sparse exterior poses before clearing any base-view
+                    # overrides in the aim batch, not after the last field write.
+                    errors: list[str] = []
+                    camera = plan_camera({**target, "path": window["path"]}, tags, moment.get("view"),
+                                         window["durationSeconds"], errors, [], "camera window")
+                    if errors:
+                        raise ValueError("; ".join(errors))
+                    window = {**window, "path": camera["path"]}
             if isinstance(parent, list):
                 raise ValueError("array elements must be edited through stable node IDs")
             else:
                 parent[key] = value
-            if isinstance(target, dict) and path.split("/")[1] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection"):
-                target.pop("cameraWindow", None)
+            if camera_edit:
+                cleared = ctx.setdefault("clearedCameraWindows", {})
+                if path in ("/yaw", "/pitch", "/roll", "/fov") and value is None:
+                    if isinstance(window, dict):
+                        cleared[node_id] = window
+                elif path == "/path" and isinstance(value, list):
+                    window = window or cleared.pop(node_id, None)
+                else:
+                    cleared.pop(node_id, None)
+                kept = None
+                if path == "/path" and isinstance(value, list) and isinstance(window, dict):
+                    # an aim edit on a split piece: its keys go into the window too, so the
+                    # renderer (which reads the window) shows them and trims keep the move
+                    from .timing import window_with_piece_keys
+                    kept = window_with_piece_keys(window, {**moment, **target}, value,
+                                                  tags=tags, moment_view=moment.get("view"))
+                if kept is not None:
+                    target["cameraWindow"] = kept
+                else:
+                    target.pop("cameraWindow", None)
             if node_id:
                 affected.add(str(node_id))
             return

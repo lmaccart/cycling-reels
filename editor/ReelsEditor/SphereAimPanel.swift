@@ -37,9 +37,12 @@ struct SphereAimPanel: View {
         }
         .onChange(of: store.seekGeneration) { _, _ in syncToPlayhead() }
         .onChange(of: store.snapshot?.revisions.document) { _, _ in
+            if follow() { return }
             guard let id = aim.camera?.nodeID else { return }
             Task { await aim.reloadCamera(nodeID: id, store: store, prepare: false) }
         }
+        .onChange(of: store.selectedIDs) { _, _ in follow() }
+        .onChange(of: store.playheadFrame) { _, _ in if store.selectedIDs.isEmpty { follow() } }
         .onReceive(player.$currentSeconds) { seconds in followPlayback(seconds) }
         .onReceive(NotificationCenter.default.publisher(for: .reelsTogglePlayback)) { _ in togglePlayback() }
         .onChange(of: store.playbackRate) { _, rate in if player.isPlaying { player.rate = Float(rate) } }
@@ -170,6 +173,14 @@ struct SphereAimPanel: View {
     private func load(_ proxy: SphereAimModel.Proxy) {
         player.load(url: proxy.url)
         syncToPlayhead()
+    }
+
+    /// Rebinds to the clip the selection or playhead now points at (see `followSphereAim`).
+    @discardableResult
+    private func follow() -> Bool {
+        guard store.followSphereAim() else { return false }
+        player.pause()
+        return true
     }
 
     private func proxySeconds(forLocal t: Double) -> Double? {
