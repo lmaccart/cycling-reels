@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ..util import ReelsError
-from .preview_cache import DOCUMENT_MARKER, renderer_namespace
+from .preview_cache import DOCUMENT_MARKER, preview_cache_lock, renderer_namespace
 
 
 def empty_preview(snapshot: dict, mode: str) -> dict | None:
@@ -654,13 +654,16 @@ class PreviewManager:
         if job.get("revisionDir"):
             paths.append(Path(job["revisionDir"]))
         token = object()
-        with self._busy_lock:
-            self._busy[id(token)] = paths
-        try:
-            return self._run_sandboxed(job, context=context, code_root=code_root, timeout=timeout)
-        finally:
+        # Enroll only after shared admission, and retain admission through every cache read/write.
+        # An exclusive trim either runs before this worker or skips it, never under an active reader.
+        with preview_cache_lock(self.preview_root):
             with self._busy_lock:
-                self._busy.pop(id(token), None)
+                self._busy[id(token)] = paths
+            try:
+                return self._run_sandboxed(job, context=context, code_root=code_root, timeout=timeout)
+            finally:
+                with self._busy_lock:
+                    self._busy.pop(id(token), None)
 
     def _run_sandboxed(self, job: dict, *, context=None, code_root: Path | None = None,
                        timeout: float = 900) -> dict:

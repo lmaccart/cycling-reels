@@ -538,32 +538,43 @@ class EditorService:
                 result.update(sourceState="offline", sourceReason=str(exc))
         return result
 
+    @contextlib.contextmanager
     def _register_preview(self, manifest):
         manifest = dict(manifest)
         if manifest.get("state") == "empty":
-            return manifest
+            yield manifest
+            return
         revisions = manifest.get("revisions", self.current_revisions())
-        key = manifest.get("httpKey") or ("previews/" + str(revisions.get("document", uuid.uuid4().hex))
-                                           + "/" + str(manifest.get("mode", "interactive")) + "/" + uuid.uuid4().hex)
+        # Each attempt owns its prefix, even when restoring a saved manifest. A
+        # failed registration/publication can then retire it without touching
+        # the current preview's URLs.
+        key = ("previews/" + str(revisions.get("document", uuid.uuid4().hex))
+               + "/" + str(manifest.get("mode", "interactive")) + "/" + uuid.uuid4().hex)
         manifest["httpKey"] = key
-        bundle = manifest.get("bundleDir") or manifest.get("bundle_dir")
-        static = manifest.get("staticDir") or manifest.get("static_dir") or manifest.get("stagingDir")
-        for directory in (bundle, static):
-            if directory and not Path(directory).resolve().is_relative_to(Path(self.workspace.root).resolve()):
-                raise ProtocolError("invalid_preview_path", "Preview bundles and staged media must be private revision artifacts.")
-        if bundle:
-            manifest["url"] = self.http.register_tree(key, Path(bundle))
-        if static:
-            manifest["staticURL"] = self.http.register_tree(key + "/public", Path(static)).rsplit("/", 1)[0] + "/"
-            manifest["staticBaseUrl"] = manifest["staticURL"]
-        for field in ("movie", "review", "reel", "path"):
-            path = manifest.get(field)
-            if isinstance(path, (str, Path)) and Path(path).is_file() and Path(path).suffix.lower() in (".mp4", ".mov"):
-                manifest[field + "URL"] = self.http.register_file(key + "/" + Path(path).name, Path(path))
-                if manifest.get("mode") == "exact":
-                    manifest["url"] = manifest[field + "URL"]
-        manifest.update(state="ready", revisions=revisions, revision=str(revisions.get("document", "")))
-        return manifest
+        try:
+            bundle = manifest.get("bundleDir") or manifest.get("bundle_dir")
+            static = manifest.get("staticDir") or manifest.get("static_dir") or manifest.get("stagingDir")
+            for directory in (bundle, static):
+                if directory and not Path(directory).resolve().is_relative_to(Path(self.workspace.root).resolve()):
+                    raise ProtocolError("invalid_preview_path", "Preview bundles and staged media must be private revision artifacts.")
+            if bundle:
+                manifest["url"] = self.http.register_tree(key, Path(bundle))
+            if static:
+                manifest["staticURL"] = self.http.register_tree(key + "/public", Path(static)).rsplit("/", 1)[0] + "/"
+                manifest["staticBaseUrl"] = manifest["staticURL"]
+            for field in ("movie", "review", "reel", "path"):
+                path = manifest.get(field)
+                if isinstance(path, (str, Path)) and Path(path).is_file() and Path(path).suffix.lower() in (".mp4", ".mov"):
+                    manifest[field + "URL"] = self.http.register_file(key + "/" + Path(path).name, Path(path))
+                    if manifest.get("mode") == "exact":
+                        manifest["url"] = manifest[field + "URL"]
+            manifest.update(state="ready", revisions=revisions, revision=str(revisions.get("document", "")))
+            yield manifest
+        except BaseException:
+            self.http.retire(key)
+            raise
+        else:
+            self._retire_superseded_previews(manifest)
 
     def _preview_record_path(self, document_id):
         key = hashlib.sha256(str(document_id).encode()).hexdigest()
@@ -582,47 +593,54 @@ class EditorService:
             saved = json.loads(path.read_text())
             if saved.get("documentId") != snapshot.get("documentId"):
                 return
-            restored = self._register_preview(saved)
-            if restored["revisions"] != snapshot.get("revisions"):
-                restored["state"] = "stale"
-                restored["requestedRevisions"] = snapshot.get("revisions")
-            self.preview = {**restored, "restored": True}
+            with self._register_preview(saved) as restored:
+                if restored["revisions"] != snapshot.get("revisions"):
+                    restored["state"] = "stale"
+                    restored["requestedRevisions"] = snapshot.get("revisions")
+                self.preview = {**restored, "restored": True}
         except Exception as exc:
-            self.preview = {"state": "unavailable", "reason": str(exc)}
+            if not self.preview.get("httpKey"):
+                self.preview = {"state": "unavailable", "reason": str(exc)}
 
     def _publish_preview(self, manifest):
         manifest = dict(manifest)
         revisions = manifest.get("revisions", self.current_revisions())
         if revisions != self.current_revisions():
             raise ProtocolError("stale_job", "Prepared preview belongs to an older document revision.")
-        manifest = self._register_preview(manifest)
-        def publish():
-            self.preview = manifest
-            atomic_json(Path(self.workspace.root) / "preview" / "last-ready.json", manifest)
-            if manifest.get("documentId"):
-                atomic_json(self._preview_record_path(manifest["documentId"]), manifest)
-            self.emit("preview.ready", manifest, revisions)
-            return manifest
-        document = self._doc()
-        if hasattr(document, "publish_if_current"):
-            published = document.publish_if_current(revisions, publish)
-        else:
-            if revisions != self.current_revisions():
-                raise ProtocolError("stale_job", "Preview preparation lost a race to a manual edit.")
-            published = publish()
-        self._retire_superseded_previews(manifest)
+        previous = self.preview
+        try:
+            with self._register_preview(manifest) as manifest:
+                def publish():
+                    atomic_json(Path(self.workspace.root) / "preview" / "last-ready.json", manifest)
+                    if manifest.get("documentId"):
+                        atomic_json(self._preview_record_path(manifest["documentId"]), manifest)
+                    self.preview = manifest
+                    self.emit("preview.ready", manifest, revisions)
+                    return manifest
+                document = self._doc()
+                if hasattr(document, "publish_if_current"):
+                    published = document.publish_if_current(revisions, publish)
+                else:
+                    if revisions != self.current_revisions():
+                        raise ProtocolError("stale_job", "Preview preparation lost a race to a manual edit.")
+                    published = publish()
+        except BaseException:
+            if self.preview is manifest:
+                self.preview = previous
+            raise
         self.trim_preview_cache()
         return published
 
     def _retire_superseded_previews(self, manifest):
         """Forget the HTTP URLs of a document's previews older than the newest few: the app only plays the
         current one, and a registered URL would otherwise pin its revision folder in the cache forever."""
-        key, document = manifest.get("httpKey"), manifest.get("documentId")
-        if not key or not document:
+        key = manifest.get("httpKey")
+        if not key:
             return
+        document = str(manifest.get("documentId") or "")
         with self._trim_lock:
-            keys = [known for known in self._published_previews.get(str(document), []) if known != key] + [key]
-            retired, self._published_previews[str(document)] = keys[:-KEEP_PER_DOCUMENT], keys[-KEEP_PER_DOCUMENT:]
+            keys = [known for known in self._published_previews.get(document, []) if known != key] + [key]
+            retired, self._published_previews[document] = keys[:-KEEP_PER_DOCUMENT], keys[-KEEP_PER_DOCUMENT:]
         for old in retired:
             self.http.retire(old)
 

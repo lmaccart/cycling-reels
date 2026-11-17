@@ -24,6 +24,7 @@ import re
 import stat
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable
@@ -32,8 +33,27 @@ DEFAULT_BUDGET_GB = 8.0
 GRACE_SECONDS = 600.0  # a younger entry may belong to a prepare that is still running
 KEEP_PER_DOCUMENT = 3
 DOCUMENT_MARKER = "document.json"  # PreviewManager.prepare records which document a revision folder belongs to
-REVISION_NAME = re.compile(r"[0-9a-f]{20}-[0-9a-f]{8}")  # renderer-candidate snapshots are not preview revisions
+REVISION_NAME = re.compile(r"(?:renderer-)?[0-9a-f]{20}-[0-9a-f]{8}")
 EVICT_PREFIX = ".evict-"
+
+
+@contextmanager
+def preview_cache_lock(preview_root: Path, *, exclusive: bool = False, blocking: bool = True):
+    """One workspace-local lock: workers share admission; an eviction pass excludes all workers.
+
+    Open separately per admission so threads and independent managers/processes coordinate alike.
+    Never unlink or write the lock file; a planted link cannot redirect a write into originals."""
+    fd = os.open(preview_root / ".evict.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    try:
+        operation = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+        try:
+            fcntl.flock(fd, operation | (0 if blocking else fcntl.LOCK_NB))
+        except BlockingIOError:
+            yield False
+        else:
+            yield True
+    finally:
+        os.close(fd)
 
 
 def budget_bytes(config: dict | None) -> int:
@@ -197,14 +217,11 @@ class PreviewCache:
         if not self._contained():
             report.skipped = "preview folder is not a private directory of this workspace"
             return report
-        lock = self._take_lock()
-        if lock is None:
-            report.skipped = "another pass is running"
-            return report
-        try:
+        with preview_cache_lock(self.preview_root, exclusive=True, blocking=False) as acquired:
+            if not acquired:
+                report.skipped = "another pass or worker is running"
+                return report
             self._pass(report)
-        finally:
-            os.close(lock)  # closing releases the flock; the lock file itself is never unlinked
         return report
 
     def _contained(self) -> bool:
@@ -215,15 +232,6 @@ class PreviewCache:
             if path.exists() and not path.resolve().is_relative_to(root):
                 return False
         return self.preview_root.is_dir()
-
-    def _take_lock(self) -> int | None:
-        fd = os.open(self.preview_root / ".evict.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            os.close(fd)
-            return None
-        return fd
 
     def _pass(self, report: Report) -> None:
         now = self._clock()
@@ -428,6 +436,11 @@ class PreviewCache:
         if parent is None:
             return False
         try:
+            # Admissions cannot start while this pass holds the exclusive lock. References can still
+            # change on publication/restoration, so refresh all protections immediately before rename.
+            revisions, others, _ = self._scan()
+            if key in self._keep_set(revisions, others, self._references(), self._clock()):
+                return False
             try:
                 if not stat.S_ISDIR(os.stat(key[-1], dir_fd=parent, follow_symlinks=False).st_mode):
                     return False
@@ -472,6 +485,7 @@ class PreviewCache:
         Only a regular, unreferenced render.mp4 beside a regular non-empty exact.mp4 goes; a link there is
         left alone, and the unlink is by name in the revision's own directory, so a link's target is never touched."""
         for entry in revisions:
+            refs = self._references()
             if now - entry.stamp < self._grace or entry.key in refs.busy or ("revisions", entry.path.name, "render.mp4") in refs.files:
                 continue
             fd = self._open_dir(entry.key)

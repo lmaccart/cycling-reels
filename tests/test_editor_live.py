@@ -42,7 +42,7 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "jobs.py": {"replace": 1, "unlink": 1},            # atomic write of private job records
         "live.py": {"unlink": 1},                          # the import's own .part temp inside inbox/
         "preview.py": {"replace": 2, "rmtree": 10, "unlink": 2},  # private jobs/exports and out/<slug>; document.json uses exclusive temp creation + fd chmod + atomic replace, never writes through worker links
-        "preview_cache.py": {"rename": 1, "rmdir": 1, "unlink": 2},  # preview/revisions + preview/cache only: fd-relative rename, recursive unlink/rmdir and render.mp4 unlink; O_NOFOLLOW descent, directory-only fchmod, never writes/chmods linked files or touches library/, plans/, proxies or reservations (LinkSafetyTests)
+        "preview_cache.py": {"rename": 1, "rmdir": 1, "unlink": 2},  # preview revisions (including renderer drafts) + cache only: shared worker/exclusive trim lock, refreshed protections, fd-relative no-follow deletion; never library/, plans/, proxies or reservations
         "proxy_cache.py": {"unlink": 2},                   # reservation leases under preview/proxy-reservations only
         "proxy_metal.py": {"unlink": 6},                   # this locked proxy job's native/mux/request temporaries only
         "proxy_stabilize.py": {"replace": 1, "unlink": 1},  # CORI JSON and its own temporary in the private proxy cache

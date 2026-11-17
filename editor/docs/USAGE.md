@@ -297,7 +297,7 @@ keeps it in `.cache/editor/live/preview/` and trims it:
 
 | Folder | What it holds | Trimmed? |
 | --- | --- | --- |
-| `revisions/<id>/` | One folder per prepared preview: its `public/` staged media, and for Exact mode `exact.mp4` (and `preview.mp4`). | Yes |
+| `revisions/<id>/` | One folder per prepared preview, including `renderer-*` drafts: its `public/` staged media, and for Exact mode `exact.mp4` (and `preview.mp4`). | Yes |
 | `cache/staged-media/renderer-<hash>/` | Staged clips shared by previews (one entry per cache key, plus per-clip `products/`), one folder per renderer revision. | Yes |
 | `cache/bundles/` | The preview player bundle (a few MB). | Only for old renderer revisions |
 | `sources/`, `spheres/`, `proxy-reservations/` | Source/360 proxies (hours of GPU encode) and their locks. | **Never** |
@@ -320,10 +320,18 @@ never removes, whatever the budget:
 
 It frees what is left in this order until the budget is met: old renderer revisions,
 unreferenced revisions (oldest first), then staged media and clip products (least
-recently used first). Each entry is renamed to `.evict-<id>` and then deleted, so a
-prepare that loses its cache entry halfway simply stages again. Exact mode also deletes
-its intermediate `render.mp4` once `exact.mp4` is encoded. Only this workspace's
-`preview/` is ever touched; `library/`, `plans/`, `out/` and proxies are not.
+recently used first). Workers hold shared admission on this workspace's
+`preview/.evict.lock` throughout cache use; a trim takes it exclusively. A prepare
+arriving during a trim waits, and a trim skips active workers. The trim refreshes
+manifest and in-flight protections before each rename, then renames the entry to
+`.evict-<id>` and deletes it. Missing cache entries are misses and stage again;
+symlinked or non-directory entries remain errors. Exact mode also deletes its
+unreferenced intermediate `render.mp4` once `exact.mp4` is encoded. Only this
+workspace's `preview/` is ever touched; `library/`, `plans/`, `out/` and proxies are not.
+
+Restored and newly published previews share the same HTTP-registration retirement:
+only the latest three per document retain their URLs. A failed registration or
+publication rolls back its new URLs rather than pinning an obsolete revision.
 
 The broker treats worker-written cache contents as untrusted. It replaces each
 revision's `document.json` through an exclusively created temporary file in a pinned

@@ -337,6 +337,27 @@ class StagingCacheTests(unittest.TestCase):
         with self.assertRaisesRegex(ReelsError, "symlink"):
             self._run(built, "symlink")
 
+    def test_non_directory_product_is_rejected(self):
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (entry,) = (self.cache_root / "products").iterdir()
+        worker._discard_tree(entry)
+        entry.write_bytes(b"not a directory")
+        with self.assertRaisesRegex(ReelsError, "not a directory"):
+            self._run(built, "non-directory")
+
+    def test_symlink_and_non_directory_aggregate_entries_are_rejected(self):
+        built = self._built([self._seg("clip")])
+        self.cache_root.mkdir()
+        target = self.root / "external-cache"
+        target.mkdir()
+        (self.cache_root / "symlink").symlink_to(target, target_is_directory=True)
+        with self.assertRaisesRegex(ReelsError, "symlink"):
+            self._run(built, "symlink")
+        (self.cache_root / "non-directory").write_bytes(b"not a directory")
+        with self.assertRaisesRegex(ReelsError, "not a regular directory"):
+            self._run(built, "non-directory")
+
     # -- clones instead of copies, and a cache the editor may trim underneath a prepare ----------------
 
     def _use_preview_layout(self):
@@ -344,7 +365,7 @@ class StagingCacheTests(unittest.TestCase):
         self.cache_root = self.root / "preview/cache/staged-media/renderer-x"
         from reels.editor.preview_cache import PreviewCache
         self.addCleanup(self._unlock_tree)
-        return PreviewCache(self.root, budget=0)
+        return PreviewCache(self.root, budget=0, grace=0)
 
     def _unlock_tree(self):
         import os
@@ -459,6 +480,64 @@ class StagingCacheTests(unittest.TestCase):
         self.assertFalse(reused)
         self.assertEqual(stats["misses"], 0)
         self.assertTrue((stage / "seg0.mp4").is_file())
+
+    def test_product_disappearing_during_initial_lstat_is_a_miss(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (product,) = (self.cache_root / "products").iterdir()
+        product = product.resolve()
+        real = Path.lstat
+        trimmed = []
+
+        def lstat_after_trim(path, *args, **kwargs):
+            if path == product and not trimmed:
+                trimmed.append(False)
+                trimmed[0] = _evict(trim, product)
+            return real(path, *args, **kwargs)
+
+        self.encodes.clear()
+        with patch.object(Path, "lstat", lstat_after_trim):
+            stage, reused, stats = self._run(built, "second")
+        self.assertEqual(trimmed, [True])
+        self.assertFalse(reused)
+        self.assertEqual(stats, {"hits": 0, "misses": 1})
+        self.assertEqual([entry[0] for entry in self.encodes], ["clip"])
+        self.assertIn(b"clip|", (stage / "seg0.mp4").read_bytes())
+        self.assertTrue((product / "cache.json").is_file())
+
+    def test_product_trimmed_at_initial_metadata_check_is_a_miss_and_regenerates(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (product,) = (self.cache_root / "products").iterdir()
+        product = product.resolve()
+        real = Path.stat
+        checks = []
+        trimmed = []
+
+        def stat_then_trim(path, *args, **kwargs):
+            info = real(path, *args, **kwargs)
+            if path == product and not trimmed:
+                checks.append(kwargs.get("follow_symlinks", True))
+                # The old validator's second lookup was exists(): it could return True just as the
+                # entry vanished, making its later is_dir() incorrectly report an unsafe entry.
+                # The single-lstat validator reaches its tree safety check instead; disappearing
+                # there must also regenerate rather than treating the missing directory as unsafe.
+                if kwargs.get("follow_symlinks", True) or len(checks) == 2:
+                    trimmed.append(False)  # Do not recurse if eviction inspects the same path.
+                    trimmed[0] = _evict(trim, product)
+            return info
+
+        self.encodes.clear()
+        with patch.object(Path, "stat", stat_then_trim):
+            stage, reused, stats = self._run(built, "second")
+        self.assertEqual(trimmed, [True])
+        self.assertFalse(reused)
+        self.assertEqual(stats, {"hits": 0, "misses": 1})
+        self.assertEqual([entry[0] for entry in self.encodes], ["clip"])
+        self.assertIn(b"clip|", (stage / "seg0.mp4").read_bytes())
+        self.assertTrue((product / "cache.json").is_file())
 
     def test_product_trimmed_while_it_is_restored_is_a_miss_and_encodes_again(self):
         trim = self._use_preview_layout()

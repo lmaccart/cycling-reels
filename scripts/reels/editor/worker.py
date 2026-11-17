@@ -305,11 +305,10 @@ def _product_roles(stage_function: str, out: Path) -> dict[str, Path]:
 
 
 def _product_manifest(entry: Path, key: str) -> dict | None:
-    if entry.is_symlink():
+    info = entry.lstat()
+    if stat.S_ISLNK(info.st_mode):
         raise ReelsError("staged-media product cache path is a symlink")
-    if not entry.exists():
-        return None
-    if not entry.is_dir():
+    if not stat.S_ISDIR(info.st_mode):
         raise ReelsError("staged-media product cache entry is not a directory")
     _cache_tree_safe(entry)
     marker_path = entry / "cache.json"
@@ -613,10 +612,14 @@ def _stage_cached(
     # The preview cache may drop an entry at any moment (rename, then delete). An entry that vanishes
     # while we read or clone it is a miss: stage again instead of failing the preview.
     for _attempt in range(3):
-        if cache.is_symlink():
-            raise ReelsError("staged-media cache path is a symlink")
         try:
-            if cache.is_dir() and (cache / "cache.json").is_file():
+            info = cache.lstat()
+            if stat.S_ISLNK(info.st_mode):
+                raise ReelsError("staged-media cache path is a symlink")
+            if not stat.S_ISDIR(info.st_mode):
+                raise ReelsError("staged-media cache entry is not a regular directory")
+            marker_info = (cache / "cache.json").lstat()
+            if stat.S_ISREG(marker_info.st_mode):
                 _cache_tree_safe(cache)
                 try:
                     marker = json.loads((cache / "cache.json").read_text(encoding="utf-8"))
@@ -634,7 +637,13 @@ def _stage_cached(
                     return True
         except FileNotFoundError:
             pass
-        if cache.exists():
+        try:
+            remaining = cache.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if stat.S_ISLNK(remaining.st_mode):
+                raise ReelsError("staged-media cache path is a symlink")
             raise ReelsError("staged-media cache entry is not a regular directory")
         counts = _build_cache_entry(
             project, built, cache_root, cache, cache_key,

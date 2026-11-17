@@ -20,6 +20,7 @@ from unittest.mock import Mock, patch
 from helpers import TempProject
 from reels.editor.delta import snapshot_token
 from reels.editor.protocol import ProtocolError
+from reels.editor.preview_cache import KEEP_PER_DOCUMENT
 from reels.editor.service import EditorService
 
 
@@ -298,19 +299,129 @@ class ServiceBoundaryTests(unittest.TestCase):
                          "unreferenced folders go oldest first, the newest three unowned ones stay")
         self.assertEqual(proxy.read_bytes(), b"proxy")
 
+    def _ready_preview_manifest(self, number, document_id="doc"):
+        movie = Path(self.workspace.root) / f"preview/revisions/lifecycle-{number}/exact.mp4"
+        movie.parent.mkdir(parents=True)
+        movie.write_bytes(b"movie")
+        revisions = {"document": f"d{number}", "library": "l", "renderer": "r"}
+        snapshot = {"documentId": document_id, "revisions": revisions,
+                    "plan": {"segments": [{"asset": "fixture"}]}}
+        self.service.document = SimpleNamespace(
+            snapshot=lambda: snapshot,
+            publish_if_current=lambda expected, callback: callback())
+        self.addCleanup(setattr, self.service, "document", None)
+        return {"documentId": document_id, "revisions": revisions,
+                "mode": "exact", "movie": str(movie)}
+
     def test_a_documents_preview_urls_beyond_the_newest_three_are_released(self):
-        root = Path(self.workspace.root)
         keys = []
-        for number in range(5):
-            movie = root / f"preview/revisions/rev{number}/exact.mp4"
-            movie.parent.mkdir(parents=True)
-            movie.write_bytes(b"movie")
-            key = f"previews/d{number}/exact/u{number}"
-            self.service.http.register_file(f"{key}/exact.mp4", movie)
-            self.service._retire_superseded_previews({"httpKey": key, "documentId": "doc"})
-            keys.append(key)
-        registered = set(self.service.http.files)
-        self.assertEqual(registered, {f"{key}/exact.mp4" for key in keys[2:]})
+        with patch.object(self.service, "trim_preview_cache"):
+            for number in range(KEEP_PER_DOCUMENT + 2):
+                published = self.service._publish_preview(self._ready_preview_manifest(number))
+                keys.append(published["httpKey"])
+        self.assertEqual(set(self.service.http.files),
+                         {f"{key}/exact.mp4" for key in keys[-KEEP_PER_DOCUMENT:]})
+
+    def test_restored_preview_urls_are_retired_by_later_publications(self):
+        saved = self._ready_preview_manifest(0)
+        record = self.service._preview_record_path(saved["documentId"])
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps(saved))
+        self.service._restore_preview(self.service.document.snapshot())
+        restored = self.service.preview
+        self.assertTrue(restored["restored"])
+        restored_key = restored["httpKey"]
+        self.assertIn(f"{restored_key}/exact.mp4", self.service.http.files)
+        self.assertEqual(self.service._published_previews["doc"], [restored_key])
+
+        keys = []
+        with patch.object(self.service, "trim_preview_cache"):
+            for number in range(1, KEEP_PER_DOCUMENT + 1):
+                published = self.service._publish_preview(self._ready_preview_manifest(number))
+                keys.append(published["httpKey"])
+        self.assertEqual(set(self.service.http.files), {f"{key}/exact.mp4" for key in keys})
+        self.assertNotIn(restored_key, self.service._published_previews["doc"])
+
+    def test_rejected_preview_publication_retires_only_the_new_registration(self):
+        with patch.object(self.service, "trim_preview_cache") as trim:
+            for number in range(KEEP_PER_DOCUMENT):
+                previous = self.service._publish_preview(self._ready_preview_manifest(number))
+            registered = dict(self.service.http.files)
+            enrolled = deepcopy(self.service._published_previews)
+            candidate = self._ready_preview_manifest(KEEP_PER_DOCUMENT)
+            candidate["httpKey"] = previous["httpKey"]
+
+            def reject(expected, callback):
+                self.assertGreater(len(self.service.http.files), len(registered))
+                raise ProtocolError("stale_job", "Document changed after registration.")
+
+            self.service.document.publish_if_current = reject
+            with self.assertRaisesRegex(ProtocolError, "Document changed"):
+                self.service._publish_preview(candidate)
+
+        self.assertEqual(dict(self.service.http.files), registered)
+        self.assertEqual(self.service._published_previews, enrolled)
+        self.assertIs(self.service.preview, previous)
+        self.assertEqual(trim.call_count, KEEP_PER_DOCUMENT)
+
+    def test_partial_preview_registration_failure_retires_only_the_new_prefix(self):
+        with patch.object(self.service, "trim_preview_cache"):
+            previous = self.service._publish_preview(self._ready_preview_manifest(0))
+            registered = dict(self.service.http.files)
+            candidate = self._ready_preview_manifest(1)
+            bundle = Path(candidate["movie"]).parent / "bundle"
+            bundle.mkdir()
+            (bundle / "index.html").write_text("preview")
+            (bundle / "z-link.mp4").symlink_to(candidate["movie"])
+            candidate.update(bundleDir=str(bundle), httpKey=previous["httpKey"])
+            with self.assertRaisesRegex(ProtocolError, "Bundle contains a symlink"):
+                self.service._publish_preview(candidate)
+
+        self.assertEqual(dict(self.service.http.files), registered)
+        self.assertEqual(self.service._published_previews["doc"], [previous["httpKey"]])
+        self.assertIs(self.service.preview, previous)
+
+    def test_failed_preview_record_write_preserves_previous_preview_and_registrations(self):
+        with patch.object(self.service, "trim_preview_cache"):
+            previous = self.service._publish_preview(self._ready_preview_manifest(0))
+            registered = dict(self.service.http.files)
+            candidate = self._ready_preview_manifest(1)
+            with (patch("reels.editor.service.atomic_json", side_effect=OSError("disk full")),
+                  self.assertRaisesRegex(OSError, "disk full")):
+                self.service._publish_preview(candidate)
+
+        self.assertEqual(dict(self.service.http.files), registered)
+        self.assertEqual(self.service._published_previews["doc"], [previous["httpKey"]])
+        self.assertIs(self.service.preview, previous)
+
+    def test_partial_restored_preview_registration_failure_leaves_no_pins(self):
+        saved = self._ready_preview_manifest(0)
+        bundle = Path(saved["movie"]).parent / "bundle"
+        bundle.mkdir()
+        (bundle / "index.html").write_text("preview")
+        (bundle / "z-link.mp4").symlink_to(saved["movie"])
+        saved["bundleDir"] = str(bundle)
+        record = self.service._preview_record_path(saved["documentId"])
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps(saved))
+
+        self.service._restore_preview(self.service.document.snapshot())
+
+        self.assertEqual(self.service.preview["state"], "unavailable")
+        self.assertEqual(self.service.http.files, {})
+        self.assertEqual(self.service._published_previews, {})
+
+    def test_previews_without_document_ids_have_bounded_registration_lifetimes(self):
+        keys = []
+        with patch.object(self.service, "trim_preview_cache"):
+            for number in range(KEEP_PER_DOCUMENT + 2):
+                candidate = self._ready_preview_manifest(number, document_id=None)
+                candidate.pop("documentId")
+                published = self.service._publish_preview(candidate)
+                keys.append(published["httpKey"])
+        self.assertEqual(set(self.service.http.files),
+                         {f"{key}/exact.mp4" for key in keys[-KEEP_PER_DOCUMENT:]})
+        self.assertEqual(self.service._published_previews[""], keys[-KEEP_PER_DOCUMENT:])
 
     def test_automatic_and_native_preview_requests_coalesce_instead_of_cancelling_each_other(self):
         entered, release = threading.Event(), threading.Event()

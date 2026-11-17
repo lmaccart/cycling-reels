@@ -6,8 +6,12 @@ import json
 import os
 import stat
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from reels.editor.preview import PreviewManager
 from reels.editor.preview_cache import (
@@ -342,17 +346,25 @@ class SafetyTests(CacheLayout):
         self.addCleanup(os.close, fd)
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         report = self.cache(0, keep_per_document=0).run()
-        self.assertEqual(report.skipped, "another pass is running")
+        self.assertEqual(report.skipped, "another pass or worker is running")
         self.assertTrue(stale.is_dir())
 
-    def test_renderer_candidate_snapshots_are_not_preview_revisions(self):
-        candidate = self.preview / "revisions" / "renderer-0123456789abcdef0123-deadbeef"
-        (candidate / "public").mkdir(parents=True)
-        (candidate / "public/x").write_bytes(b"c" * 10)
-        self.age(candidate, 99999)
+    def test_renderer_drafts_follow_reference_grace_and_in_flight_protections(self):
+        drafts = []
+        for seed, age in ((1, 99999), (2, 599), (3, 99999), (4, 99999)):
+            candidate = self.preview / "revisions" / ("renderer-" + revision_name(seed))
+            (candidate / "public").mkdir(parents=True)
+            (candidate / "public/x").write_bytes(b"c" * 10)
+            self.age(candidate, age)
+            drafts.append(candidate)
+        abandoned, young, referenced, running = drafts
+        self.write_manifest("last-ready.json", {"staticDir": str(referenced / "public")})
+        self.in_flight = [running]
         report = self.cache(0, keep_per_document=0).run()
-        self.assertEqual(report.evicted, [])
-        self.assertTrue(candidate.is_dir())
+        self.assertEqual(report.evicted, [abandoned])
+        self.assertFalse(abandoned.exists())
+        for kept in (young, referenced, running):
+            self.assertTrue(kept.is_dir())
 
     def test_scratch_of_killed_workers_goes_past_the_grace_period_even_under_budget(self):
         namespace = self.preview / "cache/staged-media" / renderer_namespace(CURRENT)
@@ -378,6 +390,100 @@ class SafetyTests(CacheLayout):
         self.in_flight = [namespace]
         self.cache(0).run()
         self.assertTrue(running.is_dir(), "a long encode inside a busy namespace outlives the grace period")
+
+
+class CoordinationTests(CacheLayout):
+    def test_prepare_starting_after_eviction_scan_waits_then_observes_a_miss(self):
+        from reels.editor import preview_cache
+
+        entry = self.staged(renderer_namespace(CURRENT), "old-entry", age=9000)
+        manager = PreviewManager(SimpleNamespace(root=self.root))
+        cache = self.cache(0, keep_per_document=0)
+        scanned, proceed, admission, entered = (threading.Event() for _ in range(4))
+        original_scan, original_flock = cache._scan, fcntl.flock
+        first = True
+
+        def scan():
+            nonlocal first
+            result = original_scan()
+            if first:
+                first = False
+                scanned.set()
+                if not proceed.wait(5):
+                    raise TimeoutError("eviction barrier")
+            return result
+
+        def flock(fd, operation):
+            if operation == fcntl.LOCK_SH:
+                admission.set()
+            return original_flock(fd, operation)
+
+        def read(job, **kwargs):
+            entered.set()
+            try:
+                return (entry / "seg0.mp4").read_bytes()
+            except FileNotFoundError:
+                return "miss"
+
+        with patch.object(cache, "_scan", side_effect=scan), \
+                patch.object(preview_cache.fcntl, "flock", side_effect=flock), \
+                patch.object(manager, "_run_sandboxed", side_effect=read), \
+                ThreadPoolExecutor(max_workers=2) as pool:
+            trimming = pool.submit(cache.run)
+            try:
+                self.assertTrue(scanned.wait(5))
+                preparing = pool.submit(manager._run_worker, {"revisions": {"renderer": CURRENT}})
+                self.assertTrue(admission.wait(5))
+                self.assertFalse(entered.is_set(), "shared admission must wait for the exclusive pass")
+                self.assertEqual(manager.in_flight_paths(), [])
+            finally:
+                proceed.set()
+            self.assertEqual(trimming.result(5).evicted, [entry])
+            self.assertEqual(preparing.result(5), "miss")
+        self.assertEqual(manager.in_flight_paths(), [])
+
+    def test_active_worker_excludes_eviction_until_its_cache_read_finishes(self):
+        entry = self.staged(renderer_namespace(CURRENT), "old-entry", age=9000)
+        manager = PreviewManager(SimpleNamespace(root=self.root))
+        entered, proceed = threading.Event(), threading.Event()
+
+        def read(job, **kwargs):
+            entered.set()
+            if not proceed.wait(5):
+                raise TimeoutError("worker barrier")
+            return (entry / "seg0.mp4").read_bytes()
+
+        with patch.object(manager, "_run_sandboxed", side_effect=read), ThreadPoolExecutor(max_workers=1) as pool:
+            preparing = pool.submit(manager._run_worker, {"revisions": {"renderer": CURRENT}})
+            try:
+                self.assertTrue(entered.wait(5))
+                report = self.cache(0, keep_per_document=0).run()
+                self.assertEqual(report.skipped, "another pass or worker is running")
+                self.assertTrue(entry.is_dir())
+            finally:
+                proceed.set()
+            self.assertEqual(preparing.result(5), b"s" * KB)
+        self.assertEqual(manager.in_flight_paths(), [])
+        self.assertEqual(self.cache(0, keep_per_document=0).run().evicted, [entry])
+
+    def test_references_and_in_flight_paths_are_refreshed_before_each_rename(self):
+        for protection in ("manifest", "in-flight"):
+            with self.subTest(protection=protection):
+                entry = self.staged(renderer_namespace(CURRENT), protection, age=9000)
+                cache = self.cache(0, keep_per_document=0)
+                original_evict = cache._evict
+
+                def protect_then_evict(key):
+                    if protection == "manifest":
+                        self.write_manifest("last-ready.json", {"staticDir": str(entry)})
+                    else:
+                        self.in_flight = [entry.parent]
+                    return original_evict(key)
+
+                with patch.object(cache, "_evict", side_effect=protect_then_evict):
+                    report = cache.run()
+                self.assertTrue(entry.is_dir())
+                self.assertEqual(report.evicted, [])
 
 
 class IntermediateTests(CacheLayout):
