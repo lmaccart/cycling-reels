@@ -22,6 +22,7 @@ final class EditorService {
     private(set) var logRing = LogRing()
     var onEvent: ((JSONValue) -> Void)?
     var onState: ((ServiceState) -> Void)?
+    var callStub: ((String, JSONValue) async throws -> JSONValue)?
 
     /// Last stderr lines from the service, for failure screens.
     func logTail(_ count: Int = 20) -> [String] { logRing.tail(count) }
@@ -81,6 +82,7 @@ final class EditorService {
     var isTerminated: Bool { !process.isRunning }
 
     func call(_ method: String, params: JSONValue = .object([:])) async throws -> JSONValue {
+        if let callStub { return try await callStub(method, params) }
         guard process.isRunning, let stdin else {
             throw ServiceFailure(code: "service_unavailable", message: "The editing service is not running.", details: nil)
         }

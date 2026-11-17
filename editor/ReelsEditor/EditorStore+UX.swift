@@ -126,7 +126,7 @@ enum EditorShortcut: Equatable {
         let key = characters?.lowercased() ?? ""
         if mods == [.command] {
             switch key {
-            case "b": return .split
+            case "k": return .split
             case "=", "+": return .zoomIn
             case "-", "_": return .zoomOut
             case "0": return .zoomFit

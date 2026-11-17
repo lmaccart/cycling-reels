@@ -114,7 +114,10 @@ final class EditorOperationTests: XCTestCase {
                        assetKind: nil, generated: nil, readOnly: nil, track: nil),
             EditorNode(id: "c", kind: "segment", lane: "video", parentId: nil, startFrame: 60, endFrame: 80,
                        frames: 20, raw: .object([:]), assetId: nil, sourceIn: nil, sourceOut: nil,
-                       assetKind: nil, generated: nil, readOnly: nil, track: nil)
+                       assetKind: nil, generated: nil, readOnly: nil, track: nil),
+            EditorNode(id: "readonly", kind: "segment", lane: "video", parentId: nil, startFrame: 10, endFrame: 50,
+                       frames: 40, raw: .object([:]), assetId: nil, sourceIn: nil, sourceOut: nil,
+                       assetKind: nil, generated: nil, readOnly: true, track: nil)
         ]
         XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes, selectedIDs: [], at: 30), ["a", "b"])
         XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes, selectedIDs: ["b"], at: 30), ["b"])
@@ -159,17 +162,45 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertNil(TimelineEditingTargets.flaggedDrop(id: "flag:gone", flags: [flag], library: [metadata]))
     }
 
-    func testClipContextMenuContentsMatchClipKind() {
-        let segment = TimelineContextMenuContents.groups(kind: "segment", is360: true, enabled: true)
-        XCTAssertEqual(segment, [
+    func testClipContextMenuContentsMatchClipKindAndSphereProbe() {
+        let sphere = EditorNode(id: "sphere-segment", kind: "segment", lane: "video", parentId: nil,
+                                startFrame: 0, endFrame: 60, frames: 60,
+                                raw: .object(["asset": .string("sphere-asset")]), assetId: "sphere-asset",
+                                sourceIn: 0, sourceOut: 2, assetKind: "video", generated: false,
+                                readOnly: false, track: "V1")
+        let sphereAsset: JSONValue = .object([
+            "id": .string("sphere-asset"), "kind": .string("video"),
+            "probe": .object(["sphere": .object(["projection": .string("equirectangular")])])
+        ])
+        XCTAssertEqual(TimelineContextMenuContents.groups(node: sphere, library: [sphereAsset]), [
             ["Split here", "Split at playhead"],
             ["Delete", "Ripple delete", "Duplicate", "Copy", "Paste"],
             ["Speed", "Disable"],
             ["Flag source range", "Aim 360", "Reveal in Source"]
         ])
-        XCTAssertEqual(TimelineContextMenuContents.groups(kind: "cutaway", is360: false, enabled: true), [
-            ["Delete", "Copy", "Paste"], ["Flag source range", "Reveal in Source"]
+        let flat = JSONValue.object(["id": .string("sphere-asset"), "kind": .string("video"),
+                                     "probe": .object(["sphere": .null])])
+        XCTAssertFalse(TimelineContextMenuContents.groups(node: sphere, library: [flat])
+            .flatMap { $0 }.contains("Aim 360"))
+        let cutaway = EditorNode(id: "cutaway", kind: "cutaway", lane: "overlay", parentId: "sphere-segment",
+                                 startFrame: 0, endFrame: 30, frames: 30, raw: .object([:]),
+                                 assetId: nil, sourceIn: nil, sourceOut: nil, assetKind: nil,
+                                 generated: false, readOnly: false, track: nil)
+        XCTAssertEqual(TimelineContextMenuContents.groups(node: cutaway, library: [sphereAsset]), [
+            ["Delete", "Paste"], ["Flag source range", "Reveal in Source"]
         ])
+    }
+    func testEditorServiceReturnsRecordedStubResponse() async throws {
+        let service = EditorService()
+        let recorded = JSONValue.object(["ok": .bool(true)])
+        service.callStub = { method, params in
+            XCTAssertEqual(method, "document.apply")
+            XCTAssertEqual(params["reason"]?.stringValue, "test edit")
+            return recorded
+        }
+
+        let response = try await service.call("document.apply", params: .object(["reason": .string("test edit")]))
+        XCTAssertEqual(response, recorded)
     }
     func testTimelineToolKeySwitching() {
         XCTAssertEqual(TimelineTool.fromKeyCode(8), .razor)

@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 final class EditorStore {
     static let shared = EditorStore()
 
-    let service = EditorService()
+    let service: EditorService
     let importer = ImportCoordinator()
     let music = MusicLibraryModel()
     let sphereAim = SphereAimModel()
@@ -103,7 +103,8 @@ final class EditorStore {
         var logLines: [String]
     }
 
-    init() {
+    init(service: EditorService = EditorService()) {
+        self.service = service
         let args = ProcessInfo.processInfo.arguments
         launchPlanPath = Self.argument("--plan", in: args)
         showPicker = launchPlanPath == nil
@@ -695,7 +696,10 @@ final class EditorStore {
         operations.append(contentsOf: overlays.map {
             .object(["op": .string("remove_overlay"), "id": .string($0.id)])
         })
-        let prediction = segments.isEmpty ? nil : OptimisticTimeline.remove(ids: Set(segments), ripple: false)
+        let positioned = TimelineEditingTargets.isPositioned(snapshot?.plan ?? .object([:]))
+        let prediction = segments.isEmpty ? nil : OptimisticTimeline.remove(
+            ids: Set(segments), ripple: !positioned, positioned: positioned
+        )
         Task {
             await apply(operations, reason: "Delete selection", predict: prediction)
         }

@@ -142,16 +142,19 @@ enum TimelineTool: String {
         }
     }
 }
+@MainActor
 enum TimelineContextMenuContents {
-    static func groups(kind: String, is360: Bool, enabled: Bool) -> [[String]] {
-        let source = ["Flag source range"] + (is360 ? ["Aim 360"] : []) + ["Reveal in Source"]
-        guard kind.lowercased() == "segment" else {
-            return [["Delete", "Copy", "Paste"], source]
+    static func groups(node: EditorNode, library: [JSONValue]) -> [[String]] {
+        let source = ["Flag source range"]
+            + (SphereAimModel.isSphereClip(node, library: library) ? ["Aim 360"] : [])
+            + ["Reveal in Source"]
+        guard node.kind.lowercased() == "segment" else {
+            return [["Delete", "Paste"], source]
         }
         return [
             ["Split here", "Split at playhead"],
             ["Delete", "Ripple delete", "Duplicate", "Copy", "Paste"],
-            ["Speed", enabled ? "Disable" : "Enable"],
+            ["Speed", node.raw["enabled"]?.boolValue == false ? "Enable" : "Disable"],
             source
         ]
     }
@@ -218,7 +221,7 @@ struct TimelinePanel: View {
                     .help("Next frame  →")
                     .accessibilityLabel("Next frame")
                 Button { store.splitAtPlayhead() } label: { Image(systemName: "scissors") }
-                    .help("Split the selected clip at the playhead  ⌘B")
+                    .help("Split the selected clip at the playhead  ⌘K")
                     .accessibilityLabel("Split at playhead")
                     .disabled(store.selectedNode == nil)
                 Button { store.deleteSelection() } label: { Image(systemName: "trash") }
@@ -226,8 +229,8 @@ struct TimelinePanel: View {
                     .accessibilityLabel("Delete selection")
                     .disabled(store.selectedIDs.isEmpty)
                 Spacer(minLength: 8)
-                if let node = store.selectedNode {
-                    Text(node.title)
+                if store.selectedNode != nil {
+                    Text(store.selectedNode?.title ?? "")
                         .font(EditorType.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -264,56 +267,12 @@ struct TimelinePanel: View {
 
             GeometryReader { proxy in
                 ScrollView(.horizontal) {
-                    TimelineCanvasRepresentable(
-                        snapshot: store.snapshot,
-                        tracks: store.tracks,
-                        trackMap: trackMap,
-                        selectedIDs: store.selectedIDs,
-                        changedIDs: store.recentlyChangedIDs,
-                        sourceURLs: store.timelineSourceURLs,
-                        playheadFrame: store.playheadFrame,
-                        zoom: zoom,
-                        snapping: snapping,
-                        scrollRequest: scrollRequest,
-                        onSelect: { id, additive in store.selectNode(id, additive: additive) },
-                        onSetSelection: { ids in store.setSelection(ids) },
-                        onBeginGesture: { owner in await store.acquireTimelineLease(owner: owner) },
-                        onEndGesture: { token in store.releaseTimelineLease(token) },
-                        onScrub: { frame, final in
-                            store.setPlayhead(frame, final: final)
-                        },
-                        onTrim: { node, sourceIn, sourceOut, ghost in store.trim(node: node, sourceIn: sourceIn, sourceOut: sourceOut, ghost: ghost) },
-                         onReorder: { node, frame, beforeID in
-                             store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID)
-                         },
-                         onOverwrite: { placements, editID in
-                             store.overwriteTimeline(placements, editID: editID)
-                         },
-                         onDropRejected: { store.notice = $0 },
-                         onMoveToTrack: { node, trackID in store.moveNode(node, toTrack: trackID) },
-                        onDelete: { store.deleteSelection() },
-                        onSplit: { store.splitAtPlayhead() },
-                        onScroll: { x in if abs(x - scrollX) > 0.5 { scrollX = x } },
-                        onToggleLock: { id, locked in store.setTrackLocked(id: id, locked: locked) },
-                        onAddTrack: { kind in store.addTrack(kind: kind) },
-                        onRenameTrack: { id in promptRename(trackID: id) },
-                        onDeleteTrack: { id in store.removeTrack(id: id) },
-                         onDropMusic: { slug, trackID in dropMusic(slug: slug, onTrack: trackID) },
-                         onPreviewDrop: { id, frame, trackID, command in
-                             store.previewTimelineDrop(id, atFrame: frame, trackID: trackID, commandInsert: command)
-                         },
-                         onDropItem: { id, frame, trackID, command in
-                             store.insertDroppedItem(id, atFrame: frame, trackID: trackID, commandInsert: command)
-                         },
-                         onContextAction: { action, id, frame in
-                             store.performTimelineContextAction(action, nodeID: id, atFrame: frame)
-                         }
-                     )
+                    makeCanvasRepresentable()
                     .frame(width: max(contentWidth, proxy.size.width), height: max(trackHeight, proxy.size.height))
                 }
                 .scrollIndicators(.hidden)
-                .onAppear { viewportWidth = proxy.size.width; fitIfPending() }
-                .onChange(of: proxy.size.width) { _, width in viewportWidth = width; fitIfPending() }
+                .onAppear { viewportWidth = proxy.size.width }
+                .onChange(of: proxy.size.width) { _, width in viewportWidth = width }
             }
             .background(EditorPalette.canvas)
             .overlay {
@@ -359,12 +318,19 @@ struct TimelinePanel: View {
         return map
     }
 
+    private func updateScroll(_ x: CGFloat) {
+        if abs(x - scrollX) > 0.5 { scrollX = x }
+    }
+
+    private func updateViewportWidth(_ width: CGFloat) {
+        viewportWidth = width
+    }
+
     private func fit() {
         zoom = TimelineMetrics.fitZoom(durationFrames: store.snapshot?.durationFrames ?? 0,
                                        viewportWidth: Double(viewportWidth), gutter: Self.gutter)
         scrollRequest = ScrollRequest(id: (scrollRequest?.id ?? 0) + 1, x: 0)
     }
-
     private func fitIfPending() {
         guard pendingFit, viewportWidth > 0, (store.snapshot?.durationFrames ?? 0) > 0 else { return }
         pendingFit = false
@@ -399,6 +365,54 @@ struct TimelinePanel: View {
                 }
             }
         }
+    }
+    private func makeCanvasRepresentable() -> TimelineCanvasRepresentable {
+                    TimelineCanvasRepresentable(
+                        snapshot: store.snapshot,
+                        tracks: store.tracks,
+                        trackMap: trackMap,
+                        library: store.library,
+                        selectedIDs: store.selectedIDs,
+                        changedIDs: store.recentlyChangedIDs,
+                        sourceURLs: store.timelineSourceURLs,
+                        playheadFrame: store.playheadFrame,
+                        zoom: zoom,
+                        snapping: snapping,
+                        scrollRequest: scrollRequest,
+                        onSelect: { id, additive in store.selectNode(id, additive: additive) },
+                        onSetSelection: { ids in store.setSelection(ids) },
+                        onBeginGesture: { owner in await store.acquireTimelineLease(owner: owner) },
+                        onEndGesture: { token in store.releaseTimelineLease(token) },
+                        onScrub: { frame, final in
+                            store.setPlayhead(frame, final: final)
+                        },
+                        onTrim: { node, sourceIn, sourceOut, ghost in store.trim(node: node, sourceIn: sourceIn, sourceOut: sourceOut, ghost: ghost) },
+                         onReorder: { node, frame, beforeID in
+                             store.moveTimelineItem(node, toFrame: frame, beforeID: beforeID)
+                         },
+                         onOverwrite: { placements, editID in
+                             store.overwriteTimeline(placements, editID: editID)
+                         },
+                         onDropRejected: { store.notice = $0 },
+                         onMoveToTrack: { node, trackID in store.moveNode(node, toTrack: trackID) },
+                        onDelete: { store.deleteSelection() },
+                        onSplit: { store.splitAtPlayhead() },
+                        onScroll: updateScroll,
+                        onToggleLock: { id, locked in store.setTrackLocked(id: id, locked: locked) },
+                        onAddTrack: { kind in store.addTrack(kind: kind) },
+                        onRenameTrack: { id in promptRename(trackID: id) },
+                        onDeleteTrack: { id in store.removeTrack(id: id) },
+                         onDropMusic: { slug, trackID in dropMusic(slug: slug, onTrack: trackID) },
+                         onPreviewDrop: { id, frame, trackID, command in
+                             store.previewTimelineDrop(id, atFrame: frame, trackID: trackID, commandInsert: command)
+                         },
+                         onDropItem: { id, frame, trackID, command in
+                             store.insertDroppedItem(id, atFrame: frame, trackID: trackID, commandInsert: command)
+                         },
+                         onContextAction: { action, id, frame in
+                             store.performTimelineContextAction(action, nodeID: id, atFrame: frame)
+                         }
+                     )
     }
 
     private var emptyReel: some View {
@@ -500,6 +514,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let snapshot: EditorSnapshot?
     let tracks: [EditorTrack]
     let trackMap: [String: String]
+    let library: [JSONValue]
     let selectedIDs: Set<String>
     let changedIDs: Set<String>
     let sourceURLs: [String: URL]
@@ -539,7 +554,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
 
     private func push(to view: TimelineCanvas) {
         view.update(
-            snapshot: snapshot, tracks: tracks, trackMap: trackMap, selectedIDs: selectedIDs, changedIDs: changedIDs,
+            snapshot: snapshot, tracks: tracks, trackMap: trackMap, library: library, selectedIDs: selectedIDs, changedIDs: changedIDs,
             sourceURLs: sourceURLs, playheadFrame: playheadFrame, zoom: zoom, snapping: snapping,
             scrollRequest: scrollRequest,
             callbacks: TimelineCanvas.Callbacks(
@@ -594,10 +609,11 @@ private final class TimelineCanvas: NSView {
     private var tracks: [EditorTrack] = EditorTrack.defaults
     private var rows: [TimelineLayout.Row] = TimelineLayout.rows(tracks: EditorTrack.defaults)
     private var trackMap: [String: String] = [:]
+    private var library: [JSONValue] = []
     private var selectedIDs: Set<String> = []
     private var changedIDs: Set<String> = []
-    private var sourceURLs: [String: URL] = [:]
     private var tool: TimelineTool = .select
+    private var sourceURLs: [String: URL] = [:]
     private let thumbnailCache = NSCache<NSString, NSImage>()
     private var pendingThumbnails: Set<String> = []
     private var waveformCache: [String: [Float]] = [:]
@@ -680,13 +696,14 @@ private final class TimelineCanvas: NSView {
         if let occlusionObserver { NotificationCenter.default.removeObserver(occlusionObserver) }
     }
 
-    func update(snapshot: EditorSnapshot?, tracks: [EditorTrack], trackMap: [String: String],
+    func update(snapshot: EditorSnapshot?, tracks: [EditorTrack], trackMap: [String: String], library: [JSONValue],
                 selectedIDs: Set<String>, changedIDs: Set<String>, sourceURLs: [String: URL],
                 playheadFrame: Int, zoom: Double, snapping: Bool, scrollRequest: ScrollRequest?,
                 callbacks: Callbacks) {
         let contentsChanged = self.snapshot != snapshot
             || self.tracks != tracks
             || self.trackMap != trackMap
+            || self.library != library
             || self.selectedIDs != selectedIDs
             || self.changedIDs != changedIDs
             || self.sourceURLs != sourceURLs
@@ -698,6 +715,7 @@ private final class TimelineCanvas: NSView {
             rows = TimelineLayout.rows(tracks: tracks)
         }
         self.trackMap = trackMap
+        self.library = library
         self.selectedIDs = selectedIDs
         self.changedIDs = changedIDs
         self.sourceURLs = sourceURLs
@@ -1793,10 +1811,7 @@ private final class TimelineCanvas: NSView {
             item.target = self
             menu.addItem(item)
         }
-        let is360 = (node.assetKind ?? "").lowercased().contains("360") || node.raw["is360"]?.boolValue == true
-        let groups = TimelineContextMenuContents.groups(
-            kind: node.kind, is360: is360, enabled: node.raw["enabled"]?.boolValue != false
-        )
+        let groups = TimelineContextMenuContents.groups(node: node, library: library)
         for (index, group) in groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }
             for title in group {
@@ -2186,6 +2201,7 @@ func makeTimelineCanvasCaptureView(
         snapshot: snapshot,
         tracks: tracks,
         trackMap: trackMap,
+        library: [],
         selectedIDs: selectedIDs,
         changedIDs: changedIDs,
         sourceURLs: [:],

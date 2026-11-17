@@ -184,28 +184,88 @@ enum OptimisticTimeline {
             }
         }
     }
-    /// Removes primary segments, optionally closing the gap in the primary sequence.
-    /// Child nodes are removed with their parent; free overlays stay in place.
-    static func remove(ids: Set<String>, ripple: Bool) -> Change {
+    /// Delete primary segments, carrying their children and matching the plan's timing mode.
+    static func remove(ids: Set<String>, ripple: Bool, positioned: Bool) -> Change {
         { nodes in
-            let removed = Set(nodes.filter { ids.contains($0.id) && $0.kind.lowercased() == "segment" }
-                .flatMap { subtree($0.id, in: nodes) })
+            let roots = nodes.filter { ids.contains($0.id) && $0.kind.lowercased() == "segment" }
+            let removed = Set(roots.flatMap { subtree($0.id, in: nodes) })
             guard !removed.isEmpty else { return nodes }
             let removedSegments = segments(nodes).filter { removed.contains($0.id) }
             let surviving = nodes.filter { !removed.contains($0.id) }
-            guard ripple, !removedSegments.isEmpty else { return surviving }
-            let ordered = segments(nodes)
-            var starts: [String: Int] = [:]
-            for segment in ordered where !removed.contains(segment.id) {
-                let shift = removedSegments.reduce(into: 0) { total, deleted in
-                    if deleted.startFrame < segment.startFrame {
-                        total += max(0, deleted.endFrame - deleted.startFrame)
-                    }
-                }
-                if shift > 0 { starts[segment.id] = max(0, segment.startFrame - shift) }
+            guard !removedSegments.isEmpty else { return surviving }
+            if positioned && !ripple { return surviving }
+            if positioned, let shifted = positionedRipple(nodes: nodes, removed: removedSegments) {
+                return shifted
+            } else if positioned {
+                return nodes
             }
-            return relayout(surviving, newStarts: starts)
+            return sequentialRipple(surviving: surviving, ordered: segments(nodes),
+                                    removed: removedSegments, removedIDs: removed)
         }
+    }
+
+    static func canRemove(ids: Set<String>, ripple: Bool, positioned: Bool, nodes: [EditorNode]) -> Bool {
+        guard positioned, ripple else { return true }
+        let removedIDs = Set(nodes.filter { ids.contains($0.id) && $0.kind.lowercased() == "segment" }
+            .flatMap { subtree($0.id, in: nodes) })
+        let removed = segments(nodes).filter { removedIDs.contains($0.id) }
+        return positionedRipple(nodes: nodes, removed: removed) != nil
+    }
+
+    private static func sequentialRipple(surviving: [EditorNode], ordered: [EditorNode],
+                                         removed: [EditorNode], removedIDs: Set<String>) -> [EditorNode] {
+        var starts: [String: Int] = [:]
+        for segment in ordered where !removedIDs.contains(segment.id) {
+            let shift = removed.reduce(into: 0) { total, deleted in
+                if deleted.startFrame < segment.startFrame {
+                    total += max(0, deleted.endFrame - deleted.startFrame)
+                }
+            }
+            if shift > 0 { starts[segment.id] = max(0, segment.startFrame - shift) }
+        }
+        return relayout(surviving, newStarts: starts)
+    }
+
+    /// Positioned ripple shifts all tracks by the union of the removed frame ranges.
+    /// nil means a surviving clip intersects a range and the server will reject the edit.
+    private static func positionedRipple(nodes: [EditorNode], removed: [EditorNode]) -> [EditorNode]? {
+        let removedIDs = Set(removed.flatMap { subtree($0.id, in: nodes) })
+        let survivors = nodes.filter { !removedIDs.contains($0.id) }
+        var ranges: [(start: Int, end: Int)] = []
+        for deleted in removed {
+            var start = deleted.startFrame
+            var end = deleted.endFrame
+            let track = deleted.track ?? "V1"
+            for other in segments(nodes) where !removedIDs.contains(other.id) && (other.track ?? "V1") == track {
+                if other.startFrame < start && start < other.endFrame {
+                    start = max(start, other.endFrame)
+                } else if start <= other.startFrame && other.startFrame < end && end < other.endFrame {
+                    end = min(end, other.startFrame)
+                }
+            }
+            if start < end { ranges.append((start, end)) }
+        }
+        ranges.sort { $0.start < $1.start }
+        var merged: [(start: Int, end: Int)] = []
+        for range in ranges {
+            if let last = merged.last, range.start <= last.end {
+                merged[merged.count - 1].end = max(last.end, range.end)
+            } else {
+                merged.append(range)
+            }
+        }
+        let survivorSegments = segments(survivors)
+        for other in survivorSegments {
+            if merged.contains(where: { other.startFrame < $0.end && other.endFrame > $0.start }) { return nil }
+        }
+        var starts: [String: Int] = [:]
+        for segment in survivorSegments {
+            let shift = merged.reduce(into: 0) { total, range in
+                if range.end <= segment.startFrame { total += range.end - range.start }
+            }
+            if shift > 0 { starts[segment.id] = max(0, segment.startFrame - shift) }
+        }
+        return relayout(survivors, newStarts: starts)
     }
 
     /// Shared Python/Swift ID contract for overwrite fragments and insertions.

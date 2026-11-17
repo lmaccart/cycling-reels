@@ -38,6 +38,22 @@ final class OptimisticTimelineTests: XCTestCase {
             track: track, atFrame: start
         )
     }
+    func testRemovePredictionClosesSequentialGapButPreservesPositionedGap() {
+        let nodes = [clip("a", 0, 30), clip("b", 30, 60), clip("c", 60, 90)]
+        let sequential = OptimisticTimeline.remove(ids: ["b"], ripple: true, positioned: false)(nodes)
+        XCTAssertEqual(starts(sequential), ["a": 0, "c": 30])
+        let positioned = OptimisticTimeline.remove(ids: ["b"], ripple: false, positioned: true)(nodes)
+        XCTAssertEqual(starts(positioned), ["a": 0, "c": 60])
+        let rippled = OptimisticTimeline.remove(ids: ["b"], ripple: true, positioned: true)(nodes)
+        XCTAssertEqual(starts(rippled), ["a": 0, "c": 30])
+    }
+
+    func testPositionedRipplePredictionDoesNotApplyWhenSurvivorStraddlesRange() {
+        let nodes = [clip("a", 0, 60, track: "V1"), clip("b", 30, 90, track: "V2")]
+        XCTAssertFalse(OptimisticTimeline.canRemove(ids: ["a"], ripple: true, positioned: true, nodes: nodes))
+        XCTAssertEqual(starts(OptimisticTimeline.remove(ids: ["a"], ripple: true, positioned: true)(nodes)),
+                       starts(nodes))
+    }
 
     func testReorderMovesSegmentAndCarriesItsChildren() {
         let moved = OptimisticTimeline.reorderSegment(id: "b", beforeID: "a")(reel)
@@ -526,13 +542,13 @@ final class OptimisticTimelineTests: XCTestCase {
         XCTAssertEqual(horizontal.frame, scrolledFrame - 8)
     }
     func testRemoveLeavesPositionedGapUnlessRippleRequested() {
-        let gap = OptimisticTimeline.remove(ids: ["a"], ripple: false)(reel)
+        let gap = OptimisticTimeline.remove(ids: ["a"], ripple: false, positioned: true)(reel)
         XCTAssertEqual(starts(gap)["b"], 30)
         XCTAssertEqual(starts(gap)["c"], 90)
         XCTAssertNil(starts(gap)["a"])
         XCTAssertEqual(starts(gap)["t"], 40)
 
-        let ripple = OptimisticTimeline.remove(ids: ["a"], ripple: true)(reel)
+        let ripple = OptimisticTimeline.remove(ids: ["a"], ripple: true, positioned: true)(reel)
         XCTAssertEqual(starts(ripple)["b"], 0)
         XCTAssertEqual(starts(ripple)["c"], 60)
         XCTAssertEqual(starts(ripple)["t"], 10)

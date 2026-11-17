@@ -26,7 +26,9 @@ enum TimelineEditingOperation {
 
 enum TimelineEditingTargets {
     static func split(nodes: [EditorNode], selectedIDs: Set<String>, at frame: Int) -> [String] {
-        let segments = OptimisticTimeline.segments(nodes).filter { frame > $0.startFrame && frame < $0.endFrame }
+        let segments = OptimisticTimeline.segments(nodes).filter {
+            frame > $0.startFrame && frame < $0.endFrame && canSplit(node: $0)
+        }
         let selected = segments.filter { selectedIDs.contains($0.id) }
         return (selectedIDs.isEmpty ? segments : selected).map(\.id)
     }
@@ -38,17 +40,30 @@ enum TimelineEditingTargets {
               let metadata = library.first(where: { $0["id"]?.stringValue == flag.asset }) else { return nil }
         return (flag.asset, metadata, flag.inPoint, flag.outPoint)
     }
+    static func isPositioned(_ plan: JSONValue) -> Bool {
+        plan["timeline"]?["version"]?.numberValue == 1
+    }
+
+    static func canSplit(node: EditorNode) -> Bool {
+        node.kind.lowercased() == "segment" && !node.isReadOnly
+    }
 }
 
 extension EditorStore {
     func deleteSegments(_ ids: [String], ripple: Bool) {
         guard !ids.isEmpty else { return }
+        let positioned = TimelineEditingTargets.isPositioned(snapshot?.plan ?? .object([:]))
         let operation = ripple ? TimelineEditingOperation.rippleRemove(ids: ids) : .object([
             "op": .string("remove_segments"), "ids": .array(ids.map(JSONValue.string))
         ])
+        let effectiveRipple = ripple || !positioned
+        let canPredict = OptimisticTimeline.canRemove(ids: Set(ids), ripple: effectiveRipple,
+                                                       positioned: positioned, nodes: snapshot?.nodes ?? [])
+        let prediction = canPredict
+            ? OptimisticTimeline.remove(ids: Set(ids), ripple: effectiveRipple, positioned: positioned)
+            : nil
         Task {
-            await apply([operation], reason: ripple ? "Ripple delete" : "Delete",
-                        predict: OptimisticTimeline.remove(ids: Set(ids), ripple: ripple))
+            await apply([operation], reason: ripple ? "Ripple delete" : "Delete", predict: prediction)
         }
     }
 
@@ -58,10 +73,9 @@ extension EditorStore {
     }
 
     func copySegments(_ ids: [String]) {
-        guard let state = snapshot else { return }
-        let copied = OptimisticTimeline.segments(state.nodes).filter { ids.contains($0.id) }.map { $0.raw }
-        guard !copied.isEmpty else { return }
-        copiedSegments = copied
+        guard let state = snapshot else { copiedSegments = []; return }
+        copiedSegments = OptimisticTimeline.segments(state.nodes)
+            .filter { ids.contains($0.id) }.map { $0.raw }
     }
 
     func pasteSegments() {
@@ -78,8 +92,12 @@ extension EditorStore {
     }
 
     func splitSegments(_ ids: [String], at frame: Int) {
-        guard !ids.isEmpty else { return }
-        let operations = ids.map { id in JSONValue.object([
+        let nodes = snapshot?.nodes ?? []
+        let validIDs = ids.filter { id in
+            nodes.first(where: { $0.id == id }).map { TimelineEditingTargets.canSplit(node: $0) } ?? false
+        }
+        guard !validIDs.isEmpty else { return }
+        let operations = validIDs.map { id in JSONValue.object([
             "op": .string("split_segment"), "id": .string(id), "atFrame": .number(Double(frame))
         ]) }
         Task { await apply(operations, reason: "Split clips") }
