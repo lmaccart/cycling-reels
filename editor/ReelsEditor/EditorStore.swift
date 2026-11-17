@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 final class EditorStore {
     static let shared = EditorStore()
 
-    let service = EditorService()
+    let service: EditorService
     let importer = ImportCoordinator()
     let music = MusicLibraryModel()
     let sphereAim = SphereAimModel()
@@ -26,6 +26,9 @@ final class EditorStore {
     var snapshot: EditorSnapshot? {
         didSet {
             if let oldValue, let snapshot, oldValue.documentId == snapshot.documentId {
+                if oldValue.isPreviewEmpty && !snapshot.isPreviewEmpty {
+                    previewManifest = snapshot.preview
+                }
                 reconcileSphereAimSelection(previous: oldValue.nodes, next: snapshot.nodes)
             }
         }
@@ -103,7 +106,8 @@ final class EditorStore {
         var logLines: [String]
     }
 
-    init() {
+    init(service: EditorService = EditorService()) {
+        self.service = service
         let args = ProcessInfo.processInfo.arguments
         launchPlanPath = Self.argument("--plan", in: args)
         showPicker = launchPlanPath == nil
@@ -162,6 +166,7 @@ final class EditorStore {
     }
     var fps: Double { max(snapshot?.fps ?? 30, 1) }
     var previewURL: URL? {
+        guard !isEmptyPreview else { return nil }
         let raw = previewManifest?["url"]?.stringValue
             ?? previewManifest?["staticURL"]?.stringValue
             ?? previewManifest?["programURL"]?.stringValue
@@ -172,6 +177,9 @@ final class EditorStore {
             ?? snapshot?.preview["capabilityURL"]?.stringValue
         guard let raw else { return nil }
         return URL(string: raw)
+    }
+    var isEmptyPreview: Bool {
+        previewManifest?["state"]?.stringValue == "empty" || snapshot?.isPreviewEmpty == true
     }
     var previewOrigin: URL? {
         guard let raw = workspaceInfo["previewOrigin"]?.stringValue else { return nil }
@@ -187,7 +195,7 @@ final class EditorStore {
         (previewManifest?["mode"]?.stringValue ?? snapshot?.preview["mode"]?.stringValue) == "exact"
     }
     var exactMovieURL: URL? {
-        guard isExactPreview else { return nil }
+        guard isExactPreview, !isEmptyPreview else { return nil }
         let raw = previewManifest?["movieURL"]?.stringValue
             ?? previewManifest?["previewVideoURL"]?.stringValue
             ?? previewManifest?["reelURL"]?.stringValue
@@ -406,7 +414,7 @@ final class EditorStore {
             syncPermissions(from: value)
             if let next = EditorSnapshot.decode(value) {
                 acceptRefreshedSnapshot(next)
-                if next.preview["state"]?.stringValue == "ready" {
+                if ["ready", "empty"].contains(next.preview["state"]?.stringValue ?? "") {
                     previewManifest = next.preview
                     NotificationCenter.default.post(name: .reelsEditorPreviewReady, object: next.preview)
                 }
@@ -455,7 +463,7 @@ final class EditorStore {
 
     func setPlayhead(_ frame: Int, final: Bool = true) {
         isScrubbing = !final
-        playheadFrame = max(0, min(snapshot?.durationFrames ?? frame, frame))
+        playheadFrame = max(0, min(snapshot?.editingDurationFrames ?? frame, frame))
         seekGeneration += 1
         guard final else { return }
         Task {
@@ -470,7 +478,7 @@ final class EditorStore {
     func updatePlayheadFromPreview(_ frame: Int, revision: String?) {
         guard !isScrubbing, let snapshot,
               revision == nil || revision == snapshot.revisions.document || revision == displayedPreviewRevision else { return }
-        playheadFrame = max(0, min(snapshot.durationFrames, frame))
+        playheadFrame = max(0, min(snapshot.editingDurationFrames, frame))
     }
 
     func hit(for id: String) -> SearchHit? { searchHits.first { $0.id == id } }
@@ -671,15 +679,7 @@ final class EditorStore {
     }
 
     func splitAtPlayhead() {
-        guard let node = selectedNode, !node.isReadOnly,
-              node.kind.lowercased().contains("segment") || node.lane.lowercased().contains("video") else { return }
-        Task {
-            await apply([.object([
-                "op": .string("split_segment"),
-                "id": .string(node.id),
-                "atFrame": .number(Double(playheadFrame))
-            ])], reason: "Split clip")
-        }
+        splitSegments(splitTargetsAtPlayhead, at: playheadFrame)
     }
 
     func deleteSelection() {
@@ -698,9 +698,15 @@ final class EditorStore {
                 "ids": .array(segments.map(JSONValue.string))
             ]))
         }
-        operations.append(contentsOf: overlays.map { .object(["op": .string("remove_overlay"), "id": .string($0.id)]) })
+        operations.append(contentsOf: overlays.map {
+            .object(["op": .string("remove_overlay"), "id": .string($0.id)])
+        })
+        let positioned = TimelineEditingTargets.isPositioned(snapshot?.plan ?? .object([:]))
+        let prediction = segments.isEmpty ? nil : OptimisticTimeline.remove(
+            ids: Set(segments), ripple: !positioned, positioned: positioned
+        )
         Task {
-            await apply(operations, reason: "Delete selection")
+            await apply(operations, reason: "Delete selection", predict: prediction)
         }
     }
 
@@ -1019,7 +1025,10 @@ final class EditorStore {
         }
 
         let value: JSONValue?
-        if let hit = hit(for: id) {
+        if let flag = flaggedDrop(id) {
+            value = Self.timelineInsertSpec(assetID: flag.assetID, metadata: flag.metadata,
+                                            sourceIn: flag.sourceIn, sourceOut: flag.sourceOut)
+        } else if let hit = hit(for: id) {
             value = Self.timelineInsertSpec(
                 assetID: hit.assetId, metadata: hit.raw,
                 sourceIn: hit.sourceIn, sourceOut: hit.sourceOut, moment: hit.raw["moment"]
@@ -1163,6 +1172,16 @@ final class EditorStore {
             return false
         }
         let startFrame = max(0, atFrame)
+        if let flag = flaggedDrop(id) {
+            guard let value = Self.timelineInsertSpec(assetID: flag.assetID, metadata: flag.metadata,
+                                                       sourceIn: sourceIn ?? flag.sourceIn,
+                                                       sourceOut: sourceOut ?? flag.sourceOut) else {
+                notice = "The selected source range is invalid."
+                return false
+            }
+            return submitTimelineInsert(value, assetID: flag.assetID, metadata: flag.metadata,
+                                        trackID: target.canonicalId ?? target.id, atFrame: startFrame)
+        }
         if let hit = hit(for: id) {
             guard let value = Self.timelineInsertSpec(
                 assetID: hit.assetId, metadata: hit.raw,

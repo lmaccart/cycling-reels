@@ -12,9 +12,10 @@ from unittest.mock import patch
 from helpers import TempProject, words
 from test_editor_segment_ops import OpsBase, SEQUENTIAL, header, placed
 from reels.editor.compile_runtime import serialize
+from reels.editor.document import editing_snapshot, ensure_node_ids
 from reels.editor.preview import PreviewManager
 from reels.editor.service import EditorService
-from reels.editor.transactions import DocumentStore
+from reels.editor.transactions import DocumentStore, _worker_compile
 from reels.render import build, check_plan, load_plan
 from reels.util import write_json
 
@@ -24,7 +25,162 @@ def render_timeline(project, plan, *, aligned=False):
     return {key: compiled[key] for key in ("fps", "total", "segs", "props", "sound")}
 
 
+def assert_playback_bounds(case, project, snapshot):
+    """Compare stable node IDs with retained identities from the real compiler."""
+    built = build(project, deepcopy(snapshot["plan"]), aligned=True)
+    ids = {int(entry["locator"].split("/")[2]): node_id
+           for node_id, entry in snapshot["plan"]["_editor"]["nodes"].items()
+           if entry["kind"] == "segment"}
+    expected = {ids[segment.index]: (segment.start, segment.start + segment.frames)
+                for segment in built["segs"]}
+    nodes = {node["id"]: node for node in snapshot["nodes"] if node["kind"] == "segment"}
+    case.assertEqual(set(nodes), set(ids.values()))
+    actual = {}
+    for node_id, node in nodes.items():
+        if node_id in expected:
+            actual[node_id] = (node["playbackStartFrame"], node["playbackEndFrame"])
+        else:
+            case.assertNotIn("playbackStartFrame", node)
+            case.assertNotIn("playbackEndFrame", node)
+    case.assertEqual(actual, expected)
+    editing = built.get("editing", built)
+    case.assertEqual(
+        {node_id: (node["startFrame"], node["endFrame"]) for node_id, node in nodes.items()},
+        {ids[segment.index]: (segment.start, segment.start + segment.frames) for segment in editing["segs"]},
+    )
+
+
+class ReviewPlaybackTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = TempProject(self)
+        for name in ("a", "b", "c"):
+            self.temp.asset(name, duration=30)
+
+    def snapshot(self, segments, **extra):
+        plan = load_plan(self.temp.project, self.temp.plan("playback", segments, **extra))
+        ensure_node_ids(plan)
+        compiled = serialize(build(self.temp.project, deepcopy(plan), aligned=True))
+        return editing_snapshot(plan, compiled, {"document": "d", "library": "l", "renderer": "r"})
+
+    def test_playback_bounds_follow_retained_indexes_across_disabled_gaps_and_tails(self):
+        for disabled in ((), (0,), (1,), (2,), (0, 1), (1, 2), (0, 2), (0, 1, 2)):
+            with self.subTest(disabled=disabled):
+                segments = [{"asset": name, "in": 1, "out": 3, **({"enabled": False} if i in disabled else {})}
+                            for i, name in enumerate(("a", "b", "c"))]
+                snapshot = self.snapshot(segments)
+                assert_playback_bounds(self, self.temp.project, snapshot)
+                if not disabled:
+                    for node in snapshot["nodes"]:
+                        if node["kind"] == "segment":
+                            self.assertEqual((node["playbackStartFrame"], node["playbackEndFrame"]),
+                                             (node["startFrame"], node["endFrame"]))
+
+    def test_playback_bounds_use_actual_fade_trim_and_speed_timing(self):
+        for disabled in ((), (1,), (0,)):
+            with self.subTest(disabled=disabled):
+                segments = [{"asset": "a", "in": 2, "out": 6, "speed": 2},
+                            {"asset": "b", "in": 3, "out": 6, "transition": "fade"},
+                            {"asset": "c", "in": 4, "out": 10, "speed": 1.5, "transition": "fade"}]
+                for i in disabled:
+                    segments[i]["enabled"] = False
+                assert_playback_bounds(self, self.temp.project, self.snapshot(segments))
+
+    def test_positioned_playback_bounds_are_identity_with_disabled_placements(self):
+        for disabled in ((), (1,), (2,), (0, 1, 2)):
+            with self.subTest(disabled=disabled):
+                segments = [placed("a", 0, 60), placed("b", 90, 60), placed("c", 180, 90)]
+                for i in disabled:
+                    segments[i]["enabled"] = False
+                snapshot = self.snapshot(segments, timeline=header(270))
+                assert_playback_bounds(self, self.temp.project, snapshot)
+                for node in snapshot["nodes"]:
+                    if node["kind"] == "segment" and node.get("enabled") is not False:
+                        self.assertEqual((node["playbackStartFrame"], node["playbackEndFrame"]),
+                                         (node["startFrame"], node["endFrame"]))
+
+    def test_unsupported_correspondence_is_absent_instead_of_guessed(self):
+        plan = load_plan(self.temp.project, self.temp.plan("compact", [
+            {"asset": "a", "in": 0, "out": 2},
+            {"asset": "b", "in": 0, "out": 2, "enabled": False},
+            {"asset": "c", "in": 0, "out": 2},
+        ]))
+        ensure_node_ids(plan)
+        compiled = serialize(build(self.temp.project, deepcopy(plan)))  # output indexes are compacted
+        for segment in compiled["segs"]:
+            self.assertNotIn("playbackStartFrame", segment)
+            self.assertNotIn("playbackEndFrame", segment)
+        snapshot = editing_snapshot(plan, compiled, {"document": "d", "library": "l", "renderer": "r"})
+        for node in snapshot["nodes"]:
+            self.assertNotIn("playbackStartFrame", node)
+            self.assertNotIn("playbackEndFrame", node)
+
+    def test_renderer_output_order_does_not_determine_node_correspondence(self):
+        plan = load_plan(self.temp.project, self.temp.plan("reordered", [
+            {"asset": "a", "in": 0, "out": 2},
+            {"asset": "a", "in": 2, "out": 4, "enabled": False},
+            {"asset": "a", "in": 4, "out": 6},
+        ]))
+        ensure_node_ids(plan)
+        built = build(self.temp.project, deepcopy(plan), aligned=True)
+        built["segs"].reverse()
+        snapshot = editing_snapshot(plan, serialize(built), {"document": "d", "library": "l", "renderer": "r"})
+        assert_playback_bounds(self, self.temp.project, snapshot)
+
+
 class ReviewOpsTests(OpsBase):
+    def test_playback_bounds_follow_disabled_source_edits_split_and_history(self):
+        store = self.store([{"asset": "a", "in": 0, "out": 2},
+                            {"asset": "b", "in": 4, "out": 12, "transition": "fade"},
+                            {"asset": "c", "in": 0, "out": 2, "transition": "fade"}])
+        before = store.snapshot()
+        assert_playback_bounds(self, self.temp.project, before)
+        owner = self.clips(before)[1]
+
+        def apply_checked(operations):
+            before = store.snapshot()
+            after = self.apply(store, operations, before)
+            assert_playback_bounds(self, self.temp.project, after)
+            undone = store.undo(after["revisions"])
+            assert_playback_bounds(self, self.temp.project, undone)
+            self.assertEqual(self.clips(undone), self.clips(before))
+            redone = store.redo(undone["revisions"])
+            assert_playback_bounds(self, self.temp.project, redone)
+            self.assertEqual(self.clips(redone), self.clips(after))
+            return redone
+
+        apply_checked([{"op": "set_enabled", "ids": [owner["id"]], "enabled": False}])
+        apply_checked([{"op": "trim_segment", "id": owner["id"], "sourceIn": 6, "sourceOut": 12}])
+        sped = apply_checked([{"op": "set_field", "id": owner["id"], "path": "/speed", "value": 2}])
+        current = next(node for node in self.clips(sped) if node["id"] == owner["id"])
+        split = apply_checked([{"op": "split_segment", "id": owner["id"], "atFrame": current["startFrame"] + 30}])
+        left, right = self.clips(split)[1:3]
+        self.assertNotEqual(left["id"], right["id"])
+        apply_checked([{"op": "set_enabled", "ids": [right["id"]], "enabled": True}])
+        apply_checked([{"op": "set_enabled", "ids": [left["id"]], "enabled": True}])
+
+    def test_warm_and_cold_serializers_emit_identical_playback_correspondence(self):
+        cases = [(disabled, False) for disabled in ((), (0,), (1,), (2,), (0, 1, 2))]
+        cases += [((1,), True), ((0, 1, 2), True)]
+        for disabled, positioned in cases:
+            with self.subTest(disabled=disabled, positioned=positioned):
+                segments = [{"asset": "a", "in": 2, "out": 6, "speed": 2},
+                            {"asset": "b", "in": 3, "out": 6, "transition": "fade"},
+                            {"asset": "c", "in": 4, "out": 10, "speed": 1.5, "transition": "fade"}]
+                extra = {}
+                if positioned:
+                    segments = [placed("a", 0, 60), placed("b", 90, 90), placed("c", 210, 120)]
+                    extra["timeline"] = header(330)
+                for i in disabled:
+                    segments[i]["enabled"] = False
+                plan = load_plan(self.temp.project, self.temp.plan("serializer-parity", segments, **extra))
+                ensure_node_ids(plan)
+                warm = serialize(build(self.temp.project, deepcopy(plan), aligned=True))
+                cold = _worker_compile(self.temp.project, deepcopy(plan), {})
+                self.assertEqual(warm["segs"], cold["segs"])
+                for compiled in (warm, cold):
+                    snapshot = editing_snapshot(plan, compiled, {"document": "d", "library": "l", "renderer": "r"})
+                    assert_playback_bounds(self, self.temp.project, snapshot)
+
     def test_saved_disabled_events_match_editor_render_and_check(self):
         store = self.store(SEQUENTIAL, **self.global_events(3.0))
         middle = self.clips(store.snapshot())[1]

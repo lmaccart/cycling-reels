@@ -1,6 +1,6 @@
-"""Waveform peaks and spectrogram images for the timeline's audio clips.
+"""Waveform peaks for the timeline's audio clips.
 
-Read-only on the library/music/sfx; everything generated lands in <repo>/.cache/editor/audio/."""
+Read-only on the library/music/sfx; everything generated lands in <repo>/.cache/editor/audio."""
 
 from __future__ import annotations
 
@@ -13,9 +13,8 @@ from typing import Any
 
 from .protocol import ProtocolError
 
-MODES = ("waveform", "spectrogram")
 SAMPLE_RATE = 8000
-MAX_WIDTH, MAX_HEIGHT = 4000, 400
+MAX_WIDTH = 4000
 CACHE_REL = Path(".cache/editor/audio")
 
 
@@ -25,13 +24,13 @@ def cache_dir(project) -> Path:
     return path
 
 
-def cache_key(source: Path, start: float, end: float, width: int, height: int, mode: str) -> str:
+def cache_key(source: Path, start: float, end: float, width: int) -> str:
     try:
         stat = source.stat()
         stamp = f"{stat.st_size}:{int(stat.st_mtime)}"
     except OSError:
         stamp = "?"
-    text = f"{source}|{stamp}|{start:.3f}|{end:.3f}|{width}|{height}|{mode}"
+    text = f"{source}|{stamp}|{start:.3f}|{end:.3f}|{width}"
     return hashlib.sha1(text.encode()).hexdigest()[:20]
 
 
@@ -129,7 +128,7 @@ def decode_pcm(path: str, start: float, end: float) -> bytes:
 
 def waveform(project, source: dict, width: int) -> dict:
     width = max(8, min(MAX_WIDTH, int(width)))
-    key = cache_key(Path(source["path"]), source["start"], source["end"], width, 0, "waveform")
+    key = cache_key(Path(source["path"]), source["start"], source["end"], width)
     cached = cache_dir(project) / f"{key}.json"
     if cached.is_file():
         try:
@@ -151,30 +150,11 @@ def waveform(project, source: dict, width: int) -> dict:
     return result
 
 
-def spectrogram(project, source: dict, width: int, height: int) -> dict:
-    width = max(16, min(MAX_WIDTH, int(width)))
-    height = max(8, min(MAX_HEIGHT, int(height)))
-    key = cache_key(Path(source["path"]), source["start"], source["end"], width, height, "spectrogram")
-    out = cache_dir(project) / f"{key}.png"
-    if not out.is_file():
-        tmp = out.with_suffix(".tmp.png")
-        cmd = [_ffmpeg(), "-v", "error", "-y", "-ss", f"{source['start']:.3f}",
-               "-t", f"{source['end'] - source['start']:.3f}", "-i", source["path"], "-vn",
-               "-ac", "1", "-ar", "22050", "-lavfi",
-               f"showspectrumpic=s={width}x{height}:legend=0:scale=log:color=magma",
-               "-frames:v", "1", str(tmp)]
-        run = subprocess.run(cmd, capture_output=True, timeout=90)
-        if run.returncode != 0 or not tmp.is_file():
-            raise ProtocolError("audio_decode_failed", run.stderr.decode(errors="replace")[-300:] or "ffmpeg failed")
-        tmp.replace(out)
-    return {"mode": "spectrogram", "key": key, "path": str(out), "width": width, "height": height,
-            "start": source["start"], "end": source["end"]}
-
 
 def audio_visual(project, snapshot: dict | None, params: dict[str, Any]) -> dict:
     mode = params.get("mode", "waveform")
-    if mode not in MODES:
-        raise ProtocolError("invalid_mode", "mode must be waveform or spectrogram.")
+    if mode != "waveform":
+        raise ProtocolError("invalid_mode", "mode must be waveform.")
     if params.get("nodeId"):
         if snapshot is None:
             raise ProtocolError("no_document", "Open a reel first.")
@@ -188,7 +168,4 @@ def audio_visual(project, snapshot: dict | None, params: dict[str, Any]) -> dict
         start = float(src.get("start") or 0)
         source = _checked(path, start, float(src.get("end") or start + 1))
     width = int(params.get("width") or 400)
-    height = int(params.get("height") or 40)
-    if mode == "waveform":
-        return waveform(project, source, width)
-    return spectrogram(project, source, width, height)
+    return waveform(project, source, width)

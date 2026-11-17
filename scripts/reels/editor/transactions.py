@@ -243,8 +243,15 @@ built = build(p, plan, **({"aligned": True,
     "timing_only": bool(json.loads(overrides_path.read_text()).get("__editor_timing_only__"))}
     if hasattr(renderer, "derive_render_plan") else {}))
 editing = built.get("editing", built)
+# Match retained renderer identities, never enabled-list positions: frozen or
+# compact renderer output may renumber segments instead of preserving indexes.
+playback = {sg.index: sg for sg in built["segs"] if not getattr(sg, "disabled", False)}
+retained = {sg.index for sg in editing["segs"] if not getattr(sg, "disabled", False)}
+if playback.keys() != retained or len(playback) != len(built["segs"]):
+    playback = {}
 segs = []
 for sg in editing["segs"]:
+    rendered = playback.get(sg.index) if not getattr(sg, "disabled", False) else None
     spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
     cuts = []
     for cut in sg.spec.get("_cutaways") or []:
@@ -258,7 +265,9 @@ for sg in editing["segs"]:
                  "sourceDuration":sg.asset.get("probe", {}).get("duration"),
                  "hasAudio":bool(sg.asset.get("probe", {}).get("hasAudio")),
                  "spec":spec, "frames":sg.frames, "trans":sg.trans, "start":sg.start,
-                 "cutaways":cuts, **({"disabled": True} if getattr(sg, "disabled", False) else {})})
+                 "cutaways":cuts, **({"disabled": True} if getattr(sg, "disabled", False) else {}),
+                 **({"playbackStartFrame": rendered.start,
+                     "playbackEndFrame": rendered.start + rendered.frames} if rendered is not None else {})})
 sound = dict(built.get("sound") or {})
 sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
 result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],

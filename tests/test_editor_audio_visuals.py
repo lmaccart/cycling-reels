@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import unittest
@@ -29,10 +28,10 @@ class PeakTests(unittest.TestCase):
         t = TempProject(self)
         f = t.root / "a.bin"
         f.write_bytes(b"x")
-        base = av.cache_key(f, 0, 1, 100, 40, "waveform")
-        self.assertEqual(base, av.cache_key(f, 0, 1, 100, 40, "waveform"))
-        for other in (av.cache_key(f, 0, 2, 100, 40, "waveform"), av.cache_key(f, 0, 1, 200, 40, "waveform"),
-                      av.cache_key(f, 0, 1, 100, 40, "spectrogram"), av.cache_key(f, 0.5, 1, 100, 40, "waveform")):
+        base = av.cache_key(f, 0, 1, 100)
+        self.assertEqual(base, av.cache_key(f, 0, 1, 100))
+        for other in (av.cache_key(f, 0, 2, 100), av.cache_key(f, 0, 1, 200),
+                      av.cache_key(f, 0.5, 1, 100)):
             self.assertNotEqual(base, other)
 
 
@@ -74,10 +73,9 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(av.audio_visual(self.t.project, self.snapshot,
                                          {"nodeId": "m", "mode": "waveform", "width": 50}), out)
 
-    def test_spectrogram_png_in_cache(self):
-        out = av.audio_visual(self.t.project, self.snapshot, {"nodeId": "m", "mode": "spectrogram", "width": 120, "height": 30})
-        self.assertTrue(os.path.realpath(out["path"]).startswith(str((self.t.root / ".cache/editor/audio").resolve())))
-        self.assertEqual(open(out["path"], "rb").read(4), b"\x89PNG")
+    def test_spectrogram_mode_is_not_supported(self):
+        with self.assertRaises(ProtocolError):
+            av.audio_visual(self.t.project, self.snapshot, {"nodeId": "m", "mode": "spectrogram", "width": 120, "height": 30})
 
     def test_bad_mode_and_outside_path(self):
         with self.assertRaises(ProtocolError):

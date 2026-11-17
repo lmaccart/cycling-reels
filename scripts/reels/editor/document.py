@@ -304,11 +304,16 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
         end = start + int(seg["frames"])
         ghost = bool(seg.get("disabled"))
         prop_index = i
+        playback = (
+            {key: int(seg[key]) for key in ("playbackStartFrame", "playbackEndFrame")}
+            if not ghost and raw.get("enabled") is not False
+            and all(key in seg for key in ("playbackStartFrame", "playbackEndFrame")) else {}
+        )
         resolve(path, seg["spec"], start, end, assetId=seg["asset"]["id"], sourceIn=seg["spec"].get("in"),
             sourceOut=seg["spec"].get("out"), speed=seg["spec"].get("speed", 1),
             transitionInFrames=int(seg.get("trans", 0)), mediaKind=seg.get("kind"),
             assetKind=seg.get("kind"), sourceDuration=seg.get("sourceDuration"),
-            **({"enabled": False} if ghost else {}))
+            **({"enabled": False} if ghost else {}), **playback)
         if ((compiled.get("timelineCapabilities") or {}).get("version") == 1
                 and seg.get("hasAudio") and seg["spec"].get("volume") != 0):
             visual = (props.get("segments") or [])[prop_index] if prop_index < len(props.get("segments") or []) else {}

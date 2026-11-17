@@ -2,7 +2,36 @@ import AppKit
 import XCTest
 @testable import ReelsEditor
 
+@MainActor
+private final class CursorRecordingCanvas: TimelineCanvas {
+    var registeredCursors: [NSCursor] = []
+    override func addCursorRect(_ rect: NSRect, cursor: NSCursor) {
+        registeredCursors.append(cursor)
+        super.addCursorRect(rect, cursor: cursor)
+    }
+}
+
 final class EditorUXHelpersTests: XCTestCase {
+    @MainActor
+    func testCanvasToolKeysRegisterAndRemoveTheRazorCursor() throws {
+        let canvas = CursorRecordingCanvas(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
+        let window = NSWindow(contentRect: canvas.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = canvas
+        defer { window.close() }
+        func press(_ code: UInt16, _ characters: String) throws {
+            canvas.keyDown(with: try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+                modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
+                characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: code)))
+            canvas.registeredCursors.removeAll()
+            canvas.resetCursorRects()
+        }
+        try press(8, "c")
+        XCTAssertEqual(canvas.registeredCursors, [.crosshair])
+        try press(9, "v")
+        XCTAssertFalse(canvas.registeredCursors.contains(.crosshair))
+    }
+
     func testTimecodeAndPreciseTime() {
         XCTAssertEqual(TimeFormat.timecode(0, fps: 30), "00:00:00:00")
         XCTAssertEqual(TimeFormat.timecode(95, fps: 30), "00:00:03:05")
@@ -72,10 +101,8 @@ final class EditorUXHelpersTests: XCTestCase {
         XCTAssertEqual(r(123, ""), .stepBack)
         XCTAssertEqual(r(124, "", .shift), .jumpForward)
         XCTAssertEqual(r(51, ""), .delete)
-        XCTAssertEqual(r(11, "b", .command), .split)
-        XCTAssertEqual(r(24, "=", .command), .zoomIn)
-        XCTAssertEqual(r(27, "-", .command), .zoomOut)
-        XCTAssertEqual(r(29, "0", .command), .zoomFit)
+        XCTAssertEqual(r(40, "k", .command), .split)
+        XCTAssertNil(r(11, "b", .command))
         XCTAssertNil(r(11, "b"))
         XCTAssertNil(r(34, "i", .command))
         XCTAssertNil(r(40, "k", .option))

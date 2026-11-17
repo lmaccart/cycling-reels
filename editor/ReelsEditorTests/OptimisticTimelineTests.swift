@@ -38,6 +38,22 @@ final class OptimisticTimelineTests: XCTestCase {
             track: track, atFrame: start
         )
     }
+    func testRemovePredictionClosesSequentialGapButPreservesPositionedGap() {
+        let nodes = [clip("a", 0, 30), clip("b", 30, 60), clip("c", 60, 90)]
+        let sequential = OptimisticTimeline.remove(ids: ["b"], ripple: true, positioned: false)(nodes)
+        XCTAssertEqual(starts(sequential), ["a": 0, "c": 30])
+        let positioned = OptimisticTimeline.remove(ids: ["b"], ripple: false, positioned: true)(nodes)
+        XCTAssertEqual(starts(positioned), ["a": 0, "c": 60])
+        let rippled = OptimisticTimeline.remove(ids: ["b"], ripple: true, positioned: true)(nodes)
+        XCTAssertEqual(starts(rippled), ["a": 0, "c": 30])
+    }
+
+    func testPositionedRipplePredictionDoesNotApplyWhenSurvivorStraddlesRange() {
+        let nodes = [clip("a", 0, 60, track: "V1"), clip("b", 30, 90, track: "V2")]
+        XCTAssertFalse(OptimisticTimeline.canRemove(ids: ["a"], ripple: true, positioned: true, nodes: nodes))
+        XCTAssertEqual(starts(OptimisticTimeline.remove(ids: ["a"], ripple: true, positioned: true)(nodes)),
+                       starts(nodes))
+    }
 
     func testReorderMovesSegmentAndCarriesItsChildren() {
         let moved = OptimisticTimeline.reorderSegment(id: "b", beforeID: "a")(reel)
@@ -525,4 +541,212 @@ final class OptimisticTimelineTests: XCTestCase {
         XCTAssertFalse(horizontal.verticalSameTime)
         XCTAssertEqual(horizontal.frame, scrolledFrame - 8)
     }
+    func testRemoveLeavesPositionedGapUnlessRippleRequested() {
+        let gap = OptimisticTimeline.remove(ids: ["a"], ripple: false, positioned: true)(reel)
+        XCTAssertEqual(starts(gap)["b"], 30)
+        XCTAssertEqual(starts(gap)["c"], 90)
+        XCTAssertNil(starts(gap)["a"])
+        XCTAssertEqual(starts(gap)["t"], 40)
+
+        let ripple = OptimisticTimeline.remove(ids: ["a"], ripple: true, positioned: true)(reel)
+        XCTAssertEqual(starts(ripple)["b"], 0)
+        XCTAssertEqual(starts(ripple)["c"], 60)
+        XCTAssertEqual(starts(ripple)["t"], 10)
+        XCTAssertNil(starts(ripple)["a"])
+    }
+    func testDisabledTailKeepsEditingExtentWithoutExtendingRenderedDuration() throws {
+        let disabled = EditorNode(
+            id: "ghost", kind: "segment", lane: "primary", parentId: nil,
+            startFrame: 120, endFrame: 300, frames: 180,
+            raw: .object(["asset": .string("ghost"), "enabled": .bool(false)]),
+            assetId: "ghost", sourceIn: 0, sourceOut: 6, sourceDuration: 6,
+            speed: 1, assetKind: "video", mediaKind: "video", generated: false,
+            readOnly: false, track: "V1"
+        )
+        let encodedNodes = try JSONEncoder().encode([disabled])
+        let nodes = try JSONDecoder().decode(JSONValue.self, from: encodedNodes)
+        let snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("disabled-doc"),
+            "revisions": .object([
+                "document": .string("d"), "library": .string("l"), "renderer": .string("r")
+            ]),
+            "plan": .object(["segments": .array([])]),
+            "nodes": nodes,
+            "fps": .number(30), "durationFrames": .number(0),
+            "editingDurationFrames": .number(300),
+            "warnings": .array([]), "preview": .object(["state": .string("empty")]),
+        ])))
+
+        let next = OptimisticTimeline.apply(.init { $0 }, to: snapshot)
+        XCTAssertEqual(next.durationFrames, 0)
+        XCTAssertEqual(next.editingDurationFrames, 300)
+        XCTAssertEqual(next.nodes.first?.raw["enabled"]?.boolValue, false)
+    }
+
+    /// Real compiler snapshots from the shared metadata-only fixture. Nothing is
+    /// decoded, staged, rendered, or written into the working project's plans.
+    private func compilerCases() throws -> [JSONValue] {
+        let code = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let python = ProcessInfo.processInfo.environment["REELS_TEST_PYTHON"]
+            ?? "/Users/leif/rice/cycling/.venv/bin/python"
+        guard FileManager.default.isExecutableFile(atPath: python) else {
+            throw XCTSkip("Needs the read-only main checkout Python environment")
+        }
+        let script = """
+        import json, unittest
+        from helpers import TempProject, live_workspace
+        from reels.editor.transactions import DocumentStore, DocumentError
+        from test_editor_segment_ops import placed, header
+        case = unittest.TestCase()
+        fixture = TempProject(case)
+        try:
+            for aid in ("a", "b", "c"):
+                fixture.asset(aid, duration=12, audio=False)
+            workspace = live_workspace(fixture)
+            cases = []
+            def record(name, segments, operation, **extra):
+                slug = name.replace("_", "-")
+                fixture.plan(slug, segments, **extra)
+                store = DocumentStore(workspace, f"plans/{slug}.json")
+                try:
+                    before = store.snapshot()
+                    target = next(n for n in before["nodes"] if n["kind"] == "segment" and n["assetId"] == ("c" if name == "trim" else "b" if name.startswith("fade") else "a"))
+                    op = {**operation, "id" if operation["op"] == "trim_segment" else "ids": target["id"] if operation["op"] == "trim_segment" else [target["id"]]}
+                    try:
+                        store.apply({"expected": before["revisions"], "operations": [op], "origin": "manual"})
+                        cases.append({"name": name, "before": before, "after": store.snapshot()})
+                    except DocumentError as error:
+                        cases.append({"name": name, "before": before, "rejected": str(error)})
+                finally:
+                    store.close()
+            record("trim", [{"asset": "a", "in": 0, "out": 2},
+                            {"asset": "b", "in": 0, "out": 2, "enabled": False},
+                            {"asset": "c", "in": 0, "out": 2}],
+                   {"op": "trim_segment", "sourceIn": 0, "sourceOut": 1.5})
+            for op in ("remove_segments", "ripple_remove"):
+                record("fade-" + op, [{"asset": aid, "in": 0, "out": 2, "transition": "fade",
+                                       "text": [{"text": aid, "at": 0.5, "for": 0.5}]} for aid in ("a", "b", "c")],
+                       {"op": op}, text=[{"text": "after deleted fade", "at": 4.7, "for": 0.4},
+                                        {"text": "inside deleted fade", "at": 2.8, "for": 0.4}])
+            for disabled in ("a", "b"):
+                record("disabled-" + disabled,
+                       [placed("a", 0, 60, **({"enabled": False} if disabled == "a" else {})),
+                        placed("b", 30, 60, **({"enabled": False} if disabled == "b" else {})),
+                        placed("c", 150, 30)], {"op": "ripple_remove"}, timeline=header(180))
+            faded = placed("b", 52, 60, transition="fade")
+            faded["timeline"]["transitionInFrames"] = 8
+            record("positioned-fade", [placed("a", 0, 60), faded, placed("c", 150, 30)],
+                   {"op": "ripple_remove"}, timeline=header(300),
+                   text=[{"text": "after removed interval", "at": 5.3, "for": 0.5},
+                         {"text": "inside removed interval", "at": 0.5, "for": 0.4}])
+            print(json.dumps(cases))
+        finally:
+            case.doCleanups()
+        """
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: python)
+        process.arguments = ["-c", script]
+        process.currentDirectoryURL = code
+        var environment = ProcessInfo.processInfo.environment
+        environment["PYTHONPATH"] = code.appending(path: "scripts").path + ":" + code.appending(path: "tests").path
+        process.environment = environment
+        let output = Pipe()
+        let errors = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + ".log")
+        FileManager.default.createFile(atPath: errors.path, contents: nil)
+        let errorHandle = try FileHandle(forWritingTo: errors)
+        defer {
+            try? errorHandle.close()
+            try? FileManager.default.removeItem(at: errors)
+        }
+        process.standardOutput = output
+        process.standardError = errorHandle
+        try process.run()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            XCTFail(try String(contentsOf: errors, encoding: .utf8))
+            throw NSError(domain: "OptimisticCompilerFixture", code: Int(process.terminationStatus))
+        }
+        return try JSONDecoder().decode([JSONValue].self, from: data)
+    }
+
+    @MainActor
+    func testRealCompilerTrimDeleteAndRippleMatchCallerPredictions() async throws {
+        for fixture in try compilerCases() {
+            let name = try XCTUnwrap(fixture["name"]?.stringValue)
+            let before = try XCTUnwrap(EditorSnapshot.decode(try XCTUnwrap(fixture["before"])))
+            let positioned = TimelineEditingTargets.isPositioned(before.plan)
+            let ripple = name != "trim" && name != "fade-remove_segments"
+            let asset = name == "trim" ? "c" : name.hasPrefix("fade-") ? "b" : "a"
+            let target = try XCTUnwrap(before.nodes.first { $0.kind == "segment" && $0.assetId == asset })
+            let ids: Set<String> = [target.id]
+            let change = name == "trim" ? OptimisticTimeline.trimSegment(id: target.id, length: 45)
+                : OptimisticTimeline.remove(ids: ids, ripple: ripple, positioned: positioned)
+            if fixture["rejected"] != nil {
+                XCTAssertTrue(fixture["rejected"]?.stringValue?.contains("crosses the removed range") == true, name)
+                XCTAssertFalse(OptimisticTimeline.canRemove(ids: ids, ripple: true, positioned: true, nodes: before.nodes), name)
+                XCTAssertEqual(OptimisticTimeline.apply(change, to: before), before, name)
+                let store = EditorStore()
+                store.snapshot = before
+                store.authoritativeSnapshot = before
+                store.selectedIDs = ids
+                let sent = expectation(description: name)
+                store.service.callStub = { method, _ in
+                    XCTAssertEqual(method, "document.apply")
+                    XCTAssertEqual(store.snapshot, before, "Rejected edits must not predict a rollback")
+                    sent.fulfill()
+                    return fixture["before"] ?? .null
+                }
+                store.performTimelineContextAction("Ripple delete", nodeID: target.id, atFrame: target.startFrame)
+                await fulfillment(of: [sent], timeout: 10)
+                await store.editTail?.value
+                store.service.callStub = nil
+                XCTAssertEqual(store.snapshot, before, name)
+                continue
+            }
+            let after = try XCTUnwrap(EditorSnapshot.decode(try XCTUnwrap(fixture["after"])))
+            let expected = OptimisticTimeline.apply(change, to: before)
+            XCTAssertEqual(expected.durationFrames, after.durationFrames, name)
+            XCTAssertEqual(expected.editingDurationFrames, after.editingDurationFrames, name)
+            XCTAssertEqual(starts(expected.nodes), starts(after.nodes), name)
+            if name == "trim" {
+                XCTAssertEqual(expected.durationFrames, 105)
+                XCTAssertEqual(expected.editingDurationFrames, 165)
+            } else if name.hasPrefix("fade-") {
+                XCTAssertEqual(expected.nodes.first { $0.assetId == "c" && $0.kind == "segment" }?.startFrame, 52)
+                XCTAssertTrue(expected.nodes.contains { $0.parentId != nil }, "Compare child timing as well as segment starts")
+            } else {
+                XCTAssertEqual(expected.durationFrames, 248)
+                XCTAssertEqual(expected.nodes.first { $0.assetId == "b" }?.raw["transition"]?.stringValue, "cut")
+            }
+            let store = EditorStore()
+            store.snapshot = before
+            store.authoritativeSnapshot = before
+            store.selectedIDs = ids
+            let sent = expectation(description: name)
+            store.service.callStub = { method, _ in
+                XCTAssertEqual(method, "document.apply")
+                XCTAssertEqual(store.snapshot?.nodes, expected.nodes, name)
+                XCTAssertEqual(store.snapshot?.durationFrames, after.durationFrames, name)
+                XCTAssertEqual(store.snapshot?.editingDurationFrames, after.editingDurationFrames, name)
+                sent.fulfill()
+                return fixture["after"] ?? .null
+            }
+            if name == "trim" {
+                store.trim(node: target, sourceIn: 0, sourceOut: 1.5,
+                           ghost: TimelineGhost(start: target.startFrame, end: target.startFrame + 45))
+            } else if ripple {
+                store.performTimelineContextAction("Ripple delete", nodeID: target.id, atFrame: target.startFrame)
+            } else {
+                store.deleteSelection()
+            }
+            await fulfillment(of: [sent], timeout: 10)
+            await store.editTail?.value
+            store.service.callStub = nil
+            XCTAssertEqual(store.snapshot?.durationFrames, after.durationFrames, name)
+            XCTAssertEqual(store.snapshot?.editingDurationFrames, after.editingDurationFrames, name)
+        }
+    }
 }
+

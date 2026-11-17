@@ -6,16 +6,11 @@ extension Notification.Name {
     static let reelsAudioVisualReady = Notification.Name("ReelsEditor.audioVisualReady")
 }
 
-enum AudioVisualMode: String, CaseIterable, Sendable {
-    case waveform, spectrogram
-}
 
-/// Waveform / spectrogram images for audio clips, produced by the Python service ("audio.visual")
-/// and cached by node + source range + mode + bucketed size.
+/// Waveform images for audio clips, produced by the Python service and cached by node + source range.
 @MainActor
 final class AudioVisualCache {
     static let shared = AudioVisualCache()
-    static let defaultsKey = "ReelsEditor.audioVisualMode"
     private static let maxConcurrent = 3
 
     private weak var service: EditorService?
@@ -27,14 +22,6 @@ final class AudioVisualCache {
     private var queue: [(key: String, group: String, params: JSONValue)] = []
     private var running = 0
 
-    var mode: AudioVisualMode {
-        get { AudioVisualMode(rawValue: UserDefaults.standard.string(forKey: Self.defaultsKey) ?? "") ?? .waveform }
-        set {
-            guard newValue != mode else { return }
-            UserDefaults.standard.set(newValue.rawValue, forKey: Self.defaultsKey)
-            NotificationCenter.default.post(name: .reelsAudioVisualReady, object: nil)
-        }
-    }
 
     func configure(service: EditorService) { self.service = service }
 
@@ -45,21 +32,19 @@ final class AudioVisualCache {
 
     /// The image for an audio clip at roughly `pixelSize`, or nil while it loads (a
     /// `.reelsAudioVisualReady` notification follows). Non-audio nodes return nil.
-    func image(for node: EditorNode, snapshot: EditorSnapshot, mode: AudioVisualMode, pixelSize: CGSize) -> NSImage? {
-        guard pixelSize.width >= 4, pixelSize.height >= 4 else { return nil }
+    func image(for node: EditorNode, snapshot: EditorSnapshot, pixelSize: CGSize) -> NSImage? {
+        guard pixelSize.width >= 4 else { return nil }
         let width = min(4000, Int((pixelSize.width / 64).rounded(.up)) * 64)
-        let height = min(400, max(8, Int((pixelSize.height / 8).rounded(.up)) * 8))
-        let group = "\(node.id)|\(mode.rawValue)"
+        let group = node.id
         var range = "\(node.startFrame)-\(node.endFrame)|\(node.sourceIn ?? -1)-\(node.sourceOut ?? -1)"
         if node.kind.contains("music") {
             range += "|" + String(describing: snapshot.plan["music"]?.jsonData().map { String(decoding: $0, as: UTF8.self) } ?? "")
         }
-        let key = "\(group)|\(range)|\(width)x\(mode == .spectrogram ? height : 0)"
+        let key = "\(group)|\(range)|\(width)"
         if let image = images[key] { return image }
         if !failed.contains(key), !inFlight.contains(key), !queue.contains(where: { $0.key == key }) {
             let params: JSONValue = .object([
-                "nodeId": .string(node.id), "mode": .string(mode.rawValue),
-                "width": .number(Double(width)), "height": .number(Double(height)),
+                "nodeId": .string(node.id), "width": .number(Double(width))
             ])
             queue.removeAll { $0.group == group }  // an older size of the same clip is obsolete
             queue.append((key, group, params))
@@ -100,14 +85,6 @@ final class AudioVisualCache {
     // MARK: drawing
 
     private static func makeImage(from value: JSONValue) -> NSImage? {
-        if value["mode"]?.stringValue == "spectrogram" {
-            guard let path = value["path"]?.stringValue, let source = NSImage(contentsOfFile: path) else { return nil }
-            let size = source.size
-            return NSImage(size: size, flipped: false) { rect in
-                source.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 0.8)
-                return true
-            }
-        }
         guard let peaks = value["peaks"]?.arrayValue else { return nil }
         let pairs: [(Float, Float)] = peaks.map { pair in
             let items = pair.arrayValue ?? []

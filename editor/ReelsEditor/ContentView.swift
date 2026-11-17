@@ -125,7 +125,7 @@ private struct EditorToolbar: View {
                 .disabled(!store.hasDocument)
             toolbarDivider
             Button { store.splitAtPlayhead() } label: { Image(systemName: "scissors") }
-                .help("Split the selected clip at the playhead  ⌘B")
+                .help("Split the selected clip at the playhead  ⌘K")
                 .accessibilityLabel("Split at playhead")
                 .disabled(store.selectedNode == nil)
             Button { store.deleteSelection() } label: { Image(systemName: "trash") }
@@ -457,6 +457,7 @@ private struct FlagRow: View {
         }
         .buttonStyle(.plain)
         .help("Open in Source with this range marked")
+        .draggable("flag:\(flag.id)")
         .contextMenu {
             Button("Edit note…") { draft = flag.note ?? ""; editing = true }
             Button("Remove flag", role: .destructive) { store.removeFlag(flag) }

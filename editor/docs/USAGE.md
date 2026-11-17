@@ -68,22 +68,40 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 
 ## Editing
 
-- Browse the Library or search. Regex results appear locally; after 600 ms idle,
-  a separate read-only Haiku request adds grounded related evidence. Semantic
-  errors leave regex results available. Selection and playhead do not jump when
-  later results arrive.
+- Browse the Library or search. Library search uses local text matching only; it
+  does not make a semantic-model request. Results do not move selection or playhead.
 - Select a source, choose its source range and insert it into the primary reel,
   or add it as B-roll over the selected primary segment. B-roll does not replace
   the primary voice/caption spine.
 - Trim, split, reorder, move overlays and change typed Inspector values. Times
   are resolved by the renderer, including speed, fades and beat timing. Generated
   caption timing is read-only; word corrections preserve original word times.
-- **Colour** (Inspector, at reel, clip and project level): the colour grade's
-  look (house / moody / none), strength, grey-day rescue toggle, and per-reel or
-  per-clip warmth and exposure sliders. A slider commits when you let go, as one
+  In the timeline, **⌘K** splits selected clips, or every editable clip under the
+  playhead when nothing is selected. **C** selects the razor tool (click a clip
+  to split); **V** returns to selection. **B** is not a split shortcut.
+- Right-click a clip for Split here / Split at playhead, Delete / Ripple delete,
+  Duplicate, Copy / Paste, speed presets or custom speed, Enable / Disable, Flag
+  source range, Aim 360° when the source probe identifies a sphere, and Reveal
+  in Source. **⌘C / ⌘V** copy and paste primary clips at the playhead. Flagged
+  Library rows can be dragged to the timeline; the flagged source In/Out range
+  is preserved.
+- Disabled clips remain visible and editable at their full timeline positions.
+  Their picture and sound are omitted from preview and render; linked nodes stay
+  on the timeline. Editing navigation reaches the complete editing extent,
+  including disabled tails, while playback/export ends with rendered media.
+  Paused seeks keep that editing position even when preview must show the next
+  enabled boundary (or the rendered endpoint for a disabled tail). Playing maps
+  the compact preview clock back to the matching editing clip.
+  With every clip disabled, Program shows “Nothing to preview” and releases
+  picture and sound; transport cannot resume the previous movie.
+- The timeline shows waveforms only (no spectrogram mode). Use the logarithmic
+  zoom slider, plus/minus controls, Fit, or the bottom zoom scroller.
+- **Colour** (Inspector, at reel, clip and project level): the look defaults to
+  **none**; house or moody can be selected explicitly. Strength, grey-day rescue,
+  warmth and exposure remain available. A slider commits when you let go, as one
   undoable edit; the arrow button resets it. Clip settings override the reel's,
-  which override the project default (`config.json` `render.grade`). The preview
-  re-stages the clips you changed.
+  which override the project default (`config.json` `render.grade`). The
+  colour-space correction remains enabled; the preview re-stages changed clips.
 - Drag the timeline playhead or ruler to scrub: the Program preview updates
   while the mouse is held down. The final playhead position is saved on release.
   Clicking or dragging anywhere else in the tracks never moves the playhead.
@@ -95,6 +113,9 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Each validated gesture or operation batch autosaves as one transaction.
   Undo/redo covers both manual and Claude changes. Failed edits leave the last
   committed revision intact.
+  Optimistic trim/delete timing can shrink both extents. Sequential deletion
+  preserves fade-adjusted timing; positioned ripple preserves only real enabled
+  transition overlaps and does not predict edits blocked by crossing clips.
 - Source video uses AVFoundation; still photos are images. Unsupported formats
   and 360 media use private proxies.
 - A 360 clip in Source shows **Front** and **Back** side by side, both level with
@@ -200,10 +221,6 @@ MCP tool set. It cannot run arbitrary shell, publish, upload, prune originals or
 self-approve permissions. Project `.env` files and API-key billing variables are
 not used for this integration.
 
-Semantic search requests exactly `claude-haiku-5-5`; there is no silent model
-substitution. Chat uses the authenticated CLI's selected model unless explicitly
-configured otherwise. Login, model-access, network and rate-limit failures are
-shown separately.
 
 Manual gestures take priority over stale/conflicting AI work. Stop cancels
 pending work; already committed edits remain visible and undoable. New generated

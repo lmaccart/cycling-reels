@@ -46,11 +46,37 @@ struct TimelineOverwriteRegion: Hashable, Sendable {
     var endFrame: Int
 }
 
-/// Local predictions of what a timeline edit will do, shown the instant the mouse is
-/// released. The service's snapshot replaces them as soon as the edit is saved, so
-/// these only need to put clips where the user dropped them, not be frame-exact.
+/// Local timeline predictions, replaced by the service snapshot after validation.
+/// Extent policy travels with the edit so compact playback never uses editing endpoints.
 enum OptimisticTimeline {
-    typealias Change = ([EditorNode]) -> [EditorNode]
+    struct Change {
+        fileprivate enum Extent {
+            case preserve, placement, recompile, ripple(Set<String>)
+        }
+        fileprivate var extent: Extent = .preserve
+        fileprivate var transform: ([EditorNode]) -> [EditorNode]
+
+        init(_ transform: @escaping ([EditorNode]) -> [EditorNode]) {
+            self.transform = transform
+        }
+
+        fileprivate init(extent: Extent, _ transform: @escaping ([EditorNode]) -> [EditorNode]) {
+            self.extent = extent
+            self.transform = transform
+        }
+
+        func callAsFunction(_ nodes: [EditorNode]) -> [EditorNode] {
+            applying(to: nodes, positioned: false, fadeFrames: 8)
+        }
+
+        fileprivate func applying(to nodes: [EditorNode], positioned: Bool, fadeFrames: Int) -> [EditorNode] {
+            let changed = transform(nodes)
+            if case .recompile = extent, !positioned {
+                return OptimisticTimeline.sequentialLayout(changed, fadeFrames: fadeFrames)
+            }
+            return changed
+        }
+    }
     private typealias OverwritePart = (
         node: EditorNode, oldStart: Int, oldEnd: Int, newStart: Int, ownerStart: Int, ownerEnd: Int
     )
@@ -101,7 +127,7 @@ enum OptimisticTimeline {
 
     /// `reorder_segments`: move one segment before `beforeID` (or to the end).
     static func reorderSegment(id: String, beforeID: String?) -> Change {
-        { nodes in
+        Change { nodes in
             let ordered = segments(nodes)
             guard let moving = ordered.first(where: { $0.id == id }) else { return nodes }
             var rest = ordered.filter { $0.id != id }
@@ -133,12 +159,12 @@ enum OptimisticTimeline {
 
     /// `move_overlay` and other free placements: put the item (and its children) at `startFrame`.
     static func move(id: String, toFrame startFrame: Int) -> Change {
-        { nodes in relayout(nodes, newStarts: [id: max(0, startFrame)]) }
+        Change { nodes in relayout(nodes, newStarts: [id: max(0, startFrame)]) }
     }
 
     /// Overlay/cutaway resize: the item spans exactly `start..<end`.
     static func resize(id: String, start: Int, end: Int) -> Change {
-        { nodes in
+        Change { nodes in
             nodes.map { node in
                 guard node.id == id else { return node }
                 var sized = node
@@ -153,7 +179,7 @@ enum OptimisticTimeline {
     /// Segment trim: the segment keeps its place, takes `length` frames, and later
     /// segments ripple to close (or open) the gap.
     static func trimSegment(id: String, length: Int) -> Change {
-        { nodes in
+        Change(extent: .recompile) { nodes in
             let ordered = segments(nodes)
             guard let index = ordered.firstIndex(where: { $0.id == id }) else { return nodes }
             let target = ordered[index]
@@ -175,7 +201,7 @@ enum OptimisticTimeline {
 
     /// `set_node_track`.
     static func moveToTrack(id: String, track: String) -> Change {
-        { nodes in
+        Change { nodes in
             nodes.map { node in
                 guard node.id == id else { return node }
                 var moved = node
@@ -183,6 +209,112 @@ enum OptimisticTimeline {
                 return moved
             }
         }
+    }
+    /// Delete primary segments, carrying their children and matching the plan's timing mode.
+    static func remove(ids: Set<String>, ripple: Bool, positioned: Bool) -> Change {
+        Change(extent: positioned ? (ripple ? .ripple(ids) : .preserve) : .recompile) { nodes in
+            let roots = nodes.filter { ids.contains($0.id) && $0.kind.lowercased() == "segment" }
+            let removed = Set(roots.flatMap { subtree($0.id, in: nodes) })
+            guard !removed.isEmpty else { return nodes }
+            let removedSegments = segments(nodes).filter { removed.contains($0.id) }
+            let surviving = nodes.filter { !removed.contains($0.id) }
+            guard !removedSegments.isEmpty else { return surviving }
+            if positioned && !ripple { return surviving }
+            if positioned, let shifted = positionedRipple(nodes: nodes, removed: removedSegments) {
+                return shifted.nodes
+            } else if positioned {
+                return nodes
+            }
+            return surviving
+        }
+    }
+
+    static func canRemove(ids: Set<String>, ripple: Bool, positioned: Bool, nodes: [EditorNode]) -> Bool {
+        guard positioned, ripple else { return true }
+        let removedIDs = Set(nodes.filter { ids.contains($0.id) && $0.kind.lowercased() == "segment" }
+            .flatMap { subtree($0.id, in: nodes) })
+        let removed = segments(nodes).filter { removedIDs.contains($0.id) }
+        return positionedRipple(nodes: nodes, removed: removed) != nil
+    }
+
+    /// Renderer normalization is based on the surviving predecessor, not the
+    /// deleted clip's raw length (incoming fades reclaim their overlap).
+    private static func sequentialLayout(_ nodes: [EditorNode], fadeFrames: Int) -> [EditorNode] {
+        var starts: [String: Int] = [:]
+        var previousLength: Int?
+        var cursor = 0
+        for segment in segments(nodes) {
+            let length = max(1, segment.endFrame - segment.startFrame)
+            let transition = segment.raw["transition"]?.stringValue == "fade"
+                ? max(0, min(fadeFrames, (previousLength ?? 1) - 1, length - 1)) : 0
+            starts[segment.id] = cursor - transition
+            cursor = cursor - transition + length
+            previousLength = length
+        }
+        return relayout(nodes, newStarts: starts)
+    }
+
+    /// Positioned ripple shifts all tracks by the union of the removed frame ranges.
+    /// nil means a surviving clip intersects a range and the server will reject the edit.
+    private static func positionedRipple(nodes: [EditorNode], removed: [EditorNode])
+        -> (nodes: [EditorNode], freedFrames: Int, intervals: [(start: Int, end: Int)])? {
+        let removedIDs = Set(removed.flatMap { subtree($0.id, in: nodes) })
+        let survivors = nodes.filter { !removedIDs.contains($0.id) }
+        var ranges: [(start: Int, end: Int)] = []
+        for deleted in removed {
+            var start = deleted.startFrame
+            var end = deleted.endFrame
+            let track = deleted.track ?? "V1"
+            for other in segments(nodes) where !removedIDs.contains(other.id) && (other.track ?? "V1") == track {
+                guard deleted.raw["enabled"]?.boolValue != false,
+                      other.raw["enabled"]?.boolValue != false else { continue }
+                let incoming = Int(deleted.raw["timeline"]?["transitionInFrames"]?.numberValue ?? 0)
+                let otherIncoming = Int(other.raw["timeline"]?["transitionInFrames"]?.numberValue ?? 0)
+                if other.startFrame < start && start < other.endFrame && other.endFrame <= end
+                    && incoming == other.endFrame - start {
+                    start = other.endFrame
+                } else if start < other.startFrame && other.startFrame < end && end < other.endFrame
+                    && otherIncoming == end - other.startFrame {
+                    end = other.startFrame
+                }
+            }
+            if start < end { ranges.append((start, end)) }
+        }
+        ranges.sort { $0.start < $1.start }
+        var merged: [(start: Int, end: Int)] = []
+        for range in ranges {
+            if let last = merged.last, range.start <= last.end {
+                merged[merged.count - 1].end = max(last.end, range.end)
+            } else {
+                merged.append(range)
+            }
+        }
+        let survivorSegments = segments(survivors)
+        for other in survivorSegments {
+            if merged.contains(where: { other.startFrame < $0.end && other.endFrame > $0.start }) { return nil }
+        }
+        var starts: [String: Int] = [:]
+        for segment in survivorSegments {
+            let shift = merged.reduce(into: 0) { total, range in
+                if range.end <= segment.startFrame { total += range.end - range.start }
+            }
+            if shift > 0 { starts[segment.id] = max(0, segment.startFrame - shift) }
+        }
+        let orphaned = Set(survivorSegments.filter { other in
+            (other.raw["timeline"]?["transitionInFrames"]?.numberValue ?? 0) != 0
+                && removed.contains { deleted in
+                    (deleted.track ?? "V1") == (other.track ?? "V1")
+                        && deleted.startFrame < other.startFrame && other.startFrame < deleted.endFrame
+                }
+        }.map(\.id))
+        let shifted = relayout(survivors, newStarts: starts).map { node in
+            guard orphaned.contains(node.id) else { return node }
+            var copy = node
+            copy.raw = copy.raw.setting(.number(0), at: ["timeline", "transitionInFrames"])
+                .setting(.string("cut"), at: ["transition"])
+            return copy
+        }
+        return (shifted, merged.reduce(0) { $0 + $1.end - $1.start }, merged)
     }
 
     /// Shared Python/Swift ID contract for overwrite fragments and insertions.
@@ -254,7 +386,7 @@ enum OptimisticTimeline {
     /// Predict overwrite placement and deterministic survivor IDs without changing
     /// plan authority. The server snapshot replaces this result after validation.
     static func overwrite(placements: [TimelinePlacement], editID: String, fps: Int) -> Change {
-        { original in
+        Change(extent: .placement) { original in
             guard !editID.contains("\0"), fps > 0, !placements.isEmpty else { return original }
             let byID = Dictionary(uniqueKeysWithValues: original.map { ($0.id, $0) })
             let movingIDs = placements.compactMap(\.id)
@@ -542,12 +674,94 @@ enum OptimisticTimeline {
         )
     }
 
-    /// Applies a prediction to a snapshot, keeping its duration in step.
+    /// Match the service's reel-global deletion policy. Owned events already
+    /// moved with their segment; absolute plain deletes leave globals alone.
+    private static func rippleGlobalNodes(_ nodes: [EditorNode], before: EditorSnapshot,
+                                          editingEnd: Int, intervals: [(start: Int, end: Int)]?) -> [EditorNode] {
+        let oldSegments = segments(before.nodes)
+        let surviving = Dictionary(uniqueKeysWithValues: segments(nodes).map { ($0.id, $0) })
+        func remap(_ frame: Int, endpoint: Bool = false) -> Int? {
+            if let intervals {
+                if !endpoint, intervals.contains(where: { $0.start <= frame && frame < $0.end }) { return nil }
+                return max(0, frame - intervals.reduce(0) { $0 + max(0, min(frame, $1.end) - $1.start) })
+            }
+            if frame >= before.editingDurationFrames {
+                return max(0, frame + editingEnd - before.editingDurationFrames)
+            }
+            guard let anchor = oldSegments.last(where: { $0.startFrame <= frame }) else { return frame }
+            guard let target = surviving[anchor.id] else { return nil }
+            return target.startFrame + frame - anchor.startFrame
+        }
+        return nodes.compactMap { node in
+            guard node.parentId == nil, ["text", "sfx", "music_drop", "exhibit"].contains(node.kind),
+                  node.raw["at"] != nil || node.raw["endAt"] != nil else { return node }
+            guard let start = remap(node.startFrame) else { return nil }
+            let end = remap(node.endFrame, endpoint: true) ?? (start + node.frames)
+            var result = node
+            result.startFrame = start
+            result.endFrame = max(start, end)
+            result.frames = result.endFrame - start
+            if node.raw["at"] != nil { result.raw = result.raw.setting(.number(Double(start) / before.fps), at: ["at"]) }
+            if node.raw["for"] != nil { result.raw = result.raw.setting(.number(Double(result.frames) / before.fps), at: ["for"]) }
+            if node.raw["endAt"] != nil { result.raw = result.raw.setting(.number(Double(result.endFrame) / before.fps), at: ["endAt"]) }
+            return result
+        }
+    }
+
+    /// Predictions preserve separate editing and rendered extents. Disabled clips
+    /// remain editable but cannot lengthen media that does not render.
     static func apply(_ change: Change, to snapshot: EditorSnapshot) -> EditorSnapshot {
         var next = snapshot
-        next.nodes = change(snapshot.nodes)
-        let end = segments(next.nodes).map(\.endFrame).max() ?? next.durationFrames
-        next.durationFrames = max(snapshot.durationFrames, max(end, 0))
+        let positioned = TimelineEditingTargets.isPositioned(snapshot.plan)
+        let fadeFrames = Int(snapshot.plan["render"]?["transitionFrames"]?.numberValue ?? 8)
+        if case .ripple = change.extent {
+            // Positioned ripple below supplies both the layout and freed header span.
+            next.nodes = snapshot.nodes
+        } else {
+            next.nodes = change.applying(to: snapshot.nodes, positioned: positioned, fadeFrames: fadeFrames)
+        }
+        let oldPrimary = segments(snapshot.nodes)
+        var header = positioned
+            ? Int(snapshot.plan["timeline"]?["durationFrames"]?.numberValue ?? Double(snapshot.durationFrames))
+            : snapshot.durationFrames
+        var placed = positioned
+        var removedIntervals: [(start: Int, end: Int)]?
+        switch change.extent {
+        case .preserve:
+            break
+        case .placement:
+            placed = true
+        case .recompile:
+            if !positioned {
+                header = 0
+            }
+        case .ripple(let ids):
+            let removed = oldPrimary.filter { ids.contains($0.id) }
+            guard let result = positionedRipple(nodes: snapshot.nodes, removed: removed) else { return snapshot }
+            next.nodes = result.nodes
+            removedIntervals = result.intervals
+            header = max(1, Int(snapshot.plan["timeline"]?["durationFrames"]?.numberValue
+                ?? Double(snapshot.durationFrames)) - result.freedFrames)
+            next.plan = next.plan.setting(.number(Double(header)), at: ["timeline", "durationFrames"])
+        }
+        let primary = segments(next.nodes)
+        let enabled = primary.filter { $0.raw["enabled"]?.boolValue != false }
+        let editingEnd = primary.map(\.endFrame).max() ?? 0
+        let renderedEnd: Int
+        if placed {
+            renderedEnd = enabled.map(\.endFrame).max() ?? 0
+        } else {
+            let compact = sequentialLayout(enabled, fadeFrames: fadeFrames)
+            renderedEnd = segments(compact).map(\.endFrame).max() ?? 0
+        }
+        next.durationFrames = max(header, renderedEnd)
+        let editingHeader = positioned || header > 0 ? header : 0
+        next.extraFields["editingDurationFrames"] = .number(Double(max(editingHeader, editingEnd)))
+        let remainingIDs = Set(primary.map(\.id))
+        if removedIntervals != nil || (!positioned && oldPrimary.contains { !remainingIDs.contains($0.id) }) {
+            next.nodes = rippleGlobalNodes(next.nodes, before: snapshot,
+                                           editingEnd: next.editingDurationFrames, intervals: removedIntervals)
+        }
         return next
     }
 }

@@ -470,7 +470,7 @@ final class EditorModelTests: XCTestCase {
                 "text": .array([.object(["text": .string("old")])]),
             ]),
             "nodes": .array([node("a", "a"), node("b", "b", start: 10)]),
-            "fps": .number(30), "durationFrames": .number(20),
+            "fps": .number(30), "durationFrames": .number(20), "editingDurationFrames": .number(40),
             "warnings": .array([]), "preview": .object(["state": .string("ready")]),
             "timelineCapabilities": .object([
                 "version": .number(1), "overwrite": .bool(true), "crossTrack": .bool(true),
@@ -504,7 +504,7 @@ final class EditorModelTests: XCTestCase {
                 "revisions": .object([
                     "document": .string("d2"), "library": .string("l1"), "renderer": .string("r1")
                 ]),
-                "fps": .number(24), "durationFrames": .number(30),
+                "fps": .number(24), "durationFrames": .number(30), "editingDurationFrames": .number(90),
                 "warnings": .array([.string("updated")]),
                 "preview": .object(["state": .string("stale")]),
                 "timelineCapabilities": .object([
@@ -523,6 +523,7 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(next.revisions.document, "d2")
         XCTAssertEqual(next.snapshotToken, "snapshot-2")
         XCTAssertEqual(next.durationFrames, 30)
+        XCTAssertEqual(next.editingDurationFrames, 90)
         XCTAssertEqual(next.fps, 24)
         XCTAssertEqual(next.warnings, ["updated"])
         XCTAssertEqual(next.preview["state"]?.stringValue, "stale")
@@ -537,6 +538,30 @@ final class EditorModelTests: XCTestCase {
         XCTAssertNil(EditorSnapshot.applyingDelta(delta, to: next), "a delta cannot be replayed on a newer base")
         let wrongBase = delta.setting(.string("snapshot-other"), at: ["baseSnapshotToken"])
         XCTAssertNil(EditorSnapshot.applyingDelta(wrongBase, to: base), "same revisions are insufficient without exact snapshot identity")
+    }
+
+
+    func testSnapshotSeparatesEditingExtentFromEmptyRenderedPreview() throws {
+        let snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("empty-doc"),
+            "revisions": .object([
+                "document": .string("d"), "library": .string("l"), "renderer": .string("r")
+            ]),
+            "plan": .object(["segments": .array([])]),
+            "nodes": .array([]),
+            "fps": .number(30),
+            "durationFrames": .number(0),
+            "editingDurationFrames": .number(240),
+            "warnings": .array([]),
+            "preview": .object([
+                "state": .string("empty"), "mode": .string("exact"),
+                "documentId": .string("empty-doc"), "revision": .string("d"),
+                "reason": .string("all segments disabled"),
+            ]),
+        ])))
+        XCTAssertEqual(snapshot.durationFrames, 0)
+        XCTAssertEqual(snapshot.editingDurationFrames, 240)
+        XCTAssertTrue(snapshot.isPreviewEmpty)
     }
 
     @MainActor

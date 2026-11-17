@@ -126,7 +126,7 @@ enum EditorShortcut: Equatable {
         let key = characters?.lowercased() ?? ""
         if mods == [.command] {
             switch key {
-            case "b": return .split
+            case "k": return .split
             case "=", "+": return .zoomIn
             case "-", "_": return .zoomOut
             case "0": return .zoomFit
@@ -208,7 +208,7 @@ extension EditorStore {
         case .jumpBack: seek(bySeconds: -EditorShortcut.bigStepSeconds)
         case .jumpForward: seek(bySeconds: EditorShortcut.bigStepSeconds)
         case .toStart: setPlayhead(0)
-        case .toEnd: setPlayhead(snapshot?.durationFrames ?? 0)
+        case .toEnd: setPlayhead(snapshot?.editingDurationFrames ?? 0)
         case .markIn: NotificationCenter.default.post(name: .reelsMarkSourceIn, object: nil)
         case .markOut: NotificationCenter.default.post(name: .reelsMarkSourceOut, object: nil)
         case .insert: insertFromSource()

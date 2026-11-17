@@ -106,6 +106,9 @@ struct EditorNode: Codable, Hashable, Identifiable, Sendable {
     var readOnly: Bool?
     /// Stored track assignment ("V2", "A3", ...). nil = default mapping (see EditorStore.trackID(for:)).
     var track: String?
+    /// Service-owned correspondence to the rendered projection; absent for disabled clips.
+    var playbackStartFrame: Int? = nil
+    var playbackEndFrame: Int? = nil
 
     var title: String {
         if let text = raw["text"]?.stringValue, !text.isEmpty { return text }
@@ -206,6 +209,10 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
     var tracks: [EditorTrack] = EditorTrack.defaults
     /// Unknown service fields survive delta merges and future protocol additions.
     var extraFields: [String: JSONValue] = [:]
+    var editingDurationFrames: Int {
+        max(durationFrames, Int(extraFields["editingDurationFrames"]?.numberValue ?? Double(durationFrames)))
+    }
+    var isPreviewEmpty: Bool { preview["state"]?.stringValue == "empty" }
     var snapshotToken: String? { extraFields["snapshotToken"]?.stringValue }
     var timelineCapabilities: TimelineCapabilities? {
         guard let data = extraFields["timelineCapabilities"]?.jsonData() else { return nil }
@@ -340,6 +347,57 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
             fields["revisions"] = revisions
         }
         return decode(.object(fields))
+    }
+}
+
+/// A preview revision's clocks. Never reconstruct compact timing from editing endpoints.
+struct PreviewTimelineClock {
+    private struct Span {
+        var editingStart: Int
+        var editingEnd: Int
+        var playbackStart: Int
+        var playbackEnd: Int
+    }
+    private var spans: [Span]
+    private var positioned: Bool
+    private var duration: Int
+
+    init(snapshot: EditorSnapshot) {
+        positioned = snapshot.plan["timeline"]?["version"]?.numberValue == 1
+        duration = snapshot.durationFrames
+        spans = snapshot.nodes.compactMap { node in
+            guard node.kind == "segment", node.parentId == nil,
+                  node.raw["enabled"]?.boolValue != false,
+                  let start = node.playbackStartFrame, let end = node.playbackEndFrame,
+                  end > start, node.endFrame > node.startFrame else { return nil }
+            return Span(editingStart: node.startFrame, editingEnd: node.endFrame,
+                        playbackStart: start, playbackEnd: end)
+        }.sorted { $0.editingStart < $1.editingStart }
+    }
+
+    func playbackFrame(forEditing frame: Int) -> Int {
+        if positioned { return min(duration, max(0, frame)) }
+        if let span = spans.last(where: { $0.editingStart <= frame && frame < $0.editingEnd }) {
+            return interpolate(frame, from: span.editingStart..<span.editingEnd,
+                               to: span.playbackStart..<span.playbackEnd)
+        }
+        // Disabled intervals show the next enabled boundary; a disabled tail shows the end.
+        return spans.first(where: { $0.editingStart > frame })?.playbackStart
+            ?? spans.last?.playbackEnd ?? 0
+    }
+
+    func editingFrame(forPlayback frame: Int) -> Int? {
+        if positioned { return min(duration, max(0, frame)) }
+        guard !spans.isEmpty else { return nil }
+        if let span = spans.last(where: { $0.playbackStart <= frame && frame < $0.playbackEnd }) {
+            return interpolate(frame, from: span.playbackStart..<span.playbackEnd,
+                               to: span.editingStart..<span.editingEnd)
+        }
+        return spans.first(where: { $0.playbackStart > frame })?.editingStart ?? spans.last?.editingEnd
+    }
+
+    private func interpolate(_ frame: Int, from: Range<Int>, to: Range<Int>) -> Int {
+        to.lowerBound + Int((Double(frame - from.lowerBound) * Double(to.count) / Double(from.count)).rounded())
     }
 }
 
