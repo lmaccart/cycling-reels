@@ -21,7 +21,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import stat
 import time
 import uuid
@@ -110,20 +109,57 @@ def tree_size(path: Path) -> int:
     return total
 
 
-def remove_tree(path: Path) -> None:
-    """Delete a tree that may hold read-only directories (the staged-media cache is chmod 555)."""
-    stack = [path]
-    while stack:
-        current = stack.pop()
+_DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+
+
+def _remove_at(parent_fd: int, name: str) -> None:
+    """Delete `name` under an open directory, without ever following a link.
+
+    Worker-writable trees may hold symlinks, hard links or a directory swapped for a link mid-pass. Every
+    step here is relative to a directory descriptor opened with O_NOFOLLOW, so a link is only ever
+    unlinked (its target keeps its data and mode; removing a hard link reduces its link count) and chmod
+    only reaches directories this walk itself opened. Best effort: what cannot be removed stays for the next pass."""
+    try:
+        info = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except OSError:
+        return
+    if not stat.S_ISDIR(info.st_mode):
         try:
-            os.chmod(current, 0o700, follow_symlinks=False)
-            with os.scandir(current) as entries:
-                for entry in entries:
-                    if entry.is_dir(follow_symlinks=False):
-                        stack.append(Path(entry.path))
+            os.unlink(name, dir_fd=parent_fd)
         except OSError:
-            continue
-    shutil.rmtree(path, ignore_errors=True)
+            pass
+        return
+    try:
+        fd = os.open(name, _DIR_FLAGS, dir_fd=parent_fd)
+    except OSError:
+        return  # swapped for a link or gone: nothing of ours to descend into
+    try:
+        try:
+            os.fchmod(fd, 0o700)  # the staged-media cache is chmod 555
+            children = os.listdir(fd)
+        except OSError:
+            return
+        for child in children:
+            _remove_at(fd, child)
+    finally:
+        os.close(fd)
+    try:
+        os.rmdir(name, dir_fd=parent_fd)
+    except OSError:
+        pass
+
+
+def remove_tree(path: Path) -> None:
+    """Delete a tree that may hold read-only directories; a link at `path` is unlinked, never followed."""
+    path = Path(path)
+    try:
+        parent = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    except OSError:
+        return
+    try:
+        _remove_at(parent, path.name)
+    finally:
+        os.close(parent)
 
 
 class PreviewCache:
@@ -203,7 +239,7 @@ class PreviewCache:
         # A worker that was cancelled or killed mid-staging leaves its .stage-*/.*.tmp scratch behind: never
         # reusable, and gigabytes in practice. Gone once past the grace period and not in a running job's folders.
         for entry in sorted((e for e in others if e.kind == "scratch" and e.key not in kept), key=_oldest):
-            if self._evict(entry.path):
+            if self._evict(entry.key):
                 report.evicted.append(entry.path)
                 report.after -= entry.size
         if report.after <= self.budget:
@@ -218,7 +254,7 @@ class PreviewCache:
         for entry in order:
             if report.after <= self.budget:
                 break
-            if self._evict(entry.path):
+            if self._evict(entry.key):
                 report.evicted.append(entry.path)
                 report.after -= entry.size
 
@@ -367,50 +403,91 @@ class PreviewCache:
 
     # -- deleting ----------------------------------------------------------------
 
-    def _evict(self, path: Path) -> bool:
-        """Rename out of the way (atomic: a reader sees the whole folder or a miss), then delete."""
-        if path.is_symlink() or not path.resolve().is_relative_to(self.preview_root.resolve()):
-            return False
-        parked = path.with_name(f"{EVICT_PREFIX}{uuid.uuid4().hex}")
+    def _open_dir(self, parts: tuple[str, ...]) -> int | None:
+        """Open preview/<parts...> one component at a time with O_NOFOLLOW, so a component a worker swapped
+        for a symlink after the scan is refused instead of followed. The caller closes the descriptor."""
         try:
-            os.rename(path, parked)
+            fd = os.open(self.preview_root, _DIR_FLAGS)
         except OSError:
-            return False  # already gone, or not ours to move
-        remove_tree(parked)
-        return True
+            return None
+        for part in parts:
+            try:
+                nxt = os.open(part, _DIR_FLAGS, dir_fd=fd)
+            except OSError:
+                os.close(fd)
+                return None
+            os.close(fd)
+            fd = nxt
+        return fd
+
+    def _evict(self, key: tuple[str, ...]) -> bool:
+        """Rename out of the way (atomic: a reader sees the whole folder or a miss), then delete.
+
+        Both steps run on a descriptor of the entry's real parent, so no link is followed."""
+        parent = self._open_dir(key[:-1])
+        if parent is None:
+            return False
+        try:
+            try:
+                if not stat.S_ISDIR(os.stat(key[-1], dir_fd=parent, follow_symlinks=False).st_mode):
+                    return False
+                parked = f"{EVICT_PREFIX}{uuid.uuid4().hex}"
+                os.rename(key[-1], parked, src_dir_fd=parent, dst_dir_fd=parent)
+            except OSError:
+                return False  # already gone, or not ours to move
+            _remove_at(parent, parked)
+            return True
+        finally:
+            os.close(parent)
 
     def _finish_interrupted_evictions(self) -> None:
         """A pass killed between rename and delete leaves .evict-* folders; they are already unreachable."""
-        for parent in self._eviction_parents():
-            for child in _children(parent):
-                if child.name.startswith(EVICT_PREFIX) and _real_dir(child):
-                    remove_tree(child)
+        for parts in self._eviction_parents():
+            fd = self._open_dir(parts)
+            if fd is None:
+                continue
+            try:
+                for child in os.listdir(fd):
+                    if child.startswith(EVICT_PREFIX):
+                        _remove_at(fd, child)
+            except OSError:
+                pass
+            finally:
+                os.close(fd)
 
-    def _eviction_parents(self) -> list[Path]:
-        parents = [self.revisions]
+    def _eviction_parents(self) -> list[tuple[str, ...]]:
+        parents: list[tuple[str, ...]] = [("revisions",)]
         for kind_dir in _children(self.cache):
             if not _real_dir(kind_dir):
                 continue
             for namespace in _children(kind_dir):
                 if _real_dir(namespace):
-                    parents.append(namespace)
-                    parents.append(namespace / "products")
-        return [parent for parent in parents if _real_dir(parent)]
+                    base = ("cache", kind_dir.name, namespace.name)
+                    parents.extend((base, (*base, "products")))
+        return parents
 
     def _drop_intermediates(self, revisions: list[Entry], refs: "_References", now: float, report: Report) -> None:
-        """exact.mp4 supersedes Remotion's render.mp4; older revisions still carry both."""
+        """exact.mp4 supersedes Remotion's render.mp4; older revisions still carry both.
+
+        Only a regular, unreferenced render.mp4 beside a regular non-empty exact.mp4 goes; a link there is
+        left alone, and the unlink is by name in the revision's own directory, so a link's target is never touched."""
         for entry in revisions:
-            intermediate = entry.path / "render.mp4"
-            final = entry.path / "exact.mp4"
             if now - entry.stamp < self._grace or entry.key in refs.busy or ("revisions", entry.path.name, "render.mp4") in refs.files:
                 continue
+            fd = self._open_dir(entry.key)
+            if fd is None:
+                continue
             try:
-                if intermediate.is_symlink() or not intermediate.is_file() or not final.is_file() or final.stat().st_size == 0:
+                intermediate = os.stat("render.mp4", dir_fd=fd, follow_symlinks=False)
+                final = os.stat("exact.mp4", dir_fd=fd, follow_symlinks=False)
+                if not stat.S_ISREG(intermediate.st_mode) or not stat.S_ISREG(final.st_mode) or final.st_size == 0:
                     continue
-                intermediate.unlink()
+                os.unlink("render.mp4", dir_fd=fd)
             except OSError:
                 continue
-            report.dropped_intermediates.append(intermediate)
+            finally:
+                os.close(fd)
+            report.dropped_intermediates.append(entry.path / "render.mp4")
 
 
 @dataclass

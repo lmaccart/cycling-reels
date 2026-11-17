@@ -12,6 +12,13 @@ from reels.editor import worker
 from reels.util import ReelsError, quick_hash
 
 
+def _evict(trim, entry: Path) -> bool:
+    """Evict one cache folder the way the trim does (by its place under preview/), whatever spelling of the path a reader holds."""
+    import os
+    key = Path(os.path.realpath(entry)).relative_to(os.path.realpath(trim.preview_root)).parts
+    return trim._evict(key)
+
+
 class StagingCacheTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -420,7 +427,7 @@ class StagingCacheTests(unittest.TestCase):
 
         def clone_after_trim(source, destination):
             if not trimmed:
-                trimmed.append(trim._evict(entry))  # rename aside, then delete: the reader loses the folder
+                trimmed.append(_evict(trim, entry))  # rename aside, then delete: the reader loses the folder
             return real(source, destination)
 
         self.encodes.clear()
@@ -444,7 +451,7 @@ class StagingCacheTests(unittest.TestCase):
         def safe_then_gone(root):
             real(root)
             if not calls and Path(root).resolve() == entry.resolve():
-                calls.append(trim._evict(entry))
+                calls.append(_evict(trim, entry))
 
         with patch.object(worker, "_cache_tree_safe", safe_then_gone):
             stage, reused, stats = self._run(built, "key")
@@ -463,7 +470,7 @@ class StagingCacheTests(unittest.TestCase):
 
         def restore_after_trim(entry, roles, marker):
             if not trimmed:
-                trimmed.append(trim._evict(entry))
+                trimmed.append(_evict(trim, entry))
             return real(entry, roles, marker)
 
         self.encodes.clear()
@@ -514,6 +521,78 @@ class StagingCacheTests(unittest.TestCase):
         project, built, stage, revision, _ = self._exact_fixture(b"")
         worker._run_exact(project, built, stage, revision)
         self.assertTrue((revision / "render.mp4").is_file())
+
+    def _planted_links(self, folder: Path):
+        """A stand-in original plus every kind of link a worker could leave in `folder`."""
+        import os
+        import stat
+        originals = self.root / "stand-in-originals"
+        originals.mkdir(exist_ok=True)
+        original = originals / "clip.mp4"
+        original.write_bytes(b"ORIGINAL-FOOTAGE")
+        inner = originals / "inner"
+        inner.mkdir()
+        (inner / "more.mp4").write_bytes(b"ORIGINAL-INNER")
+        inner.chmod(0o500)
+        self.addCleanup(inner.chmod, 0o700)
+        folder.mkdir(parents=True, exist_ok=True)
+        os.symlink(original, folder / "file-link.mp4")
+        os.symlink(originals, folder / "dir-link")
+        os.symlink(inner, folder / "inner-link")
+        os.link(original, folder / "hard.mp4")
+
+        def unchanged():
+            self.assertEqual(original.read_bytes(), b"ORIGINAL-FOOTAGE")
+            self.assertEqual((inner / "more.mp4").read_bytes(), b"ORIGINAL-INNER")
+            self.assertEqual(stat.S_IMODE(inner.stat().st_mode), 0o500)
+            self.assertEqual(sorted(p.name for p in inner.iterdir()), ["more.mp4"])
+            self.assertEqual(original.stat().st_nlink, 1)
+        return original, unchanged
+
+    def test_discarding_scratch_never_follows_or_writes_through_links(self):
+        scratch = self.root / "scratch-tree"
+        _original, unchanged = self._planted_links(scratch / "assets")
+        import os
+        os.symlink(_original, scratch / "top-link")
+        os.link(_original, scratch / "top-hard")
+        scratch.chmod(0o555)
+        (scratch / "assets").chmod(0o555)
+        worker._discard_tree(scratch)
+        self.assertFalse(scratch.exists())
+        unchanged()
+
+    def test_discarding_a_symlink_unlinks_only_the_link(self):
+        import os
+        _original, unchanged = self._planted_links(self.root / "unused")
+        link = self.root / "scratch-link"
+        os.symlink(self.root / "stand-in-originals", link)
+        worker._discard_tree(link)
+        self.assertFalse(link.is_symlink())
+        self.assertTrue(link.parent.is_dir())
+        (self.root / "unused" / "hard.mp4").unlink()
+        unchanged()
+
+    def test_exact_mode_intermediate_that_is_a_link_is_never_removed_through(self):
+        import os
+        original, unchanged = self._planted_links(self.root / "links")
+        revision = self.root / "revision"
+        revision.mkdir()
+        (self.root / "links" / "hard.mp4").unlink()  # leave the original with its one name
+        final = revision / "exact.mp4"
+        final.write_bytes(b"encoded")
+        os.symlink(original, revision / "render.mp4")
+        self.assertFalse(worker._drop_intermediate(revision / "render.mp4", final))
+        self.assertTrue((revision / "render.mp4").is_symlink())
+        (revision / "render.mp4").unlink()
+        os.link(original, revision / "render.mp4")
+        self.assertTrue(worker._drop_intermediate(revision / "render.mp4", final))
+        self.assertFalse((revision / "render.mp4").exists())
+        final.unlink()
+        os.symlink(original, final)
+        (revision / "render.mp4").write_bytes(b"intermediate")
+        self.assertFalse(worker._drop_intermediate(revision / "render.mp4", final), "a linked exact.mp4 is no finished encode")
+        self.assertTrue((revision / "render.mp4").is_file())
+        unchanged()
 
 
 if __name__ == "__main__":

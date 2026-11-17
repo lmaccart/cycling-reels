@@ -325,6 +325,14 @@ prepare that loses its cache entry halfway simply stages again. Exact mode also 
 its intermediate `render.mp4` once `exact.mp4` is encoded. Only this workspace's
 `preview/` is ever touched; `library/`, `plans/`, `out/` and proxies are not.
 
+The broker treats worker-written cache contents as untrusted. It replaces each
+revision's `document.json` through an exclusively created temporary file in a pinned
+directory, never opening an existing marker for writing or following a replacement
+directory symlink. Cleanup descends through no-follow directory
+descriptors, changes permissions only on those directories, and unlinks file names
+without writing through symlinks or hard links. A linked file's original contents and
+permissions stay unchanged; removing a hard link only removes the cache's name.
+
 ## Renderer changes
 
 The app does not change renderer or effect code (`renderer.submit` returns an

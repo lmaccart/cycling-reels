@@ -18,6 +18,7 @@ from typing import Any
 from ..config import Project
 from ..util import ReelsError, quick_hash
 from .proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
+from .preview_cache import remove_tree
 from .proxy_cache import proxy_job
 from .proxy_metal import cached_execution, render_proxy, reusable_execution
 
@@ -474,13 +475,11 @@ def _clone_entry(source: Path, destination: Path) -> None:
 
 
 def _discard_tree(path: Path) -> None:
-    """Remove a tree that may hold read-only directories (a published-style cache entry or a half clone)."""
-    for current, dirs, _files in os.walk(path, topdown=True, followlinks=False):
-        os.chmod(current, 0o700)
-        for name in dirs:
-            if not os.path.islink(os.path.join(current, name)):
-                os.chmod(os.path.join(current, name), 0o700)
-    shutil.rmtree(path, ignore_errors=True)
+    """Remove a tree that may hold read-only directories (a published-style cache entry or a half clone).
+
+    Descriptor-relative and never follows a link, so a symlink or hard link planted in the tree is only
+    unlinked and its target is left as it was."""
+    remove_tree(path)
 
 
 def _stage_from_cache(cache: Path, stage_dir: Path) -> bool:
@@ -504,8 +503,8 @@ def _stage_from_cache(cache: Path, stage_dir: Path) -> bool:
 def _touch_entry(entry: Path) -> None:
     """Mark a cache entry as used now: the preview cache trims least recently used entries first."""
     try:
-        os.utime(entry)
-    except OSError:
+        os.utime(entry, follow_symlinks=False)
+    except (OSError, NotImplementedError):
         pass
 
 
@@ -719,9 +718,11 @@ def _drop_intermediate(intermediate: Path, final: Path) -> bool:
     """Delete Remotion's intermediate movie once exact.mp4 is encoded from it.
 
     Nothing records it (the result names only exact.mp4 and the review mix), so it is only dead weight.
-    It stays when the final encode left no usable file."""
+    It stays when the final encode left no usable regular file, or when the intermediate is not a regular
+    file itself (a link is never removed through, and unlinking it would only drop the name)."""
     try:
-        if not final.is_file() or final.stat().st_size == 0:
+        finished, spare = final.lstat(), intermediate.lstat()
+        if not stat.S_ISREG(finished.st_mode) or finished.st_size == 0 or not stat.S_ISREG(spare.st_mode):
             return False
         intermediate.unlink()
     except FileNotFoundError:

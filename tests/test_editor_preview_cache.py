@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from reels.editor.preview import PreviewManager
 from reels.editor.preview_cache import (
     DEFAULT_BUDGET_GB, DOCUMENT_MARKER, EVICT_PREFIX, PreviewCache, budget_bytes, renderer_namespace, tree_size,
 )
@@ -66,10 +67,15 @@ class CacheLayout(unittest.TestCase):
         return path
 
     def age(self, path: Path, age: float) -> None:
+        """Back-date a tree. Links are never followed and a hard-linked file (shared with a stand-in original) is skipped."""
+        stamp = (NOW - age, NOW - age)
         for current, dirs, files in os.walk(path, topdown=False):
             for name in (*files, *dirs):
-                os.utime(os.path.join(current, name), (NOW - age, NOW - age))
-        os.utime(path, (NOW - age, NOW - age))
+                target = os.path.join(current, name)
+                if os.lstat(target).st_nlink > 1 and not os.path.isdir(target):
+                    continue
+                os.utime(target, stamp, follow_symlinks=False)
+        os.utime(path, stamp, follow_symlinks=False)
 
     def staged(self, namespace: str, key: str, *, age: float = 3600, size: int = KB, bundle: bool = False) -> Path:
         kind = "bundles" if bundle else "staged-media"
@@ -92,7 +98,9 @@ class CacheLayout(unittest.TestCase):
     @staticmethod
     def readonly(path: Path) -> None:
         for child in path.iterdir():
-            child.chmod(0o444)
+            info = os.lstat(child)
+            if not stat.S_ISLNK(info.st_mode) and (info.st_nlink == 1 or stat.S_ISDIR(info.st_mode)):
+                child.chmod(0o555 if stat.S_ISDIR(info.st_mode) else 0o444)
         path.chmod(0o555)
 
     def manifest(self, **fields) -> dict:
@@ -391,6 +399,317 @@ class IntermediateTests(CacheLayout):
             self.assertTrue((kept / "render.mp4").is_file(), kept)
         self.assertEqual(sorted(p.parent.name for p in report.dropped_intermediates),
                          sorted([superseded.name, manifested.name]))
+
+
+class Original:
+    """Stand-in for a protected original: a file and a read-only folder living outside the workspace. A write,
+    chmod or delete that reaches it through a planted link shows up in `state()`."""
+
+    def __init__(self, base: Path):
+        self.folder = base / "originals"
+        self.folder.mkdir()
+        self.file = self.folder / "clip.mp4"
+        self.file.write_bytes(b"ORIGINAL-FOOTAGE")
+        self.inner = self.folder / "inner"
+        self.inner.mkdir()
+        (self.inner / "more.mp4").write_bytes(b"ORIGINAL-INNER")
+        self.inner.chmod(0o500)
+        self.fingerprint = self.state()
+
+    def state(self) -> dict:
+        file, inner = os.lstat(self.file), os.lstat(self.inner)
+        return {
+            "file": self.file.read_bytes(), "inner": (self.inner / "more.mp4").read_bytes(),
+            "file_mode": stat.S_IMODE(file.st_mode), "inner_mode": stat.S_IMODE(inner.st_mode),
+            "inner_names": sorted(os.listdir(self.inner)), "file_mtime": file.st_mtime_ns,
+        }
+
+    def restore_modes(self) -> None:
+        self.inner.chmod(0o700)
+
+
+class LinkSafetyTests(CacheLayout):
+    """The trim runs unsandboxed in a folder a worker wrote: planted symlinks and hard links must only ever be
+    unlinked by name, never written, chmod-ed or deleted through."""
+
+    def setUp(self):
+        super().setUp()
+        self.original = Original(Path(self.tmp.name))
+        self.addCleanup(self.original.restore_modes)
+
+    def plant(self, folder: Path) -> None:
+        """Every kind of link a worker could leave: file symlink, directory symlink, hard link, dangling symlink."""
+        folder.mkdir(parents=True, exist_ok=True)
+        os.symlink(self.original.file, folder / "file-link.mp4")
+        os.symlink(self.original.folder, folder / "dir-link")
+        os.symlink(self.original.inner, folder / "inner-link")
+        os.link(self.original.file, folder / "hard.mp4")
+        os.symlink(self.original.folder / "missing", folder / "dangling")
+
+    def assert_original_untouched(self) -> None:
+        state = self.original.state()
+        self.assertEqual(state, self.original.fingerprint)
+        self.assertEqual(os.lstat(self.original.file).st_nlink, 1, "the planted hard link is gone, the original keeps its one name")
+
+    def test_evicting_a_revision_never_follows_or_writes_through_links(self):
+        revision = self.revision(1, age=9000)
+        self.plant(revision / "public/nested")
+        self.plant(revision)
+        report = self.cache(0, keep_per_document=0).run()
+        self.assertEqual([p.name for p in report.evicted], [revision.name])
+        self.assertFalse(revision.exists())
+        self.assert_original_untouched()
+
+    def test_evicting_read_only_cache_entries_and_products_never_follows_links(self):
+        namespace = renderer_namespace(OLD)
+        staged = self.preview / "cache/staged-media" / namespace / "key"
+        product = self.preview / "cache/staged-media" / namespace / "products" / "prod"
+        bundle = self.preview / "cache/bundles" / namespace / "bundle"
+        for entry in (staged, product, bundle):
+            self.plant(entry / "assets")
+            self.plant(entry)
+            (entry / "cache.json").write_text("{}")
+            self.age(entry, 9000)
+            self.readonly(entry)
+        self.cache(0).run()
+        for entry in (staged, product, bundle):
+            self.assertFalse(entry.exists(), entry)
+        self.assert_original_untouched()
+
+    def test_scratch_cleanup_never_follows_links(self):
+        namespace = self.preview / "cache/staged-media" / renderer_namespace(CURRENT)
+        abandoned, half_product = namespace / ".stage-abc", namespace / "products" / ".k.0123.tmp"
+        for scratch in (abandoned, half_product):
+            self.plant(scratch)
+            self.age(scratch, 99999)
+        self.cache(10 ** 9).run()
+        self.assertFalse(abandoned.exists() or half_product.exists())
+        self.assert_original_untouched()
+
+    def test_interrupted_eviction_cleanup_never_follows_links(self):
+        parked = self.preview / "revisions" / f"{EVICT_PREFIX}deadbeef"
+        self.plant(parked)
+        self.plant(parked / "public")
+        self.cache(10 ** 9).run()
+        self.assertFalse(parked.exists())
+        self.assert_original_untouched()
+
+    def test_a_parent_swapped_for_a_symlink_after_the_scan_is_refused(self):
+        """A worker replaces a folder on the way to the entry with a link to a folder of originals."""
+        outside = Path(self.tmp.name) / "outside"
+        (outside / "victim").mkdir(parents=True)
+        (outside / "victim/data.mp4").write_bytes(b"KEEP")
+        namespace = self.preview / "cache/staged-media" / renderer_namespace(OLD)
+        namespace.mkdir(parents=True)
+        os.symlink(outside, namespace / "products")
+        cache = self.cache(0)
+        key = ("cache", "staged-media", namespace.name, "products", "victim")
+        self.assertFalse(cache._evict(key))
+        os.symlink(outside, self.preview / "revisions" / "swapped")
+        self.assertFalse(cache._evict(("revisions", "swapped", "victim")))
+        os.rename(namespace, self.preview / "cache/staged-media/real")
+        os.symlink(self.preview / "cache/staged-media/real", namespace)
+        self.assertFalse(cache._evict(("cache", "staged-media", namespace.name, "products")))
+        self.assertTrue((outside / "victim/data.mp4").read_bytes() == b"KEEP")
+        self.assertTrue((self.preview / "cache/staged-media/real/products").is_symlink())
+
+    def test_an_entry_swapped_for_a_symlink_is_not_renamed_or_followed(self):
+        folder = self.preview / "revisions" / revision_name(7)
+        os.symlink(self.original.folder, folder)
+        self.assertFalse(self.cache(0)._evict(("revisions", folder.name)))
+        self.assertTrue(folder.is_symlink())
+        self.assert_original_untouched()
+        report = self.cache(0, keep_per_document=0).run()
+        self.assertEqual(report.evicted, [])
+        self.assert_original_untouched()
+
+    def test_render_mp4_links_are_never_followed(self):
+        symlinked = self.revision(1, age=9000, exact=True)
+        os.symlink(self.original.file, symlinked / "render.mp4")
+        hard = self.revision(2, age=9000, exact=True)
+        os.link(self.original.file, hard / "render.mp4")
+        fake_final = self.revision(3, age=9000, intermediate=True)
+        os.symlink(self.original.file, fake_final / "exact.mp4")
+        report = self.cache(10 ** 9).run()
+        self.assertTrue((symlinked / "render.mp4").is_symlink(), "a symlinked render.mp4 is left alone")
+        self.assertTrue((fake_final / "render.mp4").is_file(), "a symlinked exact.mp4 is not a finished encode")
+        self.assertFalse((hard / "render.mp4").exists(), "a hard-linked render.mp4 loses only its own name")
+        self.assertEqual([p.parent.name for p in report.dropped_intermediates], [hard.name])
+        self.assert_original_untouched()
+
+    def test_intermediate_cleanup_refuses_a_revision_swapped_for_a_symlink(self):
+        from reels.editor.preview_cache import Report
+
+        revision = self.revision(1, age=9000, exact=True, intermediate=True)
+        cache = self.cache(10 ** 9)
+        revisions, _, _ = cache._scan()
+        refs = cache._references()
+        parked = revision.with_name("worker-moved-revision")
+        revision.rename(parked)
+        outside = Path(self.tmp.name) / "outside-revision"
+        outside.mkdir()
+        (outside / "exact.mp4").write_bytes(b"original-exact")
+        (outside / "render.mp4").write_bytes(b"original-render")
+        revision.symlink_to(outside, target_is_directory=True)
+
+        report = Report()
+        cache._drop_intermediates(revisions, refs, NOW, report)
+        self.assertEqual((outside / "render.mp4").read_bytes(), b"original-render")
+        self.assertEqual((outside / "exact.mp4").read_bytes(), b"original-exact")
+        self.assertEqual(report.dropped_intermediates, [])
+
+    def test_nested_directory_swapped_for_a_symlink_during_cleanup_is_not_followed(self):
+        from unittest.mock import patch
+        from reels.editor import preview_cache
+
+        parked = self.preview / "revisions" / f"{EVICT_PREFIX}race"
+        nested = parked / "nested"
+        nested.mkdir(parents=True)
+        original_open = os.open
+        swapped = False
+
+        def swap_before_open(path, flags, *args, **kwargs):
+            nonlocal swapped
+            if path == "nested" and not swapped:
+                swapped = True
+                nested.rename(parked / "moved")
+                nested.symlink_to(self.original.folder, target_is_directory=True)
+            return original_open(path, flags, *args, **kwargs)
+
+        with patch.object(preview_cache.os, "open", side_effect=swap_before_open):
+            self.cache(10 ** 9).run()
+        self.assertTrue(swapped)
+        self.assert_original_untouched()
+
+    def test_eviction_lock_links_never_modify_the_target(self):
+        lock = self.preview / ".evict.lock"
+        lock.symlink_to(self.original.file)
+        with self.assertRaises(OSError):
+            self.cache(10 ** 9).run()
+        lock.unlink()
+        os.link(self.original.file, lock)
+        self.cache(10 ** 9).run()
+        lock.unlink()
+        self.assert_original_untouched()
+
+
+
+class DocumentMarkerTests(unittest.TestCase):
+    """PreviewManager._record_document runs in the unsandboxed broker, in a folder the worker just wrote."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.base = Path(self.tmp.name)
+        self.original = Original(self.base)
+        self.addCleanup(self.original.restore_modes)
+        self.revision = self.base / "revision"
+        self.revision.mkdir()
+
+    def record(self) -> None:
+        PreviewManager._record_document(self.revision, "doc-1")
+
+    def assert_marker_written_elsewhere(self) -> None:
+        marker = self.revision / DOCUMENT_MARKER
+        self.assertFalse(marker.is_symlink())
+        self.assertEqual(os.lstat(marker).st_nlink, 1)
+        self.assertEqual(json.loads(marker.read_text())["documentId"], "doc-1")
+        self.assertEqual(self.original.state(), self.original.fingerprint)
+        self.assertEqual(os.lstat(self.original.file).st_nlink, 1)
+        self.assertEqual([p.name for p in self.revision.iterdir()], [DOCUMENT_MARKER], "no temp file is left behind")
+
+    def test_plain_marker(self):
+        self.record()
+        self.assert_marker_written_elsewhere()
+
+    def test_symlinked_marker_is_replaced_not_written_through(self):
+        os.symlink(self.original.file, self.revision / DOCUMENT_MARKER)
+        self.record()
+        self.assert_marker_written_elsewhere()
+
+    def test_dangling_symlinked_marker_does_not_create_its_target(self):
+        target = self.original.folder / "created-by-write-through.json"
+        os.symlink(target, self.revision / DOCUMENT_MARKER)
+        self.record()
+        self.assertFalse(target.exists())
+        self.assert_marker_written_elsewhere()
+
+    def test_hard_linked_marker_is_replaced_not_written_through(self):
+        os.link(self.original.file, self.revision / DOCUMENT_MARKER)
+        self.assertEqual(os.lstat(self.original.file).st_nlink, 2)
+        self.record()
+        self.assert_marker_written_elsewhere()
+
+    def test_a_symlinked_revision_folder_is_not_written_into(self):
+        link = self.base / "linked-revision"
+        os.symlink(self.original.folder, link)
+        PreviewManager._record_document(link, "doc-1")
+        self.assertFalse((self.original.folder / DOCUMENT_MARKER).exists())
+        self.assertEqual(self.original.state(), self.original.fingerprint)
+
+    def test_existing_temp_links_are_never_opened_for_writing(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from reels.editor import preview
+
+        temporary = self.revision / f".{DOCUMENT_MARKER}.known.tmp"
+        for hardlink in (False, True):
+            with self.subTest(hardlink=hardlink):
+                if hardlink:
+                    os.link(self.original.file, temporary)
+                else:
+                    temporary.symlink_to(self.original.file)
+                with patch.object(preview.uuid, "uuid4", return_value=SimpleNamespace(hex="known")):
+                    self.record()
+                self.assertFalse((self.revision / DOCUMENT_MARKER).exists())
+                self.assertEqual(self.original.state(), self.original.fingerprint)
+                temporary.unlink()
+
+    def test_temp_permissions_never_follow_a_swapped_link(self):
+        from unittest.mock import patch
+
+        original_open = os.open
+        for hardlink in (False, True):
+            with self.subTest(hardlink=hardlink):
+                def swap_after_create(path, flags, *args, **kwargs):
+                    fd = original_open(path, flags, *args, **kwargs)
+                    if flags & os.O_EXCL:
+                        directory = kwargs["dir_fd"]
+                        os.unlink(path, dir_fd=directory)
+                        if hardlink:
+                            os.link(self.original.file, path, dst_dir_fd=directory)
+                        else:
+                            os.symlink(self.original.file, path, dir_fd=directory)
+                    return fd
+
+                with patch.object(os, "open", new=swap_after_create):
+                    self.record()
+                self.assertEqual(self.original.state(), self.original.fingerprint)
+                (self.revision / DOCUMENT_MARKER).unlink()
+                self.assertEqual(self.original.file.stat().st_nlink, 1)
+
+    def test_marker_write_stays_in_a_directory_swapped_for_a_symlink(self):
+        from unittest.mock import patch
+        from reels.editor import preview
+
+        protected_marker = self.original.folder / DOCUMENT_MARKER
+        protected_marker.write_bytes(b"ORIGINAL-MARKER")
+        before_names = sorted(p.name for p in self.original.folder.iterdir())
+        moved = self.base / "worker-moved-revision"
+        atomic_json = preview._atomic_json
+
+        def swap_before_write(path, value, **kwargs):
+            self.revision.rename(moved)
+            self.revision.symlink_to(self.original.folder, target_is_directory=True)
+            atomic_json(path, value, **kwargs)
+
+        with patch.object(preview, "_atomic_json", side_effect=swap_before_write):
+            self.record()
+        self.assertEqual(protected_marker.read_bytes(), b"ORIGINAL-MARKER")
+        self.assertEqual(sorted(p.name for p in self.original.folder.iterdir()), before_names)
+        self.assertEqual(json.loads((moved / DOCUMENT_MARKER).read_text()), {"documentId": "doc-1"})
+        self.assertEqual(self.original.state(), self.original.fingerprint)
+
 
 
 if __name__ == "__main__":

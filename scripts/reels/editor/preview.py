@@ -147,16 +147,21 @@ def _apply_snapshot_overrides(snapshot: dict, data_root: Path) -> None:
         _atomic_json(target, value)
 
 
-def _atomic_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+def _atomic_json(path: Path, value: Any, *, dir_fd: int | None = None) -> None:
+    """Replace JSON using a fresh inode; a supplied directory descriptor pins a worker-writable parent."""
+    if dir_fd is None:
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    else:
+        path = Path(path.name)
     tmp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
-    with tmp.open("x", encoding="utf-8") as stream:
-        os.chmod(tmp, 0o600)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=dir_fd)
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        os.fchmod(stream.fileno(), 0o600)
         json.dump(value, stream, ensure_ascii=False, allow_nan=False)
         stream.write("\n")
         stream.flush()
         os.fsync(stream.fileno())
-    os.replace(tmp, path)
+    os.replace(tmp, path, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
 
 
 def _sbpl_quote(path: Path | str) -> str:
@@ -834,10 +839,21 @@ class PreviewManager:
     def _record_document(revision_dir: Path, document_id: Any) -> None:
         """Tell the cache trim which document owns this revision folder (it keeps the newest few per document).
         Losing the note only makes the folder look unowned; it never fails a preview."""
-        if not isinstance(document_id, str) or not document_id or revision_dir.is_symlink() or not revision_dir.is_dir():
+        if not isinstance(document_id, str) or not document_id:
             return
         try:
-            (revision_dir / DOCUMENT_MARKER).write_text(json.dumps({"documentId": document_id}), encoding="utf-8")
+            flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+            parent = os.open(revision_dir.parent, flags)  # revisions/ is broker-owned
+            try:
+                directory = os.open(revision_dir.name, flags, dir_fd=parent)
+            finally:
+                os.close(parent)
+            try:
+                # Pin the worker-written directory even if it is renamed/replaced during publication.
+                # Exclusive creation + atomic replacement never writes through a planted marker link.
+                _atomic_json(Path(DOCUMENT_MARKER), {"documentId": document_id}, dir_fd=directory)
+            finally:
+                os.close(directory)
         except OSError:
             pass
 
