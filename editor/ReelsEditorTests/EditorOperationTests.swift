@@ -13,14 +13,20 @@ private final class HostedTestWindow: NSWindow {
 }
 
 @MainActor
-private final class DeleteLatencyTrace {
-    var delivered: TimeInterval?
-    var times: [String: TimeInterval] = [:]
+private final class DeleteRedrawObservation {
+    var inputTime: TimeInterval?
+    var redrawTime: TimeInterval?
 
-    func record(_ stage: String) {
-        guard delivered != nil, times[stage] == nil else { return }
-        times[stage] = ProcessInfo.processInfo.systemUptime
+    func recordRedraw() {
+        guard inputTime != nil, redrawTime == nil else { return }
+        redrawTime = ProcessInfo.processInfo.systemUptime
     }
+}
+
+private struct DeleteLatencyMeasurement {
+    let scenario: String
+    let nodeCount: Int
+    let milliseconds: Double
 }
 
 @MainActor
@@ -492,6 +498,23 @@ final class EditorOperationTests: XCTestCase {
     }
 
     func testHostedDeleteBeforeRealServiceAcknowledgementAndRollback() async throws {
+        _ = try await hostedDeleteScenarios()
+    }
+
+    func testReleaseHostedDeleteInputToRedrawLatency() async throws {
+        #if DEBUG
+        throw XCTSkip("The 50 ms latency gate requires an explicitly Release-configured test pass; Debug runs deterministic ordering/rollback checks.")
+        #else
+        for measurement in try await hostedDeleteScenarios() {
+            print("DELETE-LATENCY Release \(measurement.scenario) nodes=\(measurement.nodeCount): input-to-redraw=\(measurement.milliseconds)ms; backend apply gated")
+            XCTAssertLessThan(measurement.milliseconds, 50,
+                              "Release input-to-redraw budget with 570 camera keyframes: \(measurement.scenario)")
+        }
+        #endif
+    }
+
+    private func hostedDeleteScenarios() async throws -> [DeleteLatencyMeasurement] {
+        var measurements: [DeleteLatencyMeasurement] = []
         let code = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
         let python = ProcessInfo.processInfo.environment["REELS_TEST_PYTHON"]
@@ -608,20 +631,15 @@ final class EditorOperationTests: XCTestCase {
             let scale = oldTargetFrame.width / CGFloat(target.frames)
             let timelineOriginX = oldTargetFrame.minX - CGFloat(target.startFrame) * scale
             try capture(host, name: "delete-\(scenario)-before.png")
-            let trace = DeleteLatencyTrace()
-            store.editTrace = { trace.record($0) }
-            canvas.editTrace = { trace.record($0) }
+            let redraw = DeleteRedrawObservation()
             // Offscreen NSView reports needsDisplay == false even when invalidated;
-            // observe the setter request, as in the occlusion regression.
+            // observe the setter request, as in the occlusion regression. No
+            // production timing callback or ordered window is needed.
             let observation = canvas.observe(\.needsDisplay, options: [.new]) { _, _ in
-                MainActor.assumeIsolated { trace.record("redraw") }
+                MainActor.assumeIsolated { redraw.recordRedraw() }
             }
-            defer {
-                observation.invalidate()
-                store.editTrace = nil
-                canvas.editTrace = nil
-            }
-            trace.delivered = ProcessInfo.processInfo.systemUptime
+            defer { observation.invalidate() }
+            redraw.inputTime = ProcessInfo.processInfo.systemUptime
             if scenario == "ripple" {
                 store.performTimelineContextAction("Ripple delete", nodeID: target.id, atFrame: target.startFrame)
             } else if scenario == "sequential" {
@@ -640,20 +658,17 @@ final class EditorOperationTests: XCTestCase {
                 clip(target) == nil
             }
             XCTAssertNil(clip(target), "The actual hosted canvas must remove the clip before any server save: \(scenario)")
-            XCTAssertNotNil(trace.times["redraw"], "Prediction must invalidate drawing, not only accessibility: \(scenario)")
+            XCTAssertNotNil(redraw.redrawTime, "Prediction must invalidate drawing, not only accessibility: \(scenario)")
             let expectedStart = scenario == "ripple" ? survivor.startFrame - target.frames : survivor.startFrame
             let predictedFrame = try XCTUnwrap(clip(survivor)).accessibilityFrame()
             let predictedScale = predictedFrame.width / CGFloat(survivor.frames)
             XCTAssertEqual(predictedFrame.minX, timelineOriginX + CGFloat(expectedStart) * predictedScale,
                            accuracy: 1, scenario)
-            let redrawMilliseconds = (try XCTUnwrap(trace.times["redraw"])
-                - XCTUnwrap(trace.delivered)) * 1000
-            XCTAssertLessThan(redrawMilliseconds, 50, "Input-to-redraw budget with 570 camera keyframes: \(scenario)")
+            measurements.append(DeleteLatencyMeasurement(
+                scenario: scenario, nodeCount: initial.nodes.count,
+                milliseconds: (try XCTUnwrap(redraw.redrawTime) - XCTUnwrap(redraw.inputTime)) * 1000
+            ))
             try capture(host, name: "delete-\(scenario)-optimistic.png")
-            let intervals = trace.times.sorted { $0.value < $1.value }.map {
-                "\($0.key)=\(($0.value - trace.delivered!) * 1000)ms"
-            }.joined(separator: ", ")
-            print("DELETE-PROFILE \(scenario) nodes=\(initial.nodes.count): \(intervals); backend apply gated")
             try await eventually("Backend receives apply and remains gated: \(scenario)") {
                 FileManager.default.fileExists(atPath: root.appending(path: "apply.waiting").path)
             }
@@ -696,6 +711,67 @@ final class EditorOperationTests: XCTestCase {
             }
             try capture(host, name: "delete-\(scenario)-reconciled.png")
         }
+        return measurements
+    }
+
+    func testHostedZoomSliderUpdatesClipGeometry() async throws {
+        let store = EditorStore()
+        store.snapshot = try previewSnapshot(revision: "zoom", movie: URL(string: "http://127.0.0.1/preview.mp4")!)
+        let host = NSHostingView(rootView: TimelinePanel(store: store))
+        let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 450),
+                                      styleMask: .titled, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        defer { window.close() }
+        // SwiftUI can render Slider without an NSSlider subview. Traverse only
+        // this host's in-process provider tree; never use AXUIElement or the
+        // system Accessibility service, and never depend on private view classes.
+        func zoomSlider() -> AnyObject? {
+            var visited: Set<ObjectIdentifier> = []
+            func find(in element: AnyObject) -> AnyObject? {
+                guard visited.insert(ObjectIdentifier(element)).inserted else { return nil }
+                // Use public selectors, not formal protocol adoption or a label
+                // mapping: SwiftUI's virtual elements need not match either.
+                if element.accessibilityRole?() == .slider { return element }
+                for child in element.accessibilityChildren?() ?? [] {
+                    if let slider = find(in: child as AnyObject) { return slider }
+                }
+                return nil
+            }
+            // The production TimelinePanel has exactly one Slider. Include native
+            // view roots as well as virtual provider children, without private types.
+            for view in descendants(host) {
+                if let slider = find(in: view) { return slider }
+            }
+            return nil
+        }
+        try await eventually("Production zoom slider and canvas are hosted offscreen") {
+            zoomSlider() != nil
+                && self.descendants(host).contains { $0 is TimelineCanvas }
+        }
+        let slider = try XCTUnwrap(zoomSlider())
+        let canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
+        host.layoutSubtreeIfNeeded()
+        func clipWidth() -> CGFloat {
+            (canvas.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+                .first { $0.accessibilityLabel()?.contains(", V1, Video,") == true }?
+                .accessibilityFrame().width ?? 0
+        }
+        try await eventually("Hosted clip geometry is available") { clipWidth() > 0 }
+        let originalWidth = clipWidth()
+        // Invoke the production Slider's public provider actions directly in this
+        // process. Both directions must reach its Binding and the hosted canvas.
+        XCTAssertTrue(slider.accessibilityPerformDecrement?() == true)
+        try await eventually("The production slider zooms out") { clipWidth() < originalWidth - 1 }
+        XCTAssertLessThan(clipWidth(), originalWidth - 1)
+        XCTAssertTrue(slider.accessibilityPerformIncrement?() == true)
+        try await eventually("The production slider restores the original zoom") {
+            abs(clipWidth() - originalWidth) < 1
+        }
+        XCTAssertEqual(clipWidth(), originalWidth, accuracy: 1)
+        XCTAssertFalse(window.isVisible)
+        XCTAssertFalse(window.isKeyWindow)
+        XCTAssertFalse(NSApp.isActive)
     }
 
     func testRealServiceDisabledSplitSpeedTrimPreviewUndoRedoRoundTrip() async throws {
@@ -797,13 +873,6 @@ final class EditorOperationTests: XCTestCase {
                 .accessibilityFrame().width ?? 0
         }
         try await eventually("Hosted clip geometry is available") { clipWidth() > 0 }
-        let originalWidth = clipWidth()
-        // Use the production zoom command; SwiftUI's private KeyViewProxy is only
-        // installed for ordered windows and is not an offscreen test contract.
-        store.performShortcut(.zoomIn)
-        try await eventually("The hosted zoom command changes clip geometry") {
-            clipWidth() > originalWidth
-        }
         func key(_ code: UInt16, _ characters: String) throws -> NSEvent {
             try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
                 timestamp: 0, windowNumber: timelineWindow.windowNumber, context: nil,

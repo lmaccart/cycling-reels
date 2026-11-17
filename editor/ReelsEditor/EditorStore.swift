@@ -39,8 +39,6 @@ final class EditorStore {
     @ObservationIgnored var pendingPredictions: [(id: UUID, change: OptimisticTimeline.Change)] = []
     /// The last queued edit; the next one waits for it.
     @ObservationIgnored var editTail: Task<Void, Never>?
-    /// Optional monotonic timing sink for the offscreen hosted latency regression.
-    @ObservationIgnored var editTrace: ((String) -> Void)?
     /// Presentation boundary; tests supply input without ordering a modal window.
     @ObservationIgnored var presentSpeedDialog: (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }
     var plans: [JSONValue] = []
@@ -504,18 +502,14 @@ final class EditorStore {
     @discardableResult
     func enqueue(_ operations: [JSONValue], reason: String,
                  predict: OptimisticTimeline.Change? = nil) -> Task<Void, Never> {
-        editTrace?("enqueue")
         let token = UUID()
         if let predict, let current = snapshot {
             pendingPredictions.append((token, predict))
-            editTrace?("predict")
             snapshot = OptimisticTimeline.apply(predict, to: current)
-            editTrace?("published")
         }
         let previous = editTail
         let task = Task { @MainActor in
             await previous?.value
-            self.editTrace?("send")
             await self.send(operations, reason: reason, token: token)
         }
         editTail = task

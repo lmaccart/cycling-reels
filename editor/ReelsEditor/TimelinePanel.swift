@@ -628,7 +628,6 @@ class TimelineCanvas: NSView {
     private var audioObserver: NSObjectProtocol?
     private var occlusionObserver: NSObjectProtocol?
     fileprivate var allowsOccludedDrawing = false
-    var editTrace: ((String) -> Void)?
     private var callbacks: Callbacks?
     private var lastScrollRequestID = 0
     private var mode: DragMode?
@@ -703,7 +702,6 @@ class TimelineCanvas: NSView {
                 selectedIDs: Set<String>, changedIDs: Set<String>, sourceURLs: [String: URL],
                 playheadFrame: Int, zoom: Double, snapping: Bool, scrollRequest: ScrollRequest?,
                 callbacks: Callbacks) {
-        editTrace?("update")
         let contentsChanged = self.snapshot != snapshot
             || self.tracks != tracks
             || self.trackMap != trackMap
@@ -713,7 +711,6 @@ class TimelineCanvas: NSView {
             || self.sourceURLs != sourceURLs
             || self.zoom != zoom
         let playheadMoved = self.playheadFrame != playheadFrame
-        editTrace?("compared")
         self.snapshot = snapshot
         if self.tracks != tracks {
             self.tracks = tracks
@@ -738,7 +735,6 @@ class TimelineCanvas: NSView {
         playheadLayer?.update(frame: playheadFrame, zoom: zoom, labelWidth: Self.labelWidth,
                               rulerHeight: Self.rulerHeight, fps: snapshot?.fps ?? 30, redraw: visible)
         setAccessibilityChildren(makeAccessibilityChildren())
-        editTrace?("accessibility")
         if let scrollRequest, scrollRequest.id != lastScrollRequestID {
             lastScrollRequestID = scrollRequest.id
             let x = scrollRequest.x
@@ -992,7 +988,6 @@ class TimelineCanvas: NSView {
     // MARK: drawing
 
     override func draw(_ dirtyRect: NSRect) {
-        editTrace?("draw")
         guard allowsOccludedDrawing || window?.occlusionState.contains(.visible) == true else { return }
         TimelineColors.background.setFill()
         dirtyRect.fill()
@@ -1006,7 +1001,6 @@ class TimelineCanvas: NSView {
                                height: Self.rulerHeight + TimelineLayout.workBarHeight)
         if dirtyRect.intersects(rulerArea) { drawRuler() }
         drawGutter()
-        editTrace?("drawn")
     }
 
     private var marqueeRect: NSRect? {
