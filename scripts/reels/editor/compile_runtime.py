@@ -248,7 +248,7 @@ def timing_build(renderer, project, plan: dict) -> dict:
     if positioned(plan):
         requantize(plan, int(project.cfg("render", "fps")))
     if not plan.get("segments") and not positioned(plan):
-        return {"fps": int(project.cfg("render", "fps")), "total": 0, "segs": [],
+        return {"fps": int(project.cfg("render", "fps")), "total": 0, "editingDurationFrames": 0, "segs": [],
                 "props": {}, "sound": {}, "warnings": []}
     fps = int(project.cfg("render", "fps"))
     errors: list[str] = []
@@ -266,6 +266,8 @@ def timing_build(renderer, project, plan: dict) -> dict:
         segments[-1].spec["_keepOut"] = True
     renderer.resolve_music(project, plan, segments, fps, warnings, loop=loop,
                            grid_for="punchOnBeats" if on_beats else "")
+    if ghosts:
+        renderer.position_ghosts(plan, segments, ghosts)
     renderer.fit_cutaways(segments, fps, warnings)
     if ghosts:
         renderer.fit_cutaways(ghosts, fps, [])
@@ -411,6 +413,8 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
     ]
     return {
         "fps": built["fps"], "total": built["total"], "warnings": built["warnings"],
+        "editingDurationFrames": max(int(built["total"]),
+                                     max((seg["start"] + seg["frames"] for seg in segments), default=0)),
         "segs": segments, "props": built["props"], "sound": sound, "loop": built.get("loop"),
         **({"timelineCapabilities": built["timelineCapabilities"]} if built.get("timelineCapabilities") else {}),
     }

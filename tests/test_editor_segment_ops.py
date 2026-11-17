@@ -12,7 +12,7 @@ from helpers import TempProject, words
 from reels.editor.operations import OperationBatch, operation_schema
 from reels.editor.transactions import DocumentError, DocumentStore
 from reels.render import build, check_plan, load_plan
-from reels.util import ReelsError
+from reels.util import ReelsError, write_json
 
 SANDBOX = platform.system() == "Darwin" and shutil.which("sandbox-exec")
 
@@ -148,6 +148,52 @@ class RenderTimelineTests(unittest.TestCase):
         self.assertIn("2 segments (+1 disabled)", text)
         self.assertRegex(text, r"\n\s+2\s+—\s+3\.0s\s+b\s.*disabled")
 
+    def test_ghost_starts_follow_beat_snapping_in_full_and_timing_compilation(self):
+        import reels.render as renderer
+        from reels.editor.compile_runtime import serialize, timing_build
+
+        (self.project.music_dir / "grid.mp3").write_bytes(b"music fixture")
+        write_json(self.project.music_dir / "grid.json",
+                   {"slug": "grid", "file": "music/grid.mp3", "rightsOk": True,
+                    "bpm": 60, "beats": list(range(12)), "duration": 30})
+        path = self.temp.plan("snapped", [
+            {"asset": "a", "in": 0, "out": 2.4},
+            {"asset": "b", "in": 0, "out": 1, "enabled": False},
+            {"asset": "c", "in": 0, "out": 2.4},
+        ], music={"track": "grid", "cutOnBeat": True})
+        plan = load_plan(self.project, path)
+        full = serialize(build(self.project, deepcopy(plan), aligned=True))
+        timing = timing_build(renderer, self.project, deepcopy(plan))
+        for compiled in (full, timing):
+            with self.subTest(mode="full" if compiled is full else "timing"):
+                a, ghost, c = compiled["segs"]
+                self.assertEqual(a["frames"], 60)
+                self.assertEqual(ghost["start"], a["start"] + a["frames"])
+                self.assertEqual(c["start"], ghost["start"])
+
+    def test_editing_extent_covers_tail_ghosts_without_extending_render(self):
+        import reels.render as renderer
+        from reels.editor.compile_runtime import serialize, timing_build
+        from reels.editor.document import editing_snapshot
+
+        for segments, extra, total, extent in (
+            ([{"asset": "a", "in": 0, "out": 2}, {"asset": "b", "in": 0, "out": 3, "enabled": False}],
+             {}, 60, 150),
+            ([dict(s, enabled=False) for s in self.three()], {}, 0, 90),
+            ([placed("a", 0, 60), placed("b", 120, 90, enabled=False)], {"timeline": header(60)}, 60, 210),
+        ):
+            with self.subTest(total=total, extent=extent):
+                path = self.temp.plan("extent", segments, **extra)
+                plan = load_plan(self.project, path)
+                for compiled in (serialize(build(self.project, deepcopy(plan), aligned=True)),
+                                 timing_build(renderer, self.project, deepcopy(plan))):
+                    self.assertEqual(compiled["total"], total)
+                    self.assertEqual(compiled["editingDurationFrames"], extent)
+                    snap = editing_snapshot(deepcopy(plan), compiled, {"document": "d", "library": "l", "renderer": "r"})
+                    self.assertEqual(snap["durationFrames"], total)
+                    self.assertEqual(snap["editingDurationFrames"], extent)
+
+
 
 @unittest.skipUnless(SANDBOX, "trusted macOS sandbox required")
 class OpsBase(unittest.TestCase):
@@ -186,6 +232,28 @@ class OpsBase(unittest.TestCase):
             self.assertRegex(str(caught.exception), pattern)
         self.assertEqual(store.snapshot()["plan"]["segments"], before["plan"]["segments"])
         return caught.exception
+
+    def global_events(self, at):
+        sounds = self.temp.root / "sfx"
+        sounds.mkdir(exist_ok=True)
+        (sounds / "click.wav").write_bytes(b"sound fixture")
+        write_json(sounds / "click.json", {"slug": "click", "duration": 0.2})
+        return {
+            "text": [{"text": "global words", "at": at, "for": 0.5}],
+            "musicDrops": [{"at": at, "for": 0.5}],
+            "sfx": [{"sound": "click", "at": at}, {"sound": "click", "endAt": at + 0.5}],
+            "exhibits": [{"chart": {"type": "line", "points": [[0, 0], [1, 2]]}, "at": at, "for": 0.5}],
+        }
+
+    def assert_round_trip(self, store, before, after):
+        undone = store.undo(after["revisions"])
+        self.assertEqual(undone["plan"], before["plan"])
+        self.assertEqual(self.layout(undone), self.layout(before))
+        redone = store.redo(undone["revisions"])
+        self.assertEqual(redone["plan"], after["plan"])
+        self.assertEqual(self.layout(redone), self.layout(after))
+        self.assertEqual([n["id"] for n in redone["nodes"]], [n["id"] for n in after["nodes"]])
+        return redone
 
 
 SEQUENTIAL = [
@@ -239,6 +307,8 @@ class SequentialOpsTests(OpsBase):
         undone = store.undo(after["revisions"])
         self.assertEqual(self.layout(undone), self.layout(before))
         self.assertTrue([n for n in undone["nodes"] if n["kind"] == "cutaway"])
+        redone = store.redo(undone["revisions"])
+        self.assertEqual(redone["plan"], after["plan"])
 
     def test_ripple_remove_shifts_plan_level_events_like_a_delete(self):
         store = self.store(SEQUENTIAL, text=[{"text": "late", "at": 4.0, "for": 1.0}])
@@ -261,6 +331,7 @@ class SequentialOpsTests(OpsBase):
         before = store.snapshot()
         values = [self.clips(before)[1]["raw"], self.clips(before)[0]["raw"]]
         after = self.apply(store, [{"op": "paste_segments", "values": values, "atFrame": 0}], before)
+        self.assert_round_trip(store, before, after)
         self.assertEqual([n[0] for n in self.layout(after)], ["b", "a", "a", "b", "c"])
         ids = [n["id"] for n in self.clips(after)]
         self.assertEqual(len(set(ids)), 5)
@@ -287,7 +358,7 @@ class SequentialOpsTests(OpsBase):
         self.assertNotIn("enabled", on["plan"]["segments"][1])
         self.assertEqual(self.layout(on), self.layout(before))
         self.assertEqual(on["plan"]["text"][0]["at"], 4.0)
-        self.assertEqual(store.undo(on["revisions"])["plan"]["segments"], off["plan"]["segments"])
+        self.assert_round_trip(store, off, on)
 
     def test_disabling_everything_leaves_an_empty_but_editable_reel(self):
         store = self.store(SEQUENTIAL)
@@ -298,6 +369,49 @@ class SequentialOpsTests(OpsBase):
         self.assertEqual(len(self.clips(off)), 3)
         back = self.apply(store, [{"op": "set_enabled", "ids": ids[:1], "enabled": True}], off)
         self.assertEqual(self.layout(back), [("a", 0, 60), ("b", 60, 120), ("c", 60, 120)])
+
+    def test_disable_preserves_global_events_and_enable_restores_them_after_other_edits(self):
+        events = self.global_events(3.0)
+        store = self.store(SEQUENTIAL, **events)
+        before = store.snapshot()
+        middle = self.clips(before)[1]
+        off = self.apply(store, [{"op": "set_enabled", "ids": [middle["id"]], "enabled": False}], before)
+        for collection, values in events.items():
+            self.assertEqual(off["plan"][collection], values)
+        self.assertFalse(store._current_compiled["props"].get("exhibits"))
+        self.assertFalse(store._current_compiled["props"]["beats"])
+        self.assertFalse(store._current_compiled["sound"]["cues"])
+        rendered = build(self.temp.project, deepcopy(off["plan"]))
+        self.assertFalse(rendered["props"]["beats"])
+        self.assertFalse(rendered["props"].get("exhibits"))
+        self.assertFalse(rendered["sound"]["cues"])
+        self.assert_round_trip(store, before, off)
+        moved = self.apply(store, [{"op": "duplicate_segments", "ids": [self.clips(off)[0]["id"]]}])
+        on = self.apply(store, [{"op": "set_enabled", "ids": [middle["id"]], "enabled": True}], moved)
+        for collection, values in events.items():
+            for original, event in zip(values, on["plan"][collection]):
+                expected = deepcopy(original)
+                for field in ("at", "endAt"):
+                    if field in expected:
+                        expected[field] += 2.0
+                self.assertEqual(event, expected)
+        original_ids = {n["id"] for n in before["nodes"] if n["kind"] in ("text", "sfx", "music_drop", "exhibit")
+                        and n.get("parentId") is None and not n.get("generated")}
+        self.assertTrue(original_ids <= {n["id"] for n in on["nodes"]})
+        self.assert_round_trip(store, moved, on)
+
+    def test_paste_uses_the_beat_snapped_ghost_cut(self):
+        (self.temp.project.music_dir / "grid.mp3").write_bytes(b"music fixture")
+        write_json(self.temp.project.music_dir / "grid.json",
+                   {"slug": "grid", "file": "music/grid.mp3", "rightsOk": True,
+                    "bpm": 60, "beats": list(range(12)), "duration": 30})
+        store = self.store([{"asset": "a", "in": 0, "out": 1.6},
+                            {"asset": "b", "in": 0, "out": 1, "enabled": False},
+                            {"asset": "c", "in": 0, "out": 2.4}],
+                           music={"track": "grid", "cutOnBeat": True})
+        after = self.apply(store, [{"op": "paste_segments", "values": [{"asset": "d", "in": 0, "out": 1}],
+                                   "atFrame": 55}])
+        self.assertEqual([n["assetId"] for n in self.clips(after)], ["d", "a", "b", "c"])
 
     def test_a_disabled_clip_survives_the_first_free_placement_that_makes_the_plan_positioned(self):
         store = self.store(SEQUENTIAL)
@@ -370,6 +484,14 @@ class PositionedOpsTests(OpsBase):
         self.assertEqual(sorted(added), [("a", 90, 150, "V1"), ("b", 120, 180, "V2"), ("c", 150, 180, "V1")])
         self.assertEqual(after["plan"]["timeline"]["durationFrames"], 180)
 
+    def test_duplicate_can_use_a_disabled_clips_range(self):
+        store = self.store([placed("a", 0, 60), placed("b", 60, 60, enabled=False)], timeline=header(120))
+        before = store.snapshot()
+        after = self.apply(store, [{"op": "duplicate_segments", "ids": [self.clips(before)[0]["id"]]}], before)
+        self.assertEqual(self.layout(after), [("a", 0, 60), ("a", 60, 120), ("b", 60, 120)])
+        self.assertIs(self.clips(after)[2]["enabled"], False)
+        self.assert_round_trip(store, before, after)
+
     def test_duplicate_rejects_an_occupied_range_naming_the_frames(self):
         store = self.store([placed("a", 0, 60), placed("b", 70, 30)], timeline=header(100))
         first = self.clips(store.snapshot())[0]
@@ -423,6 +545,24 @@ class PositionedOpsTests(OpsBase):
         self.assertEqual(self.layout(after), [("a", 0, 30), ("c", 30, 60)])
         self.assertEqual(after["plan"]["timeline"]["durationFrames"], 60)
 
+    def test_ripple_remove_retimes_global_events_using_merged_disjoint_intervals(self):
+        events = self.global_events(7.0)
+        events["text"].append({"text": "removed", "at": 1.5, "for": 0.2})
+        events["musicDrops"].append({"at": 0.5, "for": 2.5})
+        store = self.store([placed("a", 0, 30), placed("b", 30, 30),
+                            placed("b", 30, 30, track="V2"), placed("c", 90, 30), placed("d", 210, 30)],
+                           timeline=header(240), **events)
+        before = store.snapshot()
+        ids = [n["id"] for n in self.clips(before)[1:4]]
+        after = self.apply(store, [{"op": "ripple_remove", "ids": ids}], before)
+        self.assertEqual(self.layout(after), [("a", 0, 30), ("d", 150, 180)])
+        for collection in events:
+            self.assertEqual(after["plan"][collection][0].get("at"), 5.0)
+        self.assertEqual(after["plan"]["sfx"][1]["endAt"], 5.5)
+        self.assertEqual(after["plan"]["text"], [{"text": "global words", "at": 5.0, "for": 0.5}])
+        self.assertEqual(after["plan"]["musicDrops"][1], {"at": 0.5, "for": 1.5})
+        self.assert_round_trip(store, before, after)
+
     def test_ripple_remove_rejects_a_clip_crossing_the_gap(self):
         store = self.store([placed("a", 0, 60), placed("b", 60, 60), placed("c", 40, 60, track="V2")],
                            timeline=header(120))
@@ -466,6 +606,7 @@ class PositionedOpsTests(OpsBase):
         added = self.clips(after)[2:]
         self.assertEqual([(n["assetId"], n["startFrame"], n["endFrame"]) for n in added],
                          [("a", 200, 230), ("b", 240, 270)])
+        self.assert_round_trip(store, before, after)
         self.assertTrue(self.children(after, added[1]))
         self.assertEqual(len({n["id"] for n in after["nodes"]}), len(after["nodes"]))
 
@@ -474,6 +615,14 @@ class PositionedOpsTests(OpsBase):
         values = [{"asset": "b", "in": 0, "out": 1}, {"asset": "c", "in": 0, "out": 2}]
         after = self.apply(store, [{"op": "paste_segments", "values": values, "atFrame": 30}])
         self.assertEqual(self.layout(after)[1:], [("b", 30, 60), ("c", 60, 120)])
+
+    def test_paste_unordered_values_anchors_the_earliest_clip(self):
+        store = self.store([placed("a", 0, 30)], timeline=header(30))
+        before = store.snapshot()
+        values = [placed("b", 90, 30), placed("c", 30, 30)]
+        after = self.apply(store, [{"op": "paste_segments", "values": values, "atFrame": 120}], before)
+        self.assertEqual(self.layout(after), [("a", 0, 30), ("b", 180, 210), ("c", 120, 150)])
+        self.assert_round_trip(store, before, after)
 
     def test_set_enabled_leaves_everything_in_place_and_ghosts_do_not_block_edits(self):
         store = self.store([placed("a", 0, 60), placed("b", 60, 60), placed("c", 120, 60)], timeline=header(180))
@@ -486,9 +635,8 @@ class PositionedOpsTests(OpsBase):
         self.assertEqual([c for c in off["plan"]["segments"] if c.get("enabled") is False][0]["asset"], "b")
         on = self.apply(store, [{"op": "set_enabled", "ids": [b["id"]], "enabled": True}], off)
         self.assertNotIn("enabled", on["plan"]["segments"][1])
+        self.assert_round_trip(store, off, on)
         self.assertEqual(self.clips(on)[1]["id"], b["id"])
-        back = store.undo(on["revisions"])
-        self.assertEqual(back["plan"]["segments"], off["plan"]["segments"])
 
     def test_set_enabled_compiled_segs_and_nodes_flag_the_ghost(self):
         store = self.store([placed("a", 0, 60), placed("b", 30, 60, enabled=False)], timeline=header(90))
@@ -496,6 +644,45 @@ class PositionedOpsTests(OpsBase):
         compiled = store._current_compiled
         self.assertEqual([seg.get("disabled", False) for seg in compiled["segs"]], [False, True])
         self.assertEqual([n.get("enabled") for n in self.clips(snap)], [None, False])
+
+
+class LinkedItemsTests(OpsBase):
+    def test_audio_and_cutaways_follow_duplicate_paste_ripple_and_enable_round_trips(self):
+        for absolute in (False, True):
+            for op in ("duplicate_segments", "paste_segments", "ripple_remove", "set_enabled"):
+                with self.subTest(positioned=absolute, operation=op):
+                    linked = {"cutaways": [{"asset": "d", "in": 0, "out": 1, "at": 0.5}], "volume": 0.7}
+                    segments = ([placed("a", 0, 60), placed("b", 60, 60, **linked), placed("c", 240, 60)]
+                                if absolute else [dict(s, **(linked if i == 1 else {})) for i, s in enumerate(SEQUENTIAL)])
+                    # Each scenario gets its own history.
+                    slug = f"linked-{int(absolute)}-{op.replace('_', '-')}"
+                    path = self.temp.plan(slug, segments, **({"timeline": header(300)} if absolute else {}))
+                    store = DocumentStore(self.workspace, path)
+                    self.addCleanup(store.close)
+                    before = store.snapshot()
+                    owner = self.clips(before)[1]
+                    operation = ({"op": op, "values": [owner["raw"]], "atFrame": 360} if op == "paste_segments"
+                                 else {"op": op, "ids": [owner["id"]], **({"enabled": False} if op == "set_enabled" else {})})
+                    after = self.apply(store, [operation], before)
+                    for snap in (before, after, self.assert_round_trip(store, before, after)):
+                        for clip in self.clips(snap):
+                            audio = [n for n in snap["nodes"] if n["kind"] == "source_audio" and n["parentId"] == clip["id"]]
+                            if clip.get("enabled") is False:
+                                self.assertEqual(audio, [])
+                            else:
+                                self.assertEqual([(n["startFrame"], n["endFrame"]) for n in audio],
+                                                 [(clip["startFrame"], clip["endFrame"])])
+                                self.assertEqual(audio[0]["raw"]["asset"], clip["assetId"])
+                            if clip["assetId"] == "b":
+                                cut = next(n for n in self.children(snap, clip) if n["kind"] == "cutaway")
+                                self.assertEqual((cut["startFrame"], cut["endFrame"]),
+                                                 (clip["startFrame"] + 15, clip["startFrame"] + 45))
+                    if op == "set_enabled":
+                        on = self.apply(store, [{"op": op, "ids": [owner["id"]], "enabled": True}])
+                        self.assert_round_trip(store, after, on)
+                        audio = next(n for n in on["nodes"] if n["kind"] == "source_audio" and n["parentId"] == owner["id"])
+                        self.assertEqual((audio["startFrame"], audio["endFrame"]), (60, 120))
+                    store.close()
 
 
 if __name__ == "__main__":

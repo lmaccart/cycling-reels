@@ -496,6 +496,8 @@ def editing_snapshot(plan: dict[str, Any], compiled: dict[str, Any], revisions: 
         "tracks": track_list(plan.get("_editor"), plan=plan),
         "fps": int(compiled["fps"]),
         "durationFrames": int(compiled["total"]),
+        "editingDurationFrames": max(int(compiled["total"]),
+                                     max((node["endFrame"] for node in nodes if node["kind"] == "segment"), default=0)),
         "warnings": list(compiled.get("warnings") or []),
         "timelineCapabilities": deepcopy(capabilities),
         "preview": preview,

@@ -57,8 +57,9 @@ class RippleRemove(OperationModel):
 class PasteSegments(OperationModel):
     """Insert copies of segment dicts (as returned by get_project; timeline/_editor/ID metadata are
     stripped and reissued). Sequential plans insert at the nearest cut at or before atFrame.
-    Positioned plans place them at atFrame on track (default: first video track) with the
-    overwrite rules of move_segments; relative offsets in the values' own timeline are kept."""
+    Positioned plans anchor the earliest clip at atFrame on track (default: first video track),
+    regardless of values order, preserving relative timeline offsets with move_segments overwrite
+    rules. Without timeline starts, values are laid back-to-back in input order."""
     op: Literal["paste_segments"]
     values: list[dict[str, Any]] = Field(min_length=1, max_length=500)
     atFrame: int = Field(ge=0, description="Global reel frame.")
@@ -67,8 +68,9 @@ class PasteSegments(OperationModel):
 
 class SetEnabled(OperationModel):
     """Disable or enable primary segments. A disabled segment keeps its place and full length in the
-    editor but renders no video and no audio; sequential plans close up around it. Stored as
-    "enabled": false on the segment (the key is absent when enabled)."""
+    editor but renders no video and no audio; sequential plans close up around it. Reel-level events
+    inside it are preserved but suspended until enabled, then restored relative to the clip.
+    Stored as "enabled": false on the segment (the key is absent when enabled)."""
     op: Literal["set_enabled"]
     ids: list[str] = Field(min_length=1)
     enabled: StrictBool

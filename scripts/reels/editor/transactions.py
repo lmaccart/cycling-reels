@@ -1733,17 +1733,27 @@ class DocumentStore:
             timing_changed = False
         if not timing_changed:
             return
+        if not positioned(plan):
+            from .segment_ops import suspend_events
+            suspend_events(plan, old_snapshot)
         self._refresh_edit_timing(ctx)
         compiled = ctx["compiled"]
-        if positioned(plan):
-            return  # absolute placements never ripple reel-global events
+        absolute = positioned(plan)
+        intervals = ctx.pop("removedIntervals", [])
+        if absolute and op not in ("ripple_remove", "set_enabled"):
+            return  # other absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
-        # Disabled segments hold no time: events inside one go with it, like a removed segment's.
         old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment" and n.get("enabled") is not False]
-        new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment" and n.get("enabled") is not False}
+        all_new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
+        new_nodes = {key: n for key, n in all_new_nodes.items() if n.get("enabled") is not False}
         old_fps, new_fps = old_snapshot["fps"], new_snapshot["fps"]
         old_total, new_total = old_snapshot["durationFrames"] / old_fps, new_snapshot["durationFrames"] / new_fps
-        def remap(at):
+        def remap(at, *, endpoint=False):
+            if absolute:
+                frame = at * old_fps
+                if not endpoint and any(a <= frame < b for a, b in intervals):
+                    return None
+                return max(0.0, (frame - sum(max(0, min(frame, b) - a) for a, b in intervals)) / new_fps)
             if at >= old_total:
                 return max(0.0, at + new_total - old_total)
             if op == "split_segment":
@@ -1758,13 +1768,28 @@ class DocumentStore:
             if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
                 offset = (offset * anchor.get("speed", 1) + anchor["sourceIn"] - target["sourceIn"]) / target.get("speed", 1)
             return max(target["startFrame"] / new_fps, target["startFrame"] / new_fps + offset)
+        event_metadata = {entry["locator"]: entry for entry in plan["_editor"]["nodes"].values()}
         for collection in ("text", "musicDrops", "sfx", "exhibits"):
             events = plan.get(collection)
             if not isinstance(events, list):
                 continue
             kept = []
-            for event in events:
+            for index, event in enumerate(events):
                 if not isinstance(event, dict) or (event.get("at") is None and event.get("endAt") is None):
+                    kept.append(event)
+                    continue
+                entry = event_metadata.get(f"/{collection}/{index}", {})
+                suspended = entry.get("disabledTiming")
+                if suspended:
+                    target = all_new_nodes.get(suspended["segmentId"])
+                    if target is None:
+                        continue  # deleting the disabled owner deletes its suspended events too
+                    if target.get("enabled") is not False:
+                        shift = target["startFrame"] / new_fps - suspended["startSeconds"]
+                        for field in ("at", "endAt"):
+                            if event.get(field) is not None:
+                                event[field] = round(float(event[field]) + shift, 6)
+                        entry.pop("disabledTiming")
                     kept.append(event)
                     continue
                 time_field = "at" if event.get("at") is not None else "endAt"
@@ -1776,7 +1801,8 @@ class DocumentStore:
                     event["endAt"] = round(at, 6)
                     kept.append(event)
                     continue
-                end = remap(float(event.get("endAt", old_at + float(event.get("for", 0) or 0))))
+                old_end = float(event.get("endAt", old_at + float(event.get("for", 0) or 0)))
+                end = remap(old_end, endpoint=True)
                 event["at"] = round(at, 6)
                 if "for" in event and end is not None:
                     event["for"] = round(max(0.0, end - at), 6)
@@ -1840,7 +1866,7 @@ class DocumentStore:
             if op == "duplicate_segments":
                 segment_ops.duplicate(plan, operation.get("ids") or [], ctx)
             elif op == "ripple_remove":
-                segment_ops.ripple_remove(plan, operation.get("ids") or [], affected)
+                ctx["removedIntervals"] = segment_ops.ripple_remove(plan, operation.get("ids") or [], affected)
             elif op == "paste_segments":
                 ctx["newObjects"] = segment_ops.paste_sequential(plan, ctx["compiled"], operation)
             else:

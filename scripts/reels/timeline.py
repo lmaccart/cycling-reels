@@ -17,6 +17,12 @@ def positioned(plan: dict) -> bool:
             and type(plan["timeline"].get("version")) is int and plan["timeline"]["version"] == 1)
 
 
+def suspended_event_paths(plan: dict) -> set[str]:
+    """Global events retained for a disabled owner are editor intent, not rendered content."""
+    return {entry["locator"] for entry in (plan.get("_editor") or {}).get("nodes", {}).values()
+            if entry.get("disabledTiming")}
+
+
 def video_track(value: Any) -> int:
     if not isinstance(value, str) or not re.fullmatch(r"V[1-9][0-9]*", value):
         raise ValueError("destination must be a canonical video track V1, V2, …")

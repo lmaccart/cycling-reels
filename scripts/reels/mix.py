@@ -156,7 +156,11 @@ def music_drops(plan: dict, total: int, fps: int, errors: list[str], warnings: l
         errors.append("musicDrops must be a list like [{\"at\": 6.2, \"for\": 0.5}]")
         return []
     out = []
+    from .timeline import suspended_event_paths
+    suspended = suspended_event_paths(plan)
     for j, d in enumerate(raw):
+        if f"/musicDrops/{j}" in suspended:
+            continue
         where = f"musicDrops[{j}]"
         if not isinstance(d, dict):
             errors.append(f"{where}: use {{\"at\": seconds, \"for\": seconds}}")
@@ -235,6 +239,8 @@ def build_cues(
     scfg = project.config["sfx"]
     default_gain = float(scfg.get("gain", 0.7))
     errors: list[str] = []
+    from .timeline import suspended_event_paths
+    suspended = suspended_event_paths(plan)
     cache: dict[str, tuple[Path, dict] | str] = {}  # slug -> (wav, record) or the lookup error
 
     def sound(name: str, where: str, *, manual: bool) -> tuple[Path, dict] | None:
@@ -279,6 +285,8 @@ def build_cues(
             errors.append(f"{where}: must be a list of {{\"sound\", \"at\" or \"endAt\", \"gain\"}}")
             return
         for j, c in enumerate(items):
+            if source == "plan" and f"/sfx/{j}" in suspended:
+                continue
             w = f"{where}[{j}]"
             if not isinstance(c, dict) or not c.get("sound"):
                 errors.append(f"{w}: needs \"sound\" (a slug from ./reels sfx list) and \"at\" or \"endAt\"")

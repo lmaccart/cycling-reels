@@ -38,14 +38,19 @@ Projects and footage:
 - `export.start` renders the open plan into `out/<slug>/` like `./reels render`. Nothing is approved, scheduled or published.
 
 Snapshots include `documentId`, `revisions: {document,library,renderer}`, `plan`
-(raw, never normalized), `nodes`, `fps`, `durationFrames`, `warnings`, and
-`preview`, merged `projectConfig`/`config`, and scoped permission records. Nodes
+(raw, never normalized), `nodes`, `fps`, `durationFrames`, `editingDurationFrames`,
+`warnings`, and `preview`, merged `projectConfig`/`config`, and scoped permission records. Nodes
 have stable `id`, `kind`, `lane`, `parentId`, `startFrame`,
 `endFrame`, `frames`, and `raw` values; source nodes also include `assetId`,
 `sourceIn`, `sourceOut`. Times on the wire are frames unless explicitly source
 seconds or schema-local `at`/`for` seconds. `assetKind` distinguishes video/photos;
 `generated`, `readOnly` and `timingState` describe projected nodes. A `viewOnly`
 offline snapshot cannot be exported. The renderer is timing authority.
+
+`durationFrames` remains the rendered duration. `editingDurationFrames` is the maximum of that
+duration and every primary segment's endpoint, including disabled ghosts: use it for the timeline
+viewport/scroll extent, not preview playback or export. Compiled payloads carry the same
+`editingDurationFrames` next to `total`. Ghost starts use final beat/loop-snapped timing.
 
 Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai),
 `operations`, and optional `lease`. Operations use `op`:
@@ -57,18 +62,23 @@ Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai)
   sfx… are copied with them). Sequential plans: inserted directly after the last original in
   plan order, later clips ripple right. Positioned plans: placed on the same tracks, shifted by
   the span of the selection (so a single clip lands right after itself); nothing else moves and
-  an occupied range is rejected.
+  an occupied range is rejected (disabled segments do not occupy ranges).
 - `ripple_remove`: `ids`. Like `remove_segments`, but later items close the gap in positioned
   plans too (every track shifts left by the removed length; a clip crossing the removed range
-  is rejected).
+  is rejected). Global text, sfx, music drops and exhibits use those same merged removed intervals:
+  events starting inside a removed interval are deleted; later events move left, crossing spans shrink.
 - `paste_segments`: `values` (segment dicts as copied from `get_project`; `timeline`, `_editor`
   and ID metadata are stripped and reissued), `atFrame` (global frame), optional `track`.
-  Sequential plans insert at the nearest cut at or before `atFrame`. Positioned plans place at
-  `atFrame` on `track` (default the first video track) with `move_segments` overwrite rules.
+  Sequential plans insert at the nearest cut at or before `atFrame`. Positioned plans anchor the
+  earliest copied clip at `atFrame` regardless of `values` order, preserving relative offsets, on
+  `track` (default the first video track) with `move_segments` overwrite rules. Values without
+  timeline starts are laid back-to-back in input order.
 - `set_enabled`: `ids`, `enabled`. Stores `"enabled": false` on the segment (absent = enabled).
   A disabled segment stays on the timeline at full length (compiled segs and nodes carry
   `disabled: true` / `enabled: false`) but renders no video or audio; sequential plans close up
-  around it.
+  around it. Global events inside a disabled sequential segment retain their definitions and IDs
+  but are suspended from rendering. Enabling restores their owner-relative timing, including after
+  other edits; suspension is persisted privately in `_editor.nodes[*].disabledTiming`.
 - `trim_segment` / `trim_cutaway`: `id`, `sourceIn`, `sourceOut`
 - `split_segment`: `id`, `atFrame` (global frame)
 - `insert_overlay`: `parentId` (or document), `collection`, `value`

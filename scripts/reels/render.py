@@ -427,6 +427,20 @@ def split_disabled(segs: list[Seg]) -> tuple[list[Seg], list[Seg]]:
     return [sg for sg in segs if not sg.disabled], [sg for sg in segs if sg.disabled]
 
 
+def position_ghosts(plan: dict, segs: list[Seg], ghosts: list[Seg]) -> None:
+    """Ghosts follow their enabled predecessor's final timing, including beat/loop snapping."""
+    if positioned(plan) or not ghosts:
+        return
+    end = 0
+    for sg in sorted([*segs, *ghosts], key=lambda item: item.index):
+        if sg.disabled:
+            sg.start = end
+        else:
+            end = sg.end
+
+
+
+
 def effective_plan(plan: dict) -> dict:
     """The plan as it renders: disabled segments (and everything they own) removed."""
     if not any(isinstance(s, dict) and s.get("enabled") is False for s in plan.get("segments") or []):
@@ -590,6 +604,8 @@ def _style(value: Any, default: str, warnings: list[str], where: str) -> str:
 
 def _beats(plan: dict, segs: list[Seg], total: int, fps: int, default_style: str, warnings: list[str]) -> list[dict]:
     beats: list[dict] = []
+    from .timeline import suspended_event_paths
+    suspended = suspended_event_paths(plan)
 
     def add(b: dict, s: int, e: int, pos: str, where: str) -> None:
         text = screen_text(b.get("text"), warnings, where)
@@ -623,6 +639,8 @@ def _beats(plan: dict, segs: list[Seg], total: int, fps: int, default_style: str
             at, dur = float(b.get("at", 0.15)), float(b.get("for", 2.2))
             add(b, sg.start + round(at * fps), sg.start + round((at + dur) * fps), b.get("position") or default_pos, f"segment {sg.index + 1} text[{j}]")
     for j, b in enumerate(plan.get("text") or []):
+        if f"/text/{j}" in suspended:
+            continue
         b = {"text": b} if isinstance(b, str) else b
         at, dur = float(b.get("at", 0)), float(b.get("for", 2.2))
         add(b, round(at * fps), round((at + dur) * fps), b.get("position") or "lower", f"text[{j}]")
@@ -1163,6 +1181,7 @@ def build(project: Project, plan: dict, *, aligned: bool = False) -> dict:
     if swap[0]:  # retiming must keep the seam: the last segment gives way at its start
         segs[-1].spec["_keepOut"] = True
     music = resolve_music(project, plan, segs, fps, warnings, loop=loop, grid_for="punchOnBeats" if on_beats else "")
+    position_ghosts(plan, segs, ghosts)
     fit_cutaways(segs, fps, warnings)  # after retiming: segments may have moved their out by up to a beat
     warnings += reuse_warnings(str(plan.get("slug") or ""), segs)
     if loop:

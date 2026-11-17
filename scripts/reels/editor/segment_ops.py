@@ -53,6 +53,36 @@ def set_enabled(plan: dict[str, Any], ids: list[str], enabled: bool) -> None:
             clip["enabled"] = False
 
 
+def suspend_events(plan: dict[str, Any], old_snapshot: dict[str, Any]) -> None:
+    """Keep global event definitions and their owner-relative timing while that owner is disabled.
+
+    The private node index carries suspension, not the event dict: IDs and user intent survive
+    subsequent edits, saves, and undo/redo. The renderer omits these events until re-enabled.
+    """
+    nodes = plan["_editor"]["nodes"]
+    disabled = {key for key, entry in nodes.items() if entry["kind"] == "segment"
+                and pointer_get(plan, entry["locator"]).get("enabled") is False}
+    if not disabled:
+        return
+    anchors = [node for node in old_snapshot["nodes"]
+               if node["kind"] == "segment" and node.get("enabled") is not False]
+    fps = old_snapshot["fps"]
+    for entry in nodes.values():
+        if entry.get("disabledTiming") or not entry["locator"].startswith(("/text/", "/sfx/", "/musicDrops/", "/exhibits/")):
+            continue
+        if entry["locator"].count("/") != 2:
+            continue
+        event = pointer_get(plan, entry["locator"])
+        if not isinstance(event, dict):
+            continue
+        at = event.get("at", event.get("endAt"))
+        if at is None:
+            continue
+        anchor = next((node for node in reversed(anchors) if node["startFrame"] / fps <= float(at)), None)
+        if anchor and anchor["id"] in disabled and float(at) < anchor["endFrame"] / fps:
+            entry["disabledTiming"] = {"segmentId": anchor["id"], "startSeconds": anchor["startFrame"] / fps}
+
+
 def duplicate(plan: dict[str, Any], ids: list[str], ctx: dict[str, Any]) -> None:
     picked = primary_segments(plan, ids)
     if positioned(plan):
@@ -69,10 +99,13 @@ def _duplicate_positioned(plan: dict[str, Any], picked: list[dict[str, Any]]) ->
     start = min(_bounds(item)[0] for item in picked)
     end = max(_bounds(item)[1] for item in picked)
     shift = end - start
-    chosen = {id(item) for item in picked}
     for item in picked:
+        if item.get("enabled") is False:
+            continue
         a, b = _bounds(item)
         for other in plan["segments"]:
+            if other.get("enabled") is False:
+                continue
             c, d = _bounds(other)
             if _track(other) == _track(item) and c < b + shift and d > a + shift:
                 raise ValueError(
@@ -96,13 +129,13 @@ def _duplicate_positioned(plan: dict[str, Any], picked: list[dict[str, Any]]) ->
     return copies
 
 
-def ripple_remove(plan: dict[str, Any], ids: list[str], affected: set[str]) -> None:
+def ripple_remove(plan: dict[str, Any], ids: list[str], affected: set[str]) -> list[list[int]]:
     picked = primary_segments(plan, ids)
     affected.update(ids)
     segments = plan["segments"]
     if not positioned(plan):
         segments[:] = [item for item in segments if not any(item is gone for gone in picked)]
-        return
+        return []
     gone = {id(item) for item in picked}
     survivors = [item for item in segments if id(item) not in gone]
     # Each removed clip frees [a, b) on its own track, minus any fade overlap it shared with a neighbour
@@ -146,6 +179,7 @@ def ripple_remove(plan: dict[str, Any], ids: list[str], affected: set[str]) -> N
     header["durationFrames"] = max(
         1, max((_bounds(other)[1] for other in survivors), default=0),
         header["durationFrames"] - sum(b - a for a, b in merged))
+    return merged
 
 
 def clean_value(value: Any) -> dict[str, Any]:
@@ -185,7 +219,7 @@ def _frames(value: dict[str, Any], fps: int) -> int:
 
 
 def paste_placements(plan: dict[str, Any], operation: dict[str, Any], fps: int) -> list[dict[str, Any]]:
-    """move_segments insert placements for a positioned plan, keeping the values' relative layout."""
+    """Positioned paste: anchor the earliest clip at atFrame, preserving layout regardless of input order."""
     raw = operation["values"]
     values = [clean_value(value) for value in raw]
     at = operation["atFrame"]
