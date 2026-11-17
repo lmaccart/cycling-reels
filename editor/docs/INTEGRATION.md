@@ -56,6 +56,18 @@ Disabled source-audio, caption, effect and cutaway nodes stay on the editing tim
 their owner; their presence is not evidence of rendered output. No legacy suspension tokens
 are read or emitted.
 
+Enabled primary nodes additionally carry optional `playbackStartFrame` /
+`playbackEndFrame`, taken from the aligned renderer's retained segment identity,
+not the enabled-array position. Disabled nodes have no playback bounds. These
+fields survive full/delta snapshots and distinguish compact rendered timing from
+editing timing, including changes to fade adjacency. Clients bind the mapping to
+the displayed preview revision, map segment-local offsets between its two ranges,
+and use editing coordinates for selection/navigation. Sequential disabled gaps
+seek to the next enabled boundary; disabled tails seek to the rendered endpoint.
+Paused seek callbacks never replace the editing cursor. Only active playback
+maps back to editing coordinates; positioned timelines retain their identity
+clock, including gaps. Internal renderer projections are not a client contract.
+
 Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai),
 `operations`, and optional `lease`. Operations use `op`:
 
@@ -112,6 +124,9 @@ fallback retains `requestedMode` and explains `fallbackReason`. The protected
 bridge receives `window.postMessage({channel:"cycling-reel-preview",command}, origin)`
 and emits revision-tagged events through the `reelsPreview` WK handler. Web content
 has no editing bridge.
+Frame events include `playing: boolean`, so paused Remotion seek notifications
+cannot masquerade as playback. Empty previews also tear down native/WebKit media
+and deactivate transport; re-enabling loads fresh paused media.
 
 `source.prepare` returns its job record. There is one job per asset and view:
 a repeat request while it is queued or running gets that job back with

@@ -335,6 +335,11 @@ struct ProgramMonitor: View {
     @Bindable var store: EditorStore
     @StateObject private var exactPlayer = ExactProgramPlayerModel()
 
+    init(store: EditorStore, exactPlayer: ExactProgramPlayerModel = ExactProgramPlayerModel()) {
+        self.store = store
+        _exactPlayer = StateObject(wrappedValue: exactPlayer)
+    }
+
     var body: some View {
         Group {
             if store.isExactPreview {
@@ -357,6 +362,7 @@ struct ProgramMonitor: View {
                         .onChange(of: store.seekGeneration) { _, _ in
                             exactPlayer.seek(frame: store.playheadFrame, fps: store.fps, generation: store.seekGeneration)
                         }
+                } else {
                     unavailable(
                         store.isEmptyPreview ? "Nothing to preview" : "Final-quality render isn't ready",
                         detail: store.isEmptyPreview
@@ -392,10 +398,27 @@ struct ProgramMonitor: View {
         }
         .background(.black)
         .onChange(of: store.isExactPreview) { _, active in
-            exactPlayer.setActive(active)
+            exactPlayer.setActive(active && !store.isEmptyPreview)
         }
         .onChange(of: store.isEmptyPreview) { _, empty in
             if empty { exactPlayer.clear() }
+        }
+        .onChange(of: store.previewRevision) { _, _ in
+            if let url = store.exactMovieURL {
+                exactPlayer.update(url: url, revision: store.previewRevision, frame: store.playheadFrame,
+                                   seekGeneration: store.seekGeneration, fps: store.fps,
+                                   rate: store.playbackRate, store: store)
+            }
+        }
+        .onChange(of: store.snapshot?.revisions.document) { _, _ in
+            if let url = store.exactMovieURL {
+                exactPlayer.update(url: url, revision: store.previewRevision, frame: store.playheadFrame,
+                                   seekGeneration: store.seekGeneration, fps: store.fps,
+                                   rate: store.playbackRate, store: store)
+            }
+        }
+        .onDisappear {
+            exactPlayer.clear()
         }
     }
 
@@ -429,13 +452,18 @@ final class ExactProgramPlayerModel: ObservableObject {
     private(set) var isActive = false
     private var playbackProbe = PreviewPlaybackProbe()
     private var programReadyPosted = false
+    private var clock: PreviewTimelineClock?
+    private var clockRevision: String?
+    private var seekSerial = 0
+    private var seeking = false
+    private var wantsPlayback = false
 
     init() {
         observer = NotificationCenter.default.addObserver(
             forName: .reelsTogglePlayback, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
-                guard self?.isActive == true else { return }
+            MainActor.assumeIsolated {
+                guard self?.isActive == true, self?.store?.isEmptyPreview == false else { return }
                 self?.togglePlayback()
             }
         }
@@ -443,8 +471,8 @@ final class ExactProgramPlayerModel: ObservableObject {
             forName: .reelsPlaybackRate, object: nil, queue: .main
         ) { [weak self] notification in
             guard let rate = notification.object as? Double else { return }
-            Task { @MainActor in
-                guard self?.isActive == true else { return }
+            MainActor.assumeIsolated {
+                guard self?.isActive == true, self?.store?.isEmptyPreview == false else { return }
                 self?.setRate(rate)
             }
         }
@@ -457,29 +485,41 @@ final class ExactProgramPlayerModel: ObservableObject {
 
     func update(url: URL, revision: String?, frame: Int, seekGeneration: Int,
                 fps: Double, rate: Double, store: EditorStore) {
+        guard !store.isEmptyPreview else { clear(); return }
         isActive = true
         self.store = store
         self.revision = revision
         self.rate = rate
+        if clockRevision != revision {
+            let snapshot = store.authoritativeSnapshot ?? store.snapshot
+            clock = snapshot.flatMap { $0.revisions.document == revision ? PreviewTimelineClock(snapshot: $0) : nil }
+            clockRevision = clock == nil ? nil : revision
+            lastSeekGeneration = nil
+        }
         if currentURL != url {
             if let timeObserver, let player { player.removeTimeObserver(timeObserver) }
+            player?.pause()
+            player?.replaceCurrentItem(with: nil)
             lastSeekGeneration = nil
             playbackProbe = PreviewPlaybackProbe()
             programReadyPosted = false
+            wantsPlayback = false
             currentURL = url
             let nextPlayer = AVPlayer(url: url)
             player = nextPlayer
             timeObserver = nextPlayer.addPeriodicTimeObserver(
                 forInterval: CMTime(seconds: 0.1, preferredTimescale: 600),
                 queue: .main
-            ) { [weak self] time in
+            ) { [weak self, weak nextPlayer] time in
                 guard time.seconds.isFinite else { return }
                 Task { @MainActor [weak self] in
-                    guard let self, let store = self.store else { return }
-                    store.updatePlayheadFromPreview(
-                        Int((time.seconds * store.fps).rounded()),
-                        revision: self.revision
-                    )
+                    guard let self, self.isActive, self.player === nextPlayer,
+                          let store = self.store, !store.isEmptyPreview else { return }
+                    if !self.seeking, self.player?.rate != 0,
+                       let editingFrame = self.clock?.editingFrame(
+                        forPlayback: Int((time.seconds * store.fps).rounded())) {
+                        store.updatePlayheadFromPreview(editingFrame, revision: self.revision)
+                    }
                     guard !self.programReadyPosted,
                           self.player?.currentItem?.status == .readyToPlay else { return }
                     let frame = Int((time.seconds * store.fps).rounded())
@@ -504,7 +544,7 @@ final class ExactProgramPlayerModel: ObservableObject {
 
     func setActive(_ active: Bool) {
         isActive = active
-        if !active { player?.pause() }
+        if !active { wantsPlayback = false; player?.pause() }
     }
     func clear() {
         isActive = false
@@ -518,19 +558,38 @@ final class ExactProgramPlayerModel: ObservableObject {
         lastSeekGeneration = nil
         playbackProbe = PreviewPlaybackProbe()
         programReadyPosted = false
+        clock = nil
+        clockRevision = nil
+        seekSerial += 1
+        seeking = false
+        wantsPlayback = false
     }
 
     func seek(frame: Int, fps: Double, generation: Int) {
         guard generation != lastSeekGeneration, let player else { return }
         lastSeekGeneration = generation
-        let boundedFrame = min(max(0, frame), store?.snapshot?.durationFrames ?? frame)
-        player.seek(to: CMTime(seconds: Double(boundedFrame) / max(fps, 1), preferredTimescale: 600))
+        let playbackFrame = clock?.playbackFrame(forEditing: frame) ?? 0
+        seekSerial += 1
+        let serial = seekSerial
+        seeking = true
+        player.pause()
+        player.seek(to: CMTime(seconds: Double(playbackFrame) / max(fps, 1), preferredTimescale: 600),
+                    toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak player] finished in
+            Task { @MainActor in
+                guard let self, serial == self.seekSerial, self.player === player else { return }
+                self.seeking = false
+                if finished, self.isActive, self.wantsPlayback {
+                    player?.playImmediately(atRate: Float(self.rate))
+                }
+            }
+        }
     }
 
     private func togglePlayback() {
         guard let player else { return }
-        if player.rate == 0 { player.playImmediately(atRate: Float(rate)) }
-        else { player.pause() }
+        wantsPlayback.toggle()
+        if !wantsPlayback { player.pause() }
+        else if !seeking { player.playImmediately(atRate: Float(rate)) }
     }
 
     private func setRate(_ value: Double) {
@@ -553,7 +612,7 @@ private struct ExactProgramPlayerView: NSViewRepresentable {
     }
 }
 
-private struct ProgramWebView: NSViewRepresentable {
+struct ProgramWebView: NSViewRepresentable {
     let url: URL?
     let manifest: JSONValue?
     let origin: URL
@@ -593,6 +652,13 @@ private struct ProgramWebView: NSViewRepresentable {
         context.coordinator.seekIfNeeded(frame: playheadFrame, generation: seekGeneration)
     }
 
+    static func dismantleNSView(_ view: WKWebView, coordinator: Coordinator) {
+        coordinator.deactivate()
+        view.configuration.userContentController.removeScriptMessageHandler(forName: "reelsPreview")
+        view.stopLoading()
+        view.loadHTMLString("", baseURL: nil)
+    }
+
     @MainActor
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         weak var store: EditorStore?
@@ -603,12 +669,14 @@ private struct ProgramWebView: NSViewRepresentable {
         private var loadedRevision: String?
         private var pageReady = false
         private var lastSeekGeneration: Int?
-        private var lastFrame = 0
+        private(set) var lastFrame = 0
         private var playbackObserver: NSObjectProtocol?
         private var rateObserver: NSObjectProtocol?
         private var currentRate = 1.0
         private var isPlaying = false
         private var playbackProbe = PreviewPlaybackProbe()
+        private var clock: PreviewTimelineClock?
+        private var clockRevision: String?
 
         init(store: EditorStore, origin: URL) {
             self.store = store
@@ -634,7 +702,12 @@ private struct ProgramWebView: NSViewRepresentable {
 
         func load(_ url: URL?, manifest: JSONValue?, revision: String?, frame: Int,
                   rate: Double, origin: URL) {
-            lastFrame = frame
+            if clockRevision != revision {
+                let snapshot = store?.authoritativeSnapshot ?? store?.snapshot
+                clock = snapshot.flatMap { $0.revisions.document == revision ? PreviewTimelineClock(snapshot: $0) : nil }
+                clockRevision = clock == nil ? nil : revision
+            }
+            lastFrame = clock?.playbackFrame(forEditing: frame) ?? 0
             currentRate = rate
             expectedOrigin = origin
             guard let url else { return }
@@ -664,11 +737,11 @@ private struct ProgramWebView: NSViewRepresentable {
         }
 
         func seekIfNeeded(frame: Int, generation: Int) {
-            lastFrame = frame
+            lastFrame = clock?.playbackFrame(forEditing: frame) ?? 0
             guard generation != lastSeekGeneration, loadedURL != nil, pageReady,
                   let revision = loadedRevision else { return }
             lastSeekGeneration = generation
-            send(["type": "seek", "revision": revision, "frame": frame])
+            send(["type": "seek", "revision": revision, "frame": lastFrame])
         }
 
         private func sendLoadRevision() {
@@ -733,8 +806,9 @@ private struct ProgramWebView: NSViewRepresentable {
                     NativePreviewCapture.ready(mode: "interactive", revision: eventRevision)
                 }
             case "frame":
-                guard let eventRevision, let frame = body["frame"] as? NSNumber else { return }
-                store?.updatePlayheadFromPreview(frame.intValue, revision: eventRevision)
+                guard let eventRevision, let frame = body["frame"] as? NSNumber,
+                      let playing = body["playing"] as? Bool else { return }
+                receivePlaybackFrame(frame.intValue, revision: eventRevision, playing: playing)
                 if NativePreviewCapture.playbackRequested, playbackProbe.observe(frame.intValue) {
                     isPlaying = false
                     send(["type": "pause", "revision": eventRevision])
@@ -757,6 +831,20 @@ private struct ProgramWebView: NSViewRepresentable {
             }
         }
 
+        func receivePlaybackFrame(_ frame: Int, revision: String, playing: Bool) {
+            guard playing, isPlaying, revision == loadedRevision, store?.isEmptyPreview == false,
+                  let editingFrame = clock?.editingFrame(forPlayback: frame) else { return }
+            store?.updatePlayheadFromPreview(editingFrame, revision: revision)
+        }
+
+        func deactivate() {
+            isPlaying = false
+            loadedRevision = nil
+            loadedManifest = nil
+            loadedURL = nil
+            clock = nil
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard let url = webView.url, isCapabilityURL(url) else { return }
             pageReady = true
@@ -774,8 +862,8 @@ private struct ProgramWebView: NSViewRepresentable {
             store?.requestExactPreview(reason: "WebKit navigation failed: \(error.localizedDescription)")
         }
 
-        private func togglePlayback() {
-            guard let revision = loadedRevision else { return }
+        func togglePlayback() {
+            guard store?.isEmptyPreview == false, let revision = loadedRevision else { return }
             isPlaying.toggle()
             send(["type": isPlaying ? "play" : "pause", "revision": revision])
         }

@@ -573,7 +573,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
 }
 
 @MainActor
-private final class TimelineCanvas: NSView {
+class TimelineCanvas: NSView {
     struct Callbacks {
         var onSelect: (String, Bool) -> Void
         var onBeginGesture: (String) async -> String?
@@ -698,7 +698,7 @@ private final class TimelineCanvas: NSView {
         if let occlusionObserver { NotificationCenter.default.removeObserver(occlusionObserver) }
     }
 
-    func update(snapshot: EditorSnapshot?, tracks: [EditorTrack], trackMap: [String: String], library: [JSONValue],
+    fileprivate func update(snapshot: EditorSnapshot?, tracks: [EditorTrack], trackMap: [String: String], library: [JSONValue],
                 selectedIDs: Set<String>, changedIDs: Set<String>, sourceURLs: [String: URL],
                 playheadFrame: Int, zoom: Double, snapping: Bool, scrollRequest: ScrollRequest?,
                 callbacks: Callbacks) {

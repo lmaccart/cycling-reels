@@ -89,6 +89,11 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
   Their picture and sound are omitted from preview and render; linked nodes stay
   on the timeline. Editing navigation reaches the complete editing extent,
   including disabled tails, while playback/export ends with rendered media.
+  Paused seeks keep that editing position even when preview must show the next
+  enabled boundary (or the rendered endpoint for a disabled tail). Playing maps
+  the compact preview clock back to the matching editing clip.
+  With every clip disabled, Program shows “Nothing to preview” and releases
+  picture and sound; transport cannot resume the previous movie.
 - The timeline shows waveforms only (no spectrogram mode). Use the logarithmic
   zoom slider, plus/minus controls, Fit, or the bottom zoom scroller.
 - **Colour** (Inspector, at reel, clip and project level): the look defaults to
@@ -108,6 +113,9 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Each validated gesture or operation batch autosaves as one transaction.
   Undo/redo covers both manual and Claude changes. Failed edits leave the last
   committed revision intact.
+  Optimistic trim/delete timing can shrink both extents. Sequential deletion
+  preserves fade-adjusted timing; positioned ripple preserves only real enabled
+  transition overlaps and does not predict edits blocked by crossing clips.
 - Source video uses AVFoundation; still photos are images. Unsupported formats
   and 360 media use private proxies.
 - A 360 clip in Source shows **Front** and **Back** side by side, both level with

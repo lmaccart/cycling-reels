@@ -478,7 +478,7 @@ final class EditorStore {
     func updatePlayheadFromPreview(_ frame: Int, revision: String?) {
         guard !isScrubbing, let snapshot,
               revision == nil || revision == snapshot.revisions.document || revision == displayedPreviewRevision else { return }
-        playheadFrame = max(0, min(snapshot.durationFrames, frame))
+        playheadFrame = max(0, min(snapshot.editingDurationFrames, frame))
     }
 
     func hit(for id: String) -> SearchHit? { searchHits.first { $0.id == id } }

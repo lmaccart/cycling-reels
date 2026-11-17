@@ -14,7 +14,7 @@ export type EditorPreviewCommand =
 
 export type EditorPreviewEvent =
   | { type: 'ready'; revision: string; durationInFrames: number }
-  | { type: 'frame'; revision: string; frame: number }
+  | { type: 'frame'; revision: string; frame: number; playing: boolean }
   | { type: 'error'; revision: string | null; message: string };
 
 type LoadedRevision = {
@@ -141,7 +141,7 @@ const EditorPreview: React.FC = () => {
     if (!player || !loaded) return;
     const onFrame = (event: { detail: { frame: number } }) => {
       if (Number.isFinite(event.detail.frame)) {
-        send({ type: 'frame', revision: loaded.revision, frame: event.detail.frame });
+        send({ type: 'frame', revision: loaded.revision, frame: event.detail.frame, playing: player.isPlaying() });
       }
     };
     const onError = (event: { detail: { error: Error } }) => {
@@ -161,7 +161,7 @@ const EditorPreview: React.FC = () => {
     playerRef.current.seekTo(frame);
     const animationFrame = window.requestAnimationFrame(() => {
       send({ type: 'ready', revision: loaded.revision, durationInFrames: loaded.props.totalFrames });
-      send({ type: 'frame', revision: loaded.revision, frame });
+      send({ type: 'frame', revision: loaded.revision, frame, playing: false });
     });
     return () => window.cancelAnimationFrame(animationFrame);
   }, [loaded]);

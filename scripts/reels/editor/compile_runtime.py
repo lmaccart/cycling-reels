@@ -382,7 +382,16 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
     segments = []
     # Disabled segments stay in the list (full length, flagged) so list position == plan index.
     editing = built.get("editing", built)
+    # Only retained renderer indexes establish correspondence. Compact/frozen
+    # renderers may renumber output, so never zip it with the enabled edit list.
+    playback = {segment.index: segment for segment in built["segs"]
+                if not getattr(segment, "disabled", False)}
+    retained = {segment.index for segment in editing["segs"]
+                if not getattr(segment, "disabled", False)}
+    if playback.keys() != retained or len(playback) != len(built["segs"]):
+        playback = {}
     for segment in editing["segs"]:
+        rendered = playback.get(segment.index) if not getattr(segment, "disabled", False) else None
         cuts = []
         for cut in segment.spec.get("_cutaways") or []:
             child = cut["seg"]
@@ -400,6 +409,8 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
             "spec": {key: value for key, value in segment.spec.items() if key != "_cutaways"},
             "frames": segment.frames, "trans": segment.trans, "start": segment.start, "cutaways": cuts,
             **({"disabled": True} if getattr(segment, "disabled", False) else {}),
+            **({"playbackStartFrame": rendered.start,
+                "playbackEndFrame": rendered.start + rendered.frames} if rendered is not None else {}),
         })
     sound = dict(built.get("sound") or {})
     sound["cues"] = [
