@@ -348,6 +348,34 @@ xcodebuild -project editor/ReelsEditor.xcodeproj \
   -derivedDataPath .cache/editor/DerivedData test
 ```
 
+Optimistic-delete ordering can be checked without launching the installed app:
+
+```bash
+TEST_RUNNER_REELS_TEST_PYTHON=/absolute/path/to/.venv/bin/python \
+xcodebuild -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
+  -configuration Release ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES \
+  -destination 'platform=macOS,arch=arm64' -derivedDataPath .cache/editor/delete-tests \
+  -only-testing:ReelsEditorTests/EditorOperationTests/testHostedDeleteBeforeRealServiceAcknowledgementAndRollback test
+```
+
+This hosts the production `ContentView`, including its nested hosting views and
+timeline, against a real broker/compiler on a temporary project. The broker holds
+`document.apply` before validation/persistence; the canvas must remove the clip
+and request redraw while the saved plan still has both clips. Sequential delete,
+positioned gap preservation, ripple, intervening refresh and a real revision
+conflict/rollback are covered. Media decoding and automatic preview rendering are
+disabled for this fixture. Diagnostic bitmaps are in
+`.cache/editor/timeline-captures/delete-*.png`.
+
+This is an acknowledgement-order regression, **not** a presentation-latency
+benchmark. Layout can delay drawing even when the store predicts before sending.
+For installed-app latency, pin the app PID and window ID, start a ScreenCaptureKit
+stream before input, and retain complete frames with their presentation timestamps.
+Correlate those with app-side command receipt, snapshot publication, canvas
+update/draw and plan-save timestamps on one monotonic clock. A `CGEvent.post`
+return timestamps enqueueing, not handler receipt; a new screenshot process or
+an offscreen `cacheDisplay` bitmap is not proof of the first presented frame.
+
 The optional sandbox/render proofs need macOS with ffmpeg, node and a Chrome
 Headless Shell:
 

@@ -25,6 +25,12 @@ private final class SpeedModalInput: NSObject {
 }
 
 @MainActor
+private final class DeleteRedrawCounter {
+    var count = 0
+    var first: Date?
+}
+
+@MainActor
 final class EditorOperationTests: XCTestCase {
     func testBrollInsertUsesPrimaryStableIDAndLocalTime() {
         let operation = BrollOperationBuilder.insert(
@@ -492,6 +498,198 @@ final class EditorOperationTests: XCTestCase {
         store.selectedIDs = ["text"]
         store.performTimelineContextAction("Copy", nodeID: "text", atFrame: 0)
         XCTAssertTrue(store.copiedSegments.isEmpty, "Unsupported Copy must not paste unrelated prior footage")
+    }
+
+    func testHostedDeleteBeforeRealServiceAcknowledgementAndRollback() async throws {
+        let code = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let python = ProcessInfo.processInfo.environment["REELS_TEST_PYTHON"]
+            ?? "/Users/leif/rice/cycling/.venv/bin/python"
+        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: python))
+        for scenario in ["sequential", "positioned", "ripple", "rejected"] {
+            let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: root) }
+            // The real broker/compiler/persistence/protocol run unchanged. Only hold
+            // apply before dispatch, and disable unrelated automatic media rendering.
+            let server = """
+            import os, time
+            from pathlib import Path
+            from reels.config import Project
+            from reels.library import save_asset
+            from reels.util import quick_hash, write_json
+            from reels.editor.workspace import Workspace
+            from reels.editor import service
+            root = Path.cwd()
+            project = Project(root)
+            project.ensure_dirs()
+            (root / "remotion").mkdir()
+            media = project.media_dir / "ride.mp4"
+            media.write_bytes(b"fingerprint-only test asset")
+            save_asset(project, {"id": "ride", "kind": "video", "media": "library/media/ride.mp4",
+                "hash": quick_hash(media), "status": "tagged", "tags": {},
+                "probe": {"duration": 60, "fps": 30, "width": 1280, "height": 720, "hasAudio": True}})
+            segments = [{"asset": "ride", "in": 9.133333333333333, "out": 19.133333333333333},
+                        {"asset": "ride", "in": 19.999666666666666, "out": 50.733333333333334}]
+            plan = {"slug": "delete", "autoSfx": False, "segments": segments}
+            if os.environ["REELS_DELETE_SCENARIO"] != "sequential":
+                plan["timeline"] = {"version": 1, "fps": 30, "durationFrames": 1248}
+                for segment, start, length in zip(segments, (26, 326), (300, 922)):
+                    segment["timeline"] = {"track": "V1", "startFrame": start,
+                        "durationFrames": length, "transitionInFrames": 0}
+            write_json(project.plans_dir / "delete.json", plan)
+            class GatedService(service.EditorService):
+                def _changed(self, snapshot, **kwargs):
+                    return super()._changed(snapshot, **{**kwargs, "prepare_preview": False})
+                def dispatch(self, method, params, source="native"):
+                    if method == "document.apply" and params.get("batch", {}).get("reason") != "External edit":
+                        (root / "apply.waiting").touch()
+                        deadline = time.monotonic() + 20
+                        while not (root / "apply.release").exists():
+                            if time.monotonic() > deadline:
+                                raise RuntimeError("Test did not release document.apply")
+                            time.sleep(0.005)
+                    return super().dispatch(method, params, source)
+            service.EditorService = GatedService
+            service.serve(Workspace.live(root, code_root=Path(os.environ["REELS_TEST_CODE_ROOT"])))
+            """
+            try server.write(to: root.appending(path: "serve.py"), atomically: true, encoding: .utf8)
+            let launcher = root.appending(path: "reels")
+            try "#!/bin/sh\nexec \"$REELS_TEST_PYTHON\" serve.py\n".write(to: launcher, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcher.path)
+            var env = ProcessInfo.processInfo.environment
+            env["PYTHONPATH"] = code.appending(path: "scripts").path
+            env["REELS_TEST_PYTHON"] = python
+            env["REELS_TEST_CODE_ROOT"] = code.path
+            env["REELS_DELETE_SCENARIO"] = scenario
+            env["REELS_HOME"] = root.path
+            let store = EditorStore()
+            try store.service.start(repositoryRoot: root, environment: env)
+            defer {
+                FileManager.default.createFile(atPath: root.appending(path: "apply.release").path, contents: nil)
+                store.service.stopSynchronously()
+            }
+            let opened = try await store.service.call("document.open", params: .object(["path": .string("plans/delete.json")]))
+            let initial = try XCTUnwrap(EditorSnapshot.decode(opened))
+            store.authoritativeSnapshot = initial
+            store.snapshot = initial
+            store.openPlanPath = "plans/delete.json"
+            // No source decoding/proxy preparation is involved in this geometry test.
+            store.sourceStates["ride"] = "unavailable"
+            let ordered = OptimisticTimeline.segments(initial.nodes)
+            XCTAssertEqual(ordered.count, 2)
+            let target = ordered[scenario == "sequential" ? 1 : 0]
+            let survivor = ordered[scenario == "sequential" ? 0 : 1]
+            store.selectedIDs = [target.id]
+            await store.loadInspectorSchema(for: target.id)
+            // Include the production nested NSHostingView / NativeSplitView boundary,
+            // not a canvas manually fed the predicted snapshot.
+            let host = NSHostingView(rootView: ContentView(store: store))
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1520, height: 940),
+                                  styleMask: .titled, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = host
+            window.orderFront(nil)
+            defer { window.close() }
+            try await eventually("Integrated timeline is hosted: \(scenario)") {
+                self.descendants(host).contains { $0 is TimelineCanvas }
+            }
+            let canvas = try XCTUnwrap(descendants(host).compactMap { $0 as? TimelineCanvas }.first)
+            func clip(_ node: EditorNode) -> NSAccessibilityElement? {
+                (canvas.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }.first {
+                    $0.accessibilityLabel()?.contains(", V1, Video,") == true
+                        && $0.accessibilityLabel()?.contains(", \(node.frames) frames") == true
+                }
+            }
+            host.layoutSubtreeIfNeeded()
+            try await eventually("Test window is visible: \(scenario)") {
+                window.occlusionState.contains(.visible) && !canvas.visibleRect.isEmpty
+            }
+            store.setPlayhead(300)
+            try await eventually("Both clips reach the integrated canvas: \(scenario)") {
+                (clip(target)?.accessibilityFrame().width ?? 0) > 0
+                    && (clip(survivor)?.accessibilityFrame().width ?? 0) > 0
+            }
+            let oldTargetFrame = try XCTUnwrap(clip(target)).accessibilityFrame()
+            let scale = oldTargetFrame.width / CGFloat(target.frames)
+            let timelineOriginX = oldTargetFrame.minX - CGFloat(target.startFrame) * scale
+            try capture(host, name: "delete-\(scenario)-before.png")
+            let redraws = DeleteRedrawCounter()
+            let observation = canvas.observe(\.needsDisplay, options: [.new]) { _, _ in
+                MainActor.assumeIsolated {
+                    redraws.count += 1
+                    if redraws.first == nil { redraws.first = Date() }
+                }
+            }
+            defer { observation.invalidate() }
+            let delivered = Date()
+            if scenario == "ripple" {
+                store.performTimelineContextAction("Ripple delete", nodeID: target.id, atFrame: target.startFrame)
+            } else if scenario == "sequential" {
+                canvas.keyDown(with: try XCTUnwrap(NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                    windowNumber: window.windowNumber, context: nil, characters: "\u{7f}",
+                    charactersIgnoringModifiers: "\u{7f}", isARepeat: false, keyCode: 51)))
+            } else {
+                store.deleteSelection()
+            }
+            // Verify event ordering, not a wall-clock UI performance budget:
+            // the broker cannot save or acknowledge until this test releases it.
+            try await eventually("Hosted clip disappears before backend acknowledgement: \(scenario)") {
+                clip(target) == nil
+            }
+            XCTAssertNil(clip(target), "The actual hosted canvas must remove the clip before any server save: \(scenario)")
+            XCTAssertGreaterThan(redraws.count, 0, "Prediction must invalidate drawing, not only accessibility: \(scenario)")
+            let expectedStart = scenario == "ripple" ? survivor.startFrame - target.frames : survivor.startFrame
+            let predictedFrame = try XCTUnwrap(clip(survivor)).accessibilityFrame()
+            let predictedScale = predictedFrame.width / CGFloat(survivor.frames)
+            XCTAssertEqual(predictedFrame.minX, timelineOriginX + CGFloat(expectedStart) * predictedScale,
+                           accuracy: 1, scenario)
+            let redrawMilliseconds = try XCTUnwrap(redraws.first).timeIntervalSince(delivered) * 1000
+            print("DELETE-PROOF \(scenario): redraw requested at \(redrawMilliseconds) ms; hosted removal observed at \(Date().timeIntervalSince(delivered) * 1000) ms; backend apply still gated")
+            try await eventually("Backend receives apply and remains gated: \(scenario)") {
+                FileManager.default.fileExists(atPath: root.appending(path: "apply.waiting").path)
+            }
+            XCTAssertFalse(store.snapshot?.nodes.contains { $0.id == target.id } ?? true, scenario)
+            let planURL = root.appending(path: "plans/delete.json")
+            let unsavedPlan = try JSONDecoder().decode(JSONValue.self, from: Data(contentsOf: planURL))
+            XCTAssertEqual(unsavedPlan["segments"]?.arrayValue?.count, 2, "Backend has not saved: \(scenario)")
+            XCTAssertEqual(store.authoritativeSnapshot?.revisions, initial.revisions, scenario)
+            try capture(host, name: "delete-\(scenario)-optimistic.png")
+            // An intervening refresh must keep the prediction on screen.
+            await store.refreshSnapshot()
+            XCTAssertNil(clip(target), scenario)
+            if scenario == "rejected" {
+                // A genuine revision conflict, not a fabricated error response.
+                _ = try await store.service.call("document.apply", params: .object(["batch": .object([
+                    "reason": .string("External edit"), "expected": try XCTUnwrap(opened["revisions"]),
+                    "operations": .array([.object(["op": .string("set_field"), "id": .string(survivor.id),
+                        "path": .string("/volume"), "value": .number(0.5)])])
+                ])]))
+            }
+            try Data().write(to: root.appending(path: "apply.release"))
+            await store.editTail?.value
+            try await eventually("Hosted reconciliation completes: \(scenario)") {
+                scenario == "rejected" ? clip(target) != nil : clip(target) == nil
+            }
+            let saved = try JSONDecoder().decode(JSONValue.self, from: Data(contentsOf: planURL))
+            XCTAssertEqual(saved["segments"]?.arrayValue?.count, scenario == "rejected" ? 2 : 1, scenario)
+            XCTAssertTrue(store.pendingPredictions.isEmpty, scenario)
+            if scenario == "rejected" {
+                XCTAssertNotNil(store.errorMessage)
+                let restored = try XCTUnwrap(clip(target)).accessibilityFrame()
+                XCTAssertEqual(restored.minX, timelineOriginX
+                    + CGFloat(target.startFrame) * restored.width / CGFloat(target.frames), accuracy: 1)
+                XCTAssertEqual(store.snapshot?.nodes.first { $0.id == survivor.id }?.raw["volume"]?.numberValue, 0.5)
+                // Do not let the expected error alert interfere with the capture.
+                store.errorMessage = nil
+            } else {
+                XCTAssertNil(store.errorMessage, scenario)
+                XCTAssertFalse(store.authoritativeSnapshot?.nodes.contains { $0.id == target.id } ?? true, scenario)
+                XCTAssertEqual(store.snapshot?.nodes.first { $0.id == survivor.id }?.startFrame, expectedStart, scenario)
+            }
+            try capture(host, name: "delete-\(scenario)-reconciled.png")
+        }
     }
 
     func testRealServiceDisabledSplitSpeedTrimPreviewUndoRedoRoundTrip() async throws {
