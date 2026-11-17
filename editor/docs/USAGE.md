@@ -351,6 +351,102 @@ xcodebuild -project editor/ReelsEditor.xcodeproj \
   -derivedDataPath .cache/editor/DerivedData test
 ```
 
+XCTest runs a prohibited-activation AppKit host: no Dock icon, editor scene,
+window restoration or service auto-connect. Hosted views use unordered windows;
+custom-speed input is supplied at the modal presentation boundary.
+
+Optimistic-delete ordering and zoom-slider binding checks run offscreen in Debug
+(the full Debug suite includes all of these focused tests):
+
+```bash
+TEST_RUNNER_REELS_TEST_PYTHON=/absolute/path/to/.venv/bin/python \
+xcodebuild -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath .cache/editor/delete-debug-tests \
+  -only-testing:ReelsEditorTests/EditorOperationTests/testHostedDeleteBeforeRealServiceAcknowledgementAndRollback \
+  -only-testing:ReelsEditorTests/EditorOperationTests/testHostedZoomSliderBindingUpdatesClipGeometry \
+  -only-testing:ReelsEditorTests/EditorUXHelpersTests/testZoomSliderBindingRoundTripsLogScale \
+  -only-testing:ReelsEditorTests/EditorUXHelpersTests/testZoomSliderBindingClampsAndPreservesNonfiniteFallback \
+  -only-testing:ReelsEditorTests/EditorUXHelpersTests/testZoomSliderBindingAgreesWithButtonsAndFit test
+```
+
+The 50 ms latency gate is a separate, explicitly Release-configured test:
+
+```bash
+TEST_RUNNER_REELS_TEST_PYTHON=/absolute/path/to/.venv/bin/python \
+xcodebuild -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
+  -configuration Release ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES \
+  -destination 'platform=macOS,arch=arm64' -derivedDataPath .cache/editor/delete-tests \
+  -only-testing:ReelsEditorTests/EditorOperationTests/testReleaseHostedDeleteInputToRedrawLatency test
+```
+
+The ordering test has no wall-clock budget and runs in every configuration. The
+latency test explicitly skips in Debug with a reason identifying the Release
+requirement; Debug timing is never compared to a Release budget.
+
+Both delete tests host production `ContentView`, including nested hosting views
+and timeline, against a real broker/compiler on a temporary project with 570
+camera keyframes. The broker holds `document.apply` before validation/persistence.
+Deletion must publish synchronously on the input handler's turn, and the actual
+hosted canvas must remove the clip and request redraw while the saved plan still
+has both clips. Sequential delete, positioned gap preservation, ripple, intervening
+refresh and a real revision conflict/rollback are covered in every configuration.
+
+`DELETE-LATENCY Release` reports input-to-redraw requests on a monotonic clock.
+XCTest observes the hosted canvas's `needsDisplay` setter; production code has no
+test-only timing callbacks. The Release gate requires each scenario below 50 ms.
+This measures redraw requests, **not** screen presentation. Media decoding and
+automatic preview rendering are disabled for this fixture. Offscreen view bitmaps
+are in `.cache/editor/timeline-captures/delete-*.png`; no screen-capture or system
+Accessibility service is used.
+
+`TimelineZoomControl` owns the timeline's zoom and exposes the logarithmic
+`sliderPosition` binding used directly by the production Slider. The canvas,
+plus/minus controls, Fit, keyboard commands and bottom scroller share that state.
+The extracted mapping preserves `log(zoom)` / `clamp(exp(position))`, including
+the existing nonfinite fallback; zoom limits, step size and fit math are unchanged.
+
+Three helper tests cover logarithmic round trips, clamping/nonfinite values, and
+agreement with the actions used by the zoom/Fit buttons. The hosted binding test
+sets that same production binding, checks the zoom state immediately, and waits
+for exact clip widths in the production `TimelinePanel` canvas. It checks both
+zoom directions, returning to the same position, button/command updates and both
+clamp boundaries. No playhead-only geometry refresh is needed.
+
+This replaces the unreliable offscreen Slider mouse-event test. An unordered
+SwiftUI host exposes neither an `NSSlider` nor a virtual slider provider, and
+direct mouse injection did not establish that input reached its binding.
+The replacement verifies the binding-to-canvas path, not gesture delivery;
+it uses no mouse events, private proxies, system input or external AX calls.
+
+PR #40 binding continuation: one full Debug run executed 150 tests with zero
+failures (149 passed, one explicit Release-only latency skip), including all four
+zoom-binding regression tests. Evidence:
+`.cache/agents/ui-delete-zoom-binding-debug.log` and
+`.cache/agents/ui-delete-zoom-binding-debug.xcresult`. No failed-test rerun was
+needed. Timing code was unchanged, so the Release latency test was not rerun.
+
+Delete predictions do not wait for a Task hop or earlier backend edits. Persistence
+still runs serially against the authoritative revision; pending predictions replay
+over refreshes and rejected edits roll back. Inspector sections and collection rows
+are lazy so offscreen camera controls do not block the timeline's update.
+
+Recorded Release input-to-redraw results for that hosted fixture (574 nodes):
+
+| Delete | Eager inspector baseline | Lazy inspector + synchronous enqueue |
+| --- | ---: | ---: |
+| Sequential | 3864.3 ms | 48.28 ms |
+| Positioned | 3642.9 ms | 5.29 ms |
+| Ripple | 3718.1 ms | 41.32 ms |
+| Rejected edit (optimistic phase) | 3816.2 ms | 4.26 ms |
+
+Baseline: inherited XCTest log `.cache/agents/ui-delete-interval-before.log`;
+current separate Release gate: `.cache/agents/ui-delete-review-tests.log`.
+The baseline ordered its hosted window; the current host is offscreen and
+nonactivating. These are single-run diagnostics, not controlled screen-presentation
+measurements or a guarantee under arbitrary load. The measured baseline stall was
+inspector layout before canvas update, not a dependency on backend acknowledgement.
+
 The optional sandbox/render proofs need macOS with ffmpeg, node and a Chrome
 Headless Shell:
 

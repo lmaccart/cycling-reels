@@ -1,6 +1,22 @@
 import SwiftUI
 
+/// XCTest needs an AppKit run loop, not SwiftUI's launch/restoration of the editor scene.
 @main
+enum EditorEntryPoint {
+    @MainActor
+    static func main() {
+        if EditorAppDelegate.isTestHost {
+            let application = NSApplication.shared
+            application.setActivationPolicy(.prohibited)
+            let delegate = EditorAppDelegate()
+            application.delegate = delegate
+            withExtendedLifetime(delegate) { application.run() }
+        } else {
+            ReelsEditorApp.main()
+        }
+    }
+}
+
 struct ReelsEditorApp: App {
     @NSApplicationDelegateAdaptor(EditorAppDelegate.self) private var appDelegate
     @State private var store = EditorStore.shared
@@ -11,9 +27,7 @@ struct ReelsEditorApp: App {
             RootView(store: store)
                 .frame(minWidth: 1280, minHeight: 768)
                 .onAppear {
-                    let testHost = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
-                        || NSClassFromString("XCTestCase") != nil
-                    if !testHost, store.serviceState == .stopped { store.connect() }
+                    if store.serviceState == .stopped { store.connect() }
                 }
         }
         .windowStyle(.hiddenTitleBar)

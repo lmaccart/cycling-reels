@@ -176,7 +176,7 @@ private enum TimelineColors {
 
 struct TimelinePanel: View {
     @Bindable var store: EditorStore
-    @State private var zoom = TimelineMetrics.defaultZoom
+    @State var zoomControl = TimelineZoomControl()
     @State private var snapping = true
     @State private var viewportWidth: CGFloat = 0
     @State private var scrollX: CGFloat = 0
@@ -186,7 +186,7 @@ struct TimelinePanel: View {
     private static let gutter = Double(TimelineLayout.labelWidth)
 
     private var contentWidth: CGFloat {
-        max(650, TimelineLayout.labelWidth + CGFloat(store.snapshot?.editingDurationFrames ?? 0) * zoom + 120)
+        max(650, TimelineLayout.labelWidth + CGFloat(store.snapshot?.editingDurationFrames ?? 0) * zoomControl.zoom + 120)
     }
     private var trackHeight: CGFloat {
         TimelineLayout.contentHeight(tracks: store.tracks)
@@ -243,15 +243,12 @@ struct TimelinePanel: View {
                     .toggleStyle(.button)
                     .help("Snap edges to the playhead and neighboring clips")
                     .accessibilityLabel("Snapping")
-                Button { zoom = TimelineMetrics.zoomOut(zoom) } label: { Image(systemName: "minus.magnifyingglass") }
+                Button { zoomControl.zoomOut() } label: { Image(systemName: "minus.magnifyingglass") }
                     .help("Zoom out  ⌘−")
                     .accessibilityLabel("Zoom out")
-                Button { zoom = TimelineMetrics.zoomIn(zoom) } label: { Image(systemName: "plus.magnifyingglass") }
+                Button { zoomControl.zoomIn() } label: { Image(systemName: "plus.magnifyingglass") }
                     .help("Zoom in  ⌘+")
-                Slider(value: Binding(
-                    get: { log(zoom) },
-                    set: { zoom = TimelineMetrics.clamp(exp($0)) }
-                ), in: log(TimelineMetrics.minZoom)...log(TimelineMetrics.maxZoom))
+                Slider(value: zoomControl.sliderPosition, in: TimelineZoomControl.sliderRange)
                     .frame(width: 90)
                     .help("Timeline zoom")
                     .accessibilityLabel("Zoom")
@@ -289,9 +286,9 @@ struct TimelinePanel: View {
 
             TimelineZoomScroller(
                 durationFrames: store.snapshot?.editingDurationFrames ?? 0,
-                zoom: zoom, viewportWidth: Double(viewportWidth), gutter: Self.gutter, scrollX: Double(scrollX),
+                zoom: zoomControl.zoom, viewportWidth: Double(viewportWidth), gutter: Self.gutter, scrollX: Double(scrollX),
                 onChange: { newZoom, newScroll in
-                    zoom = TimelineMetrics.clamp(newZoom)
+                    zoomControl.zoom = TimelineMetrics.clamp(newZoom)
                     scrollRequest = ScrollRequest(id: (scrollRequest?.id ?? 0) + 1, x: CGFloat(newScroll))
                 }
             )
@@ -302,8 +299,8 @@ struct TimelinePanel: View {
         .background(EditorPalette.panel)
         .onReceive(NotificationCenter.default.publisher(for: .reelsTimelineZoom)) { note in
             switch note.object as? String {
-            case "in": zoom = TimelineMetrics.zoomIn(zoom)
-            case "out": zoom = TimelineMetrics.zoomOut(zoom)
+            case "in": zoomControl.zoomIn()
+            case "out": zoomControl.zoomOut()
             default: fit()
             }
         }
@@ -329,8 +326,8 @@ struct TimelinePanel: View {
     }
 
     private func fit() {
-        zoom = TimelineMetrics.fitZoom(durationFrames: store.snapshot?.editingDurationFrames ?? 0,
-                                       viewportWidth: Double(viewportWidth), gutter: Self.gutter)
+        zoomControl.fit(durationFrames: store.snapshot?.editingDurationFrames ?? 0,
+                        viewportWidth: Double(viewportWidth), gutter: Self.gutter)
         scrollRequest = ScrollRequest(id: (scrollRequest?.id ?? 0) + 1, x: 0)
     }
     private func fitIfPending() {
@@ -378,7 +375,7 @@ struct TimelinePanel: View {
                         changedIDs: store.recentlyChangedIDs,
                         sourceURLs: store.timelineSourceURLs,
                         playheadFrame: store.playheadFrame,
-                        zoom: zoom,
+                        zoom: zoomControl.zoom,
                         snapping: snapping,
                         scrollRequest: scrollRequest,
                         onSelect: { id, additive in store.selectNode(id, additive: additive) },

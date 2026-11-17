@@ -1,7 +1,20 @@
+import AppKit
 import XCTest
 @testable import ReelsEditor
 
 final class UXPresentationTests: XCTestCase {
+    @MainActor
+    func testXCTestHostCannotActivateOrRestoreEditorWindows() throws {
+        XCTAssertNotEqual(NSApp.activationPolicy(), .regular)
+        XCTAssertEqual(NSApp.activationPolicy(), .prohibited)
+        XCTAssertFalse(NSApp.isActive)
+        let delegate = try XCTUnwrap(NSApp.delegate as? EditorAppDelegate)
+        XCTAssertFalse(delegate.applicationShouldRestoreApplicationState(NSApp))
+        XCTAssertFalse(delegate.applicationShouldSaveApplicationState(NSApp))
+        XCTAssertFalse(delegate.applicationShouldHandleReopen(NSApp, hasVisibleWindows: false))
+        XCTAssertFalse(NSApp.windows.contains { $0.isVisible })
+    }
+
     private func json(_ text: String) throws -> JSONValue {
         try JSONDecoder().decode(JSONValue.self, from: Data(text.utf8))
     }

@@ -169,7 +169,7 @@ private struct InspectorPane: View {
 
             if let node = store.selectedNode {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
+                    LazyVStack(alignment: .leading, spacing: 8) {
                         clipProperties(node)
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
                             SchemaInspector(schema: store.inspectorSchema, fields: node.raw, nodeID: node.id, store: store)
@@ -185,7 +185,7 @@ private struct InspectorPane: View {
                 }
             } else if let snapshot = store.snapshot {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
+                    LazyVStack(alignment: .leading, spacing: 8) {
                         reelProperties(snapshot)
                         if SchemaInspector.hasDescriptors(store.inspectorSchema) {
                             SchemaInspector(schema: store.inspectorSchema,
@@ -806,7 +806,7 @@ private struct SchemaCollectionField: View {
 
     var body: some View {
         DisclosureGroup(isExpanded: $expanded) {
-            VStack(alignment: .leading, spacing: 7) {
+            LazyVStack(alignment: .leading, spacing: 7) {
                 ForEach(Array(values.enumerated()), id: \.offset) { index, item in
                     let targetKey = targetKey(for: item)
                     let child = childNode(for: item, targetKey: targetKey)

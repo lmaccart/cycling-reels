@@ -39,6 +39,8 @@ final class EditorStore {
     @ObservationIgnored var pendingPredictions: [(id: UUID, change: OptimisticTimeline.Change)] = []
     /// The last queued edit; the next one waits for it.
     @ObservationIgnored var editTail: Task<Void, Never>?
+    /// Presentation boundary; tests supply input without ordering a modal window.
+    @ObservationIgnored var presentSpeedDialog: (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }
     var plans: [JSONValue] = []
     var library: [JSONValue] = []
     var flags: [ClipFlag] = []
@@ -493,6 +495,13 @@ final class EditorStore {
     /// revision the previous one produced), so quick back-to-back gestures never race.
     /// `predict` moves clips on screen immediately; the saved snapshot replaces it.
     func apply(_ operations: [JSONValue], reason: String, predict: OptimisticTimeline.Change? = nil) async {
+        await enqueue(operations, reason: reason, predict: predict).value
+    }
+
+    /// Publish on the input handler's turn; only persistence waits for earlier edits.
+    @discardableResult
+    func enqueue(_ operations: [JSONValue], reason: String,
+                 predict: OptimisticTimeline.Change? = nil) -> Task<Void, Never> {
         let token = UUID()
         if let predict, let current = snapshot {
             pendingPredictions.append((token, predict))
@@ -504,7 +513,7 @@ final class EditorStore {
             await self.send(operations, reason: reason, token: token)
         }
         editTail = task
-        await task.value
+        return task
     }
 
     private func send(_ operations: [JSONValue], reason: String, token: UUID) async {
@@ -705,9 +714,7 @@ final class EditorStore {
         let prediction = segments.isEmpty ? nil : OptimisticTimeline.remove(
             ids: Set(segments), ripple: !positioned, positioned: positioned
         )
-        Task {
-            await apply(operations, reason: "Delete selection", predict: prediction)
-        }
+        enqueue(operations, reason: "Delete selection", predict: prediction)
     }
 
     func acquireTimelineLease(owner: String) async -> String? {
