@@ -270,6 +270,7 @@ def _profile_text(
     executables: set[Path],
     *,
     browser: bool = False,
+    videotoolbox: bool = False,
 ) -> str:
     lines = [
         "(version 1)",
@@ -299,6 +300,13 @@ def _profile_text(
         lines.append(f"(allow file-write* (subpath {_sbpl_quote(root)}))")
     for executable in sorted(executables, key=str):
         lines.append(f"(allow process-exec (literal {_sbpl_quote(executable)}))")
+    if videotoolbox:
+        # Pixel buffers shared with the codec XPC services; no GPU/device-wide grant.
+        lines.extend([
+            '(allow iokit-open-user-client (iokit-user-client-class "IOSurfaceRootUserClient"))',
+            '(allow mach-lookup (xpc-service-name "com.apple.coremedia.videoencoder"))',
+            '(allow mach-lookup (xpc-service-name "com.apple.coremedia.videodecoder"))',
+        ])
     if browser:
         # Chrome's renderer processes use a PID-scoped local rendezvous port;
         # signal is limited to this sandbox's own process tree for Stop/cleanup.
@@ -506,8 +514,9 @@ def _worker_command(code_root: Path, *arguments: str) -> list[str]:
     """
     trusted = Path(__file__).with_name("worker.py").resolve(strict=True)
     bootstrap = (
-        "import importlib.util,sys;"
+        "import importlib.util,sys;from pathlib import Path;"
         "sys.path.insert(0,sys.argv[1]);"
+        "import reels.editor;reels.editor.__path__=[str(Path(sys.argv[2]).parent)];"
         "s=importlib.util.spec_from_file_location('reels.editor._trusted_worker',sys.argv[2]);"
         "m=importlib.util.module_from_spec(s);sys.modules[s.name]=m;"
         "s.loader.exec_module(m);raise SystemExit(m.main(sys.argv[3:]))"
@@ -608,7 +617,8 @@ class PreviewManager:
         job["cacheRoot"] = str(cache_root)
         job["bundleCache"] = str(bundle_cache)
         job["workspaceRoot"] = str(Path(self.workspace.root).resolve())
-        job["runtimeRevision"] = hashlib.sha256(Path(__file__).with_name("worker.py").read_bytes()).hexdigest()
+        if job.get("action") not in ("source_proxy", "sphere_proxy"):
+            job["runtimeRevision"] = hashlib.sha256(Path(__file__).with_name("worker.py").read_bytes()).hexdigest()
         job["trustedTestsRoot"] = str(Path(__file__).resolve().parents[3] / "tests")
         _atomic_json(Path(job["jobPath"]), job)
 
@@ -628,12 +638,19 @@ class PreviewManager:
         # to predict that decision.
         browser_worker = job.get("mode") == "exact" or job.get("action") in ("prepare", "export", "validate")
         reads, writes = _path_roots(self.workspace, code_root, job_root, revision_dir, cache_root, bundle_cache)
+        if job.get("action") in ("source_proxy", "sphere_proxy"):
+            from .proxy_cache import budget_root
+
+            reservations = budget_root(Path(self.workspace.root).resolve())
+            reads.append(reservations)
+            writes.append(reservations)
         reads.append(fixture_root.resolve())
         if browser_worker:
             reads.extend(_browser_preference_files())
         executables = _executables(self.workspace, code_root, node=job["node"], browser=browser_worker)
         profile = job_root / "worker.sb"
-        profile_text = _profile_text(reads, writes, executables, browser=browser_worker)
+        profile_text = _profile_text(reads, writes, executables, browser=browser_worker,
+                                     videotoolbox=job.get("action") in ("source_proxy", "sphere_proxy"))
         # Candidate source/tests are inputs even when nested inside a writable
         # job directory. Candidate Python must not rewrite trusted contracts or
         # the runner while those contracts are executing.
@@ -894,7 +911,7 @@ class PreviewManager:
     def prepare_sphere(self, asset_id: str, start: float, end: float, stabilize=None, context=None) -> dict:
         """An equirectangular proxy of [start, end] of a 360 clip for the live 360 viewer,
         with the stabilization rotations for `stabilize` (a plan's stabilize value)."""
-        import hashlib
+        from .proxy import SPHERE_PROXY_MAX, sphere_cache_key
 
         from ..util import quick_hash, read_json
 
@@ -924,13 +941,13 @@ class PreviewManager:
         duration = float(probe.get("duration") or end)
         lo = max(0.0, math.floor(max(0.0, float(start) - 1.0) / 5.0) * 5.0)
         hi = min(duration, math.ceil((float(end) + 1.0) / 5.0) * 5.0)
+        if hi - lo > SPHERE_PROXY_MAX:
+            lo, hi = max(0.0, float(start)), min(duration, float(end))
         from .renderer import RendererManager
 
         renderer_manager = RendererManager(self.workspace)
         renderer_revision = renderer_manager._active_revision()
-        key = hashlib.sha256(json.dumps(
-            {"asset": asset_id, "identity": identity, "start": lo, "end": hi, "renderer": renderer_revision},
-            sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        key = sphere_cache_key(asset_id, identity, probe)
         job_root = self.worker_root / f"sphere-{uuid.uuid4().hex}"
         job_root.mkdir(parents=True, mode=0o700)
         proxy_root = self.preview_root / "spheres" / key
@@ -950,6 +967,8 @@ class PreviewManager:
                     "probe": copy.deepcopy(probe),
                     "start": lo,
                     "end": hi,
+                    "requestedStart": max(0.0, float(start)),
+                    "requestedEnd": min(duration, float(end)),
                     "stabilize": copy.deepcopy(stabilize),
                     "mediaRoot": str(self.workspace.project.media_dir.resolve()),
                     "workspaceRoot": str(Path(self.workspace.root).resolve()),
@@ -971,7 +990,7 @@ class PreviewManager:
 
     def prepare_source(self, asset_id: str, view: dict | None = None, context=None) -> dict:
         """Return a playable original or a private view-specific proxy."""
-        import hashlib
+        from .proxy import source_cache_key
 
         from ..util import read_json, quick_hash
 
@@ -999,7 +1018,6 @@ class PreviewManager:
         source_kind = str(asset.get("kind") or "")
         if source_kind not in {"video", "photo"}:
             return {"status": "unsupported", "assetId": asset_id, "reason": "The registered asset has an unsupported media kind."}
-        vcodec = str(probe.get("vcodec") or "").lower()
         if source_proxy_reason(asset, path):
             from .renderer import RendererManager
 
@@ -1010,22 +1028,7 @@ class PreviewManager:
             }
             view_value = copy.deepcopy(view or {})
             renderer_revision = renderer_manager._active_revision()
-            key_data = json.dumps(
-                {
-                    "asset": asset_id,
-                    "identity": identity_value,
-                    "kind": source_kind,
-                    "view": view_value,
-                    "angles": (asset.get("tags") or {}).get("angles") or {},
-                    "codec": vcodec,
-                    "fps": probe.get("fps"),
-                    "renderer": renderer_revision,
-                    "runtime": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            )
-            proxy_id = hashlib.sha256(key_data.encode()).hexdigest()
+            proxy_id = source_cache_key(asset, identity_value, view_value)
             job_root = self.worker_root / f"source-{uuid.uuid4().hex}"
             job_root.mkdir(parents=True, mode=0o700)
             proxy_root = self.preview_root / "sources" / proxy_id

@@ -15,6 +15,8 @@ from typing import Any
 
 from ..config import Project
 from ..util import ReelsError, quick_hash
+from .proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
+from .proxy_cache import proxy_job
 
 _STAGE_SPEC_FIELDS = {
     "in", "out", "speed", "frame", "zoom", "focusX", "focusY", "fit", "motion",
@@ -944,6 +946,7 @@ def validate_candidate(job: dict) -> dict:
     return {"checks": checks, "render": rendered}
 
 
+@proxy_job
 def prepare_source_proxy(job: dict) -> dict:
     """Create/reuse a view-specific 360 or codec/container compatibility proxy."""
     source = Path(job["sourcePath"]).resolve(strict=True)
@@ -1034,8 +1037,6 @@ def prepare_source_proxy(job: dict) -> dict:
 
     vcodec = str(probe.get("vcodec") or "")
     fps = probe.get("fps")
-    renderer_revision = str((job.get("revisions") or {}).get("renderer") or "")
-    runtime_revision = str(job.get("runtimeRevision") or "")
 
     revision_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     if revision_dir.is_symlink():
@@ -1045,7 +1046,7 @@ def prepare_source_proxy(job: dict) -> dict:
     if output.is_symlink() or marker.is_symlink():
         raise ReelsError("source proxy cache contains a symlink")
     expected_marker = {
-        "version": 2,
+        "version": PROXY_VERSION,
         "assetId": str(job.get("assetId", "")),
         "kind": proxy_kind,
         "sourceKind": source_kind,
@@ -1056,11 +1057,10 @@ def prepare_source_proxy(job: dict) -> dict:
         "views": front_back,
         "width": width,
         "height": height,
-        "codec": {"video": "png" if is_photo else "h264", "audio": None if is_photo else "aac"},
+        "codec": {"video": "png" if is_photo else "h264-or-hevc", "audio": None if is_photo else "aac"},
         "sourceCodec": vcodec,
         "fps": fps,
-        "rendererRevision": renderer_revision,
-        "runtimeRevision": runtime_revision,
+        "probe": probe,
     }
     if output.is_file() and marker.is_file():
         try:
@@ -1073,6 +1073,8 @@ def prepare_source_proxy(job: dict) -> dict:
                 }
         except (OSError, ValueError):
             pass
+    if is_spherical and not is_photo:
+        job["reserveOutput"]()
 
     temporary = revision_dir / f".source-{uuid.uuid4().hex}{output.suffix}"
     from ..media import run
@@ -1095,24 +1097,10 @@ def prepare_source_proxy(job: dict) -> dict:
                 ]
                 run(command, timeout=300)
         elif is_spherical:
-            def encode(hardware: bool) -> None:
-                command = [
-                    "ffmpeg", "-v", "error", "-y", *(["-hwaccel", "videotoolbox"] if hardware else []), "-i", source,
-                    "-filter_complex", f"{filter_graph};[{pad}]{camera}[source]",
-                    "-map", "[source]", "-map", "0:a:0?", "-fps_mode", "passthrough",
-                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
-                    "-movflags", "+faststart", temporary,
-                ]
-                run(command, timeout=1800)
-
-            if layout == "front-back" and sys.platform == "darwin":
-                try:
-                    encode(True)  # hardware HEVC decoding, when the sandbox allows it
-                except (ReelsError, OSError, subprocess.SubprocessError):
-                    encode(False)
-            else:
-                encode(False)
+            encode_proxy(source, temporary, [
+                "-filter_complex", f"{filter_graph};[{pad}]{camera}[source]",
+                "-map", "[source]", "-map", "0:a:0?", "-fps_mode", "passthrough",
+            ], seconds=float(probe.get("duration") or 0), crf=21)
         else:
             if not probe.get("width") or not probe.get("height"):
                 verify_source_unchanged()
@@ -1152,11 +1140,7 @@ def prepare_source_proxy(job: dict) -> dict:
     }
 
 
-SPHERE_PROXY_FPS = 30
-SPHERE_PROXY_WIDTH = 2048  # equirectangular, 2:1
-SPHERE_PROXY_MAX = 180.0  # s of source per proxy
-
-
+@proxy_job
 def prepare_sphere_proxy(job: dict) -> dict:
     """An equirectangular proxy of part of a 360 video for the editor's live 360 viewer,
     plus the per-frame stabilization rotations (and gravity) for that range.
@@ -1186,7 +1170,8 @@ def prepare_sphere_proxy(job: dict) -> dict:
         return {"status": "unsupported", "reason": f"A 360 proxy covers up to {SPHERE_PROXY_MAX:g} s of a clip."}
 
     from ..sphere import source_graph
-    from ..stabilize import correction_quats, margin, parse_setting, read_orientation
+    from ..stabilize import parse_setting
+    from .proxy_stabilize import cached_correction_quats
 
     errors: list[str] = []
     setting = parse_setting(job.get("stabilize"), errors, "stabilize")
@@ -1197,35 +1182,52 @@ def prepare_sphere_proxy(job: dict) -> dict:
     revision_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     if revision_dir.is_symlink():
         raise ReelsError("360 proxy output directory cannot be a symlink")
-    output = revision_dir / "sphere.mp4"
-    marker = revision_dir / "sphere.json"
+    settings = {
+        "version": PROXY_VERSION, "assetId": str(job.get("assetId", "")), "sourceIdentity": expected_identity,
+        "fps": SPHERE_PROXY_FPS, "width": width, "height": height, "probe": probe,
+    }
+    # Choose the smallest covering range, including a prewarmed 180 s chunk.
+    # Compare the actual request, not its optional five-second trim padding.
+    requested_start = float(job.get("requestedStart", start))
+    requested_end = float(job.get("requestedEnd", end))
+    candidates = []
+    for marker_path in revision_dir.glob("*/sphere.json"):
+        if marker_path.parent.is_symlink() or marker_path.is_symlink():
+            continue
+        try:
+            saved = json.loads(marker_path.read_text(encoding="utf-8"))
+            lo, hi = float(saved["start"]), float(saved["end"])
+            video = marker_path.with_name("sphere.mp4")
+            if (all(saved.get(k) == v for k, v in settings.items())
+                    and lo <= requested_start < requested_end <= hi
+                    and video.is_file() and not video.is_symlink() and video.stat().st_size > 0):
+                candidates.append((hi - lo, lo, hi, marker_path.parent))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    reused = bool(candidates)
+    if reused:
+        _, start, end, range_dir = min(candidates)
+    else:
+        range_dir = revision_dir / f"{start:.3f}-{end:.3f}"
+    if range_dir.is_symlink():
+        raise ReelsError("360 proxy range directory cannot be a symlink")
+    range_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    output = range_dir / "sphere.mp4"
+    marker = range_dir / "sphere.json"
     if output.is_symlink() or marker.is_symlink():
         raise ReelsError("360 proxy cache contains a symlink")
-    expected_marker = {
-        "version": 1, "assetId": str(job.get("assetId", "")), "sourceIdentity": expected_identity,
-        "start": round(start, 3), "end": round(end, 3), "fps": SPHERE_PROXY_FPS, "width": width, "height": height,
-        "rendererRevision": str((job.get("revisions") or {}).get("renderer") or ""),
-    }
-    reused = False
-    if output.is_file() and marker.is_file():
-        try:
-            reused = json.loads(marker.read_text(encoding="utf-8")) == expected_marker
-        except (OSError, ValueError):
-            reused = False
+    expected_marker = {**settings, "start": start, "end": end}
     if not reused:
-        from ..media import run
-
+        job["reserveOutput"]()
         graph, pad, inproj = source_graph(probe)
-        temporary = revision_dir / f".sphere-{uuid.uuid4().hex}.mp4"
+        temporary = range_dir / f".sphere-{uuid.uuid4().hex}.mp4"
         try:
-            run([
-                "ffmpeg", "-v", "error", "-y", "-ss", f"{start:.3f}", "-t", f"{end - start:.3f}", "-i", source,
+            encode_proxy(source, temporary, [
                 "-filter_complex",
                 f"{graph};[{pad}]fps={SPHERE_PROXY_FPS},v360=input={inproj}:output=e:w={width}:h={height}:interp=linear[sphere]",
-                "-map", "[sphere]", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-                "-g", str(SPHERE_PROXY_FPS), "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
-                "-movflags", "+faststart", temporary,
-            ], timeout=1800)  # fmt: skip
+                "-map", "[sphere]", "-map", "0:a:0?",
+            ], inputs=["-ss", f"{start:.3f}", "-t", f"{end - start:.3f}"],
+                seconds=end - start)
             if not temporary.is_file() or temporary.stat().st_size <= 0:
                 raise ReelsError("360 proxy encoder produced no file")
             if _stat_identity(source) != expected_identity:
@@ -1242,25 +1244,15 @@ def prepare_sphere_proxy(job: dict) -> dict:
             if temporary.exists():
                 temporary.unlink()
 
-    frames = max(1, int(round((end - start) * SPHERE_PROXY_FPS)))
-    pad_s = margin(setting) if setting else 0.5
-    try:
-        ori = read_orientation(source, max(0.0, start - pad_s), end + pad_s)
-    except (ReelsError, OSError, ValueError):  # unreadable telemetry: the proxy still plays, unstabilized
-        ori = None
-    stabilization = None
-    if setting and ori is not None:
-        times = [start + n / SPHERE_PROXY_FPS for n in range(frames)]
-        stabilization = {
-            "start": start, "fps": SPHERE_PROXY_FPS,
-            "quats": [[round(c, 6) for c in q] for q in correction_quats(ori, times, setting)],
-        }
+    correction = cached_correction_quats(source, revision_dir / "cori", expected_identity,
+                                        requested_start, requested_end, SPHERE_PROXY_FPS, setting,
+                                        reserve=job["reserveOutput"])
+    if _stat_identity(source) != expected_identity:
+        raise ReelsError("registered original changed during 360 proxy reuse")
     return {
         "status": "ready", "path": str(output), "reused": reused,
         "start": start, "end": end, "fps": SPHERE_PROXY_FPS, "width": width, "height": height,
-        "hasOrientation": ori is not None,
-        "gravity": list(ori.gravity) if ori is not None and ori.gravity else None,
-        "stabilize": setting, "stabilization": stabilization,
+        **correction, "stabilize": setting,
     }
 
 

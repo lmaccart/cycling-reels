@@ -45,11 +45,14 @@ def describe(asset: dict) -> str:
 
 
 def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> list[dict]:
-    """Moves new files from inbox/ into the library and builds contact sheets."""
+    """Move new files into the library, build sheets, then drain new 360 source jobs."""
+    from .prewarm import prewarm, queue_sources
+
     project.assert_media_writable()
     project.ensure_dirs()
     ignored: dict[str, int] = {}
     new: list[dict] = []
+    queued: list[str] = []
     files = _inbox_files(project)
     if not files:
         log("inbox is empty — drop ride videos and photos into inbox/ first")
@@ -127,6 +130,7 @@ def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> l
             warn(f"{asset_id}: contact sheet failed ({e}); you can retry with ./reels frames {asset_id}")
             asset["sheets"] = []
         save_asset(project, asset)
+        queued.extend(queue_sources(project, [asset]))
         new.append(asset)
         log(f"+ {asset_id}  {kind}  {describe(asset)}")
         if kind == "video" and probe["hasAudio"]:  # sound events (freehub, shifts, pass-bys…) -> library/sounds/
@@ -154,6 +158,10 @@ def ingest(project: Project, *, dry_run: bool = False, speech: bool = True) -> l
         missing = [d for d in days if d not in have and _pd(d)]
         if missing:
             log(f"  no Strava ride imported for {', '.join(missing)} — fetch it with the Strava connector and ./reels strava import (reference/strava.md)")
+
+    if queued:
+        log(f"\nPreparing front/back proxies for {len(queued)} new 360 clip(s)…")
+        prewarm(project, queued, source_only=True)
 
     for ext, n in sorted(ignored.items()):
         log(f"  (left {n} {ext} file{'s' if n > 1 else ''} in inbox — not ingestible)")

@@ -1153,6 +1153,8 @@ def remove_partial_proxies(workspace_root: Path, now: float | None = None) -> li
 
     Only in this workspace's private preview cache (<root>/preview/sources|spheres/<key>/);
     finished proxies, symlinks and anything else are left alone."""
+    from .proxy_cache import cache_lock
+
     now = time.time() if now is None else now
     preview = Path(workspace_root) / "preview"
     removed: list[Path] = []
@@ -1164,12 +1166,19 @@ def remove_partial_proxies(workspace_root: Path, now: float | None = None) -> li
             for entry in root.iterdir():
                 if entry.is_symlink() or not entry.is_dir():
                     continue
-                for path in entry.iterdir():
-                    if (not path.name.startswith(prefix) or path.is_symlink() or not path.is_file()
-                            or now - path.stat().st_mtime < PARTIAL_PROXY_GRACE):
+                # A CLI prewarm has no JobManager record. Its cross-process key
+                # lock, not the partial's age, proves whether it is still writing.
+                with cache_lock(entry, blocking=False) as acquired:
+                    if not acquired:
                         continue
-                    path.unlink(missing_ok=True)
-                    removed.append(path)
+                    directories = [entry, *(p for p in entry.iterdir() if p.is_dir() and not p.is_symlink())]
+                    for directory in directories:
+                        for path in directory.iterdir():
+                            if (not path.name.startswith(prefix) or path.is_symlink() or not path.is_file()
+                                    or now - path.stat().st_mtime < PARTIAL_PROXY_GRACE):
+                                continue
+                            path.unlink(missing_ok=True)
+                            removed.append(path)
         except OSError:
             continue  # cache housekeeping never blocks the service; the next start tries again
     return removed
