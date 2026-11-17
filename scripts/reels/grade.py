@@ -34,7 +34,7 @@ from .util import ReelsError
 VERSION = 1
 LUT_SIZE = 33
 LOOKS = ("house", "moody", "none")
-DEFAULTS: dict[str, Any] = {"look": "house", "strength": 1.0, "rescue": "auto"}
+DEFAULTS: dict[str, Any] = {"look": "none", "strength": 1.0, "rescue": "auto"}
 SAMPLES = 8  # frames measured per segment
 SAMPLE_W = 270
 
@@ -118,6 +118,8 @@ def settings(config: dict | None, plan_grade: Any = None, seg_grade: Any = None)
         if g is False or g == "none":
             s["look"] = "none"
         elif isinstance(g, dict):
+            if "look" not in g and s["look"] == "none":
+                s["look"] = "house"  # an explicit grade block asks for a grade
             s.update(g)
     if s.get("rescue") is True:
         s["rescue"] = "auto"
@@ -147,7 +149,7 @@ def check(where: str, g: Any, errors: list[str]) -> None:
 
 
 def active(s: dict) -> bool:
-    return s.get("look", "house") != "none"
+    return s.get("look", "none") != "none"
 
 
 # --------------------------------------------------------------------------

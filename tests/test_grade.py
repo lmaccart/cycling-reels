@@ -76,6 +76,14 @@ class SettingsTests(unittest.TestCase):
         s = grade.settings({"look": "house", "strength": 0.9}, {"strength": 0.7, "warmth": 0.2}, {"warmth": -0.1})
         self.assertEqual((s["look"], s["strength"], s["warmth"], s["rescue"]), ("house", 0.7, -0.1, "auto"))
 
+    def test_default_is_no_look_but_an_explicit_grade_block_means_house(self):
+        self.assertEqual(grade.settings(None)["look"], "none")
+        self.assertFalse(grade.active(grade.settings(None)))
+        self.assertEqual(grade.settings(None, {"strength": 0.8})["look"], "house")
+        self.assertEqual(grade.settings(None, "none", {"warmth": 0.1})["look"], "house")
+        self.assertEqual(grade.settings(None, {"look": "moody"}, {"warmth": 0.1})["look"], "moody")
+        self.assertEqual(grade.settings({"look": "house"}, None)["look"], "house")
+
     def test_none_turns_the_grade_off(self):
         self.assertFalse(grade.active(grade.settings(None, "none")))
         self.assertFalse(grade.active(grade.settings(None, None, False)))
@@ -142,7 +150,7 @@ class MeasureTests(unittest.TestCase):
 
 
 class LookTests(unittest.TestCase):
-    house = grade.settings(None)
+    house = grade.settings(None, {"look": "house"})
 
     def test_strength_zero_is_identity(self):
         x = np.random.default_rng(2).random((50, 1, 3)).astype(np.float32)
@@ -332,7 +340,7 @@ class StagingTests(unittest.TestCase):
 
     def test_graded_staging_measures_cleans_up_and_keeps_the_length(self):
         out = self.dir / "seg0.mp4"
-        measured = stage_video(self.project, self.seg(), out, 30, audio=False, grade=grade.settings(None))
+        measured = stage_video(self.project, self.seg(), out, 30, audio=False, grade=grade.settings(None, {"look": "house"}))
         self.assertIsNotNone(measured)
         for key in ("overcast", "wb", "black", "scale", "gamma", "version", "look", "rescue"):
             self.assertIn(key, measured)
@@ -344,7 +352,7 @@ class StagingTests(unittest.TestCase):
 
     def test_rescue_path_runs(self):
         out = self.dir / "seg0.mp4"
-        measured = stage_video(self.project, self.seg(), out, 30, audio=False, grade=grade.settings(None, {"rescue": 1.0}))
+        measured = stage_video(self.project, self.seg(), out, 30, audio=False, grade=grade.settings(None, {"look": "house", "rescue": 1.0}))
         self.assertEqual(measured["rescue"], 1.0)
         self.assertTrue(out.is_file())
 
@@ -354,7 +362,7 @@ class StagingTests(unittest.TestCase):
         asset = {"id": "ph", "kind": "photo", "media": str(photo), "transcript": None, "probe": {"width": 300, "height": 400}}
         spec = {"fit": "blurfill", "focusX": 0.5, "focusY": 0.5, "duration": 2.0}
         out = self.dir / "seg1.jpg"
-        measured = stage_photo(self.project, Seg(index=1, kind="photo", asset=asset, spec=spec, frames=60), out, grade=grade.settings(None))
+        measured = stage_photo(self.project, Seg(index=1, kind="photo", asset=asset, spec=spec, frames=60), out, grade=grade.settings(None, {"look": "house"}))
         self.assertEqual(measured["look"], "house")
         self.assertGreater(measured["wb"][0], measured["wb"][2])  # the blue cast is measured and warmed
         self.assertTrue(out.with_name("seg1.bg.jpg").is_file())

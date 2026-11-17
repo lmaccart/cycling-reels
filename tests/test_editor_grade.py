@@ -29,6 +29,7 @@ class GradeSchemaTests(unittest.TestCase):
             self.assertEqual(set(fields), {"look", "strength", "rescue", "warmth", "exposure"}, name)
             self.assertEqual(fields["look"]["choices"], ["house", "moody", "none"])
             self.assertEqual(fields["rescue"]["type"], "boolean")
+            self.assertEqual((fields["look"]["default"], fields["rescue"]["default"]), ("none", False), name)
             for slider in ("strength", "warmth", "exposure"):
                 self.assertEqual(fields[slider]["display"], "slider")
                 self.assertIn("min", fields[slider])
