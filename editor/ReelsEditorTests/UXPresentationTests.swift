@@ -12,7 +12,8 @@ final class UXPresentationTests: XCTestCase {
         XCTAssertFalse(delegate.applicationShouldRestoreApplicationState(NSApp))
         XCTAssertFalse(delegate.applicationShouldSaveApplicationState(NSApp))
         XCTAssertFalse(delegate.applicationShouldHandleReopen(NSApp, hasVisibleWindows: false))
-        XCTAssertFalse(NSApp.windows.contains { $0.isVisible })
+        let visibleWindows = NSApp.windows.filter(\.isVisible)
+        XCTAssertTrue(visibleWindows.isEmpty, "Unexpected visible windows: \(visibleWindows.map { "\(type(of: $0)): \($0.title) \($0.frame)" })")
     }
 
     private func json(_ text: String) throws -> JSONValue {

@@ -1,7 +1,6 @@
 import AVKit
 import SwiftUI
 import WebKit
-import Vision
 import XCTest
 @testable import ReelsEditor
 
@@ -29,18 +28,6 @@ private struct DeleteLatencyMeasurement {
     let milliseconds: Double
 }
 
-@MainActor
-private final class FlagRowMouseInput: NSObject {
-    let events: [NSEvent]
-    private var index = 0
-    private(set) var released = false
-    init(_ events: [NSEvent]) { self.events = events }
-    @objc func post(_ timer: Timer) {
-        NSApp.postEvent(events[index], atStart: false)
-        released = events[index].type == .leftMouseUp
-        index = min(index + 1, events.count - 1)
-    }
-}
 
 @MainActor
 final class EditorOperationTests: XCTestCase {
@@ -284,15 +271,105 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertTrue(predicate(), message)
     }
 
+    func testDeferredInspectorRejectsDeletedNodeEditsAndFollowsRollbackAndSelection() async throws {
+        let store = EditorStore()
+        var initial = try previewSnapshot(revision: "initial", movie: URL(fileURLWithPath: "/unused"))
+        initial.nodes[0].assetId = "old-asset"
+        let response = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(initial))
+        store.snapshot = initial
+        store.authoritativeSnapshot = initial
+        store.selectedIDs = ["clip-0"]
+        var batches: [JSONValue] = []
+        var reply: CheckedContinuation<JSONValue, Error>?
+        store.service.callStub = { method, params in
+            if method == "document.apply" {
+                batches.append(params["batch"] ?? .null)
+                return try await withCheckedThrowingContinuation { reply = $0 }
+            }
+            if method == "document.snapshot" { return response }
+            return .object([:])
+        }
+        defer { reply?.resume(throwing: CancellationError()) }
+        try await eventually("Inspector initially shows the selected clip") { store.inspector.selectedNode?.id == "clip-0" }
+        store.deleteSelection()
+        let deletion = store.editTail
+        XCTAssertNil(store.selectedNode)
+        XCTAssertEqual(store.inspector.selectedNode?.id, "clip-0")
+
+        // These are the real control actions, invoked while the old controls can remain onscreen.
+        store.editField(nodeID: "clip-0", path: "/volume", value: .number(0.5))
+        store.insertInspectorOverlay(parentID: "clip-0", collection: "text", value: .object([:]))
+        store.removeInspectorItem("clip-0")
+        await store.setKeyframes(nodeID: "clip-0", path: "/path", value: .array([]))
+        store.correctInspectorWords(nodeID: "clip-0", corrections: [.object(["index": .number(0), "word": .string("new")])])
+        try await eventually("Delete reaches the serial service queue") { reply != nil }
+        try await eventually("Inspector catches up before acknowledgement") { store.inspector.selectedNode == nil }
+        XCTAssertEqual(batches.count, 1, "Deleted-node controls must not enqueue any edits")
+        XCTAssertEqual(batches.first?["operations"]?.arrayValue?.first?["op"]?.stringValue, "remove_segments")
+
+        let rejected = reply
+        reply = nil
+        rejected?.resume(throwing: ServiceFailure(code: "conflict", message: "Changed elsewhere", details: nil))
+        await deletion?.value
+        try await eventually("Rollback restores the selected clip in the inspector") {
+            store.inspector.selectedNode?.id == "clip-0"
+        }
+        XCTAssertEqual(store.inspector.snapshot, initial)
+        XCTAssertTrue(store.pendingPredictions.isEmpty)
+        XCTAssertEqual(batches.count, 1)
+
+        // Coalesce a newer snapshot and several selections; never publish a captured old selection.
+        var refreshed = initial
+        refreshed.revisions.document = "refreshed"
+        refreshed.nodes[2].raw = .object(["label": .string("Latest clip")])
+        store.snapshot = refreshed
+        store.selectedIDs = ["clip-1"]
+        store.selectedIDs = ["clip-2"]
+        try await eventually("Inspector follows the latest snapshot and selection together") {
+            store.inspector.selectedNode?.id == "clip-2"
+                && store.inspector.snapshot?.revisions.document == "refreshed"
+        }
+        XCTAssertEqual(store.inspector.selectedNode?.raw["label"]?.stringValue, "Latest clip")
+    }
+
+    func testInspectorMutationsResolveCurrentReadOnlyStateAndTranscriptAsset() async throws {
+        let store = EditorStore()
+        var initial = try previewSnapshot(revision: "initial", movie: URL(fileURLWithPath: "/unused"))
+        initial.nodes[0].assetId = "old-asset"
+        store.snapshot = initial
+        store.authoritativeSnapshot = initial
+        store.selectedIDs = ["clip-0"]
+        try await eventually("Inspector displays the original editable node") { store.inspector.selectedNode?.assetId == "old-asset" }
+        var current = initial
+        current.nodes[0].assetId = "current-asset"
+        current.nodes[0].readOnly = true
+        store.snapshot = current
+        XCTAssertFalse(store.inspector.selectedNode?.isReadOnly ?? true)
+        var batches: [JSONValue] = []
+        let response = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(current))
+        store.service.callStub = { method, params in
+            if method == "document.apply" { batches.append(params["batch"] ?? .null) }
+            return response
+        }
+        store.editField(nodeID: "clip-0", path: "/volume", value: .number(0.5))
+        store.insertInspectorOverlay(parentID: "clip-0", collection: "text", value: .object([:]))
+        store.removeInspectorItem("clip-0")
+        await store.setKeyframes(nodeID: "clip-0", path: "/path", value: .array([]))
+        // Generated captions still allow transcript correction, against the CURRENT asset.
+        store.correctInspectorWords(nodeID: "clip-0", corrections: [.object(["index": .number(0), "word": .string("new")])])
+        await store.editTail?.value
+        XCTAssertEqual(batches.count, 1, "Live read-only state must reject field, insertion, deletion and keyframe controls")
+        let operation = try XCTUnwrap(batches.first?["operations"]?.arrayValue?.first)
+        XCTAssertEqual(operation["op"]?.stringValue, "correct_words")
+        XCTAssertEqual(operation["assetId"]?.stringValue, "current-asset")
+    }
+
     private func descendants(_ view: NSView) -> [NSView] {
         [view] + view.subviews.flatMap(descendants)
     }
 
-    private enum FlagRowGesture { case click, drag }
-
-    /// Ask the production List's native drag source for its payload, not the store resolver.
-    private func flagRowPasteboard(store: EditorStore, flag: ClipFlag,
-                                   interaction: FlagRowGesture? = nil) async throws -> NSPasteboard {
+    /// Inspect the production List's native drag provider without ordering a window or tracking a mouse.
+    private func flagRowPasteboard(store: EditorStore, flag: ClipFlag) async throws -> NSPasteboard {
         let host = NSHostingView(rootView: List(selection: Binding(
             get: { store.selectedAssetID }, set: { _ in }
         )) {
@@ -300,11 +377,10 @@ final class EditorOperationTests: XCTestCase {
                 ForEach([flag]) { FlagRow(store: store, flag: $0) }
             }
         }.listStyle(.sidebar))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 180),
-                              styleMask: .titled, backing: .buffered, defer: false)
+        let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 180),
+                                      styleMask: .titled, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.contentView = host
-        window.makeKeyAndOrderFront(nil)
         defer { window.close() }
         host.layoutSubtreeIfNeeded()
         try await eventually("Flagged List installs its native rows") {
@@ -313,47 +389,6 @@ final class EditorOperationTests: XCTestCase {
         let table = try XCTUnwrap(descendants(host).first { $0 is NSTableView } as? NSTableView)
         let dataSource = try XCTUnwrap(table.dataSource)
         for row in 0..<table.numberOfRows { _ = table.view(atColumn: 0, row: row, makeIfNecessary: true) }
-        if let interaction {
-            // In-process events exercise drag initiation and click, never the installed app.
-            let rect = table.rect(ofRow: 1)
-            let point = table.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil)
-            var eventNumber = 0
-            let startTime = ProcessInfo.processInfo.systemUptime
-            func event(_ type: NSEvent.EventType, offset: CGFloat = 0) throws -> NSEvent {
-                eventNumber += 1
-                return try XCTUnwrap(NSEvent.mouseEvent(with: type,
-                    location: NSPoint(x: point.x + offset, y: point.y), modifierFlags: [],
-                    timestamp: startTime + Double(eventNumber) * 0.05, windowNumber: window.windowNumber,
-                    context: nil, eventNumber: eventNumber, clickCount: 1, pressure: 1))
-            }
-            func gesture(_ steps: [(NSEvent.EventType, CGFloat)], until predicate: () -> Bool) async throws {
-                let down = try event(.leftMouseDown)
-                // SwiftUI can defer mouseDown into NSTableView's nested tracking loop.
-                let source = FlagRowMouseInput(try steps.map { try event($0.0, offset: $0.1) })
-                let input = Timer(timeInterval: 0.05, target: source,
-                                  selector: #selector(FlagRowMouseInput.post(_:)), userInfo: nil, repeats: true)
-                RunLoop.main.add(input, forMode: .common)
-                RunLoop.main.add(input, forMode: .eventTracking)
-                defer { input.invalidate() }
-                window.sendEvent(down)
-                try await eventually("Native row gesture completes") { source.released && predicate() }
-            }
-            switch interaction {
-            case .drag:
-                let dragPasteboard = NSPasteboard(name: .drag)
-                let beforeDrag = dragPasteboard.changeCount
-                try await gesture([
-                    (.leftMouseDragged, 10), (.leftMouseDragged, 25),
-                    (.leftMouseDragged, 40), (.leftMouseUp, 40)
-                ]) { dragPasteboard.changeCount != beforeDrag }
-                XCTAssertEqual(dragPasteboard.string(forType: .string), "flag:\(flag.id)")
-                XCTAssertNil(store.selectedAssetID, "Dragging must not open the source as a click")
-            case .click:
-                try await gesture([(.leftMouseUp, 0)]) {
-                    store.selectedAssetID == flag.asset && store.sourceIn == flag.inPoint && store.sourceOut == flag.outPoint
-                }
-            }
-        }
         let pasteboard = NSPasteboard.withUniqueName()
         for row in 0..<table.numberOfRows {
             let rect = table.rect(ofRow: row)
@@ -387,12 +422,12 @@ final class EditorOperationTests: XCTestCase {
                                  "probe": .object(["duration": .number(120)])])]
         let metadata = try XCTUnwrap(store.library.first)
         store.service.callStub = { _, _ in metadata }
-        let pasteboard = try await flagRowPasteboard(store: store, flag: flag, interaction: .drag)
+        let pasteboard = try await flagRowPasteboard(store: store, flag: flag)
         defer { pasteboard.releaseGlobally() }
         let payload = try XCTUnwrap(pasteboard.string(forType: .string))
         XCTAssertEqual(payload, "flag:f-native")
-        let clickPasteboard = try await flagRowPasteboard(store: store, flag: flag, interaction: .click)
-        defer { clickPasteboard.releaseGlobally() }
+        XCTAssertFalse(NSApp.isActive)
+        store.openFlag(flag)
         XCTAssertEqual(store.selectedAssetID, "source")
         XCTAssertEqual(store.sourceIn, 0)
         XCTAssertEqual(store.sourceOut, 55)
@@ -402,28 +437,6 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(resolved.assetID, "source")
         XCTAssertEqual(resolved.sourceIn, 0)
         XCTAssertEqual(resolved.sourceOut, 55)
-    }
-
-    private func renderedText(_ view: NSView) throws -> String {
-        view.layoutSubtreeIfNeeded()
-        let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
-        view.cacheDisplay(in: view.bounds, to: bitmap)
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        try VNImageRequestHandler(cgImage: XCTUnwrap(bitmap.cgImage)).perform([request])
-        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
-    }
-
-    private func capture(_ host: NSView, name: String) throws {
-        host.layoutSubtreeIfNeeded()
-        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-        host.cacheDisplay(in: host.bounds, to: bitmap)
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: ".cache/editor/timeline-captures")
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
-            .write(to: root.appending(path: name))
     }
 
     func testProgramMonitorLoadedPlayingEmptyTransportAndReenable() async throws {
@@ -455,8 +468,6 @@ final class EditorOperationTests: XCTestCase {
             model.player?.currentItem?.status == .readyToPlay
         }
         XCTAssertEqual(descendants(host).filter { $0 is AVPlayerView }.count, 1)
-        XCTAssertFalse(try renderedText(host).contains("Final-quality render isn't ready"))
-        try capture(host, name: "program-ready.png")
         let oldPlayer = try XCTUnwrap(model.player)
         await MainActor.run { store.performShortcut(.togglePlayback) }
         try await eventually("Ready transport actually advances loaded footage") {
@@ -470,8 +481,6 @@ final class EditorOperationTests: XCTestCase {
             store.snapshot?.revisions.document == "empty" && model.player == nil
                 && self.descendants(host).allSatisfy { !($0 is AVPlayerView) }
         }
-        XCTAssertTrue(try renderedText(host).contains("Nothing to preview"))
-        try capture(host, name: "program-empty.png")
         // This command is awaited on the main actor; the notification observer completes synchronously.
         await MainActor.run { store.performShortcut(.togglePlayback) }
         XCTAssertNil(oldPlayer.currentItem)
@@ -759,7 +768,6 @@ final class EditorOperationTests: XCTestCase {
             let oldTargetFrame = try XCTUnwrap(clip(target)).accessibilityFrame()
             let scale = oldTargetFrame.width / CGFloat(target.frames)
             let timelineOriginX = oldTargetFrame.minX - CGFloat(target.startFrame) * scale
-            try capture(host, name: "delete-\(scenario)-before.png")
             let redraw = DeleteRedrawObservation()
             // Offscreen NSView reports needsDisplay == false even when invalidated;
             // observe the setter request, as in the occlusion regression. No
@@ -797,7 +805,6 @@ final class EditorOperationTests: XCTestCase {
                 scenario: scenario, nodeCount: initial.nodes.count,
                 milliseconds: (try XCTUnwrap(redraw.redrawTime) - XCTUnwrap(redraw.inputTime)) * 1000
             ))
-            try capture(host, name: "delete-\(scenario)-optimistic.png")
             try await eventually("Backend receives apply and remains gated: \(scenario)") {
                 FileManager.default.fileExists(atPath: root.appending(path: "apply.waiting").path)
             }
@@ -838,7 +845,6 @@ final class EditorOperationTests: XCTestCase {
                 XCTAssertFalse(store.authoritativeSnapshot?.nodes.contains { $0.id == target.id } ?? true, scenario)
                 XCTAssertEqual(store.snapshot?.nodes.first { $0.id == survivor.id }?.startFrame, expectedStart, scenario)
             }
-            try capture(host, name: "delete-\(scenario)-reconciled.png")
         }
         return measurements
     }

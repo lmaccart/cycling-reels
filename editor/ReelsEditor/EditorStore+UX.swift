@@ -203,11 +203,7 @@ extension EditorStore {
         return "plans/\(slug).json"
     }
 
-    var reelTitle: String {
-        if let hook = snapshot?.plan["hook"]?["text"]?.stringValue,
-           !hook.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return hook }
-        return snapshot?.plan["slug"]?.stringValue ?? "Reels Editor"
-    }
+    var reelTitle: String { snapshot?.reelTitle ?? "Reels Editor" }
 
     func seek(bySeconds seconds: Double) {
         setPlayhead(playheadFrame + Int((seconds * fps).rounded()))
@@ -302,5 +298,13 @@ struct ShortcutMonitor: NSViewRepresentable {
             if let token { NSEvent.removeMonitor(token) }
             token = nil
         }
+    }
+}
+
+extension EditorSnapshot {
+    var reelTitle: String {
+        if let hook = plan["hook"]?["text"]?.stringValue,
+           !hook.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return hook }
+        return plan["slug"]?.stringValue ?? "Reels Editor"
     }
 }

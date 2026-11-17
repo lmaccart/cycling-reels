@@ -31,8 +31,18 @@ final class EditorStore {
                 }
                 reconcileSphereAimSelection(previous: oldValue.nodes, next: snapshot.nodes)
             }
+            scheduleInspectorPresentation()
         }
     }
+
+    /// Inspector layout follows the timeline's update, never shares its prediction turn.
+    struct InspectorPresentation {
+        var snapshot: EditorSnapshot?
+        var selectedIDs: Set<String> = []
+        var selectedNode: EditorNode? { snapshot?.nodes.first { selectedIDs.contains($0.id) } }
+    }
+    private(set) var inspector = InspectorPresentation()
+    @ObservationIgnored private var inspectorObserver: CFRunLoopObserver?
     /// Last server-authoritative document state; `snapshot` may include predictions.
     @ObservationIgnored var authoritativeSnapshot: EditorSnapshot?
     /// Timeline edits shown on screen but not saved yet, oldest first.
@@ -47,7 +57,9 @@ final class EditorStore {
     var searchHits: [SearchHit] = []
     /// True from submitting a non-empty query until its first results event (or an error).
     var searchInFlight = false
-    var selectedIDs: Set<String> = []
+    var selectedIDs: Set<String> = [] {
+        didSet { scheduleInspectorPresentation() }
+    }
     var recentlyChangedIDs: Set<String> = []
     var selectedAssetID: String?
     var selectedAsset: JSONValue?
@@ -151,6 +163,23 @@ final class EditorStore {
             self?.loadLibrary()
             Task { await self?.refreshPlans() }
         }
+    }
+
+    private func scheduleInspectorPresentation() {
+        guard inspectorObserver == nil else { return }
+        // SwiftUI/AppKit and Core Animation flush first. A main-actor Task or
+        // dispatch async can run before that flush and collapse both layouts again.
+        let observer = CFRunLoopObserverCreateWithHandler(
+            nil, CFRunLoopActivity.beforeWaiting.rawValue, false, CFIndex.max
+        ) { [weak self] _, _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.inspectorObserver = nil
+                self.inspector = InspectorPresentation(snapshot: self.snapshot, selectedIDs: self.selectedIDs)
+            }
+        }
+        inspectorObserver = observer
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
     }
 
     var needsRepositoryChoice: Bool { repositoryRoot == nil }
@@ -603,42 +632,41 @@ final class EditorStore {
         Task { await sphereAim.open(nodeID: node.id, store: self) }
     }
 
-    func editField(nodeID: String, path: String, value: JSONValue) {
-        if snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly == true {
+    /// Presentation may lag one turn; mutations always resolve the live stable ID.
+    private func canEditInspectorTarget(_ id: String) -> Bool {
+        guard let snapshot else { return false }
+        if id == "document" || id == "project" { return true }
+        guard let node = snapshot.nodes.first(where: { $0.id == id }) else { return false }
+        guard !node.isReadOnly else {
             notice = "Generated caption timing is read-only; correct transcript words instead."
-            return
+            return false
         }
-        Task {
-            await apply([.object([
-                "op": .string("set_field"),
-                "id": .string(nodeID),
-                "path": .string(path),
-                "value": value
-            ])], reason: "Adjust \(path.split(separator: "/").last ?? "property")")
-        }
+        return true
+    }
+
+    func editField(nodeID: String, path: String, value: JSONValue) {
+        guard canEditInspectorTarget(nodeID) else { return }
+        enqueue([.object([
+            "op": .string("set_field"),
+            "id": .string(nodeID),
+            "path": .string(path),
+            "value": value
+        ])], reason: "Adjust \(path.split(separator: "/").last ?? "property")")
     }
 
     func insertInspectorOverlay(parentID: String, collection: String, value: JSONValue) {
-        if snapshot?.nodes.first(where: { $0.id == parentID })?.isReadOnly == true {
-            notice = "Generated caption timing is read-only."
-            return
-        }
-        Task {
-            await apply([.object([
-                "op": .string("insert_overlay"),
-                "parentId": .string(parentID),
-                "collection": .string(collection),
-                "value": value
-            ])], reason: "Add \(collection)")
-        }
+        guard canEditInspectorTarget(parentID) else { return }
+        enqueue([.object([
+            "op": .string("insert_overlay"),
+            "parentId": .string(parentID),
+            "collection": .string(collection),
+            "value": value
+        ])], reason: "Add \(collection)")
     }
 
     func removeInspectorItem(_ id: String) {
         guard let node = snapshot?.nodes.first(where: { $0.id == id }) else { return }
-        guard !node.isReadOnly else {
-            notice = "Generated caption timing is read-only."
-            return
-        }
+        guard canEditInspectorTarget(id) else { return }
         let operation: JSONValue
         if node.kind.lowercased() == "segment" {
             operation = .object([
@@ -651,20 +679,27 @@ final class EditorStore {
                 "id": .string(id)
             ])
         }
-        Task { await apply([operation], reason: "Remove \(node.kind)") }
+        enqueue([operation], reason: "Remove \(node.kind)")
     }
 
     func setKeyframes(nodeID: String, path: String, value: JSONValue) async {
-        guard snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true else {
-            notice = "Generated caption timing is read-only."
-            return
-        }
+        guard canEditInspectorTarget(nodeID) else { return }
         await apply([.object([
             "op": .string("set_keyframes"),
             "id": .string(nodeID),
             "path": .string(path),
             "value": value
         ])], reason: "Edit keyframes")
+    }
+
+    func correctInspectorWords(nodeID: String, corrections: [JSONValue]) {
+        guard let node = snapshot?.nodes.first(where: { $0.id == nodeID }),
+              let assetID = node.assetId ?? node.raw["asset"]?.stringValue else { return }
+        enqueue([.object([
+            "op": .string("correct_words"),
+            "assetId": .string(assetID),
+            "corrections": .array(corrections)
+        ])], reason: "Correct transcript words")
     }
 
     func undo() { Task { await history(method: "document.undo") } }

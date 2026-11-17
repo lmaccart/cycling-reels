@@ -151,7 +151,7 @@ private struct InspectorPane: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 PanelTitle("Effect Controls")
-                if let node = store.selectedNode {
+                if let node = store.inspector.selectedNode {
                     Text(node.title)
                         .font(EditorType.bodyEmphasis)
                         .lineLimit(1)
@@ -167,7 +167,7 @@ private struct InspectorPane: View {
             .background(EditorPalette.panel)
             Divider()
 
-            if let node = store.selectedNode {
+            if let node = store.inspector.selectedNode {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         clipProperties(node)
@@ -183,7 +183,7 @@ private struct InspectorPane: View {
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            } else if let snapshot = store.snapshot {
+            } else if let snapshot = store.inspector.snapshot {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         reelProperties(snapshot)
@@ -239,7 +239,7 @@ private struct InspectorPane: View {
     }
 
     private func clipProperties(_ node: EditorNode) -> some View {
-        let fps = store.fps
+        let fps = max(store.inspector.snapshot?.fps ?? 30, 1)
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text("CLIP PROPERTIES")
@@ -284,7 +284,7 @@ private struct InspectorPane: View {
             Text("REEL PROPERTIES")
                 .font(EditorType.panelTitle).tracking(EditorType.panelTitleTracking)
                 .foregroundStyle(.secondary)
-            Text(store.reelTitle).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+            Text(snapshot.reelTitle).font(.system(size: 13, weight: .semibold)).lineLimit(2)
             HStack(spacing: 14) {
                 timecodeCell("Duration", TimeFormat.timecode(snapshot.durationFrames, fps: snapshot.fps))
                 timecodeCell("Frame rate", "\(snapshot.fps.formatted(.number.precision(.fractionLength(0...2)))) fps")
@@ -388,7 +388,7 @@ private struct SchemaInspector: View {
     }
 
     private var selectedNode: EditorNode? {
-        store.snapshot?.nodes.first(where: { $0.id == nodeID })
+        store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })
     }
     private var isReadOnly: Bool { selectedNode?.isReadOnly == true }
 
@@ -459,7 +459,7 @@ private struct SchemaTargetGroups: View {
     private var scope: String { target["scopePath"]?.stringValue ?? "" }
     private var groups: [JSONValue] { target["groups"]?.arrayValue ?? [] }
     private var scopedToSelectedNode: Bool { nodeID != "project" && nodeID != "document" }
-    private var selectedNode: EditorNode? { store.snapshot?.nodes.first(where: { $0.id == nodeID }) }
+    private var selectedNode: EditorNode? { store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID }) }
     private var selectedNodeReadOnly: Bool { selectedNode?.isReadOnly == true }
     private var assetRecord: JSONValue? {
         guard let id = selectedNode?.assetId else { return nil }
@@ -539,7 +539,7 @@ private struct SchemaFieldEditor: View {
         value == .null ? InspectorSchemaSupport.defaultValue(for: descriptor) : value
     }
     private var nodeReadOnly: Bool {
-        store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly == true
+        store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly == true
     }
 
     var body: some View {
@@ -799,7 +799,7 @@ private struct SchemaCollectionField: View {
     private var maxItems: Int { Int(descriptor["maxItems"]?.numberValue ?? 100) }
     private var supportsOverlayInsertion: Bool {
         nodeID != "project"
-            && store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true
+            && store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true
             && ["nat", "bleep", "windows", "punch", "text", "stats", "exhibits", "sfx", "blur", "cutaways", "path"]
                 .contains(collectionName)
     }
@@ -822,7 +822,7 @@ private struct SchemaCollectionField: View {
                                     .controlSize(.mini)
                             }
                             if let child, values.count > minItems,
-                               store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
+                               store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
                                 Button {
                                     store.removeInspectorItem(child.id)
                                 } label: {
@@ -831,7 +831,7 @@ private struct SchemaCollectionField: View {
                                 .buttonStyle(.plain)
                                 .help("Remove \(name) item \(index + 1)")
                             } else if child == nil, !itemFields.isEmpty, values.count > minItems,
-                                      store.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
+                                      store.inspector.snapshot?.nodes.first(where: { $0.id == nodeID })?.isReadOnly != true {
                                 Button {
                                     var next = values
                                     next.remove(at: index)
@@ -944,7 +944,7 @@ private struct SchemaCollectionField: View {
     }
 
     private func childNode(for item: JSONValue, targetKey: String?) -> EditorNode? {
-        guard let snapshot = store.snapshot else { return nil }
+        guard let snapshot = store.inspector.snapshot else { return nil }
         let expectedParent: String? = nodeID == "document" ? nil : nodeID
         let expectedKind: Set<String> = {
             guard let targetKey else { return [] }
@@ -1444,14 +1444,7 @@ private struct TranscriptWordEditor: View {
             guard drafts.indices.contains(index), drafts[index] != (word["w"]?.stringValue ?? "") else { return nil }
             return .object(["index": .number(Double(index)), "word": .string(drafts[index])])
         }
-        guard let assetId = node.assetId ?? node.raw["asset"]?.stringValue else { return }
-        Task {
-            await store.apply([.object([
-                "op": .string("correct_words"),
-                "assetId": .string(assetId),
-                "corrections": .array(corrections)
-            ])], reason: "Correct transcript words")
-        }
+        store.correctInspectorWords(nodeID: node.id, corrections: corrections)
     }
 }
 
