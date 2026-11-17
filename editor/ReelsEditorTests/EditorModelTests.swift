@@ -87,14 +87,17 @@ final class EditorModelTests: XCTestCase {
             captureSnapshot: EditorSnapshot? = nil,
             captureTracks: [EditorTrack]? = nil,
             onOverwrite: (([TimelinePlacement], String) -> Bool)? = nil,
-            onDropRejected: ((String) -> Void)? = nil
+            onDropRejected: ((String) -> Void)? = nil,
+            onScrub: ((Int, Bool) -> Void)? = nil,
+            onSetSelection: ((Set<String>) -> Void)? = nil
         ) -> (NSWindow, NSView) {
             let activeSnapshot = captureSnapshot ?? snapshot
             let activeTracks = captureTracks ?? tracks
             let view = makeTimelineCanvasCaptureView(
                 snapshot: activeSnapshot, tracks: activeTracks, trackMap: trackMap,
                 selectedIDs: ["clip-b"], playheadFrame: playheadFrame, zoom: zoom,
-                onOverwrite: onOverwrite, onDropRejected: onDropRejected
+                onOverwrite: onOverwrite, onDropRejected: onDropRejected,
+                onScrub: onScrub, onSetSelection: onSetSelection
             )
             let window = NSWindow(
                 contentRect: NSRect(origin: .zero, size: size),
@@ -238,10 +241,39 @@ final class EditorModelTests: XCTestCase {
         audioWindow.close()
         XCTAssertEqual(audioRejection, "Drop on a video track.")
 
+        // Empty track space: a drag draws a selection box, a click clears; neither moves the playhead.
+        func x(_ frame: Double) -> CGFloat { 132 + CGFloat(frame) * gestureScale }
+        var scrubs: [Int] = []
+        var selections: [Set<String>] = []
+        let (boxWindow, boxView) = makeWindow(
+            size: normal, zoom: gestureZoom,
+            onScrub: { frame, _ in scrubs.append(frame) }, onSetSelection: { selections.append($0) }
+        )
+        func gesture(from: NSPoint, to: NSPoint) throws {
+            boxView.mouseDown(with: try mouseEvent(.leftMouseDown, at: from, in: boxWindow))
+            if from != to { boxView.mouseDragged(with: try mouseEvent(.leftMouseDragged, at: to, in: boxWindow)) }
+            boxView.mouseUp(with: try mouseEvent(.leftMouseUp, at: to, in: boxWindow))
+        }
+        boxView.mouseDown(with: try mouseEvent(.leftMouseDown, at: NSPoint(x: x(40), y: v2Y), in: boxWindow))
+        boxView.mouseDragged(with: try mouseEvent(.leftMouseDragged, at: NSPoint(x: x(100), y: v1Y), in: boxWindow))
+        try save(boxView, as: "timeline-marquee.png")
+        boxView.mouseUp(with: try mouseEvent(.leftMouseUp, at: NSPoint(x: x(100), y: v1Y), in: boxWindow))
+        XCTAssertEqual(selections.last, ["clip-a", "clip-b"])
+        try gesture(from: NSPoint(x: x(75), y: v2Y), to: NSPoint(x: x(30), y: a1Y))
+        XCTAssertEqual(selections.last, ["clip-a"], "V1 and its linked audio both select the clip once")
+        try gesture(from: NSPoint(x: x(75), y: v2Y), to: NSPoint(x: x(75), y: v2Y))
+        XCTAssertEqual(selections.last, [], "a click on empty space deselects")
+        XCTAssertTrue(scrubs.isEmpty, "only the ruler or the playhead moves the playhead")
+        try gesture(from: NSPoint(x: x(120), y: v2Y), to: NSPoint(x: x(140), y: v2Y))
+        XCTAssertEqual(scrubs.last, 140, "dragging the playhead line moves it")
+        try gesture(from: NSPoint(x: x(200), y: normal.height - 10), to: NSPoint(x: x(200), y: normal.height - 10))
+        XCTAssertEqual(scrubs.last, 200, "a ruler click still moves it")
+        boxWindow.close()
+
         for name in [
             "timeline-normal.png", "timeline-narrow.png", "timeline-v1-to-v2-same-time-ghost.png",
             "timeline-overwrite-middle-ghost.png", "timeline-overwrite-middle-predicted.png",
-            "timeline-locked-v2-blocked.png", "timeline-audio-row-blocked.png",
+            "timeline-locked-v2-blocked.png", "timeline-audio-row-blocked.png", "timeline-marquee.png",
         ] {
             XCTAssertGreaterThan(try Data(contentsOf: output.appending(path: name)).count, 1_000)
         }

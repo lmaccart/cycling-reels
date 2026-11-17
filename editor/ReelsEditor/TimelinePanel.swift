@@ -255,6 +255,7 @@ struct TimelinePanel: View {
                         snapping: snapping,
                         scrollRequest: scrollRequest,
                         onSelect: { id, additive in store.selectNode(id, additive: additive) },
+                        onSetSelection: { ids in store.setSelection(ids) },
                         onBeginGesture: { owner in await store.acquireTimelineLease(owner: owner) },
                         onEndGesture: { token in store.releaseTimelineLease(token) },
                         onScrub: { frame, final in
@@ -484,6 +485,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
     let snapping: Bool
     let scrollRequest: ScrollRequest?
     let onSelect: (String, Bool) -> Void
+    let onSetSelection: (Set<String>) -> Void
     let onBeginGesture: (String) async -> String?
     let onEndGesture: (String) -> Void
     let onScrub: (Int, Bool) -> Void
@@ -522,7 +524,7 @@ private struct TimelineCanvasRepresentable: NSViewRepresentable {
                 onDropRejected: onDropRejected, onMoveToTrack: onMoveToTrack, onDelete: onDelete, onSplit: onSplit,
                 onScroll: onScroll, onToggleLock: onToggleLock, onAddTrack: onAddTrack,
                 onRenameTrack: onRenameTrack, onDeleteTrack: onDeleteTrack, onDropMusic: onDropMusic,
-                onPreviewDrop: onPreviewDrop, onDropItem: onDropItem
+                onPreviewDrop: onPreviewDrop, onDropItem: onDropItem, onSetSelection: onSetSelection
             )
         )
     }
@@ -550,6 +552,8 @@ private final class TimelineCanvas: NSView {
         var onDropMusic: (String, String) -> Void
         var onPreviewDrop: (String, Int, String, Bool) -> TimelineDropResolution
         var onDropItem: (String, Int, String, Bool) -> Bool
+        /// Replaces the whole selection (a marquee drag, or a click on empty track space).
+        var onSetSelection: (Set<String>) -> Void = { _ in }
     }
 
     private static let labelWidth = TimelineLayout.labelWidth
@@ -600,7 +604,13 @@ private final class TimelineCanvas: NSView {
     private var dropItemID: String?
     private var dropItemCommandInsert = false
 
-    private enum DragMode: Equatable { case scrub, trimStart, trimEnd, move }
+    private enum DragMode: Equatable { case scrub, trimStart, trimEnd, move, marquee }
+    /// Selection when a marquee drag began (kept with ⌘/⇧), and the clips the box covers now.
+    private var marqueeBase: Set<String> = []
+    private var marqueeHits: Set<String> = []
+    private var marqueePoint: CGPoint?
+    /// Pointer distance from the playhead line that grabs it in the track area.
+    private static let playheadGrab: CGFloat = 5
     /// The edit lease is requested only once a drag really starts, and always handed back
     /// if the gesture ends without an edit (a plain click must never hold the document).
     private var gestureLeaseTask: Task<String?, Never>?
@@ -615,7 +625,7 @@ private final class TimelineCanvas: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
         setAccessibilityLabel("Reel timeline")
-        setAccessibilityHelp("Select a clip, drag its edges to trim, drag a clip sideways to reorder or up/down to another track, or click the ruler to move the playhead.")
+        setAccessibilityHelp("Select a clip, drag across empty track space to select several, drag its edges to trim, drag a clip sideways to reorder or up/down to another track, or click the ruler or drag the playhead to move it.")
         let overlay = PlayheadLayer(frame: bounds)
         overlay.autoresizingMask = [.width, .height]
         overlay.setAccessibilityElement(false)
@@ -928,9 +938,42 @@ private final class TimelineCanvas: NSView {
         drawTracks()
         drawClips(dirtyRect)
         drawSnapGuide()
+        drawMarquee()
         drawRuler()
         drawGutter()
     }
+
+    private var marqueeRect: NSRect? {
+        guard mode == .marquee, let marqueePoint else { return nil }
+        return NSRect(x: min(downPoint.x, marqueePoint.x), y: min(downPoint.y, marqueePoint.y),
+                      width: abs(marqueePoint.x - downPoint.x), height: abs(marqueePoint.y - downPoint.y))
+    }
+
+    private func drawMarquee() {
+        guard let rect = marqueeRect else { return }
+        TimelineColors.playhead.withAlphaComponent(0.14).setFill()
+        rect.fill()
+        TimelineColors.playhead.withAlphaComponent(0.9).setStroke()
+        let path = NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5))
+        path.lineWidth = 1
+        path.stroke()
+    }
+
+    /// Clips the marquee touches, as the ids a click on them would select. Locked tracks are skipped.
+    private func clips(touching rect: NSRect) -> Set<String> {
+        var ids: Set<String> = []
+        for row in rows where !row.track.locked && rowRect(row).intersects(rect) {
+            for (node, _) in clips(in: row) where clipRect(node, in: row).intersects(rect) {
+                if let target = TimelineLaneClassifier.interactionNode(for: node, nodes: snapshot?.nodes ?? []) {
+                    ids.insert(target.id)
+                }
+            }
+        }
+        return ids
+    }
+
+    /// What is drawn as selected: the store's selection, or the marquee's while it is dragged.
+    private var shownSelection: Set<String> { mode == .marquee ? marqueeBase.union(marqueeHits) : selectedIDs }
 
     private func drawTracks() {
         for (index, row) in rows.enumerated() {
@@ -1296,8 +1339,9 @@ private final class TimelineCanvas: NSView {
     }
 
     private func drawClip(_ node: EditorNode, linked: Bool, in rect: NSRect, row: TimelineLayout.Row) {
-        let selected = selectedIDs.contains(node.id)
-            || (node.kind.lowercased() == "source_audio" && node.parentId.map(selectedIDs.contains) == true)
+        let shown = shownSelection
+        let selected = shown.contains(node.id)
+            || (node.kind.lowercased() == "source_audio" && node.parentId.map(shown.contains) == true)
         let isAudioClip = linked || category(for: node) == "Audio"
         let base = isAudioClip ? TimelineColors.audio : clipColor(for: node)
         let shape = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
@@ -1742,9 +1786,20 @@ private final class TimelineCanvas: NSView {
             scrub(point, final: false)
             return
         }
-        guard let (node, row) = hit(at: point) else {
+        let playheadX = Self.labelWidth + CGFloat(playheadFrame) * scale
+        let hitClip = hit(at: point)
+        // In the tracks only grabbing the playhead line (in empty space) moves it; over a clip the
+        // click belongs to the clip, and the ruler head always moves it.
+        if hitClip == nil && abs(point.x - playheadX) <= Self.playheadGrab {
             mode = .scrub
-            scrub(point, final: false)
+            return
+        }
+        guard let (node, row) = hitClip else {
+            let additive = event.modifierFlags.contains(.command) || event.modifierFlags.contains(.shift)
+            mode = .marquee
+            marqueeBase = additive ? selectedIDs : []
+            marqueeHits = []
+            marqueePoint = nil
             return
         }
         let additive = event.modifierFlags.contains(.command) || event.modifierFlags.contains(.shift)
@@ -1799,6 +1854,11 @@ private final class TimelineCanvas: NSView {
         case .scrub:
             autoscroll(with: event)
             scrub(point, final: false)
+        case .marquee:
+            autoscroll(with: event)
+            marqueePoint = convert(event.locationInWindow, from: nil)
+            if let rect = marqueeRect { marqueeHits = clips(touching: rect) }
+            needsDisplay = true
         case .trimStart, .trimEnd:
             let delta = Int(((point.x - downPoint.x) / max(scale, 0.05)).rounded(.toNearestOrEven))
             if delta != 0 { beginLease(owner: "timeline-trim") }
@@ -1864,6 +1924,9 @@ private final class TimelineCanvas: NSView {
             overwriteBlockedReason = nil
             overwriteDropTrackID = nil
             gestureLeaseTask = nil
+            marqueeBase = []
+            marqueeHits = []
+            marqueePoint = nil
             needsDisplay = true
         }
         guard let mode else { releaseLease(); return }
@@ -1884,6 +1947,10 @@ private final class TimelineCanvas: NSView {
         switch mode {
         case .scrub:
             scrub(point, final: true)
+        case .marquee:
+            // A click on empty space clears the selection (⌘/⇧-click keeps it); a drag selects what the box touched.
+            let next = marqueeBase.union(marqueeHits)
+            if next != selectedIDs { callbacks?.onSetSelection(next) }
         case .trimStart, .trimEnd:
             let changed = (ghostStart != nil && ghostStart != originalStart) || (ghostEnd != nil && ghostEnd != originalEnd)
             guard changed, let node = activeNode else { break }
@@ -1973,7 +2040,9 @@ func makeTimelineCanvasCaptureView(
     zoom: Double = TimelineMetrics.defaultZoom,
     snapping: Bool = true,
     onOverwrite: (([TimelinePlacement], String) -> Bool)? = nil,
-    onDropRejected: ((String) -> Void)? = nil
+    onDropRejected: ((String) -> Void)? = nil,
+    onScrub: ((Int, Bool) -> Void)? = nil,
+    onSetSelection: ((Set<String>) -> Void)? = nil
 ) -> NSView {
     let view = TimelineCanvas(frame: .zero)
     view.update(
@@ -1991,7 +2060,7 @@ func makeTimelineCanvasCaptureView(
             onSelect: { _, _ in },
             onBeginGesture: { _ in nil },
             onEndGesture: { _ in },
-            onScrub: { _, _ in },
+            onScrub: onScrub ?? { _, _ in },
             onTrim: { _, _, _, _ in },
             onReorder: { _, _, _ in },
             onOverwrite: onOverwrite ?? { _, _ in true },
@@ -2006,7 +2075,8 @@ func makeTimelineCanvasCaptureView(
             onDeleteTrack: { _ in },
             onDropMusic: { _, _ in },
             onPreviewDrop: { _, _, _, _ in .rejected("Preview unavailable") },
-            onDropItem: { _, _, _, _ in false }
+            onDropItem: { _, _, _, _ in false },
+            onSetSelection: onSetSelection ?? { _ in }
         )
     )
     return view

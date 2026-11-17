@@ -436,13 +436,23 @@ final class EditorStore {
         } else {
             selectedIDs = [id]
         }
+        syncSelection(inspecting: id)
+    }
+
+    /// Replaces the selection (timeline marquee, or a click on empty track space to clear it).
+    func setSelection(_ ids: Set<String>) {
+        selectedIDs = ids
+        syncSelection(inspecting: selectedNode?.id)
+    }
+
+    private func syncSelection(inspecting id: String?) {
         Task {
             _ = try? await service.call("selection.set", params: .object([
                 "ids": .array(selectedIDs.sorted().map(JSONValue.string)),
                 "playhead": .number(Double(playheadFrame))
             ]))
             await persistState()
-            await loadInspectorSchema(for: id)
+            if let id { await loadInspectorSchema(for: id) }
         }
     }
 
