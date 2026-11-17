@@ -1062,6 +1062,8 @@ struct StatusBar: View {
 extension Notification.Name {
     static let reelsTogglePlayback = Notification.Name("ReelsEditor.TogglePlayback")
     static let reelsPlaybackRate = Notification.Name("ReelsEditor.PlaybackRate")
+    /// Posted when the editor is hidden, minimized or occluded; every playing monitor pauses.
+    static let reelsPausePlayback = Notification.Name("ReelsEditor.PausePlayback")
 }
 
 /// Lets the custom (title-bar-less) header drag the window.

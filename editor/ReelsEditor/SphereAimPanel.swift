@@ -5,8 +5,15 @@ import simd
 struct SphereAimPanel: View {
     @Bindable var store: EditorStore
     @Bindable var aim: SphereAimModel
-    @StateObject private var player = SpherePlayerModel()
+    @StateObject private var player: SpherePlayerModel
     @State private var viewSize: CGSize = .zero
+
+    /// `player` is injectable so tests can drive playback without a Metal viewer.
+    init(store: EditorStore, aim: SphereAimModel, player: SpherePlayerModel? = nil) {
+        self.store = store
+        self.aim = aim
+        _player = StateObject(wrappedValue: player ?? SpherePlayerModel())
+    }
 
     private var local: Double? { aim.localSeconds(frame: store.playheadFrame, store: store) }
     private var raw: JSONValue? { aim.node(in: store)?.raw }
@@ -45,6 +52,7 @@ struct SphereAimPanel: View {
         .onChange(of: store.playheadFrame) { _, _ in if store.selectedIDs.isEmpty { follow() } }
         .onReceive(player.$currentSeconds) { seconds in followPlayback(seconds) }
         .onReceive(NotificationCenter.default.publisher(for: .reelsTogglePlayback)) { _ in togglePlayback() }
+        .onReceive(NotificationCenter.default.publisher(for: .reelsPausePlayback)) { _ in pausePlayback() }
         .onChange(of: store.playbackRate) { _, rate in if player.isPlaying { player.rate = Float(rate) } }
         .onDisappear { player.pause() }
     }
@@ -205,10 +213,15 @@ struct SphereAimPanel: View {
         }
     }
 
+    private func pausePlayback() {
+        guard player.isPlaying else { return }
+        player.pause()
+        store.setPlayhead(store.playheadFrame)
+    }
+
     private func togglePlayback() {
         if player.isPlaying {
-            player.pause()
-            store.setPlayhead(store.playheadFrame)
+            pausePlayback()
             return
         }
         if local == nil { jumpToClip() }
