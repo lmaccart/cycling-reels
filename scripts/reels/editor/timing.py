@@ -108,13 +108,13 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
         if "out" in source:
             item["in"] = rounded(source_in + (left - at) * speed)
             item["out"] = rounded(source_in + (right - at) * speed)
-        elif "duration" in item:
+        else:
             item["duration"] = rounded(right - left)
             window = cutaway.get("motionWindow") or {"offsetSeconds": 0, "durationSeconds": duration}
             item["motionWindow"] = {**window, "offsetSeconds": window["offsetSeconds"] + left-at}
         if isinstance(item.get("path"), list) or isinstance(item.get("cameraWindow"), dict):
             camera = (cameras.get(index, {}).get("spec") or {}).get("sphere")
-            _slice_camera(source, item, left-at, right-at, duration=duration, camera=camera)
+            _slice_camera(source, item, left-at, duration=duration, camera=camera)
         if isinstance(item.get("sphere"), dict) and isinstance(item["sphere"].get("path"), list):
             item["sphere"]["path"] = _slice_keys(item["sphere"]["path"], left-at, right-at, rebase=True)
         out.append(item)
@@ -257,9 +257,9 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
             "path": before + inside + after}
 
 
-def _slice_camera(segment: dict, result: dict, start: float, end: float, *,
+def _slice_camera(segment: dict, result: dict, start: float, *,
                   duration: float, camera: dict | None = None) -> None:
-    """Keep playback intervals intact; only the separate editing handles are clipped."""
+    """Keep playback clocks intact; bound handles by the finalized piece source."""
     from ..sphere import plan_camera
 
     window = segment.get("cameraWindow")
@@ -276,10 +276,12 @@ def _slice_camera(segment: dict, result: dict, start: float, end: float, *,
     window = window or {"offsetSeconds": 0, "durationSeconds": duration,
                         "path": camera["path"]}
     result["cameraWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + start}
-    result["path"] = window_piece_keys(camera["path"], start, end-start, projection=camera["projection"])
+    result["path"] = window_piece_keys(camera["path"], start, source_duration(result),
+                                       projection=camera["projection"]) or None
 
 
-def slice_local_events(segment: dict[str, Any], start: float, end: float, *, rebase: bool = False,
+def slice_local_events(segment: dict[str, Any], start: float, end: float, *,
+                       piece_bounds: dict[str, float], rebase: bool = False,
                        minimum_cutaway_frames: int | None = None, fps: int = 30,
                        resolved: dict | None = None) -> dict[str, Any]:
     """Return segment metadata valid in [start, end), in segment-local seconds.
@@ -288,8 +290,11 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *, reb
     them again against corrected transcript words. Explicit timed bleeps and
     ordinary segment-local events are clipped and, for a right-hand split,
     rebased to zero.
+    ``piece_bounds`` contains the finalized source in/out (or photo duration),
+    not frame-rounded timeline seconds. Camera handles use those compiler bounds.
     """
     result = deepcopy(segment)
+    result.update(piece_bounds)
     camera = ((resolved or {}).get("spec") or {}).get("sphere")
     if camera:
         # Freeze the compiler's tag -> moment -> segment precedence before a
@@ -310,7 +315,7 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *, reb
         else:
             result[key] = _clip_events(result[key], start, end, rebase=rebase)
     if isinstance(segment.get("path"), list) or isinstance(segment.get("cameraWindow"), dict):
-        _slice_camera(segment, result, start, end,
+        _slice_camera(segment, result, start,
                       duration=source_duration((resolved or {}).get("spec") or segment), camera=camera)
     if isinstance(result.get("blur"), list):
         patches = []
@@ -410,12 +415,12 @@ def trim_local_source(segment: dict[str, Any], source_in: float, source_out: flo
     if source_in < 0 or source_out <= source_in:
         raise ValueError("sourceOut must be greater than nonnegative sourceIn")
     offset = (source_in - float(segment.get("in", 0))) / speed
+    bounds = {"in": round(source_in, precision), "out": round(source_out, precision)}
     sliced = slice_local_events(segment, offset, offset + (source_out - source_in) / speed,
-                                rebase=True, resolved=resolved)
+                                piece_bounds=bounds, rebase=True, resolved=resolved)
     segment.clear()
     segment.update(sliced)
     segment.pop("moment", None)
-    segment["in"], segment["out"] = round(source_in, precision), round(source_out, precision)
 
 
 def split_segment(
@@ -427,17 +432,23 @@ def split_segment(
     resolved: dict | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Split a source segment at a segment-local reel frame."""
-    if "duration" in segment and "in" not in segment:
-        raise ValueError("photo splitting is not supported by source-time split")
-    speed = float(segment.get("speed", 1.0) or 1.0)
-    local = local_frame / fps
-    source_mid = float(segment["in"]) + local * speed
-    source_mid = min(float(segment["out"]), max(float(segment["in"]), source_mid))
-    local_end = total_frames / fps
-    left = slice_local_events(segment, 0.0, local, rebase=False, resolved=resolved)
-    right = slice_local_events(segment, local, local_end, rebase=True, resolved=resolved)
-    left.update({"in": segment["in"], "out": round(source_mid, 3)})
-    right.update({"in": round(source_mid, 3), "out": segment["out"]})
+    local, local_end = local_frame / fps, total_frames / fps
+    spec = (resolved or {}).get("spec") or segment
+    if "duration" in spec and "in" not in segment:
+        left_bounds = {"duration": local}
+        right_bounds = {"duration": (total_frames - local_frame) / fps}
+    else:
+        speed = float(segment.get("speed", 1.0) or 1.0)
+        source_mid = float(segment["in"]) + local * speed
+        source_mid = round(min(float(segment["out"]), max(float(segment["in"]), source_mid)), 3)
+        left_bounds = {"in": segment["in"], "out": source_mid}
+        right_bounds = {"in": source_mid, "out": segment["out"]}
+    left = slice_local_events(segment, 0.0, local, piece_bounds=left_bounds, rebase=False, resolved=resolved)
+    right = slice_local_events(segment, local, local_end, piece_bounds=right_bounds, rebase=True, resolved=resolved)
+    if "duration" in left_bounds:
+        window = segment.get("motionWindow") or {"offsetSeconds": 0, "durationSeconds": source_duration(spec)}
+        left["motionWindow"] = deepcopy(window)
+        right["motionWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + local}
     # The source segment's outgoing transition belongs on the right half;
     # the new internal cut is hard.
     left["transition"] = segment.get("transition", "cut")

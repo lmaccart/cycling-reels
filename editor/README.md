@@ -79,7 +79,10 @@ retiming share W4's math/clock conventions. SwiftPM links the **same**
 `SphereMath.swift` used by the viewer, not a copied implementation.
 Camera slicing retains the compiler-resolved original duration (including the
 default photo duration) in `cameraWindow`; piece durations and editing handles
-do not restart or quantize that playback clock.
+do not restart or quantize that playback clock. Handles are bounded by each
+piece's finalized source in/out and speed (or photo duration), never its rounded
+timeline frame count. Pieces shorter than the 100 ms editable-key gap retain
+playback through the window without an editable path.
 
 Direct CLI: `.cache/editor/bin/reels-sphere --check request.json`, then
 `--render request.json`. Exit codes: 2 invalid inputs, 3 unsupported capability,

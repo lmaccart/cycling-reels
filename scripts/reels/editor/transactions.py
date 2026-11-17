@@ -1950,7 +1950,9 @@ class DocumentStore:
             index = int(entry["locator"].split("/")[2])
             compiled_seg = ctx["compiled"]["segs"][index]
             for field in ("in", "out"):
-                segment.setdefault(field, compiled_seg["spec"].get(field))
+                value = compiled_seg["spec"].get(field)
+                if value is not None:
+                    segment.setdefault(field, value)
             at = int(operation["atFrame"])
             local_frame = at - int(compiled_seg["start"])
             if not 0 < local_frame < int(compiled_seg["frames"]):

@@ -216,10 +216,18 @@ class SphereCameraTests(unittest.TestCase):
             self.assertEqual(window["path"], window_path)  # no moved/dropped playback keys
             self.assertEqual(window["durationSeconds"], window_duration)
             self.assertAlmostEqual(window["offsetSeconds"], offset + start, places=12)
-            camera = self.service.dispatch("sphere.camera", {"id": nodes[piece.start]["id"]})
-            self.assertEqual(camera["errors"], [])
-            seconds = camera["seconds"]
-            for keys in (raw["path"], camera["path"]):
+            spec = piece.spec
+            seconds = spec["duration"] if "duration" in spec else (spec["out"] - spec["in"]) / spec["speed"]
+            paths = [raw["path"] or []]
+            camera = None
+            # The live aim-camera service supports video only. Photo proof uses
+            # the real renderer compiler and the persisted editable handles.
+            if nodes[piece.start]["assetKind"] == "video":
+                camera = self.service.dispatch("sphere.camera", {"id": nodes[piece.start]["id"]})
+                self.assertEqual(camera["errors"], [])
+                self.assertEqual(camera["seconds"], seconds)
+                paths.append(camera["path"])
+            for keys in paths:
                 # Decimal source bounds can differ from the same ms tick by a few ulps.
                 self.assertTrue(all(0 <= k["at"] <= seconds + 1e-12 for k in keys), (seconds, keys))
                 ticks = [round(k["at"] * 1000) for k in keys]
@@ -233,8 +241,9 @@ class SphereCameraTests(unittest.TestCase):
                 t = frame / snapshot["fps"]
                 expected = path_value(original, start + t)
                 self.assert_pose(path_value(piece.spec["sphere"]["path"], t), expected)
-                self.assert_pose(path_value(camera["playbackPath"], camera["playbackOffsetSeconds"] + t),
-                                 expected)
+                if camera is not None:
+                    self.assert_pose(path_value(camera["playbackPath"], camera["playbackOffsetSeconds"] + t),
+                                     expected)
 
     def test_transaction_cuts_just_before_and_after_sprint_keys_preserve_playback(self):
         # Shared Python/Swift golden fixture: real sprint key at 10.5 s (frame 315).
@@ -302,6 +311,133 @@ class SphereCameraTests(unittest.TestCase):
                         t = frame / 30
                         self.assert_pose(path_value(piece.spec["sphere"]["path"], t),
                                          path_value(original, start + t))
+
+    def assert_followup_camera_edits(self, result):
+        """Consume persisted handles through projection and aim transactions."""
+        store = self.service.document
+        nodes = sorted((n for n in result["nodes"] if n["kind"] == "segment"),
+                       key=lambda n: n["startFrame"])
+        for index, (node, raw) in enumerate(zip(nodes, result["plan"]["segments"])):
+            projected = self.apply_operations([
+                {"op": "set_field", "id": node["id"], "path": "/projection", "value": "tiny-planet"}])
+            sphere = store._current_compiled["segs"][index]["spec"]["sphere"]
+            self.assertEqual(sphere["projection"], "tiny-planet")
+            self.assertFalse([d for d in projected.get("diagnostics", []) if d.get("severity") == "error"])
+            if raw["path"]:
+                keys = [dict(k) for k in raw["path"]]
+                keys[0]["yaw"] = (keys[0]["yaw"] + 197) % 360 - 180
+                edited = self.write_camera(node["id"], keys)
+                expected = keys[0]
+            else:
+                # Sub-100 ms pieces cannot hold two legal keys. A null /path
+                # plus a static view is the editable camera representation.
+                expected = {**raw["view"], "yaw": (raw["view"]["yaw"] + 197) % 360 - 180}
+                edited = self.apply_operations([
+                    {"op": "set_field", "id": node["id"], "path": "/view", "value": expected},
+                    {"op": "set_field", "id": node["id"], "path": "/path", "value": None}])
+            self.assertFalse([d for d in edited.get("diagnostics", []) if d.get("severity") == "error"])
+            sphere = store._current_compiled["segs"][index]["spec"]["sphere"]
+            actual = path_value(sphere["path"] or [{"at": 0, **sphere["view"]}], 0, "tiny-planet")
+            self.assert_pose(actual, {**expected, "pitch": -90})  # tiny planet fixes the effective pitch
+
+    def test_fractional_video_split_handles_accept_subsequent_camera_edits(self):
+        for placed in (False, True):
+            with self.subTest(placed=placed):
+                segment = {"asset": "ride360", "in": 0, "out": 2.484, "path": ["front", "back"]}
+                extra = {}
+                if placed:
+                    segment["timeline"] = {"track": "V1", "startFrame": 0, "durationFrames": 75}
+                    extra["timeline"] = {"version": 1, "fps": 30, "durationFrames": 75}
+                node = self.open([segment], **extra)[0]
+                store = self.service.document
+                store.snapshot()
+                original = store._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+                result = self.apply_operations([{"op": "split_segment", "id": node, "atFrame": 30}])
+                # The projection transaction consumes the stored /path after
+                # dropping cameraWindow. It used to reject the tail's 1.5 s key.
+                self.assert_followup_camera_edits(result)
+                self.assertEqual(result["plan"]["segments"][1]["path"][-1]["at"], 1.484)
+                for raw, start in zip(result["plan"]["segments"], (0, 1)):
+                    self.assertEqual(raw["cameraWindow"], {
+                        "offsetSeconds": start, "durationSeconds": 2.484, "path": original})
+
+    def test_random_fractional_transaction_cuts_keep_legal_handles_and_playback(self):
+        rng = random.Random(36037)
+        asset = self.fixture.asset("photo360", kind="photo")
+        asset["probe"]["sphere"] = {"projection": "equirect", "width": 4096, "height": 2048}
+        save_asset(self.fixture.project, asset)
+        cases = [("video", speed) for speed in
+                 (0.25, 0.5, 0.75, 1, 1.5, 2, 3.25, 4, *(rng.uniform(0.25, 4) for _ in range(4)))]
+        cases += [("photo", duration) for duration in (None, None, rng.uniform(2, 5), rng.uniform(2, 5))]
+        for placed in (False, True):
+            for case, (kind, setting) in enumerate(cases):
+                with self.subTest(placed=placed, case=case, kind=kind, setting=setting):
+                    if kind == "video":
+                        speed = setting
+                        # Legacy source intervals must be >=300 ms; editable paths
+                        # need >=100 ms. Pick random cuts within those legal bounds.
+                        minimum_frames = 1 if placed else math.ceil(max(0.301 / speed, 0.101) * 30)
+                        seconds = rng.uniform(3 * minimum_frames / 30 + 0.1, 6)
+                        source_in = rng.uniform(0.001, 15)
+                        segment = {"asset": "ride360", "in": source_in,
+                                   "out": source_in + seconds * speed, "speed": speed}
+                    else:
+                        minimum_frames = 1 if placed else 24  # legacy photos require >=0.8 s
+                        seconds = 2.5 if setting is None else setting
+                        segment = {"asset": "photo360"}
+                        if setting is not None:
+                            segment["duration"] = setting
+                    if case % 2:
+                        segment["path"] = ["front", "back"]
+                    else:
+                        segment["path"] = [{"at": 0, "yaw": -30, "pitch": 15},
+                                           {"at": round(seconds / 2, 3), "yaw": 80, "cut": True},
+                                           {"at": round(seconds, 3), "yaw": -90, "roll": 60}]
+                    frames = round(seconds * 30)
+                    extra = {}
+                    if placed:
+                        segment["timeline"] = {"track": "V1", "startFrame": 0, "durationFrames": frames}
+                        extra["timeline"] = {"version": 1, "fps": 30, "durationFrames": frames}
+                    self.open([segment], **extra)
+                    store = self.service.document
+                    store.snapshot()
+                    spec = store._current_compiled["segs"][0]["spec"]
+                    original = spec["sphere"]["path"]
+                    duration = spec["duration"] if kind == "photo" else (spec["out"] - spec["in"]) / spec["speed"]
+                    for _ in range(2):
+                        candidates = [n for n in store.snapshot()["nodes"] if n["kind"] == "segment"
+                                      and n["endFrame"] - n["startFrame"] >= 2 * minimum_frames]
+                        if not candidates:
+                            break
+                        node = rng.choice(candidates)
+                        at = rng.randint(node["startFrame"] + minimum_frames, node["endFrame"] - minimum_frames)
+                        if placed and case % 4 == 0:
+                            at = node["startFrame"] + 1
+                        elif placed and case % 4 == 1:
+                            at = node["endFrame"] - 1
+                        result = self.apply_operations([{"op": "split_segment", "id": node["id"], "atFrame": at}])
+                        self.assert_split_playback(result, original, window_path=original, window_duration=duration)
+                    self.assert_followup_camera_edits(result)
+
+    def test_fractional_trim_handles_use_final_source_bounds_before_camera_edits(self):
+        for placed in (False, True):
+            with self.subTest(placed=placed):
+                segment = {"asset": "ride360", "in": 0, "out": 2.484, "speed": 0.25, "path": ["front", "back"]}
+                extra = {}
+                if placed:
+                    segment["timeline"] = {"track": "V1", "startFrame": 0, "durationFrames": 298}
+                    extra["timeline"] = {"version": 1, "fps": 30, "durationFrames": 298}
+                node = self.open([segment], **extra)[0]
+                store = self.service.document
+                store.snapshot()
+                original = store._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+                result = self.apply_operations([
+                    {"op": "trim_segment", "id": node, "sourceIn": 0.11151, "sourceOut": 0.50049}])
+                offset = 0.11151 / 0.25
+                shifted = [{**k, "at": k["at"] - offset} for k in original]
+                self.assert_split_playback(result, shifted, window_path=original, window_duration=2.484 / 0.25,
+                                           offset=offset)
+                self.assert_followup_camera_edits(result)
 
     def test_transaction_recuts_keep_fractional_and_negative_window_clocks_and_hardcuts(self):
         for offset in (-1, 32 / 30):
