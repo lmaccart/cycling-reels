@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Observation
 import SwiftUI
 
 // MARK: - Pure UX helpers (unit tested)
@@ -106,6 +107,30 @@ enum TimelineMetrics {
 
     /// Edge hit zone in pixels: 7 px, but never more than a third of a narrow clip.
     static func edgeZone(clipWidth: Double) -> Double { max(2, min(7, clipWidth / 3)) }
+}
+
+/// Shared zoom state and the logarithmic binding used by the timeline's controls.
+@MainActor
+@Observable
+final class TimelineZoomControl {
+    var zoom = TimelineMetrics.defaultZoom
+
+    static let sliderRange = log(TimelineMetrics.minZoom)...log(TimelineMetrics.maxZoom)
+
+    var sliderPosition: Binding<Double> {
+        Binding(
+            get: { log(self.zoom) },
+            set: { self.zoom = TimelineMetrics.clamp(exp($0)) }
+        )
+    }
+
+    func zoomIn() { zoom = TimelineMetrics.zoomIn(zoom) }
+    func zoomOut() { zoom = TimelineMetrics.zoomOut(zoom) }
+
+    func fit(durationFrames: Int, viewportWidth: Double, gutter: Double) {
+        zoom = TimelineMetrics.fitZoom(durationFrames: durationFrames,
+                                       viewportWidth: viewportWidth, gutter: gutter)
+    }
 }
 
 /// Global editing shortcuts. Resolved from raw key events so the mapping can be tested.

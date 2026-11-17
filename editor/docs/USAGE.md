@@ -352,7 +352,8 @@ XCTest runs a prohibited-activation AppKit host: no Dock icon, editor scene,
 window restoration or service auto-connect. Hosted views use unordered windows;
 custom-speed input is supplied at the modal presentation boundary.
 
-Optimistic-delete ordering and zoom-slider binding checks run offscreen in Debug:
+Optimistic-delete ordering and zoom-slider binding checks run offscreen in Debug
+(the full Debug suite includes all of these focused tests):
 
 ```bash
 TEST_RUNNER_REELS_TEST_PYTHON=/absolute/path/to/.venv/bin/python \
@@ -360,7 +361,10 @@ xcodebuild -project editor/ReelsEditor.xcodeproj -scheme ReelsEditor \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath .cache/editor/delete-debug-tests \
   -only-testing:ReelsEditorTests/EditorOperationTests/testHostedDeleteBeforeRealServiceAcknowledgementAndRollback \
-  -only-testing:ReelsEditorTests/EditorOperationTests/testHostedZoomSliderUpdatesClipGeometry test
+  -only-testing:ReelsEditorTests/EditorOperationTests/testHostedZoomSliderBindingUpdatesClipGeometry \
+  -only-testing:ReelsEditorTests/EditorUXHelpersTests/testZoomSliderBindingRoundTripsLogScale \
+  -only-testing:ReelsEditorTests/EditorUXHelpersTests/testZoomSliderBindingClampsAndPreservesNonfiniteFallback \
+  -only-testing:ReelsEditorTests/EditorUXHelpersTests/testZoomSliderBindingAgreesWithButtonsAndFit test
 ```
 
 The 50 ms latency gate is a separate, explicitly Release-configured test:
@@ -393,21 +397,31 @@ automatic preview rendering are disabled for this fixture. Offscreen view bitmap
 are in `.cache/editor/timeline-captures/delete-*.png`; no screen-capture or system
 Accessibility service is used.
 
-The slider test sends mouse events directly to the production `NSHostingView` in
-an unordered window and checks clip geometry after zooming out, zooming in, and
-returning to the same slider position. The 90-point Slider is located relative to
-the trailing Fit button using public AppKit geometry. SwiftUI exposes neither an
-`NSSlider` nor a virtual slider provider in this unordered host. The test uses no
-zoom shortcut, private view proxy, system input, or external AX/client calls.
+`TimelineZoomControl` owns the timeline's zoom and exposes the logarithmic
+`sliderPosition` binding used directly by the production Slider. The canvas,
+plus/minus controls, Fit, keyboard commands and bottom scroller share that state.
+The extracted mapping preserves `log(zoom)` / `clamp(exp(position))`, including
+the existing nonfinite fallback; zoom limits, step size and fit math are unchanged.
 
-Slider verification remains **failing**, not skipped: the unordered host now
-publishes valid clip geometry after a playhead-only refresh, but direct hosted
-mouse events leave the clip width unchanged (33.6 points in the recorded run).
-The test still requires smaller/larger widths and a round trip; it does not
-substitute zoom shortcuts or a model-only binding. This result does not establish
-a production slider defect. Three authorized slider-only runs are recorded in
-`.cache/agents/ui-delete-slider-authorized-{1,2,3}.log` and matching `.xcresult`
-bundles; no additional host run was made.
+Three helper tests cover logarithmic round trips, clamping/nonfinite values, and
+agreement with the actions used by the zoom/Fit buttons. The hosted binding test
+sets that same production binding, checks the zoom state immediately, and waits
+for exact clip widths in the production `TimelinePanel` canvas. It checks both
+zoom directions, returning to the same position, button/command updates and both
+clamp boundaries. No playhead-only geometry refresh is needed.
+
+This replaces the unreliable offscreen Slider mouse-event test. An unordered
+SwiftUI host exposes neither an `NSSlider` nor a virtual slider provider, and
+direct mouse injection did not establish that input reached its binding.
+The replacement verifies the binding-to-canvas path, not gesture delivery;
+it uses no mouse events, private proxies, system input or external AX calls.
+
+PR #40 binding continuation: one full Debug run executed 150 tests with zero
+failures (149 passed, one explicit Release-only latency skip), including all four
+zoom-binding regression tests. Evidence:
+`.cache/agents/ui-delete-zoom-binding-debug.log` and
+`.cache/agents/ui-delete-zoom-binding-debug.xcresult`. No failed-test rerun was
+needed. Timing code was unchanged, so the Release latency test was not rerun.
 
 Delete predictions do not wait for a Task hop or earlier backend edits. Persistence
 still runs serially against the authoritative revision; pending predictions replay

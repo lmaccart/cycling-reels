@@ -52,6 +52,58 @@ final class EditorUXHelpersTests: XCTestCase {
         XCTAssertEqual(TimelineMetrics.zoomIn(TimelineMetrics.maxZoom), TimelineMetrics.maxZoom)
     }
 
+    @MainActor
+    func testZoomSliderBindingRoundTripsLogScale() {
+        let control = TimelineZoomControl()
+        let slider = control.sliderPosition
+        for zoom in [TimelineMetrics.minZoom, 0.1, TimelineMetrics.defaultZoom, 1, TimelineMetrics.maxZoom] {
+            control.zoom = zoom
+            let position = slider.wrappedValue
+            XCTAssertEqual(position, log(zoom), accuracy: 0.0001)
+            control.zoom = 0.25
+            slider.wrappedValue = position
+            XCTAssertEqual(control.zoom, zoom, accuracy: 0.0001)
+        }
+    }
+
+    @MainActor
+    func testZoomSliderBindingClampsAndPreservesNonfiniteFallback() {
+        let control = TimelineZoomControl()
+        let slider = control.sliderPosition
+        for (position, expected) in [
+            (log(TimelineMetrics.minZoom) - 1, TimelineMetrics.minZoom),
+            (log(TimelineMetrics.maxZoom) + 1, TimelineMetrics.maxZoom),
+            (-1000, TimelineMetrics.minZoom),
+            (Double.nan, TimelineMetrics.defaultZoom),
+            (Double.infinity, TimelineMetrics.defaultZoom)
+        ] {
+            slider.wrappedValue = position
+            XCTAssertEqual(control.zoom, expected, accuracy: 0.0001)
+        }
+    }
+
+    @MainActor
+    func testZoomSliderBindingAgreesWithButtonsAndFit() {
+        let control = TimelineZoomControl()
+        let slider = control.sliderPosition
+        slider.wrappedValue = log(1)
+        control.zoomIn()
+        XCTAssertEqual(slider.wrappedValue, log(1.35), accuracy: 0.0001)
+        control.zoomOut()
+        XCTAssertEqual(slider.wrappedValue, log(1), accuracy: 0.0001)
+        control.fit(durationFrames: 600, viewportWidth: 1000, gutter: 112)
+        XCTAssertEqual(control.zoom, 1.4, accuracy: 0.0001)
+        XCTAssertEqual(slider.wrappedValue, log(1.4), accuracy: 0.0001)
+        slider.wrappedValue = log(1.4)
+        XCTAssertEqual(control.zoom, 1.4, accuracy: 0.0001)
+        control.zoom = TimelineMetrics.maxZoom
+        control.zoomIn()
+        XCTAssertEqual(slider.wrappedValue, TimelineZoomControl.sliderRange.upperBound, accuracy: 0.0001)
+        control.zoom = TimelineMetrics.minZoom
+        control.zoomOut()
+        XCTAssertEqual(slider.wrappedValue, TimelineZoomControl.sliderRange.lowerBound, accuracy: 0.0001)
+    }
+
     func testFitZoomLeavesGutterAndMargin() {
         let zoom = TimelineMetrics.fitZoom(durationFrames: 300, viewportWidth: 1000, gutter: 112)
         XCTAssertEqual(zoom, (1000 - 112 - 48) / 300, accuracy: 0.0001)
