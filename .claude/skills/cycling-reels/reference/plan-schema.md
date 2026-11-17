@@ -359,7 +359,7 @@ The look is **off by default** (config `render.grade.look` is `none`): every cli
 | --- | --- | --- |
 | `view` | moment's view → first tagged angle → front | An angle name from the tags (`"rider"`, `"road"`…) or built in `front`/`right`/`back`/`left`, or `{"view": "rider", "yaw", "pitch", "fov", "roll"}` |
 | `yaw`, `pitch`, `fov`, `roll` | from `view` | Quick overrides on top of the view |
-| `path` | – | Camera move: `[{"at": 0.5, "view": "road"}, {"at": 2.5, "view": "rider", "fov": 95}]`. `at` = seconds from the segment start (after `speed`); holds the first view until the first keyframe; eased, and yaw turns the short way round. `"cut": true` on a keyframe = hold the previous view, then hard-cut to this one |
+| `path` | – | Camera move: `[{"at": 0.5, "view": "road"}, {"at": 2.5, "view": "rider", "fov": 95}]`. `at` = seconds from the segment start (after `speed`); holds the first view until the first keyframe; eased, and the camera turns the shortest way between keyframes (no axis spins the long way round). `"cut": true` on a keyframe = hold the previous view, then hard-cut to this one |
 | `stabilize` | off | 360 video only: cancels shake using the camera's orientation track (GoPro MAX `CORI`), by rotating the sphere — no crop. `true`/`"medium"` (~0.8 s smoothing), `"light"`, `"strong"`, a number of seconds (0.1–5), or `"lock"` (hold the direction at the segment start). Without orientation data the render logs it and skips it. Costs ~4–5 s of staging per second of footage |
 | `projection` | `flat` | `tiny-planet` = the little-planet look. Its yaw decides which direction faces up; a path with yaw keyframes spins it |
 

@@ -24,12 +24,14 @@ final class SphereAimModel {
         var view: SphereView
         var keys: [SphereKey]
         var stabilize: String          // off | light | medium | strong | lock | custom
+        var stabilizeSeconds: Double? = nil   // the plan's number when `stabilize` is custom
         var angles: [(name: String, view: SphereView)]
 
         static func == (lhs: Camera, rhs: Camera) -> Bool {
             lhs.nodeID == rhs.nodeID && lhs.assetID == rhs.assetID && lhs.sourceIn == rhs.sourceIn
                 && lhs.sourceOut == rhs.sourceOut && lhs.speed == rhs.speed && lhs.projection == rhs.projection
                 && lhs.view == rhs.view && lhs.keys == rhs.keys && lhs.stabilize == rhs.stabilize
+                && lhs.stabilizeSeconds == rhs.stabilizeSeconds
                 && lhs.angles.map(\.name) == rhs.angles.map(\.name)
         }
     }
@@ -52,6 +54,8 @@ final class SphereAimModel {
     /// The angle being dragged/zoomed right now (shown live, written on release).
     var draft: SphereView?
     private var requestID = ""
+    /// The clip the panel is showing or loading (set before its camera arrives).
+    var boundNodeID: String?
     @ObservationIgnored private var dragStart: SphereView?
     @ObservationIgnored private var zoomCommit: Task<Void, Never>?
 
@@ -72,7 +76,11 @@ final class SphereAimModel {
     func open(nodeID: String, store: EditorStore) async {
         isActive = true
         draft = nil
-        if camera?.nodeID != nodeID { proxy = nil }
+        boundNodeID = nodeID
+        if camera?.nodeID != nodeID {
+            proxy = nil
+            camera = nil  // nothing edits the previous clip while this one loads
+        }
         status = .loading
         await reloadCamera(nodeID: nodeID, store: store, prepare: true)
     }
@@ -87,6 +95,7 @@ final class SphereAimModel {
     func reloadCamera(nodeID: String, store: EditorStore, prepare: Bool) async {
         do {
             let value = try await store.service.call("sphere.camera", params: .object(["id": .string(nodeID)]))
+            guard boundNodeID == nil || boundNodeID == nodeID else { return }  // rebound while this was loading
             guard let parsed = Self.parseCamera(value, nodeID: nodeID) else {
                 status = .failed("This clip's 360 camera couldn't be read.")
                 return
@@ -95,12 +104,13 @@ final class SphereAimModel {
             camera = parsed
             let rangeChanged = previous == nil || previous?.assetID != parsed.assetID
                 || previous?.sourceIn != parsed.sourceIn || previous?.sourceOut != parsed.sourceOut
-            let stabChanged = previous?.stabilize != parsed.stabilize
+            let stabChanged = previous?.stabilize != parsed.stabilize || previous?.stabilizeSeconds != parsed.stabilizeSeconds
             if prepare || rangeChanged || stabChanged || proxy == nil {
                 if proxy == nil || rangeChanged { status = .loading }
                 await requestProxy(store: store)
             }
         } catch {
+            guard boundNodeID == nil || boundNodeID == nodeID else { return }
             status = .failed(error.localizedDescription)
         }
     }
@@ -114,12 +124,20 @@ final class SphereAimModel {
             "end": .number(camera.sourceOut),
             "requestId": .string(requestID),
         ]
-        if camera.stabilize != "off" { params["stabilize"] = .string(camera.stabilize == "custom" ? "medium" : camera.stabilize) }
+        if let value = Self.stabilizeParam(camera) { params["stabilize"] = value }
         do {
             _ = try await store.service.call("sphere.prepare", params: .object(params))
         } catch {
             status = .failed(error.localizedDescription)
         }
+    }
+
+    /// What the live view stabilizes with: the plan's own value, so a custom number of
+    /// seconds smooths exactly as much as the render does.
+    static func stabilizeParam(_ camera: Camera) -> JSONValue? {
+        if camera.stabilize == "off" { return nil }
+        if camera.stabilize == "custom", let seconds = camera.stabilizeSeconds { return .number(seconds) }
+        return .string(camera.stabilize)
     }
 
     /// `sphere.ready` / `sphere.unavailable` events from the service.
@@ -171,6 +189,7 @@ final class SphereAimModel {
             seconds: value["seconds"]?.numberValue ?? (sourceOut - sourceIn) / max(speed, 0.01),
             projection: value["projection"]?.stringValue == "tiny-planet" ? .tinyPlanet : .flat,
             view: view, keys: keys, stabilize: stabilizeLabel(value["stabilize"]),
+            stabilizeSeconds: value["stabilize"]?.numberValue,
             angles: angles.map { (name: $0.0, view: $0.1) }
         )
     }
@@ -287,10 +306,11 @@ final class SphereAimModel {
         return ["yaw": r(SphereMath.wrapYaw(v.yaw)), "pitch": r(v.pitch), "fov": r(v.fov), "roll": r(v.roll)]
     }
 
-    private static func pathJSON(_ keys: [SphereKey]) -> JSONValue {
+    /// Keys as plan JSON; `at` stays inside the clip (0…seconds) so `plan_camera` accepts them.
+    private static func pathJSON(_ keys: [SphereKey], seconds: Double) -> JSONValue {
         .array(keys.sorted { $0.at < $1.at }.enumerated().map { index, key in
             var item = viewJSON(key.view)
-            item["at"] = .number((key.at * 1000).rounded() / 1000)
+            item["at"] = .number((max(0, min(seconds, key.at)) * 1000).rounded() / 1000)
             if key.cut && index > 0 { item["cut"] = .bool(true) }
             return .object(item)
         })
@@ -335,7 +355,7 @@ final class SphereAimModel {
                                SphereKey(at: clamped, view: current, cut: false)]
             }
             self.camera = camera
-            return clearOverrides(raw: raw) + [set("/path", Self.pathJSON(camera.keys))]
+            return clearOverrides(raw: raw) + [set("/path", Self.pathJSON(camera.keys, seconds: camera.seconds))]
         }
         return writeKeys(setting: current, atLocal: t, fps: fps, cut: nil, raw: raw)
     }
@@ -358,7 +378,7 @@ final class SphereAimModel {
             return clearOverrides(raw: raw) + [set("/path", .null), set("/view", .object(Self.viewJSON(remaining)))]
         }
         self.camera = camera
-        return [set("/path", Self.pathJSON(camera.keys))]
+        return [set("/path", Self.pathJSON(camera.keys, seconds: camera.seconds))]
     }
 
     func operationsForClearKeys(atLocal t: Double, raw: JSONValue?) -> [JSONValue] {
@@ -383,7 +403,7 @@ final class SphereAimModel {
             camera.keys.sort { $0.at < $1.at }
         }
         self.camera = camera
-        return clearOverrides(raw: raw) + [set("/path", Self.pathJSON(camera.keys))]
+        return clearOverrides(raw: raw) + [set("/path", Self.pathJSON(camera.keys, seconds: camera.seconds))]
     }
 
     func operationsForStabilize(_ choice: String) -> [JSONValue] {

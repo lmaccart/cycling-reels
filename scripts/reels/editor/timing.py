@@ -123,7 +123,10 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
 
 
 def _slice_keys(keys: list, start: float, end: float, *, rebase: bool) -> list:
-    """Keep boundary-interpolated keys so a split retains its camera/blur pose."""
+    """Keep boundary-interpolated keys so a split retains its camera/blur pose.
+
+    360 camera keys (numeric yaw) get their boundary pose from ``sphere.path_value``,
+    the same shortest-arc path the renderer and the live viewer follow."""
     ordered = sorted((deepcopy(k) for k in keys if isinstance(k, dict) and "at" in k),
                      key=lambda k: float(k["at"]))
     if not ordered:
@@ -139,17 +142,108 @@ def _slice_keys(keys: list, start: float, end: float, *, rebase: bool) -> list:
         if right.get("cut") is True and at < float(right["at"]):
             distance = 0  # before a hard-cut keyframe the camera holds the previous pose
         if distance:
-            fraction = (at - float(left["at"])) / distance
-            for key, value in left.items():
-                other = right.get(key)
-                if key != "at" and isinstance(value, (int, float)) and isinstance(other, (int, float)):
-                    result[key] = value + (other - value) * fraction
+            if _is_camera_key(left) and _is_camera_key(right):
+                pose = _camera_pose(left, right, at)
+                result.update({key: value for key, value in pose.items() if key in result})
+            else:
+                fraction = (at - float(left["at"])) / distance
+                for key, value in left.items():
+                    other = right.get(key)
+                    if key != "at" and isinstance(value, (int, float)) and isinstance(other, (int, float)):
+                        result[key] = value + (other - value) * fraction
         result["at"] = at
         return result
     selected = [at_time(start)] + [k for k in ordered if start < float(k["at"]) < end] + [at_time(end)]
     for key in selected:
         key["at"] = round(float(key["at"]) - (start if rebase else 0), 6)
     return selected
+
+
+_CAMERA_DEFAULTS = {"pitch": 0.0, "fov": 75.0, "roll": 0.0}
+
+
+def _is_camera_key(key: dict) -> bool:
+    return isinstance(key.get("yaw"), (int, float)) and not isinstance(key.get("yaw"), bool)
+
+
+def _camera_pose(left: dict, right: dict, at: float) -> dict:
+    """The 360 camera at `at` between two keys, on the renderer's path.
+
+    A field one key leaves to the segment's view is taken from the other key, so it
+    doesn't move; the caller keeps only the fields the left key actually wrote."""
+    from ..sphere import path_value
+
+    def full(key, other):
+        view = {"at": float(key["at"]), "yaw": float(key["yaw"])}
+        for name, default in _CAMERA_DEFAULTS.items():
+            value = key.get(name, other.get(name, default))
+            view[name] = float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else default
+        return view
+
+    return path_value([full(left, right), full(right, left)], at)
+
+
+MIN_KEY_GAP = 0.1  # plan_camera: path keyframes at least 0.1 s apart
+
+
+def window_piece_keys(window_path: list, offset: float, seconds: float) -> list:
+    """A split piece's camera keys in its own 0…seconds, from its `cameraWindow` path.
+
+    `window_path` holds resolved keys in window time; the piece starts `offset` into
+    it. Keys outside the piece become boundary poses at 0 and `seconds` (on the same
+    path the renderer follows), and keys too close to a boundary make way for it, so
+    the result is a path `plan_camera` accepts for this piece."""
+    if seconds < MIN_KEY_GAP or not any(isinstance(k, dict) and "at" in k for k in window_path):
+        return []
+    keys = _slice_keys(window_path, offset, offset + seconds, rebase=True)
+    first, *inner, last = keys
+    last["at"] = round(seconds, 6)
+    inner = [k for k in inner if MIN_KEY_GAP <= k["at"] <= seconds - MIN_KEY_GAP]
+    return [first, *inner, last]
+
+
+def _key_times(path: list, duration: float) -> list:
+    """`at` of each raw window key, with plan_camera's defaults for a missing one."""
+    times = []
+    for index, key in enumerate(path):
+        at = key.get("at", 0 if index == 0 else duration) if isinstance(key, dict) else None
+        times.append(float(at) if isinstance(at, (int, float)) and not isinstance(at, bool) else None)
+    return times
+
+
+def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list) -> dict | None:
+    """`window` after an aim edit wrote `keys` (piece time) to a split piece's /path.
+
+    The window path keeps its keys outside the piece, so a later trim still continues
+    the original move, and takes the edited keys inside it. None when the window can't
+    carry them (no path, unreadable times); the caller then drops the window."""
+    path = window.get("path")
+    duration = window.get("durationSeconds")
+    offset = window.get("offsetSeconds", 0)
+    if (not isinstance(path, list) or not isinstance(duration, (int, float))
+            or not isinstance(offset, (int, float)) or isinstance(offset, bool)):
+        return None
+    try:
+        seconds = source_duration(segment)
+    except (TypeError, ValueError, ZeroDivisionError):
+        seconds = 0.0
+    inside = [deepcopy(k) for k in keys if isinstance(k, dict) and isinstance(k.get("at"), (int, float))]
+    if len(inside) != len(keys) or not inside:
+        return None
+    times = _key_times(path, float(duration))
+    if None in times:
+        return None
+    local = sorted(float(k["at"]) for k in inside)
+    piece = max(seconds, local[-1])
+    lo, hi = float(offset) + local[0], float(offset) + local[-1]
+    before = [{**deepcopy(k), "at": at} for k, at in zip(path, times)
+              if at < float(offset) - 1e-6 and at <= lo - MIN_KEY_GAP]
+    after = [{**deepcopy(k), "at": at} for k, at in zip(path, times)
+             if at > float(offset) + piece + 1e-6 and at >= hi + MIN_KEY_GAP]
+    for key in inside:
+        key["at"] = round(float(key["at"]) + float(offset), 6)
+    return {**deepcopy(window), "durationSeconds": max(float(duration), float(offset) + piece),
+            "path": before + sorted(inside, key=lambda k: k["at"]) + after}
 
 
 def slice_local_events(segment: dict[str, Any], start: float, end: float, *, rebase: bool = False,

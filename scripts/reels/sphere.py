@@ -181,10 +181,24 @@ def _ease(u: float) -> float:
     return u * u * u * (u * (u * 6 - 15) + 10)  # smootherstep: gentle start and stop, like a hand pan
 
 
-def path_value(keys: list[dict], t: float) -> dict:
-    """Camera at time t along keyframes [{'at', 'yaw', 'pitch', 'fov', 'roll'[, 'cut']}], yaw the short way round.
+def view_quat(view: dict) -> tuple[float, float, float, float]:
+    """The unit quaternion (w, x, y, z) of v360's yaw · pitch · roll rotation for a view."""
+    a, b, c = (math.radians(float(view.get(k, 0.0))) / 2 for k in ("yaw", "pitch", "roll"))
+    ca, sa, cb, sb, cc, sc = math.cos(a), math.sin(a), math.cos(b), math.sin(b), math.cos(c), math.sin(c)
+    # (cos a + sin a·j)(cos b + sin b·i)(cos c + sin c·k), multiplied out
+    return (ca * cb * cc + sa * sb * sc, ca * sb * cc + sa * cb * sc, sa * cb * cc - ca * sb * sc, ca * cb * sc - sa * sb * cc)
 
-    A keyframe with `cut: true` is reached by a hard cut instead of an eased move."""
+
+def path_value(keys: list[dict], t: float) -> dict:
+    """Camera at time t along keyframes [{'at', 'yaw', 'pitch', 'fov', 'roll'[, 'cut']}].
+
+    Orientation moves along the shortest great-circle arc (quaternion slerp, eased), so a
+    keyframe pair never spins the long way round in any axis; fov eases linearly.
+    A keyframe with `cut: true` is reached by a hard cut instead of an eased move.
+    The editor's live viewer (SphereMath.pathValue) runs the same algorithm; the
+    golden vectors in tests/fixtures/sphere_path_golden.json hold both to it."""
+    from .stabilize import qmat, qslerp, v360_angles
+
     if t <= keys[0]["at"]:
         return dict(keys[0])
     for a, b in zip(keys, keys[1:]):
@@ -195,14 +209,12 @@ def path_value(keys: list[dict], t: float) -> dict:
         if t <= b["at"]:
             span = max(1e-6, b["at"] - a["at"])
             e = _ease((t - a["at"]) / span)
-            dy = wrap_yaw(b["yaw"] - a["yaw"])
-            return {
-                "at": t,
-                "yaw": wrap_yaw(a["yaw"] + dy * e),
-                "pitch": a["pitch"] + (b["pitch"] - a["pitch"]) * e,
-                "fov": a["fov"] + (b["fov"] - a["fov"]) * e,
-                "roll": a["roll"] + (b["roll"] - a["roll"]) * e,
-            }
+            if e <= 0.0 or e >= 1.0:
+                k = a if e <= 0.0 else b
+                return {"at": t, "yaw": wrap_yaw(k["yaw"]), "pitch": float(k["pitch"]),
+                        "fov": float(k["fov"]), "roll": float(k["roll"])}
+            yaw, pitch, roll = v360_angles(qmat(qslerp(view_quat(a), view_quat(b), e)))
+            return {"at": t, "yaw": wrap_yaw(yaw), "pitch": pitch, "fov": a["fov"] + (b["fov"] - a["fov"]) * e, "roll": roll}
     return dict(keys[-1])
 
 

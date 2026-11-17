@@ -74,7 +74,10 @@ class EditorTimingTests(unittest.TestCase):
         self.assertEqual(clip["bleep"]["windows"], [{"at": 0, "for": 1, "custom": "keep"}])
         self.assertEqual(clip["nat"], {"at": 0, "for": 2, "volume": 1})
         self.assertEqual(clip["exhibits"], [{"at": 0, "for": 2, "custom": 7}])
-        self.assertEqual(clip["sphere"]["path"], [{"at": 0, "yaw": 10}, {"at": 2, "yaw": 30}])
+        # boundary poses sit on the eased path the renderer follows (sphere.path_value)
+        self.assertEqual([k["at"] for k in clip["sphere"]["path"]], [0, 2])
+        self.assertAlmostEqual(clip["sphere"]["path"][0]["yaw"], 40 * 0.103515625, places=9)  # ease(1/4)
+        self.assertAlmostEqual(clip["sphere"]["path"][1]["yaw"], 40 * 0.896484375, places=9)  # ease(3/4)
 
 
 if __name__ == "__main__":

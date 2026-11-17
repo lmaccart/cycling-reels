@@ -2038,7 +2038,17 @@ class DocumentStore:
             else:
                 parent[key] = value
             if isinstance(target, dict) and path.split("/")[1] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection"):
-                target.pop("cameraWindow", None)
+                window = target.get("cameraWindow")
+                kept = None
+                if path == "/path" and isinstance(value, list) and isinstance(window, dict):
+                    # an aim edit on a split piece: its keys go into the window too, so the
+                    # renderer (which reads the window) shows them and trims keep the move
+                    from .timing import window_with_piece_keys
+                    kept = window_with_piece_keys(window, target, value)
+                if kept is not None:
+                    target["cameraWindow"] = kept
+                else:
+                    target.pop("cameraWindow", None)
             if node_id:
                 affected.add(str(node_id))
             return

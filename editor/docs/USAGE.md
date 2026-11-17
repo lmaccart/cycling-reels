@@ -129,6 +129,8 @@ what renders.
 - **Add keyframe** (or double-click the picture) stores the angle at the
   playhead in the clip's `path`. Once there are keyframes, aiming at a keyframe
   updates it and aiming between keyframes adds one. Keyframes must be 0.1 s apart.
+  Between keyframes the camera turns the shortest way (no axis spins the long
+  way round), exactly as the render does.
 - **Hard cut** makes the camera jump to that keyframe's angle instead of panning
   there. The strip under the picture shows keyframes (filled = hard cut); click
   one to jump to it.
@@ -139,6 +141,12 @@ what renders.
   smooths more, Lock holds the direction the camera faced at the clip's start.
   It costs nothing in picture (the sphere is rotated, not cropped), but
   stabilized clips take a few seconds per second of footage to stage.
+- While the panel is open it follows the timeline: selecting another 360 clip
+  aims that one, and with nothing selected it aims the 360 clip under the
+  playhead (after a cut, the piece the playhead is on). A split piece shows its
+  part of the original move, with keyframes at its start and end.
+- A **Custom** stabilize value (a number of seconds set in the plan) is shown
+  with that same smoothing, not as Medium.
 - Space plays the clip in the 360 view; **Done** returns to the Program preview.
 
 ### Footage dragging

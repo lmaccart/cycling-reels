@@ -495,8 +495,8 @@ class EditorService:
         camera = plan_camera(camera_spec, tags, moment_view, span, errors, warnings, "clip")
         path = camera.get("path") or []
         if window:
-            offset = float(window.get("offsetSeconds") or 0)
-            path = [{**key, "at": round(key["at"] - offset, 4)} for key in path]
+            from .timing import window_piece_keys
+            path = window_piece_keys(path, float(window.get("offsetSeconds") or 0), seconds)
         return {
             "id": node_id, "assetId": asset["id"], "in": start, "out": end, "speed": speed, "seconds": seconds,
             "projection": camera["projection"], "view": camera["view"], "path": path,

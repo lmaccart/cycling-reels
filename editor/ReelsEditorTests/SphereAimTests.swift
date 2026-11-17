@@ -96,4 +96,47 @@ final class SphereAimTests: XCTestCase {
         XCTAssertEqual(ops(m.operationsForStabilize("off"))["/stabilize"], .null)
         XCTAssertEqual(ops(m.operationsForProjection(.tinyPlanet))["/projection"], .string("tiny-planet"))
     }
+
+    func testCustomStabilizeSendsThePlansOwnNumber() throws {
+        let custom = try XCTUnwrap(SphereAimModel.parseCamera(cameraJSON(stabilize: .number(1.2)), nodeID: "n1"))
+        XCTAssertEqual(custom.stabilize, "custom")
+        XCTAssertEqual(SphereAimModel.stabilizeParam(custom), .number(1.2))  // not "medium"
+        let strong = try XCTUnwrap(SphereAimModel.parseCamera(cameraJSON(stabilize: .string("strong")), nodeID: "n1"))
+        XCTAssertEqual(SphereAimModel.stabilizeParam(strong), .string("strong"))
+        XCTAssertNil(SphereAimModel.stabilizeParam(try XCTUnwrap(SphereAimModel.parseCamera(cameraJSON(), nodeID: "n1"))))
+    }
+
+    func testWrittenKeysStayInsideTheClip() {
+        // keys a split piece used to get from its camera window, before and after its 6 s
+        let m = model(cameraJSON(path: [key(-1, 0), key(7, 80)]))
+        let path = ops(m.operationsForAim(SphereView(yaw: 30, pitch: 0, fov: 90, roll: 0), atLocal: 3, fps: 30, raw: nil))["/path"]?.arrayValue ?? []
+        XCTAssertEqual(path.compactMap { $0["at"]?.numberValue }, [0, 3, 6])
+    }
+
+    private func node(_ id: String, _ kind: String, _ asset: String, _ start: Int, _ end: Int) -> EditorNode {
+        EditorNode(id: id, kind: kind, lane: kind == "cutaway" ? "b-roll" : "primary", parentId: nil,
+                   startFrame: start, endFrame: end, frames: end - start, raw: .object([:]),
+                   assetId: asset, sourceIn: 0, sourceOut: Double(end - start) / 30,
+                   assetKind: "video", generated: false, readOnly: false)
+    }
+
+    func testAimFollowsTheSelectionElseThePlayhead() {
+        let library: [JSONValue] = [
+            .object(["id": .string("a360"), "kind": .string("video"), "probe": .object(["sphere": .object([:])])]),
+            .object(["id": .string("flat"), "kind": .string("video"), "probe": .object([:])]),
+        ]
+        // left and right pieces of a cut 360 clip, a flat clip, and a 360 cutaway over the right piece
+        let nodes = [node("left", "segment", "a360", 0, 90), node("right", "segment", "a360", 90, 180),
+                     node("flat", "segment", "flat", 180, 270), node("over", "cutaway", "a360", 100, 130)]
+        func target(_ selected: Set<String>, _ frame: Int, _ current: String? = nil) -> String? {
+            EditorStore.sphereAimTarget(nodes: nodes, selectedIDs: selected, playheadFrame: frame,
+                                        library: library, current: current)?.id
+        }
+        XCTAssertEqual(target(["left"], 150), "left")           // the selected 360 clip, wherever the playhead is
+        XCTAssertNil(target(["flat"], 150))                     // a non-360 selection leaves the panel alone
+        XCTAssertEqual(target([], 90, "left"), "right")         // after a cut: the piece under the playhead
+        XCTAssertEqual(target([], 110), "over")                 // the cutaway is the picture there
+        XCTAssertEqual(target([], 110, "right"), "right")       // but playing through it keeps the current clip
+        XCTAssertNil(target([], 200))
+    }
 }
