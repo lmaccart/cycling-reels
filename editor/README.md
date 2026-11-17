@@ -115,7 +115,10 @@ render another image. `REELS_SPHERE_BACKEND=metal` requires actual Metal executi
 Frozen editor Python snapshots receive the trusted helper's absolute path,
 read/execute access to that binary and its metallib only, specific AGX/IOSurface
 and codec services, and no new private-file/network access. Its binary/library
-digest participates in the staged-cache runtime identity. Older renderer
+digest participates in both whole-tree and per-clip staged-cache keys: changing
+the helper rebuilds staged media; the same runtime identity remains reusable.
+Source/sphere proxy keys still use the explicit `PROXY_VERSION`, independent of
+ordinary Python source edits and this staging runtime identity. Older renderer
 snapshots without the new route retain their existing v360 behavior. The
 sandbox integration test executes frozen `stage_video` on own real footage and
 requires Metal evidence plus the resulting video/audio tracks.

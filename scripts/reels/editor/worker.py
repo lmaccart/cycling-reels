@@ -185,6 +185,7 @@ def _cache_identity(project: Project, built: dict, snapshot: dict, code_root: Pa
     identity = {
         "version": 1,
         "rendererRevision": renderer_revision,
+        "runtimeRevision": str(snapshot.get("runtimeRevision") or ""),
         "pipeline": _pipeline_digest(code_root),
         "fps": built["fps"],
         "render": project.config.get("render"),
