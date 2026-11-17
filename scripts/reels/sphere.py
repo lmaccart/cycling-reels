@@ -217,7 +217,8 @@ def path_value(keys: list[dict], t: float, projection: str = "flat") -> dict:
         return dict(effective(keys[0]))
     for a, b in zip(keys, keys[1:]):
         if b.get("cut"):  # hard cut: hold the previous view until this keyframe, then jump
-            if t < b["at"]:
+            # Window translation can leave an exact frame a few ulps before its key.
+            if b["at"] - t > 1e-12:
                 return {**effective(a), "at": t, "cut": False}
             continue
         if t <= b["at"]:

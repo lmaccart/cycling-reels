@@ -201,6 +201,88 @@ class SphereCameraTests(unittest.TestCase):
         self.assertLess(_turn(qmat(view_quat(actual)), qmat(view_quat(expected))), 1e-7)
         self.assertAlmostEqual(actual["fov"], expected["fov"], places=9)
 
+    def assert_split_playback(self, result, original, *, window_path, window_duration, offset=0):
+        """Check persisted edits, the renderer's camera and the live viewer independently."""
+        from reels import render
+
+        self.assertFalse([d for d in result.get("diagnostics", []) if d.get("severity") == "error"])
+        store = self.service.document
+        snapshot = store.snapshot()
+        rendered = render.build(self.fixture.project, result["plan"])
+        nodes = {n["startFrame"]: n for n in snapshot["nodes"] if n["kind"] == "segment"}
+        for raw, piece in zip(result["plan"]["segments"], rendered["segs"]):
+            start = piece.start / snapshot["fps"]
+            window = raw["cameraWindow"]
+            self.assertEqual(window["path"], window_path)  # no moved/dropped playback keys
+            self.assertEqual(window["durationSeconds"], window_duration)
+            self.assertAlmostEqual(window["offsetSeconds"], offset + start, places=12)
+            camera = self.service.dispatch("sphere.camera", {"id": nodes[piece.start]["id"]})
+            self.assertEqual(camera["errors"], [])
+            seconds = camera["seconds"]
+            for keys in (raw["path"], camera["path"]):
+                # Decimal source bounds can differ from the same ms tick by a few ulps.
+                self.assertTrue(all(0 <= k["at"] <= seconds + 1e-12 for k in keys), (seconds, keys))
+                ticks = [round(k["at"] * 1000) for k in keys]
+                self.assertTrue(all(b-a >= 100 for a, b in zip(ticks, ticks[1:])), ticks)
+                errors = []
+                plan_camera({"path": keys or None}, {}, None, seconds, errors, [], "editable piece")
+                self.assertEqual(errors, [])
+            # Every frame, including each boundary and its neighbors. The endpoint
+            # also checks hard cuts landing exactly at the end of the left piece.
+            for frame in range(piece.frames + 1):
+                t = frame / snapshot["fps"]
+                expected = path_value(original, start + t)
+                self.assert_pose(path_value(piece.spec["sphere"]["path"], t), expected)
+                self.assert_pose(path_value(camera["playbackPath"], camera["playbackOffsetSeconds"] + t),
+                                 expected)
+
+    def test_transaction_cuts_just_before_and_after_sprint_keys_preserve_playback(self):
+        # Shared Python/Swift golden fixture: real sprint key at 10.5 s (frame 315).
+        # First reproduce the successful 18.933 s cut, then cut one frame either
+        # side of 10.5 s and again next to the following key (12.867 s).
+        for placed in (False, True):
+            for hard_cut in (False, True):
+                for frames in ((568, 314, 385), (568, 316, 387)):
+                    with self.subTest(placed=placed, hard_cut=hard_cut, frames=frames):
+                        keys = [dict(k, **({"cut": True} if hard_cut and k["at"] == 10.5 else {}))
+                                for k in SPRINT]
+                        segment = {"asset": "ride360", "in": 9.133333333333333, "out": 50.733333333333334,
+                                   "path": keys}
+                        extra = {}
+                        if placed:
+                            segment["timeline"] = {"track": "V1", "startFrame": 0, "durationFrames": 1248}
+                            extra["timeline"] = {"version": 1, "fps": 30, "durationFrames": 1248}
+                        self.open([segment], **extra)
+                        store = self.service.document
+                        store.snapshot()
+                        original = store._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+                        for at in frames:
+                            node = next(n for n in store.snapshot()["nodes"] if n["kind"] == "segment"
+                                        and n["startFrame"] < at < n["endFrame"])
+                            result = self.apply_operations([{"op": "split_segment", "id": node["id"], "atFrame": at}])
+                            self.assert_split_playback(result, original, window_path=original, window_duration=41.6)
+                        self.assertEqual(len(result["plan"]["segments"]), 4)
+
+    def test_transaction_recuts_keep_fractional_and_negative_window_clocks_and_hardcuts(self):
+        for offset in (-1, 32 / 30):
+            with self.subTest(offset=offset):
+                window = {"offsetSeconds": offset, "durationSeconds": 8, "path": [
+                    {"at": 0, "yaw": -20, "pitch": 10},
+                    {"at": offset + 2, "yaw": 80, "cut": True},
+                    {"at": offset + 4, "yaw": -90, "cut": True},
+                    {"at": 8, "yaw": 30, "roll": 45}]}
+                # Window-only input must not lose playback when /path is absent.
+                self.open([{"asset": "ride360", "in": 10, "out": 22, "speed": 2, "cameraWindow": window}])
+                store = self.service.document
+                store.snapshot()
+                original = store._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+                for at in (90, 59, 121):
+                    node = next(n for n in store.snapshot()["nodes"] if n["kind"] == "segment"
+                                and n["startFrame"] < at < n["endFrame"])
+                    result = self.apply_operations([{"op": "split_segment", "id": node["id"], "atFrame": at}])
+                    self.assert_split_playback(result, original, window_path=window["path"],
+                                               window_duration=8, offset=offset)
+
     def test_fractional_window_cut_is_frame_exact_and_trim_keeps_exterior(self):
         from reels.sphere import camera_filter
 

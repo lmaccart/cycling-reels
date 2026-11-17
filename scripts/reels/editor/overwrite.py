@@ -58,12 +58,6 @@ def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=Non
     value = slice_local_events(marked, a, b, rebase=True, minimum_cutaway_frames=1, fps=fps,
                                resolved=resolved)
     value.pop(_IDENTITY, None)
-    if isinstance(clip.get("path"), list):
-        window = clip.get("cameraWindow") or {
-            "offsetSeconds": 0, "durationSeconds": clip["timeline"]["durationFrames"] / fps,
-            "path": deepcopy(clip["path"]),
-        }
-        value["cameraWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + a}
     if "in" in clip:
         speed = float(clip.get("speed", 1))
         source_in, source_out = float(clip["in"]), float(clip["out"])

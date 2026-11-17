@@ -171,12 +171,17 @@ what renders.
   aim edits and refreshes. Split playback retains the original path's easing
   intervals and hard cuts; bounded start/end keys are editing handles, not a
   replacement playback path.
+  Cutting within 100 ms of an original key is allowed: the nearby key may be
+  omitted from the editable handles, but stays unchanged in the playback window.
+  Repeated cuts retain that same window and advance only the piece's offset.
   Editable key times use the compiler's millisecond grid and 100 ms minimum gap.
   Aim edits rebase the whole camera window (keys, offset and duration) to a
   nonnegative integer-second editing origin, so fractional and negative offsets
   stay editable and local hard cuts retain their exact frame. Exterior window
   keys retain fractional coordinates: `key.at - offsetSeconds` is invariant,
   including when a later trim reveals them; those keys are not rounded again.
+  Hard-cut comparisons tolerate 1 ps of floating-point translation error, not a
+  frame or an editable-key gap; stored playback times are unchanged.
   Named/string and sparse keys retain compiler-resolved tagged/moment defaults
   and exterior poses when clearing old angle overrides. Ordinary trims, splits
   and cutaway slices sample that same resolved camera, not empty-tag defaults.
