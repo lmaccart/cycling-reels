@@ -6,11 +6,13 @@ import platform
 import random
 import shutil
 import subprocess
+import threading
+import traceback
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 
-from helpers import TempProject
+from helpers import TempProject, live_workspace
+from reels.editor.transactions import DocumentStore
 from reels.editor.document import ensure_node_ids
 from reels.editor.protocol import ProtocolError
 from reels.editor.service import EditorService
@@ -40,6 +42,14 @@ def _wrapped(a: float, b: float) -> float:
 
 class SphereCameraTests(unittest.TestCase):
     def setUp(self):
+        self.background_errors = []
+        previous_hook = threading.excepthook
+        threading.excepthook = lambda args: self.background_errors.append(
+            "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback)))
+        def restore_hook():
+            threading.excepthook = previous_hook
+            self.assertEqual(self.background_errors, [], "\n".join(self.background_errors))
+        self.addCleanup(restore_hook)
         self.fixture = TempProject(self)
         asset = self.fixture.asset("ride360", duration=60.0, tags={
             "type": "group-ride", "shot": "pov", "quality": 4, "summary": "360", "angles": ANGLES,
@@ -48,18 +58,21 @@ class SphereCameraTests(unittest.TestCase):
         asset["probe"]["sphere"] = {"projection": "equirect", "width": 4096, "height": 2048}
         save_asset(self.fixture.project, asset)
         self.fixture.asset("flat")
-        self.workspace = SimpleNamespace(root=self.fixture.root, data_root=self.fixture.root,
-                                         code_root=Path(__file__).resolve().parents[1],
-                                         project=self.fixture.project,
-                                         media_status=lambda: [], library_revision=lambda: "library-fixture")
+        self.workspace = live_workspace(self.fixture)
+        self.stores = []
         self.service = EditorService(self.workspace, lambda *args, **kwargs: None)
-        self.addCleanup(self.service.close)
+        def close_documents():
+            self.service.close()  # join the real watcher before closing retired documents
+            for store in self.stores:
+                store.close()
+        self.addCleanup(close_documents)
 
-    def open(self, segments: list[dict]) -> list[str]:
-        plan = {"slug": "t", "segments": segments}
-        nodes = ensure_node_ids(plan)
-        self.service.document = SimpleNamespace(_current_raw_plan=lambda: plan)
-        self.addCleanup(setattr, self.service, "document", None)
+    def open(self, segments: list[dict], **extra) -> list[str]:
+        path = self.fixture.plan(f"camera-{len(self.stores)}", segments, **extra)
+        store = DocumentStore(self.workspace, path)
+        self.stores.append(store)
+        self.service.document = store
+        nodes = ensure_node_ids(store._current_raw_plan())
         by_locator = {entry["locator"]: nid for nid, entry in nodes.items()}
         return [by_locator[f"/segments/{i}"] for i in range(len(segments))]
 
@@ -120,41 +133,41 @@ class SphereCameraTests(unittest.TestCase):
                 self.assertGreater(abs(path_value(cam["path"], 0.5)["yaw"]
                                        - path_value(cam["playbackPath"], 1.5)["yaw"]), 1)
 
-    def edit_piece(self, segment):
+    def edit_piece(self, segment, *, store=None):
         """Real service camera → full aim batch → sandboxed transaction compiler."""
-        from helpers import live_workspace
-        from reels.editor.transactions import DocumentStore
-
-        self.fixture.plan("piece-edit", [segment])
-        store = DocumentStore(live_workspace(self.fixture), "plans/piece-edit.json")
-        self.service.document = store
-        try:
-            before = store.snapshot()
-            node = next(n for n in before["nodes"] if n["kind"] == "segment")
-            camera = self.service.dispatch("sphere.camera", {"id": node["id"]})
-            self.assertEqual(camera["errors"], [])
-            edited = [dict(k) for k in camera["path"]]
-            self.assertGreaterEqual(len(edited), 2)
-            edited[0]["yaw"] = (edited[0]["yaw"] + 25 + 180) % 360 - 180
-            result = store.apply({"expected": before["revisions"], "origin": "manual", "reason": "aim", "operations": [
-                *[{"op": "set_field", "id": node["id"], "path": "/" + name, "value": None}
-                  for name in ("yaw", "pitch", "fov", "roll")],
-                {"op": "set_field", "id": node["id"], "path": "/path", "value": edited}]})
-            raw = result["plan"]["segments"][0]
-            self.assertEqual(raw["path"], edited)
-            self.assertIn("cameraWindow", raw)
-            self.assertEqual(raw["cameraWindow"]["offsetSeconds"], segment["cameraWindow"]["offsetSeconds"])
-            self.assertFalse([d for d in result.get("diagnostics", []) if d.get("severity") == "error"])
-            # Exterior poses survive, even after the old top-level defaults are cleared.
-            lo = segment["cameraWindow"]["offsetSeconds"]
-            hi = lo + camera["seconds"]
-            for key in camera["playbackPath"]:
-                if key["at"] < lo - 0.101 or key["at"] > hi + 0.101:
-                    self.assertIn(key, raw["cameraWindow"]["path"])
-            return camera, raw
-        finally:
-            self.service.document = None
-            store.close()
+        if store is None:
+            self.open([segment])
+            store = self.service.document
+        before = store.snapshot()
+        node = next(n for n in before["nodes"] if n["kind"] == "segment")
+        camera = self.service.dispatch("sphere.camera", {"id": node["id"]})
+        self.assertEqual(camera["errors"], [])
+        edited = [dict(k) for k in camera["path"]]
+        self.assertGreaterEqual(len(edited), 2)
+        edited[0]["yaw"] = (edited[0]["yaw"] + 25 + 180) % 360 - 180
+        result = store.apply({"expected": before["revisions"], "origin": "manual", "reason": "aim", "operations": [
+            *[{"op": "set_field", "id": node["id"], "path": "/" + name, "value": None}
+              for name in ("yaw", "pitch", "fov", "roll")],
+            {"op": "set_field", "id": node["id"], "path": "/path", "value": edited}]})
+        raw = result["plan"]["segments"][0]
+        self.assertEqual(raw["path"], edited)
+        self.assertIn("cameraWindow", raw)
+        merged = raw["cameraWindow"]
+        shift = merged["offsetSeconds"] - segment["cameraWindow"]["offsetSeconds"]
+        self.assertAlmostEqual(merged["durationSeconds"] - shift,
+                               max(segment["cameraWindow"]["durationSeconds"],
+                                   segment["cameraWindow"]["offsetSeconds"] + camera["seconds"]))
+        self.assertFalse([d for d in result.get("diagnostics", []) if d.get("severity") == "error"])
+        # Exterior keys retain both their physical source times and complete poses.
+        lo = segment["cameraWindow"]["offsetSeconds"]
+        hi = lo + camera["seconds"]
+        for key in camera["playbackPath"]:
+            if key["at"] < lo - 0.101 or key["at"] > hi + 0.101:
+                matches = [k for k in merged["path"] if abs(k["at"] - key["at"] - shift) < 1e-9]
+                self.assertEqual(len(matches), 1)
+                self.assertEqual({k: v for k, v in key.items() if k != "at"},
+                                 {k: v for k, v in matches[0].items() if k != "at"})
+        return camera, raw
 
     def test_fractional_window_aim_transaction_keeps_100ms_intervals(self):
         window = {"durationSeconds": 1, "offsetSeconds": 0.0625,
@@ -172,6 +185,134 @@ class SphereCameraTests(unittest.TestCase):
                 self.edit_piece({"asset": "ride360", "moment": "m-1", "in": 11, "out": 14,
                                  "roll": 25, "fov": 85, "cameraWindow": {
                                      "durationSeconds": 6, "offsetSeconds": 1.0625, "path": path}})
+
+    def apply_operations(self, operations):
+        store = self.service.document
+        return store.apply({"expected": store.snapshot()["revisions"], "origin": "manual",
+                            "reason": "camera regression", "operations": operations})
+
+    def write_camera(self, node_id, keys):
+        return self.apply_operations([
+            *[{"op": "set_field", "id": node_id, "path": "/" + name, "value": None}
+              for name in ("yaw", "pitch", "fov", "roll")],
+            {"op": "set_field", "id": node_id, "path": "/path", "value": keys}])
+
+    def assert_pose(self, actual, expected):
+        self.assertLess(_turn(qmat(view_quat(actual)), qmat(view_quat(expected))), 1e-7)
+        self.assertAlmostEqual(actual["fov"], expected["fov"], places=9)
+
+    def test_fractional_window_cut_is_frame_exact_and_trim_keeps_exterior(self):
+        from reels.sphere import camera_filter
+
+        window = {"offsetSeconds": 32 / 30, "durationSeconds": 10,
+                  "path": [{"at": 0, "yaw": -20}, {"at": 4, "yaw": 40}, {"at": 10, "yaw": -60}]}
+        node = self.open([{"asset": "ride360", "in": 2, "out": 7, "pitch": 20, "fov": 95,
+                           "roll": 10, "cameraWindow": window}])[0]
+        camera = self.service.dispatch("sphere.camera", {"id": node})
+        self.assertEqual(camera["errors"], [])
+        keys = [{"at": t, "yaw": yaw, "pitch": 0, "roll": 0, "fov": 90, "cut": t == 1}
+                for t, yaw in ((0, 0), (1, 90), (5, 90))]
+        result = self.write_camera(node, keys)
+        merged = result["plan"]["segments"][0]["cameraWindow"]
+        rendered = self.service.document._current_compiled["segs"][0]["spec"]["sphere"]
+        self.assertEqual(next(k["at"] for k in rendered["path"] if k.get("cut")), 1.0)
+        for frame, yaw in ((29, 0), (30, 90), (31, 90)):
+            self.assertEqual(path_value(rendered["path"], frame / 30)["yaw"], yaw)
+        commands = self.fixture.root / "cut.cmd"
+        camera_filter(rendered, "e", 90, 160, 30, 150, commands)
+        yaw_commands = [line for line in commands.read_text().splitlines() if " yaw " in line]
+        self.assertEqual(yaw_commands, ["0.9833 v360@cam yaw 90.000;"])
+        # All clocks move by the same amount, including exterior fractional keys.
+        shift = merged["offsetSeconds"] - window["offsetSeconds"]
+        self.assertAlmostEqual(merged["durationSeconds"], window["durationSeconds"] + shift)
+        for old in (camera["playbackPath"][0], camera["playbackPath"][-1]):
+            retained = min(merged["path"], key=lambda k: abs(k["at"] - old["at"] - shift))
+            self.assertAlmostEqual(retained["at"] - merged["offsetSeconds"],
+                                   old["at"] - window["offsetSeconds"])
+            self.assert_pose(retained, old)
+        self.apply_operations([{"op": "trim_segment", "id": node, "sourceIn": 0, "sourceOut": 12}])
+        trimmed = self.service.document._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+        for old in (camera["playbackPath"][0], camera["playbackPath"][-1]):
+            self.assert_pose(path_value(trimmed, old["at"] - window["offsetSeconds"] + 2), old)
+        for frame, yaw in ((89, 0), (90, 90), (91, 90)):
+            self.assertEqual(path_value(trimmed, frame / 30)["yaw"], yaw)
+
+    def test_negative_window_full_aim_transaction_and_later_trim(self):
+        window = {"offsetSeconds": -1, "durationSeconds": 6,
+                  "path": [{"at": 0, "yaw": 0}, {"at": 4, "yaw": 90}, {"at": 6, "yaw": -45}]}
+        node = self.open([{"asset": "ride360", "in": 2, "out": 7, "pitch": 20, "fov": 95,
+                           "roll": 10, "cameraWindow": window}])[0]
+        camera = self.service.dispatch("sphere.camera", {"id": node})
+        self.assertEqual([k["at"] for k in camera["path"]], [0, 1, 5])
+        edited = [dict(k) for k in camera["path"]]
+        edited[0]["yaw"] = 20
+        edited[1].update(yaw=90, cut=True)
+        result = self.write_camera(node, edited)
+        merged = result["plan"]["segments"][0]["cameraWindow"]
+        self.assertEqual(merged["offsetSeconds"], 0)
+        self.assertEqual(merged["durationSeconds"], 7)
+        self.assertTrue(all(k["at"] >= 0 for k in merged["path"]))
+        rendered = self.service.document._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+        for frame in range(151):
+            self.assert_pose(path_value(rendered, frame / 30), path_value(edited, frame / 30))
+        self.apply_operations([{"op": "trim_segment", "id": node, "sourceIn": 1, "sourceOut": 10}])
+        trimmed = self.service.document._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+        for frame in range(151):
+            self.assert_pose(path_value(trimmed, frame / 30 + 1), path_value(edited, frame / 30))
+        self.assert_pose(path_value(trimmed, 8), camera["playbackPath"][-1])
+        self.assertEqual(self.service.dispatch("sphere.camera", {"id": node})["errors"], [])
+
+    def test_sparse_path_trim_and_split_inherit_compiler_camera_context(self):
+        for placed in (False, True):
+            for settings in ({}, {"moment": "m-1"},
+                             {"moment": "m-1", "view": "road", "pitch": 35, "fov": 110, "roll": 20}):
+                for operation in ("trim_segment", "split_segment"):
+                    with self.subTest(placed=placed, settings=settings, operation=operation):
+                        segment = {"asset": "ride360", "in": 10, "out": 16, **settings,
+                                   "path": [{"at": 0, "yaw": 0}, {"at": 6, "yaw": 80}]}
+                        extra = {}
+                        if placed:
+                            segment["timeline"] = {"track": "V1", "startFrame": 0, "durationFrames": 180}
+                            extra["timeline"] = {"version": 1, "fps": 30, "durationFrames": 180}
+                        node = self.open([segment], **extra)[0]
+                        store = self.service.document
+                        store.snapshot()
+                        original = store._current_compiled["segs"][0]["spec"]["sphere"]["path"]
+                        self.assertEqual(original[0]["pitch"], settings.get("pitch", 25))
+                        self.assertEqual(original[0]["fov"], settings.get("fov", 100))
+                        args = ({"sourceIn": 11, "sourceOut": 15} if operation == "trim_segment"
+                                else {"atFrame": 60})
+                        self.apply_operations([{"op": operation, "id": node, **args}])
+                        pieces = store._current_compiled["segs"]
+                        intervals = [(1, 5)] if operation == "trim_segment" else [(0, 2), (2, 6)]
+                        for piece, (start, end) in zip(pieces, intervals):
+                            path = piece["spec"]["sphere"]["path"]
+                            self.assert_pose(path_value(path, 0), path_value(original, start))
+                            self.assert_pose(path_value(path, end-start), path_value(original, end))
+
+    def test_sparse_cutaway_trim_and_parent_slices_inherit_compiler_context(self):
+        for operation in ("trim_cutaway", "trim_segment", "split_segment"):
+            with self.subTest(operation=operation):
+                node = self.open([{"asset": "flat", "in": 0, "out": 10, "cutaways": [{
+                    "asset": "ride360", "moment": "m-1", "at": 1, "fov": 110,
+                    "path": [{"at": 0, "yaw": 0}, {"at": 6, "yaw": 80}]}]}])[0]
+                store = self.service.document
+                snapshot = store.snapshot()
+                original = store._current_compiled["segs"][0]["cutaways"][0]["spec"]["sphere"]["path"]
+                self.assertEqual((original[0]["pitch"], original[0]["fov"], original[0]["roll"]), (25, 110, 90))
+                target = next(n["id"] for n in snapshot["nodes"] if n["kind"] == "cutaway")
+                args = ({"id": target, "sourceIn": 11, "sourceOut": 15} if operation == "trim_cutaway"
+                        else {"id": node, "sourceIn": 2, "sourceOut": 7} if operation == "trim_segment"
+                        else {"id": node, "atFrame": 90})
+                self.apply_operations([{"op": operation, **args}])
+                intervals = ([(1, 5)] if operation == "trim_cutaway" else [(1, 6)] if operation == "trim_segment"
+                             else [(0, 2), (2, 6)])
+                cuts = [c for piece in store._current_compiled["segs"] for c in piece["cutaways"]]
+                self.assertEqual(len(cuts), len(intervals))
+                for cut, (start, end) in zip(cuts, intervals):
+                    path = cut["spec"]["sphere"]["path"]
+                    self.assert_pose(path_value(path, 0), path_value(original, start))
+                    self.assert_pose(path_value(path, end-start), path_value(original, end))
 
     def test_random_split_keys_compile_and_playback_matches_render(self):
         from reels import render
@@ -221,7 +362,7 @@ class SphereCameraTests(unittest.TestCase):
                         expected = path_value(rendered["path"], t, projection)
                         self.assertLess(_turn(qmat(view_quat(viewer)), qmat(view_quat(expected))), 1e-7)
                         self.assertAlmostEqual(viewer["fov"], expected["fov"], places=9)
-                    self.edit_piece(segment)
+                    self.edit_piece(segment, store=self.service.document)
 
     def test_tiny_planet_swap_halves_keeps_seam_protection(self):
         from reels import render

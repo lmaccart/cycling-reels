@@ -150,10 +150,15 @@ what renders.
   aim edits and refreshes. Split playback retains the original path's easing
   intervals and hard cuts; bounded start/end keys are editing handles, not a
   replacement playback path.
-  Editable key times use the compiler's millisecond grid and 100 ms minimum gap;
-  window translations add integer ticks so fractional offsets cannot shrink a gap.
-  Aim edits preserve the source camera window, including named/string and sparse
-  keys, tagged/moment defaults, and exterior poses when clearing old angle overrides.
+  Editable key times use the compiler's millisecond grid and 100 ms minimum gap.
+  Aim edits rebase the whole camera window (keys, offset and duration) to a
+  nonnegative integer-second editing origin, so fractional and negative offsets
+  stay editable and local hard cuts retain their exact frame. Exterior window
+  keys retain fractional coordinates: `key.at - offsetSeconds` is invariant,
+  including when a later trim reveals them; those keys are not rounded again.
+  Named/string and sparse keys retain compiler-resolved tagged/moment defaults
+  and exterior poses when clearing old angle overrides. Ordinary trims, splits
+  and cutaway slices sample that same resolved camera, not empty-tag defaults.
   Deleting an endpoint key holds the nearest remaining pose.
   Tiny-planet paths interpolate after applying their fixed downward pitch.
   Loop seams and automatic camera-move cues compare quaternion rotation, not Euler

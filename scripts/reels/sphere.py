@@ -399,7 +399,7 @@ def key_time_ms(seconds: float, *, offset: float = 0.0, upper_bound: float | Non
 
 
 def normalize_path(raw: Any, angles: dict, view: dict, seconds: float,
-                   errors: list[str], where: str) -> list[dict] | None:
+                   errors: list[str], where: str, *, preserve_times: bool = False) -> list[dict] | None:
     """All compiler key forms: names, sparse objects and default endpoint times."""
     if raw is None:
         return None
@@ -424,14 +424,17 @@ def normalize_path(raw: Any, angles: dict, view: dict, seconds: float,
             continue
         if not 0 <= at <= seconds + 0.01:
             errors.append(f"{w}: at={at:g}s is outside this {seconds:.1f}s segment")
-        key = {"at": key_time_ms(at) / 1000, **parse_view(k, angles, errors, w, view)}
+        key = {"at": at if preserve_times else key_time_ms(at) / 1000,
+               **parse_view(k, angles, errors, w, view)}
         if k.get("cut") is True and i > 0:
             key["cut"] = True
         elif k.get("cut") not in (None, False, True):
             errors.append(f"{w}: cut must be true or false")
         keys.append(key)
     keys.sort(key=lambda x: x["at"])
-    if any(key_time_ms(b["at"]) - key_time_ms(a["at"]) < MIN_KEY_GAP_MS for a, b in zip(keys, keys[1:])):
+    if any((b["at"] - a["at"]) * 1000 < MIN_KEY_GAP_MS - 1e-7 if preserve_times
+           else key_time_ms(b["at"]) - key_time_ms(a["at"]) < MIN_KEY_GAP_MS
+           for a, b in zip(keys, keys[1:])):
         errors.append(f"{where}: path keyframes need to be at least 0.1 s apart")
     return keys
 
@@ -466,7 +469,10 @@ def plan_camera(
     for k in ("frame", "zoom", "focusX", "focusY", "fit"):
         if k in written:
             warnings.append(f"{where}: '{k}' doesn't apply to 360 footage — framing comes from view/fov/path")
-    path = normalize_path(spec.get("path"), angles, view, seconds, errors, where)
+    # Window coordinates may contain translated exterior keys from a different
+    # millisecond lattice. Re-rounding them would change their source-time pose.
+    path = normalize_path(spec.get("path"), angles, view, seconds, errors, where,
+                          preserve_times=isinstance(spec.get("cameraWindow"), dict))
     from .stabilize import parse_setting
 
     stabilize = parse_setting(spec.get("stabilize"), errors, where)

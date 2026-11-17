@@ -1851,7 +1851,8 @@ class DocumentStore:
                 source_in, source_out = float(operation["sourceIn"]), float(operation["sourceOut"])
                 if resolved.get("sourceDuration") is not None and source_out > resolved["sourceDuration"]:
                     raise ValueError("cutaway sourceOut exceeds the original source duration")
-                trim_local_source(segment, source_in, source_out, precision=12 if plan.get("timeline") else 3)
+                trim_local_source(segment, source_in, source_out, precision=12 if plan.get("timeline") else 3,
+                                  resolved={"spec": resolved["resolved"]})
                 affected.add(node_id)
                 return
             if entry["kind"] != "segment" or op == "trim_cutaway":
@@ -1863,7 +1864,7 @@ class DocumentStore:
             trim_segment(
                 plan, index, float(operation["sourceIn"]), float(operation["sourceOut"]),
                 fps=ctx["fps"], start_frame=int(compiled_seg["start"]), old_frames=int(compiled_seg["frames"]),
-                ripple=False,
+                ripple=False, resolved=compiled_seg,
             )
             affected.add(node_id)
             return
@@ -1882,7 +1883,7 @@ class DocumentStore:
             if not 0 < local_frame < int(compiled_seg["frames"]):
                 raise ValueError("split frame must be inside the segment")
             left, right = split_segment(segment, local_frame, fps=ctx["fps"],
-                                        total_frames=int(compiled_seg["frames"]))
+                                        total_frames=int(compiled_seg["frames"]), resolved=compiled_seg)
             plan["segments"][index:index + 1] = [left, right]
             ctx["idReplacement"] = {node_id: left}
             affected.add(node_id)

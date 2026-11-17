@@ -79,31 +79,33 @@ def _clip_events(value: Any, start: float, end: float, *, rebase: bool = False) 
 
 
 def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
-                    minimum: float = 0.4, frame_exact=False) -> Any:
+                    minimum: float = 0.4, frame_exact=False, resolved: list | None = None) -> Any:
     if not isinstance(value, list):
         return deepcopy(value)
     out = []
-    for cutaway in value:
+    cameras = {cut.get("rawIndex"): cut for cut in resolved or []}
+    for index, cutaway in enumerate(value):
         if not isinstance(cutaway, dict) or cutaway.get("at") is None:
             out.append(deepcopy(cutaway))
             continue
-        speed = float(cutaway.get("speed", 1.0) or 1.0)
+        source = {**(cameras.get(index, {}).get("spec") or {}), **cutaway}
+        speed = float(source.get("speed", 1.0) or 1.0)
         at = float(cutaway["at"])
-        if cutaway.get("duration") is not None and "in" not in cutaway:
-            duration = float(cutaway["duration"])
-        elif cutaway.get("out") is not None and cutaway.get("in") is not None:
-            duration = (float(cutaway["out"]) - float(cutaway["in"])) / speed
+        if source.get("duration") is not None and "in" not in source:
+            duration = float(source["duration"])
+        elif source.get("out") is not None and source.get("in") is not None:
+            duration = (float(source["out"]) - float(source["in"])) / speed
         else:
-            duration = float(cutaway.get("duration", 2.5))
+            duration = float(source.get("duration", 2.5))
         end_at = at + duration
         left, right = max(at, start), min(end_at, end)
         if right - left < minimum - 1e-10:
             continue
         item = deepcopy(cutaway)
         rounded = (lambda value: value) if frame_exact else (lambda value: round(value, 6))
-        source_in = float(cutaway.get("in", 0))
+        source_in = float(source.get("in", 0))
         item["at"] = rounded(left - start if rebase else left)
-        if "out" in item:
+        if "out" in source:
             item["in"] = rounded(source_in + (left - at) * speed)
             item["out"] = rounded(source_in + (right - at) * speed)
         elif "duration" in item:
@@ -111,11 +113,16 @@ def _slice_cutaways(value: Any, start: float, end: float, *, rebase: bool,
             window = cutaway.get("motionWindow") or {"offsetSeconds": 0, "durationSeconds": duration}
             item["motionWindow"] = {**window, "offsetSeconds": window["offsetSeconds"] + left-at}
         if isinstance(item.get("path"), list):
-            if frame_exact:
+            if frame_exact or isinstance(cutaway.get("cameraWindow"), dict):
                 window = cutaway.get("cameraWindow") or {
                     "offsetSeconds": 0, "durationSeconds": duration, "path": deepcopy(cutaway["path"])}
                 item["cameraWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + left-at}
-            item["path"] = _slice_keys(item["path"], left-at, right-at, rebase=True)
+            camera = (cameras.get(index, {}).get("spec") or {}).get("sphere")
+            item["path"] = _slice_keys(camera["path"] if camera else item["path"],
+                left-at, right-at, rebase=True, view=camera.get("view") if camera else None,
+                projection=camera.get("projection", "flat") if camera else "flat")
+            if camera:
+                item["view"] = deepcopy(camera["view"])
         if isinstance(item.get("sphere"), dict) and isinstance(item["sphere"].get("path"), list):
             item["sphere"]["path"] = _slice_keys(item["sphere"]["path"], left-at, right-at, rebase=True)
         out.append(item)
@@ -207,11 +214,8 @@ def window_piece_keys(window_path: list, offset: float, seconds: float, *, proje
 
 def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
                            tags: dict | None = None, moment_view: Any = None) -> dict | None:
-    """Merge an edit on the compiler's integer-ms lattice, retaining exterior poses.
-
-    Normalize both paths through the compiler before merging: names and sparse keys
-    must inherit the same tagged/moment/segment view as they do when rendered.
-    """
+    """Merge local integer-ms edits without changing exterior source-time poses."""
+    import math
     from ..sphere import MIN_KEY_GAP_MS, key_time_ms, plan_camera
 
     duration = window.get("durationSeconds")
@@ -219,15 +223,23 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
         return None
     seconds = source_duration(segment)
     errors: list[str] = []
-    outside = plan_camera({**segment, "path": window["path"]}, tags or {}, moment_view,
+    outside = plan_camera({**segment, "cameraWindow": window, "path": window["path"]}, tags or {}, moment_view,
                           duration, errors, [], "camera window")["path"]
-    inside = plan_camera({**segment, "path": keys}, tags or {}, moment_view,
+    local_spec = {k: v for k, v in segment.items() if k != "cameraWindow"}
+    inside = plan_camera({**local_spec, "path": keys}, tags or {}, moment_view,
                          seconds, errors, [], "edited camera")["path"]
     if errors:
         raise ValueError("; ".join(errors))
     if not outside or not inside:
         return None
-    offset_ms = key_time_ms(float(window.get("offsetSeconds", 0)))
+    offset = float(window.get("offsetSeconds", 0))
+    # Physical local time is key.at - window.offsetSeconds. Translate exterior
+    # keys, offset AND duration together; only editable local keys use ms ticks.
+    # A nonnegative integer-second origin keeps local hard cuts frame-exact and
+    # permits negative-offset windows without producing negative stored keys.
+    origin = max(0, math.ceil(offset))
+    shift = origin - offset
+    outside = [{**k, "at": k["at"] + shift} for k in outside]
     end_ms = key_time_ms(seconds, upper_bound=seconds)
     lo, hi = 0, end_ms
     first_ms, last_ms = key_time_ms(inside[0]["at"]), key_time_ms(inside[-1]["at"])
@@ -235,25 +247,27 @@ def window_with_piece_keys(window: dict, segment: dict[str, Any], keys: list, *,
     # less than one key gap away, put its hold anchor just outside the piece.
     if first_ms > 0:
         lo = min(0, first_ms - MIN_KEY_GAP_MS)
-        if offset_ms + lo >= 0:
+        if origin + lo / 1000 >= 0:
             inside.insert(0, {**inside[0], "at": lo / 1000})
     inside[0].pop("cut", None)
     if last_ms < end_ms:
         hi = max(end_ms, last_ms + MIN_KEY_GAP_MS)
         inside.append({**inside[-1], "at": hi / 1000, "cut": False})
-    lo, hi = offset_ms + lo, offset_ms + hi
-    before = [k for k in outside if key_time_ms(k["at"]) < offset_ms
-              and key_time_ms(k["at"]) <= lo - MIN_KEY_GAP_MS]
-    after = [k for k in outside if key_time_ms(k["at"]) > offset_ms + end_ms
-             and key_time_ms(k["at"]) >= hi + MIN_KEY_GAP_MS]
+    lo, hi = origin + lo / 1000, origin + hi / 1000
+    gap = MIN_KEY_GAP_MS / 1000
+    before = [k for k in outside if k["at"] < origin and k["at"] <= lo - gap + 1e-10]
+    after = [k for k in outside if k["at"] > origin + end_ms / 1000
+             and k["at"] >= hi + gap - 1e-10]
     for key in inside:
-        key["at"] = key_time_ms(key["at"], offset=offset_ms / 1000) / 1000
-    return {**deepcopy(window), "durationSeconds": max(float(duration), hi / 1000),
+        key["at"] = origin + key_time_ms(key["at"]) / 1000
+    return {**deepcopy(window), "offsetSeconds": origin,
+            "durationSeconds": max(float(duration) + shift, hi),
             "path": before + inside + after}
 
 
 def slice_local_events(segment: dict[str, Any], start: float, end: float, *, rebase: bool = False,
-                       minimum_cutaway_frames: int | None = None, fps: int = 30) -> dict[str, Any]:
+                       minimum_cutaway_frames: int | None = None, fps: int = 30,
+                       resolved: dict | None = None) -> dict[str, Any]:
     """Return segment metadata valid in [start, end), in segment-local seconds.
 
     ``bleep`` word selectors are intentionally retained; the renderer resolves
@@ -262,19 +276,25 @@ def slice_local_events(segment: dict[str, Any], start: float, end: float, *, reb
     rebased to zero.
     """
     result = deepcopy(segment)
+    camera = ((resolved or {}).get("spec") or {}).get("sphere")
+    if camera:
+        # Freeze the compiler's tag -> moment -> segment precedence before a
+        # trim removes the moment selector; never resolve a second set of defaults.
+        result["view"] = deepcopy(camera["view"])
+    if rebase and isinstance(result.get("cameraWindow"), dict):
+        result["cameraWindow"]["offsetSeconds"] += start
     for key in ("text", "stats", "nat", "sfx", "cutaways", "punch", "blur", "path", "exhibits", "progress"):
         if key not in result or key == "punch" and isinstance(result[key], dict):
             continue
         if key == "cutaways":
             result[key] = _slice_cutaways(result[key], start, end, rebase=rebase,
                 minimum=minimum_cutaway_frames / fps if minimum_cutaway_frames is not None else 0.4,
-                frame_exact=minimum_cutaway_frames is not None)
+                frame_exact=minimum_cutaway_frames is not None, resolved=(resolved or {}).get("cutaways"))
         elif key == "path" and isinstance(result[key], list):
-            from ..sphere import parse_view
-            base = parse_view(segment.get("view"), {}, [], "split")
-            base.update({k: segment[k] for k in ("yaw", "pitch", "fov", "roll") if segment.get(k) is not None})
-            result[key] = _slice_keys(result[key], start, end, rebase=rebase,
-                                      view=base, projection=segment.get("projection", "flat"))
+            from ..sphere import plan_camera
+            sampled = camera or plan_camera(segment, {}, None, source_duration(segment), [], [], "split")
+            result[key] = _slice_keys(sampled.get("path") or result[key], start, end, rebase=rebase,
+                                      view=sampled["view"], projection=sampled["projection"])
         elif isinstance(result[key], dict) and "at" in result[key]:
             clipped = _clip_events([result[key]], start, end, rebase=rebase)
             result[key] = clipped[0] if clipped else False
@@ -352,11 +372,12 @@ def trim_segment(
     start_frame: int,
     old_frames: int,
     ripple: bool = True,
+    resolved: dict | None = None,
 ) -> int:
     """Trim video source bounds and ripple global events after its old end."""
     segments = plan["segments"]
     segment = segments[index]
-    trim_local_source(segment, source_in, source_out)
+    trim_local_source(segment, source_in, source_out, resolved=resolved)
     new_frames = max(1, seconds_to_frames(source_duration(segment), fps))
     new_end = start_frame + new_frames
     old_end = start_frame + old_frames
@@ -365,7 +386,8 @@ def trim_segment(
     return new_frames
 
 
-def trim_local_source(segment: dict[str, Any], source_in: float, source_out: float, *, precision: int = 3) -> None:
+def trim_local_source(segment: dict[str, Any], source_in: float, source_out: float, *, precision: int = 3,
+                      resolved: dict | None = None) -> None:
     """Trim a video in place, rebasing only its own events (never its parent)."""
     import math
     if "duration" in segment and "in" not in segment:
@@ -376,7 +398,8 @@ def trim_local_source(segment: dict[str, Any], source_in: float, source_out: flo
     if source_in < 0 or source_out <= source_in:
         raise ValueError("sourceOut must be greater than nonnegative sourceIn")
     offset = (source_in - float(segment.get("in", 0))) / speed
-    sliced = slice_local_events(segment, offset, offset + (source_out - source_in) / speed, rebase=True)
+    sliced = slice_local_events(segment, offset, offset + (source_out - source_in) / speed,
+                                rebase=True, resolved=resolved)
     segment.clear()
     segment.update(sliced)
     segment.pop("moment", None)
@@ -389,6 +412,7 @@ def split_segment(
     *,
     fps: int,
     total_frames: int,
+    resolved: dict | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Split a source segment at a segment-local reel frame."""
     if "duration" in segment and "in" not in segment:
@@ -398,8 +422,8 @@ def split_segment(
     source_mid = float(segment["in"]) + local * speed
     source_mid = min(float(segment["out"]), max(float(segment["in"]), source_mid))
     local_end = total_frames / fps
-    left = slice_local_events(segment, 0.0, local, rebase=False)
-    right = slice_local_events(segment, local, local_end, rebase=True)
+    left = slice_local_events(segment, 0.0, local, rebase=False, resolved=resolved)
+    right = slice_local_events(segment, local, local_end, rebase=True, resolved=resolved)
     left.update({"in": segment["in"], "out": round(source_mid, 3)})
     right.update({"in": round(source_mid, 3), "out": segment["out"]})
     # The source segment's outgoing transition belongs on the right half;
