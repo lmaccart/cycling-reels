@@ -206,6 +206,10 @@ struct EditorSnapshot: Codable, Hashable, Sendable {
     var tracks: [EditorTrack] = EditorTrack.defaults
     /// Unknown service fields survive delta merges and future protocol additions.
     var extraFields: [String: JSONValue] = [:]
+    var editingDurationFrames: Int {
+        max(durationFrames, Int(extraFields["editingDurationFrames"]?.numberValue ?? Double(durationFrames)))
+    }
+    var isPreviewEmpty: Bool { preview["state"]?.stringValue == "empty" }
     var snapshotToken: String? { extraFields["snapshotToken"]?.stringValue }
     var timelineCapabilities: TimelineCapabilities? {
         guard let data = extraFields["timelineCapabilities"]?.jsonData() else { return nil }

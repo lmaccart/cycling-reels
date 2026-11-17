@@ -625,12 +625,17 @@ enum OptimisticTimeline {
         )
     }
 
-    /// Applies a prediction to a snapshot, keeping its duration in step.
+    /// Predictions preserve separate editing and rendered extents. Disabled clips
+    /// remain editable but cannot lengthen media that does not render.
     static func apply(_ change: Change, to snapshot: EditorSnapshot) -> EditorSnapshot {
         var next = snapshot
         next.nodes = change(snapshot.nodes)
-        let end = segments(next.nodes).map(\.endFrame).max() ?? next.durationFrames
-        next.durationFrames = max(snapshot.durationFrames, max(end, 0))
+        let primary = segments(next.nodes)
+        let enabled = primary.filter { $0.raw["enabled"]?.boolValue != false }
+        let renderedEnd = enabled.map(\.endFrame).max() ?? 0
+        let editingEnd = primary.map(\.endFrame).max() ?? 0
+        next.durationFrames = max(snapshot.durationFrames, renderedEnd)
+        next.extraFields["editingDurationFrames"] = .number(Double(max(snapshot.editingDurationFrames, editingEnd)))
         return next
     }
 }

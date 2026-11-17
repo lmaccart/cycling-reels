@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import ReelsEditor
 
@@ -206,5 +207,191 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(TimelineTool.fromKeyCode(8), .razor)
         XCTAssertEqual(TimelineTool.fromKeyCode(9), .select)
         XCTAssertNil(TimelineTool.fromKeyCode(11))
+    }
+
+    func testEmptyPreviewReleasesExactPlayerAndDeactivatesTransport() {
+        let item = AVPlayerItem(url: URL(fileURLWithPath: "/tmp/empty-preview-test.mp4"))
+        let player = AVPlayer(playerItem: item)
+        let model = ExactProgramPlayerModel()
+        model.player = player
+        model.setActive(true)
+
+        model.clear()
+        NotificationCenter.default.post(name: .reelsTogglePlayback, object: nil)
+
+        XCTAssertFalse(model.isActive)
+        XCTAssertNil(model.player)
+        XCTAssertNil(player.currentItem)
+        XCTAssertEqual(player.rate, 0)
+    }
+
+    func testRealServiceDisabledSplitSpeedTrimPreviewUndoRedoRoundTrip() async throws {
+        let code = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let python = ProcessInfo.processInfo.environment["REELS_TEST_PYTHON"]
+            ?? "/Users/leif/rice/cycling/.venv/bin/python"
+        guard FileManager.default.isExecutableFile(atPath: python) else {
+            throw XCTSkip("Needs the read-only main checkout Python environment")
+        }
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: root.appending(path: "plans"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: root.appending(path: "remotion"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let server = """
+        import os
+        from pathlib import Path
+        from reels.config import Project
+        from reels.library import save_asset
+        from reels.util import quick_hash, write_json
+        from reels.editor.workspace import Workspace
+        from reels.editor.service import serve
+        root = Path.cwd()
+        project = Project(root)
+        project.ensure_dirs()
+        for aid in ("a", "b", "c"):
+            media = project.media_dir / f"{aid}.mp4"
+            media.write_bytes((aid * 128).encode())
+            save_asset(project, {"id": aid, "kind": "video", "media": f"library/media/{aid}.mp4",
+                "hash": quick_hash(media), "status": "tagged", "tags": {},
+                "probe": {"duration": 12, "fps": 30, "width": 1280, "height": 720, "hasAudio": False}})
+        write_json(project.plans_dir / "timeline.json", {"slug": "timeline", "autoSfx": False,
+            "segments": [{"asset": "a", "in": 0, "out": 4},
+                         {"asset": "b", "in": 4, "out": 12},
+                         {"asset": "c", "in": 0, "out": 2}]})
+        serve(Workspace.live(root, code_root=Path(os.environ["REELS_TEST_CODE_ROOT"])))
+        """
+        try server.write(to: root.appending(path: "serve.py"), atomically: true, encoding: .utf8)
+        let launcher = root.appending(path: "reels")
+        try "#!/bin/sh\nexec \"$REELS_TEST_PYTHON\" serve.py\n".write(to: launcher, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: launcher.path)
+        var env = ProcessInfo.processInfo.environment
+        env["PYTHONPATH"] = code.appending(path: "scripts").path
+        env["REELS_TEST_PYTHON"] = python
+        env["REELS_TEST_CODE_ROOT"] = code.path
+        env["REELS_HOME"] = root.path
+        let store = EditorStore()
+        try store.service.start(repositoryRoot: root, environment: env)
+        defer { store.service.stopSynchronously() }
+        let opened = try await store.service.call("document.open", params: .object(["path": .string("plans/timeline.json")]))
+        let initial = try XCTUnwrap(EditorSnapshot.decode(opened))
+        store.authoritativeSnapshot = initial
+        store.snapshot = initial
+
+        func settle(after revision: String) async throws -> EditorSnapshot {
+            let deadline = Date().addingTimeInterval(8)
+            while Date() < deadline {
+                if let current = store.snapshot, current.revisions.document != revision { return current }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            throw NSError(domain: "TimelineEditingIntegration", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: store.errorMessage ?? "Service edit did not reach the consumer snapshot"])
+        }
+        var current = initial
+        let middle = try XCTUnwrap(current.nodes.first { $0.kind == "segment" && $0.assetId == "b" })
+        store.selectedIDs = [middle.id]
+        store.playheadFrame = 210
+        store.performTimelineContextAction("Disable", nodeID: middle.id, atFrame: 210)
+        current = try await settle(after: current.revisions.document)
+        XCTAssertEqual(current.nodes.first { $0.id == middle.id }?.raw["enabled"]?.boolValue, false)
+        XCTAssertEqual(current.nodes.first { $0.id == middle.id }?.startFrame, 120)
+        XCTAssertEqual(current.editingDurationFrames, 420)
+        XCTAssertEqual(current.durationFrames, 180)
+        XCTAssertEqual(store.playheadFrame, 210)
+
+        store.performShortcut(.split)
+        current = try await settle(after: current.revisions.document)
+        var pieces = current.nodes.filter { $0.kind == "segment" && $0.assetId == "b" }
+            .sorted { $0.startFrame < $1.startFrame }
+        XCTAssertEqual(pieces.count, 2)
+        XCTAssertEqual(pieces.map { ($0.sourceIn ?? -1, $0.sourceOut ?? -1) }.map { "\($0.0)-\($0.1)" },
+                       ["4.0-7.0", "7.0-12.0"])
+        XCTAssertTrue(pieces.allSatisfy { $0.raw["enabled"]?.boolValue == false })
+
+        store.performTimelineContextAction("2×", nodeID: pieces[0].id, atFrame: 210)
+        current = try await settle(after: current.revisions.document)
+        pieces = current.nodes.filter { $0.kind == "segment" && $0.assetId == "b" }
+            .sorted { $0.startFrame < $1.startFrame }
+        XCTAssertEqual(pieces[0].raw["speed"]?.numberValue, 2)
+        XCTAssertEqual(pieces[0].raw["enabled"]?.boolValue, false)
+
+        let trimmed = pieces[0]
+        store.trim(node: trimmed, sourceIn: 5, sourceOut: 7,
+                   ghost: TimelineGhost(start: trimmed.startFrame, end: trimmed.endFrame))
+        current = try await settle(after: current.revisions.document)
+        let trimmedNode = try XCTUnwrap(current.nodes.first { $0.id == trimmed.id })
+        XCTAssertEqual(trimmedNode.sourceIn, 5)
+        XCTAssertEqual(trimmedNode.sourceOut, 7)
+        XCTAssertEqual(trimmedNode.raw["enabled"]?.boolValue, false)
+        let flagResult = try await store.service.call("flags.add", params: .object([
+            "asset": .string("b"), "in": .number(1), "out": .number(3), "note": .string("range test")
+        ]))
+        let flagged = try XCTUnwrap(ClipFlag.list(flagResult).first)
+        store.flags = [flagged]
+        store.library = [.object([
+            "id": .string("b"), "kind": .string("video"),
+            "probe": .object(["duration": .number(12), "fps": .number(30)])
+        ])]
+        store.insertDroppedItem("flag:\(flagged.id)", atFrame: current.editingDurationFrames, trackID: "V1")
+        current = try await settle(after: current.revisions.document)
+        let droppedFlag = try XCTUnwrap(current.nodes.first {
+            $0.kind == "segment" && $0.assetId == "b" && $0.sourceIn == 1 && $0.sourceOut == 3
+        })
+        XCTAssertEqual(droppedFlag.sourceIn, 1)
+        XCTAssertEqual(droppedFlag.sourceOut, 3)
+        store.selectedIDs = [droppedFlag.id]
+        store.performTimelineContextAction("Duplicate", nodeID: droppedFlag.id, atFrame: droppedFlag.startFrame)
+        current = try await settle(after: current.revisions.document)
+        let duplicate = try XCTUnwrap(current.nodes.first {
+            $0.kind == "segment" && $0.assetId == "b" && $0.sourceIn == 1
+                && $0.sourceOut == 3 && $0.id != droppedFlag.id
+        })
+        store.selectedIDs = [duplicate.id]
+        store.performTimelineContextAction("Copy", nodeID: duplicate.id, atFrame: duplicate.startFrame)
+        store.setPlayhead(current.editingDurationFrames)
+        store.performTimelineContextAction("Paste", nodeID: duplicate.id, atFrame: store.playheadFrame)
+        current = try await settle(after: current.revisions.document)
+        let pasted = try XCTUnwrap(current.nodes.first {
+            $0.kind == "segment" && $0.assetId == "b" && $0.sourceIn == 1
+                && $0.sourceOut == 3 && $0.startFrame >= duplicate.endFrame && $0.id != duplicate.id
+        })
+        store.selectedIDs = [pasted.id]
+        store.performTimelineContextAction("Ripple delete", nodeID: pasted.id, atFrame: pasted.startFrame)
+        current = try await settle(after: current.revisions.document)
+        XCTAssertFalse(current.nodes.contains { $0.id == pasted.id })
+
+        let primaryIDs = OptimisticTimeline.segments(current.nodes).map(\.id)
+        store.setSegmentsEnabled(primaryIDs, enabled: false)
+        current = try await settle(after: current.revisions.document)
+        XCTAssertTrue(OptimisticTimeline.segments(current.nodes).allSatisfy {
+            $0.raw["enabled"]?.boolValue == false
+        })
+        XCTAssertEqual(current.durationFrames, 0)
+        XCTAssertGreaterThan(current.editingDurationFrames, 0)
+        let empty = try await store.service.call("preview.prepare", params: .object(["mode": .string("exact")]))
+        XCTAssertEqual(empty["state"]?.stringValue, "empty")
+        XCTAssertNil(empty["movieURL"])
+        XCTAssertNil(empty["props"])
+        XCTAssertEqual(store.previewManifest?["state"]?.stringValue, "empty")
+
+        let beforeEnable = current.revisions.document
+        store.setSegmentsEnabled(primaryIDs, enabled: true)
+        current = try await settle(after: beforeEnable)
+        XCTAssertTrue(OptimisticTimeline.segments(current.nodes).allSatisfy {
+            $0.raw["enabled"]?.boolValue != false
+        })
+        let enabledRevision = current.revisions.document
+        store.undo()
+        current = try await settle(after: enabledRevision)
+        XCTAssertTrue(OptimisticTimeline.segments(current.nodes).allSatisfy {
+            $0.raw["enabled"]?.boolValue == false
+        })
+        let undoneRevision = current.revisions.document
+        store.redo()
+        current = try await settle(after: undoneRevision)
+        XCTAssertTrue(OptimisticTimeline.segments(current.nodes).allSatisfy {
+            $0.raw["enabled"]?.boolValue != false
+        })
+        XCTAssertGreaterThan(current.durationFrames, 0)
     }
 }

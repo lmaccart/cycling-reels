@@ -91,12 +91,26 @@ extension EditorStore {
         Task { await apply([TimelineEditingOperation.setEnabled(ids: ids, enabled: enabled)], reason: enabled ? "Enable clips" : "Disable clips") }
     }
 
-    func splitSegments(_ ids: [String], at frame: Int) {
+    var splitTargetsAtPlayhead: [String] {
+        let ids = TimelineEditingTargets.split(nodes: snapshot?.nodes ?? [],
+                                               selectedIDs: selectedIDs, at: playheadFrame)
+        return eligibleSplitIDs(ids)
+    }
+
+    private func eligibleSplitIDs(_ ids: [String]) -> [String] {
         let nodes = snapshot?.nodes ?? []
-        let validIDs = ids.filter { id in
-            nodes.first(where: { $0.id == id }).map { TimelineEditingTargets.canSplit(node: $0) } ?? false
+        return ids.filter { id in
+            guard let node = nodes.first(where: { $0.id == id }),
+                  TimelineEditingTargets.canSplit(node: node) else { return false }
+            let linkedAudioLocked = tracks.first(where: { $0.id == "A1" })?.locked == true
+                && !node.isPhoto
+                && nodes.contains { $0.kind.lowercased() == "source_audio" && $0.parentId == id }
+            return !isLocked(node: node) && !linkedAudioLocked
         }
-        guard !validIDs.isEmpty else { return }
+    }
+
+    func splitSegments(_ ids: [String], at frame: Int) {
+        let validIDs = eligibleSplitIDs(ids)
         let operations = validIDs.map { id in JSONValue.object([
             "op": .string("split_segment"), "id": .string(id), "atFrame": .number(Double(frame))
         ]) }

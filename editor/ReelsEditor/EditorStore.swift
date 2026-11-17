@@ -26,6 +26,9 @@ final class EditorStore {
     var snapshot: EditorSnapshot? {
         didSet {
             if let oldValue, let snapshot, oldValue.documentId == snapshot.documentId {
+                if oldValue.isPreviewEmpty && !snapshot.isPreviewEmpty {
+                    previewManifest = snapshot.preview
+                }
                 reconcileSphereAimSelection(previous: oldValue.nodes, next: snapshot.nodes)
             }
         }
@@ -163,6 +166,7 @@ final class EditorStore {
     }
     var fps: Double { max(snapshot?.fps ?? 30, 1) }
     var previewURL: URL? {
+        guard !isEmptyPreview else { return nil }
         let raw = previewManifest?["url"]?.stringValue
             ?? previewManifest?["staticURL"]?.stringValue
             ?? previewManifest?["programURL"]?.stringValue
@@ -173,6 +177,9 @@ final class EditorStore {
             ?? snapshot?.preview["capabilityURL"]?.stringValue
         guard let raw else { return nil }
         return URL(string: raw)
+    }
+    var isEmptyPreview: Bool {
+        previewManifest?["state"]?.stringValue == "empty" || snapshot?.isPreviewEmpty == true
     }
     var previewOrigin: URL? {
         guard let raw = workspaceInfo["previewOrigin"]?.stringValue else { return nil }
@@ -188,7 +195,7 @@ final class EditorStore {
         (previewManifest?["mode"]?.stringValue ?? snapshot?.preview["mode"]?.stringValue) == "exact"
     }
     var exactMovieURL: URL? {
-        guard isExactPreview else { return nil }
+        guard isExactPreview, !isEmptyPreview else { return nil }
         let raw = previewManifest?["movieURL"]?.stringValue
             ?? previewManifest?["previewVideoURL"]?.stringValue
             ?? previewManifest?["reelURL"]?.stringValue
@@ -407,7 +414,7 @@ final class EditorStore {
             syncPermissions(from: value)
             if let next = EditorSnapshot.decode(value) {
                 acceptRefreshedSnapshot(next)
-                if next.preview["state"]?.stringValue == "ready" {
+                if ["ready", "empty"].contains(next.preview["state"]?.stringValue ?? "") {
                     previewManifest = next.preview
                     NotificationCenter.default.post(name: .reelsEditorPreviewReady, object: next.preview)
                 }
@@ -456,7 +463,7 @@ final class EditorStore {
 
     func setPlayhead(_ frame: Int, final: Bool = true) {
         isScrubbing = !final
-        playheadFrame = max(0, min(snapshot?.durationFrames ?? frame, frame))
+        playheadFrame = max(0, min(snapshot?.editingDurationFrames ?? frame, frame))
         seekGeneration += 1
         guard final else { return }
         Task {
@@ -672,9 +679,7 @@ final class EditorStore {
     }
 
     func splitAtPlayhead() {
-        let targets = TimelineEditingTargets.split(nodes: snapshot?.nodes ?? [],
-                                                   selectedIDs: selectedIDs, at: playheadFrame)
-        splitSegments(targets, at: playheadFrame)
+        splitSegments(splitTargetsAtPlayhead, at: playheadFrame)
     }
 
     func deleteSelection() {

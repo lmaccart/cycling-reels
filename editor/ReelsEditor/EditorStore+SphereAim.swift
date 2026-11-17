@@ -11,7 +11,7 @@ extension EditorStore {
         authoritativeSnapshot = next
         snapshot = withPendingPredictions(next)
         inspectorSchema = next.inspectorSchema ?? inspectorSchema
-        playheadFrame = min(playheadFrame, next.durationFrames)
+        playheadFrame = min(playheadFrame, next.editingDurationFrames)
         selectedIDs.formIntersection(Set(next.nodes.map(\.id)))
         if openingDocument, selectedIDs.isEmpty,
            let first = next.nodes.first(where: { $0.kind.lowercased() == "segment" }) {

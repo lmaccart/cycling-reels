@@ -357,10 +357,11 @@ struct ProgramMonitor: View {
                         .onChange(of: store.seekGeneration) { _, _ in
                             exactPlayer.seek(frame: store.playheadFrame, fps: store.fps, generation: store.seekGeneration)
                         }
-                } else {
                     unavailable(
-                        "Final-quality render isn't ready",
-                        detail: "Wait a moment, or reload the preview."
+                        store.isEmptyPreview ? "Nothing to preview" : "Final-quality render isn't ready",
+                        detail: store.isEmptyPreview
+                            ? "All clips are disabled. Re-enable a clip to restore picture and sound."
+                            : "Wait a moment, or reload the preview."
                     )
                 }
             } else if let url = store.previewURL, let origin = store.previewOrigin {
@@ -393,6 +394,9 @@ struct ProgramMonitor: View {
         .onChange(of: store.isExactPreview) { _, active in
             exactPlayer.setActive(active)
         }
+        .onChange(of: store.isEmptyPreview) { _, empty in
+            if empty { exactPlayer.clear() }
+        }
     }
 
     private func unavailable(_ title: String, detail: String) -> some View {
@@ -412,7 +416,7 @@ struct ProgramMonitor: View {
 }
 
 @MainActor
-private final class ExactProgramPlayerModel: ObservableObject {
+final class ExactProgramPlayerModel: ObservableObject {
     @Published var player: AVPlayer?
     private weak var store: EditorStore?
     private var currentURL: URL?
@@ -422,7 +426,7 @@ private final class ExactProgramPlayerModel: ObservableObject {
     private var rateObserver: NSObjectProtocol?
     private var timeObserver: Any?
     private var lastSeekGeneration: Int?
-    private var isActive = false
+    private(set) var isActive = false
     private var playbackProbe = PreviewPlaybackProbe()
     private var programReadyPosted = false
 
@@ -502,11 +506,25 @@ private final class ExactProgramPlayerModel: ObservableObject {
         isActive = active
         if !active { player?.pause() }
     }
+    func clear() {
+        isActive = false
+        player?.pause()
+        if let timeObserver, let player { player.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+        player?.replaceCurrentItem(with: nil)
+        player = nil
+        currentURL = nil
+        revision = nil
+        lastSeekGeneration = nil
+        playbackProbe = PreviewPlaybackProbe()
+        programReadyPosted = false
+    }
 
     func seek(frame: Int, fps: Double, generation: Int) {
         guard generation != lastSeekGeneration, let player else { return }
         lastSeekGeneration = generation
-        player.seek(to: CMTime(seconds: Double(max(0, frame)) / max(fps, 1), preferredTimescale: 600))
+        let boundedFrame = min(max(0, frame), store?.snapshot?.durationFrames ?? frame)
+        player.seek(to: CMTime(seconds: Double(boundedFrame) / max(fps, 1), preferredTimescale: 600))
     }
 
     private func togglePlayback() {

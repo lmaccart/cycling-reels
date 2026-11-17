@@ -186,7 +186,7 @@ struct TimelinePanel: View {
     private static let gutter = Double(TimelineLayout.labelWidth)
 
     private var contentWidth: CGFloat {
-        max(650, TimelineLayout.labelWidth + CGFloat(store.snapshot?.durationFrames ?? 0) * zoom + 120)
+        max(650, TimelineLayout.labelWidth + CGFloat(store.snapshot?.editingDurationFrames ?? 0) * zoom + 120)
     }
     private var trackHeight: CGFloat {
         TimelineLayout.contentHeight(tracks: store.tracks)
@@ -221,9 +221,11 @@ struct TimelinePanel: View {
                     .help("Next frame  →")
                     .accessibilityLabel("Next frame")
                 Button { store.splitAtPlayhead() } label: { Image(systemName: "scissors") }
-                    .help("Split the selected clip at the playhead  ⌘K")
+                    .help(store.selectedIDs.isEmpty
+                        ? "Split every unlocked clip under the playhead  ⌘K"
+                        : "Split selected unlocked clips under the playhead  ⌘K")
                     .accessibilityLabel("Split at playhead")
-                    .disabled(store.selectedNode == nil)
+                    .disabled(store.splitTargetsAtPlayhead.isEmpty)
                 Button { store.deleteSelection() } label: { Image(systemName: "trash") }
                     .help("Delete the selected clip  ⌫")
                     .accessibilityLabel("Delete selection")
@@ -286,7 +288,7 @@ struct TimelinePanel: View {
             }
 
             TimelineZoomScroller(
-                durationFrames: store.snapshot?.durationFrames ?? 0,
+                durationFrames: store.snapshot?.editingDurationFrames ?? 0,
                 zoom: zoom, viewportWidth: Double(viewportWidth), gutter: Self.gutter, scrollX: Double(scrollX),
                 onChange: { newZoom, newScroll in
                     zoom = TimelineMetrics.clamp(newZoom)
@@ -308,7 +310,7 @@ struct TimelinePanel: View {
         // Fit the reel to the visible width whenever a reel is opened (not on every edit).
         .onChange(of: store.openPlanPath) { _, _ in pendingFit = true; fitIfPending() }
         .onChange(of: store.snapshot?.documentId) { _, _ in pendingFit = true; fitIfPending() }
-        .onChange(of: store.snapshot?.durationFrames) { _, _ in fitIfPending() }
+        .onChange(of: store.snapshot?.editingDurationFrames) { _, _ in fitIfPending() }
         .onAppear { fitIfPending() }
     }
 
@@ -327,12 +329,12 @@ struct TimelinePanel: View {
     }
 
     private func fit() {
-        zoom = TimelineMetrics.fitZoom(durationFrames: store.snapshot?.durationFrames ?? 0,
+        zoom = TimelineMetrics.fitZoom(durationFrames: store.snapshot?.editingDurationFrames ?? 0,
                                        viewportWidth: Double(viewportWidth), gutter: Self.gutter)
         scrollRequest = ScrollRequest(id: (scrollRequest?.id ?? 0) + 1, x: 0)
     }
     private func fitIfPending() {
-        guard pendingFit, viewportWidth > 0, (store.snapshot?.durationFrames ?? 0) > 0 else { return }
+        guard pendingFit, viewportWidth > 0, (store.snapshot?.editingDurationFrames ?? 0) > 0 else { return }
         pendingFit = false
         fit()
     }
@@ -1207,7 +1209,7 @@ private final class TimelineCanvas: NSView {
         let fps = max(snapshot?.fps ?? 30, 1)
         let pixelsPerSecond = Double(scale) * fps
         let interval = TimelineMetrics.rulerStepSeconds(pixelsPerSecond: pixelsPerSecond)
-        let duration = snapshot?.durationFrames ?? 0
+        let duration = snapshot?.editingDurationFrames ?? 0
         let seconds = Int(ceil(Double(duration) / fps))
         let last = max(seconds, 10) + interval
         let ticks = NSBezierPath()
@@ -1625,9 +1627,14 @@ private final class TimelineCanvas: NSView {
                 let owner = TimelineLaneClassifier.interactionNode(for: node, nodes: snapshot?.nodes ?? [])
                 let accessibleNode = owner ?? node
                 let start = timecode(accessibleNode.startFrame, fps: snapshot?.fps ?? 30)
-                element.setAccessibilityLabel("\(accessibleNode.title), \(row.track.id)\(linked ? " linked audio" : ""), \(category(for: node)), \(start), \(accessibleNode.frames) frames")
+                let disabled = accessibleNode.raw["enabled"]?.boolValue == false
+                element.setAccessibilityLabel(
+                    "\(accessibleNode.title), \(row.track.id)\(linked ? " linked audio" : ""), \(category(for: node)), \(start), \(accessibleNode.frames) frames\(disabled ? ", disabled" : "")"
+                )
                 element.setAccessibilityHelp(owner?.id == node.id
-                    ? "Clip handle: drag the left or right edge to trim; drag inside to move."
+                    ? (disabled
+                        ? "Disabled clip remains editable on the timeline; its picture and sound are omitted from playback."
+                        : "Clip handle: drag the left or right edge to trim; drag inside to move.")
                     : "Read-only linked audio; interact with its owning video clip.")
                 let rect = clipRect(node, in: row)
                 element.setAccessibilityFrame(window?.convertToScreen(convert(rect, to: nil)) ?? .zero)
@@ -2152,7 +2159,7 @@ private final class TimelineCanvas: NSView {
 
     private func scrub(_ point: CGPoint, final: Bool) {
         let frames = Int(((point.x - Self.labelWidth) / max(scale, 0.05) ).rounded())
-        callbacks?.onScrub(max(0, min(snapshot?.durationFrames ?? frames, frames)), final)
+        callbacks?.onScrub(max(0, min(snapshot?.editingDurationFrames ?? frames, frames)), final)
     }
 
     private func hit(at point: CGPoint) -> (EditorNode, TimelineLayout.Row)? {

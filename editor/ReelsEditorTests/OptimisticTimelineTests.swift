@@ -554,4 +554,33 @@ final class OptimisticTimelineTests: XCTestCase {
         XCTAssertEqual(starts(ripple)["t"], 10)
         XCTAssertNil(starts(ripple)["a"])
     }
+    func testDisabledTailKeepsEditingExtentWithoutExtendingRenderedDuration() throws {
+        let disabled = EditorNode(
+            id: "ghost", kind: "segment", lane: "primary", parentId: nil,
+            startFrame: 120, endFrame: 300, frames: 180,
+            raw: .object(["asset": .string("ghost"), "enabled": .bool(false)]),
+            assetId: "ghost", sourceIn: 0, sourceOut: 6, sourceDuration: 6,
+            speed: 1, assetKind: "video", mediaKind: "video", generated: false,
+            readOnly: false, track: "V1"
+        )
+        let encodedNodes = try JSONEncoder().encode([disabled])
+        let nodes = try JSONDecoder().decode(JSONValue.self, from: encodedNodes)
+        let snapshot = try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("disabled-doc"),
+            "revisions": .object([
+                "document": .string("d"), "library": .string("l"), "renderer": .string("r")
+            ]),
+            "plan": .object(["segments": .array([])]),
+            "nodes": nodes,
+            "fps": .number(30), "durationFrames": .number(0),
+            "editingDurationFrames": .number(300),
+            "warnings": .array([]), "preview": .object(["state": .string("empty")]),
+        ])))
+
+        let next = OptimisticTimeline.apply({ $0 }, to: snapshot)
+        XCTAssertEqual(next.durationFrames, 0)
+        XCTAssertEqual(next.editingDurationFrames, 300)
+        XCTAssertEqual(next.nodes.first?.raw["enabled"]?.boolValue, false)
+    }
 }
+
