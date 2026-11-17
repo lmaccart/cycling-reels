@@ -28,7 +28,8 @@ def video_source_bounds(asset, source_in, source_out, speed=1):
     return source_in, source_out, speed
 
 
-def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=None, compiled=None):
+def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=None, compiled=None, *,
+           piece_bounds=None):
     start, end = _bounds(clip)
     a, b = (left - start) / fps, (right - start) / fps
     memo = {}
@@ -55,24 +56,20 @@ def _slice(clip, left, right, fps, old_objects=None, project=None, old_nodes=Non
     if compiled is not None and root_id:
         index = int(old_nodes[root_id]["locator"].split("/")[2])
         resolved = compiled["segs"][index]
-    value = slice_local_events(marked, a, b, rebase=True, minimum_cutaway_frames=1, fps=fps,
-                               resolved=resolved)
+    if piece_bounds is None:
+        if "in" in clip:
+            speed = float(clip.get("speed", 1))
+            source_in, source_out = float(clip["in"]), float(clip["out"])
+            piece_bounds = {
+                "in": source_in if left == start else min(source_out, max(source_in, source_in + a * speed)),
+                "out": source_out if right == end else min(source_out, max(source_in, source_in + b * speed)),
+            }
+        else:
+            piece_bounds = {"duration": (right - left) / fps}
+    value = slice_local_events(marked, a, b, piece_bounds=piece_bounds, rebase=True,
+                               minimum_cutaway_frames=1, fps=fps, resolved=resolved)
     value.pop(_IDENTITY, None)
-    if isinstance(clip.get("path"), list):
-        window = clip.get("cameraWindow") or {
-            "offsetSeconds": 0, "durationSeconds": clip["timeline"]["durationFrames"] / fps,
-            "path": deepcopy(clip["path"]),
-        }
-        value["cameraWindow"] = {**deepcopy(window), "offsetSeconds": window["offsetSeconds"] + a}
-    if "in" in clip:
-        speed = float(clip.get("speed", 1))
-        source_in, source_out = float(clip["in"]), float(clip["out"])
-        value.update({
-            "in": source_in if left == start else min(source_out, max(source_in, source_in + a * speed)),
-            "out": source_out if right == end else min(source_out, max(source_in, source_in + b * speed)),
-        })
-    else:
-        value["duration"] = (right - left) / fps
+    if "in" not in clip:
         window = clip.get("motionWindow") or {"offsetSeconds": 0, "durationSeconds": clip["timeline"]["durationFrames"] / fps}
         value["motionWindow"] = {**window, "offsetSeconds": window["offsetSeconds"] + a}
     if project is not None and isinstance(marked.get("sfx"), list):
@@ -424,11 +421,11 @@ def positioned_source_edit(ctx, operation, project, revisions):
         source_in, source_out, speed = video_source_bounds(
             asset, operation["sourceIn"], operation["sourceOut"], clip.get("speed", 1))
         frames = max(1, round((source_out-source_in) * fps / speed))
-        # Use the same ID-preserving slicer, then replace source bounds. Extending
-        # beyond old bounds has already been checked against the actual source.
+        # Use the ID-preserving slicer with the exact final source bounds,
+        # including extensions already checked against the original source.
         synthetic_left = a + (source_in - float(clip["in"])) / speed * fps
-        piece = _slice(clip, synthetic_left, synthetic_left + frames, fps, objects, project, nodes, ctx["compiled"])
-        piece.update({"in": source_in, "out": source_out})
+        piece = _slice(clip, synthetic_left, synthetic_left + frames, fps, objects, project, nodes, ctx["compiled"],
+                       piece_bounds={"in": source_in, "out": source_out})
         piece["timeline"].update(startFrame=a, durationFrames=frames)
         bindings[id(piece)] = node_id
         for desc in _descriptors({"segments": [piece]})[1:]:

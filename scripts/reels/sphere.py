@@ -217,7 +217,8 @@ def path_value(keys: list[dict], t: float, projection: str = "flat") -> dict:
         return dict(effective(keys[0]))
     for a, b in zip(keys, keys[1:]):
         if b.get("cut"):  # hard cut: hold the previous view until this keyframe, then jump
-            if t < b["at"]:
+            # Window translation can leave an exact frame a few ulps before its key.
+            if b["at"] - t > 1e-12:
                 return {**effective(a), "at": t, "cut": False}
             continue
         if t <= b["at"]:
@@ -450,7 +451,7 @@ def plan_camera(
     where: str,
     raw_segment: dict | None = None,
 ) -> dict:
-    """Resolves a plan segment's view / path / projection for 360 footage."""
+    """Resolve the camera against its authored duration, independent of visible retiming."""
     angles = tags.get("angles") or {}
     projection = spec.get("projection") or "flat"
     if projection not in PROJECTIONS:
@@ -477,7 +478,8 @@ def plan_camera(
     from .stabilize import parse_setting
 
     stabilize = parse_setting(spec.get("stabilize"), errors, where)
-    return {"projection": projection, "view": view, "path": path, "stabilize": stabilize}
+    return {"projection": projection, "view": view, "path": path, "stabilize": stabilize,
+            "durationSeconds": seconds}
 
 
 def describe(sph: dict) -> str:

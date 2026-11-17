@@ -124,7 +124,8 @@ enum SphereMath {
             let av = effectiveView(a.view, projection: projection)
             let bv = effectiveView(b.view, projection: projection)
             if b.cut {
-                if t < b.at { return av }
+                // Match Python: window translation may leave an exact frame a few ulps early.
+                if b.at - t > 1e-12 { return av }
                 continue
             }
             if t <= b.at {

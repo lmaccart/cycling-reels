@@ -77,6 +77,23 @@ Both projections (flat and tiny planet), custom pitch/roll, shortest-arc paths,
 holds/cuts, exterior cameraWindow keys, numeric stabilization and speed/fps
 retiming share W4's math/clock conventions. SwiftPM links the **same**
 `SphereMath.swift` used by the viewer, not a copied implementation.
+The compiler exposes the authored camera duration as `sphere.durationSeconds`,
+separately from visible source in/out and speed (or photo duration). It is the
+duration used to validate/resolve the path, including default photo endpoints,
+and survives beat/music retiming for both primary footage and cutaways.
+Camera slicing retains that duration and all playback keys in `cameraWindow`;
+piece durations and editing handles never restart, shorten or quantize that
+playback clock. Handles use finalized visible source bounds, not the authored
+duration or rounded timeline frame count. Pieces shorter than the 100 ms
+editable-key gap retain playback through the window without an editable path.
+Live-camera responses resolve raw settings, asset identity and playback from one
+snapshot, including external plan reloads. Handles and local-path transactions
+use the same compiled visible bounds, including music-retimed pieces. Unsplit
+projection/static edits retain authored bounds; local-path edits preserve the
+authored duration and path in a window before materializing visible bounds.
+Windowed pieces may be shorter
+than the video/photo authoring minima; their editable keys still obey the
+100 ms gap, and sequential cutaways still obey the 0.4 s on-screen minimum.
 
 Direct CLI: `.cache/editor/bin/reels-sphere --check request.json`, then
 `--render request.json`. Exit codes: 2 invalid inputs, 3 unsupported capability,

@@ -1950,7 +1950,9 @@ class DocumentStore:
             index = int(entry["locator"].split("/")[2])
             compiled_seg = ctx["compiled"]["segs"][index]
             for field in ("in", "out"):
-                segment.setdefault(field, compiled_seg["spec"].get(field))
+                value = compiled_seg["spec"].get(field)
+                if value is not None:
+                    segment[field] = value
             at = int(operation["atFrame"])
             local_frame = at - int(compiled_seg["start"])
             if not 0 < local_frame < int(compiled_seg["frames"]):
@@ -2109,6 +2111,24 @@ class DocumentStore:
             value = deepcopy(operation.get("value"))
             camera_edit = isinstance(target, dict) and components[0] in ("path", "view", "yaw", "pitch", "roll", "fov", "projection")
             window = target.get("cameraWindow") if camera_edit else None
+            if camera_edit and node_id and entry["kind"] in ("segment", "cutaway"):
+                resolved = (ctx["compiled"]["segs"][int(entry["locator"].split("/")[2])]["spec"]
+                            if entry["kind"] == "segment" else self._resolved_cutaway(ctx, node_id)["resolved"])
+                if (resolved.get("sphere") and (window or path == "/path" and isinstance(value, list))
+                        and any(target.get(name) != resolved.get(name) for name in ("in", "out", "duration"))):
+                    # Only local handles need the visible, retimed bounds.
+                    # Preserve the authored clock before materializing them;
+                    # projection/static edits on unsplit items keep raw bounds.
+                    from .timing import window_piece_keys
+                    camera = resolved["sphere"]
+                    window = window or {"offsetSeconds": 0, "durationSeconds": camera["durationSeconds"],
+                                        "path": deepcopy(camera["path"])}
+                    target["cameraWindow"] = window
+                    for name in ("in", "out", "duration", "speed"):
+                        if name in resolved:
+                            target[name] = resolved[name]
+                    target["path"] = window_piece_keys(camera["path"] or [], 0, source_duration(target),
+                                                       projection=camera["projection"]) or None
             tags, moment = {}, {}
             if camera_edit and (window or node_id in ctx.get("clearedCameraWindows", {})):
                 from ..library import load_asset, resolve_moment
@@ -2146,6 +2166,15 @@ class DocumentStore:
                     from .timing import window_with_piece_keys
                     kept = window_with_piece_keys(window, {**moment, **target}, value,
                                                   tags=tags, moment_view=moment.get("view"))
+                elif isinstance(window, dict):
+                    if path in ("/yaw", "/pitch", "/roll", "/fov") and value is None:
+                        kept = window  # intermediate writes in a full aim batch
+                    else:
+                        # Explicit camera resets use the local handles, while
+                        # retaining windowed-piece duration semantics for short
+                        # music-retimed fragments (including static views).
+                        kept = {"offsetSeconds": 0, "durationSeconds": source_duration(target),
+                                "path": deepcopy(target.get("path"))}
                 if kept is not None:
                     target["cameraWindow"] = kept
                 else:
