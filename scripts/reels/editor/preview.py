@@ -629,6 +629,12 @@ class PreviewManager:
         # to predict that decision.
         browser_worker = job.get("mode") == "exact" or job.get("action") in ("prepare", "export", "validate")
         reads, writes = _path_roots(self.workspace, code_root, job_root, revision_dir, cache_root, bundle_cache)
+        if job.get("action") in ("source_proxy", "sphere_proxy"):
+            from ..proxy_cache import budget_root
+
+            reservations = budget_root(Path(self.workspace.root).resolve())
+            reads.append(reservations)
+            writes.append(reservations)
         reads.append(fixture_root.resolve())
         if browser_worker:
             reads.extend(_browser_preference_files())

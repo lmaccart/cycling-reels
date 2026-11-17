@@ -292,7 +292,7 @@ def correction_quats(ori: Orientation, times: list[float], setting: dict) -> lis
 
 
 def cached_correction_quats(src: Path, cache_dir: Path, identity: dict, start: float, end: float,
-                            fps: int, setting: dict | None) -> dict:
+                            fps: int, setting: dict | None, *, reserve=None) -> dict:
     """Persist CORI corrections per asset/range/strength, including absent telemetry.
 
     Kept under the proxy's writable cache root, never next to the original. Lock
@@ -326,6 +326,8 @@ def cached_correction_quats(src: Path, cache_dir: Path, identity: dict, start: f
             return cached
     except (OSError, ValueError, KeyError, TypeError):
         pass
+    if reserve is not None:
+        reserve()
     pad_s = margin(setting) if setting else 0.5
     try:
         ori = read_orientation(src, max(0.0, start - pad_s), end + pad_s)

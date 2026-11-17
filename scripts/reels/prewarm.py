@@ -10,9 +10,8 @@ from typing import Callable
 from .config import Project
 from .library import all_assets, load_asset
 from .proxy import SPHERE_PROXY_MAX, proxy_reservation, source_cache_key, sphere_cache_key
+from .proxy_cache import MIN_FREE_BYTES, ProxyDiskFull
 from .util import ReelsError, log, read_json, warn, write_json
-
-MIN_FREE_BYTES = 50_000_000_000
 
 
 def _queue_path(project: Project, asset_id: str) -> Path:
@@ -75,7 +74,7 @@ def prewarm(project: Project, ids=(), *, all_clips: bool = False, source_only: b
         identity = _stat_identity(source)
         common = {"sourcePath": str(source), "sourceIdentity": identity, "assetId": asset["id"],
                   "sourceKind": "video", "probe": probe, "mediaRoot": str(project.media_dir),
-                  "workspaceRoot": str(state)}
+                  "workspaceRoot": str(state), "freeDisk": free_disk}
         source_root = preview / "sources" / source_cache_key(asset, identity, {})
         sphere_root = preview / "spheres" / sphere_cache_key(asset["id"], identity, probe)
         jobs = [(prepare_source_proxy, {**common, "revisionDir": str(source_root), "view": {},
@@ -103,6 +102,11 @@ def prewarm(project: Project, ids=(), *, all_clips: bool = False, source_only: b
                 result = worker(job)
                 if result.get("status") != "ready":
                     raise ReelsError(result.get("reason") or "proxy unavailable")
+            except ProxyDiskFull as exc:
+                log(f"stopped before {asset['id']} {label}: {exc}")
+                report["stopped"] = True
+                complete = False
+                break
             except (ReelsError, OSError) as exc:
                 warn(f"{asset['id']} {label}: {exc}")
                 report["failed"] += 1

@@ -34,27 +34,24 @@ class EncodingPolicyTests(unittest.TestCase):
                 raise ReelsError("VideoToolbox unavailable")
             self.output.write_bytes(b"software output")
 
-        for hevc in (False, True):
-            commands.clear()
-            with patch("reels.proxy.sys.platform", "darwin"), patch("reels.media.run", side_effect=run):
-                codec = encode_proxy(Path("input.mp4"), self.output, ["-map", "0:v:0"], seconds=2, hevc=hevc)
-            self.assertEqual(codec, "libx264")
-            self.assertEqual(commands[0][commands[0].index("-c:v") + 1],
-                             "hevc_videotoolbox" if hevc else "h264_videotoolbox")
-            self.assertEqual(len(commands), 3)
-            self.assertNotIn("-hwaccel", commands[-1])
-            self.assertEqual(self.output.read_bytes(), b"software output")
-            for command in commands:
-                self.assertEqual(command[command.index("-g") + 1], "30")
-                self.assertEqual(command[command.index("-bf") + 1], "0")
+        with patch("reels.proxy.sys.platform", "darwin"), patch("reels.media.run", side_effect=run):
+            codec = encode_proxy(Path("input.mp4"), self.output, ["-map", "0:v:0"], seconds=2)
+        self.assertEqual(codec, "libx264")
+        self.assertEqual(commands[0][commands[0].index("-c:v") + 1], "h264_videotoolbox")
+        self.assertEqual(len(commands), 3)
+        self.assertNotIn("-hwaccel", commands[-1])
+        self.assertEqual(self.output.read_bytes(), b"software output")
+        for command in commands:
+            self.assertEqual(command[command.index("-g") + 1], "10")
+            self.assertEqual(command[command.index("-bf") + 1], "0")
 
     def test_hardware_success_does_not_encode_again(self):
         with patch("reels.proxy.sys.platform", "darwin"), patch("reels.media.run") as run:
             run.side_effect = lambda *args, **kwargs: self.output.write_bytes(b"hardware output")
-            codec = encode_proxy(Path("input.mp4"), self.output, [], seconds=1, hevc=True)
-        self.assertEqual(codec, "hevc_videotoolbox")
+            codec = encode_proxy(Path("input.mp4"), self.output, [], seconds=1)
+        self.assertEqual(codec, "h264_videotoolbox")
         self.assertEqual(run.call_count, 1)
-        self.assertIn("hvc1", run.call_args.args[0])
+        self.assertIn("yuv420p", run.call_args.args[0])
 
     def test_non_mac_uses_software_and_propagates_software_failure(self):
         with patch("reels.proxy.sys.platform", "linux"), patch("reels.media.run", side_effect=ReelsError("bad input")) as run:
@@ -70,6 +67,30 @@ class EncodingPolicyTests(unittest.TestCase):
         with patch("reels.media.run", side_effect=run):
             with self.assertRaisesRegex(ReelsError, "truncated"):
                 encode_proxy(Path("input.mp4"), self.output, [], seconds=1)
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
+    def test_encoded_keyframes_bound_scrub_distance_to_ten_frames(self):
+        source = self.fixture.root / "keyframe-input.mp4"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
+                        "testsrc2=size=512x256:rate=30:duration=2", "-c:v", "libx264", str(source)], check=True)
+        for software in (False, True):
+            with self.subTest(software=software):
+                if software:
+                    with patch("reels.proxy.sys.platform", "linux"):
+                        encode_proxy(source, self.output, ["-map", "0:v:0"], seconds=2)
+                else:
+                    encode_proxy(source, self.output, ["-map", "0:v:0"], seconds=2)
+                probe = json.loads(subprocess.run(
+                    ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_frames", "-show_streams",
+                     "-show_entries", "frame=key_frame,pict_type:stream=pix_fmt,has_b_frames", "-of", "json", str(self.output)],
+                    capture_output=True, text=True, check=True).stdout)
+                frames = probe["frames"]
+                keys = [i for i, frame in enumerate(frames) if frame["key_frame"]]
+                self.assertEqual(len(frames), 60)
+                self.assertEqual(keys[0], 0)
+                self.assertTrue(all(b - a <= 10 for a, b in zip(keys, keys[1:] + [len(frames)])))
+                self.assertFalse(any(frame["pict_type"] == "B" for frame in frames))
+                self.assertEqual(probe["streams"][0]["pix_fmt"], "yuv420p")
 
 
 class CacheTests(unittest.TestCase):

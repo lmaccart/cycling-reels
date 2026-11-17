@@ -16,6 +16,7 @@ from typing import Any
 from ..config import Project
 from ..util import ReelsError, quick_hash
 from ..proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
+from ..proxy_cache import proxy_job
 
 _STAGE_SPEC_FIELDS = {
     "in", "out", "speed", "frame", "zoom", "focusX", "focusY", "fit", "motion",
@@ -945,6 +946,7 @@ def validate_candidate(job: dict) -> dict:
     return {"checks": checks, "render": rendered}
 
 
+@proxy_job
 def prepare_source_proxy(job: dict) -> dict:
     """Create/reuse a view-specific 360 or codec/container compatibility proxy."""
     source = Path(job["sourcePath"]).resolve(strict=True)
@@ -1071,6 +1073,8 @@ def prepare_source_proxy(job: dict) -> dict:
                 }
         except (OSError, ValueError):
             pass
+    if is_spherical and not is_photo:
+        job["reserveOutput"]()
 
     temporary = revision_dir / f".source-{uuid.uuid4().hex}{output.suffix}"
     from ..media import run
@@ -1136,6 +1140,7 @@ def prepare_source_proxy(job: dict) -> dict:
     }
 
 
+@proxy_job
 def prepare_sphere_proxy(job: dict) -> dict:
     """An equirectangular proxy of part of a 360 video for the editor's live 360 viewer,
     plus the per-frame stabilization rotations (and gravity) for that range.
@@ -1212,6 +1217,7 @@ def prepare_sphere_proxy(job: dict) -> dict:
         raise ReelsError("360 proxy cache contains a symlink")
     expected_marker = {**settings, "start": start, "end": end}
     if not reused:
+        job["reserveOutput"]()
         graph, pad, inproj = source_graph(probe)
         temporary = range_dir / f".sphere-{uuid.uuid4().hex}.mp4"
         try:
@@ -1220,7 +1226,7 @@ def prepare_sphere_proxy(job: dict) -> dict:
                 f"{graph};[{pad}]fps={SPHERE_PROXY_FPS},v360=input={inproj}:output=e:w={width}:h={height}:interp=linear[sphere]",
                 "-map", "[sphere]", "-map", "0:a:0?",
             ], inputs=["-ss", f"{start:.3f}", "-t", f"{end - start:.3f}"],
-                seconds=end - start, hevc=True)
+                seconds=end - start)
             if not temporary.is_file() or temporary.stat().st_size <= 0:
                 raise ReelsError("360 proxy encoder produced no file")
             if _stat_identity(source) != expected_identity:
@@ -1238,7 +1244,7 @@ def prepare_sphere_proxy(job: dict) -> dict:
                 temporary.unlink()
 
     correction = cached_correction_quats(source, revision_dir / "cori", expected_identity,
-                                        start, end, SPHERE_PROXY_FPS, setting)
+                                        start, end, SPHERE_PROXY_FPS, setting, reserve=job["reserveOutput"])
     if _stat_identity(source) != expected_identity:
         raise ReelsError("registered original changed during 360 proxy reuse")
     return {

@@ -10,8 +10,9 @@ from pathlib import Path
 
 from .util import ReelsError
 
-PROXY_VERSION = 3
+PROXY_VERSION = 4
 PROXY_FPS = 30
+PROXY_GOP = 10
 SPHERE_PROXY_WIDTH = 2048
 SPHERE_PROXY_MAX = 180.0
 
@@ -44,11 +45,11 @@ def proxy_reservation(seconds: float) -> int:
 
 
 def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
-                 seconds: float = 0, hevc: bool = False, crf: int = 23) -> str:
+                 seconds: float = 0, crf: int = 23) -> str:
     """Hardware decode + encode on macOS; retry the complete job in software on failure."""
     from .media import run
 
-    hardware = ["hevc_videotoolbox", "h264_videotoolbox"] if hevc else ["h264_videotoolbox", "hevc_videotoolbox"]
+    hardware = ["h264_videotoolbox", "hevc_videotoolbox"]
     encoders = [*hardware, "libx264"] if sys.platform == "darwin" else ["libx264"]
     limit = proxy_reservation(seconds) - 16_000_000 if seconds > 0 else None
     for encoder in encoders:
@@ -61,7 +62,7 @@ def encode_proxy(source: Path, output: Path, arguments: list, *, inputs=(),
             "ffmpeg", "-v", "error", "-y", *inputs,
             *(["-hwaccel", "videotoolbox"] if accelerated else []), "-i", source,
             *arguments, "-c:v", encoder, *codec, "-maxrate", "12M", "-bufsize", "24M",
-            "-g", str(PROXY_FPS), "-bf", "0", "-pix_fmt", "yuv420p",
+            "-g", str(PROXY_GOP), "-bf", "0", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
             *(["-fs", str(limit)] if limit else []), output,
         ]
