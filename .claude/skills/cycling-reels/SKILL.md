@@ -70,6 +70,7 @@ Nobody is there to approve, so do steps 0–5 only, then stop: don't approve, qu
 | `./reels tag <id> --merge --json '{…}'` / `./reels tag-batch --file f.json` | Partial update: only what's given changes, moments addressed by id; batch saves nothing unless all are valid |
 | `./reels tag-backfill` | Give an id to any moment that lacks one |
 | `./reels show <id>` | Everything about one asset, incl. moments and usage |
+| `./reels flag <id> [--in A --out B] [--note "…"]` / `./reels flags [--json]` / `./reels unflag <flag-id>` | Flagged clips (`flags.json`): ranges the user or Claude marked to come back to — the editor shows them under Flagged in the Library. Read them when planning; they change no tags |
 | `./reels transcribe [ids…]` | Word-level transcripts (default: clips with speech) |
 | `./reels library [--unused] [--min-score N] [--type T] [--role R] [--mood M] [--speaker S] [--face\|--no-face] [--opener] [--line L] [--thread T] [--recent] [--include-deleted]` | Tagged moments, best first (`--recent`: newest footage first). Deleted footage is hidden unless asked for, and never counted as available |
 | `./reels search "<words>" [--phrase] [same filters] [--limit N] [--json]` | Finds footage in moment labels, summaries, hooks, notes, landmarks and transcripts. All words must match within one field; `"double quotes"` inside the query or `--phrase` for exact wording. Transcript hits give the spoken line with exact in/out, the moment it falls in or `untagged`, and `[low-conf]` for likely Whisper inventions |

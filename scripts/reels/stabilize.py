@@ -299,3 +299,175 @@ def segment_corrections(src: Path, start: float, speed: float, fps: int, frames:
     if ori is None:
         return None
     return corrections(ori, [start + n * speed / fps for n in range(frames)], setting)
+
+
+# --------------------------------------------------------------------------
+# Level front/back views (editor Source preview)
+# --------------------------------------------------------------------------
+
+
+FRONT_NAMES = ("front", "forward", "road", "ahead")
+BACK_NAMES = ("back", "behind", "rear")
+
+
+def _tagged_direction(angles: dict | None, names: tuple[str, ...], down) -> tuple[float, float, float] | None:
+    """Which way along the ground a tagged view faces. A view looking steeply down (at the
+    road) faces where the top of its picture points; otherwise where it looks."""
+    for name in names:
+        a = (angles or {}).get(name)
+        if isinstance(a, dict) and "yaw" in a:
+            m = v360_matrix(float(a.get("yaw", 0)), float(a.get("pitch", 0)), float(a.get("roll", 0)))
+            look = (m[0][2], m[1][2], m[2][2])
+            if abs(sum(x * y for x, y in zip(look, down))) > 0.5:
+                return (-m[0][1], -m[1][1], -m[2][1])  # the picture's up
+            return look
+    return None
+
+
+def front_back_views(gravity: tuple[float, float, float] | None, angles: dict | None = None,
+                     fov: float = 100.0, travel=None) -> list[dict]:
+    """Two upright views looking along the horizon, front and back.
+
+    Front is the direction of travel measured from the accelerometer and GPS (`travel`,
+    from travel_direction), aimed along a tagged forward/back angle when that agrees within
+    30°; without it the tagged angle, then the camera lens. Back is straight behind front. With the camera's mean gravity
+    (sphere coordinates, pointing down) both are levelled, so they read correctly whatever way
+    up the camera was mounted. Without gravity they are plain yaw 0 / 180."""
+    if not gravity:
+        return [{"yaw": 0.0, "pitch": 0.0, "fov": fov, "roll": 0.0}, {"yaw": 180.0, "pitch": 0.0, "fov": fov, "roll": 0.0}]
+    gn = math.sqrt(sum(c * c for c in gravity)) or 1.0
+    d = tuple(c / gn for c in gravity)
+
+    def horizontal(v):
+        k = sum(a * b for a, b in zip(v, d))
+        h = tuple(a - k * b for a, b in zip(v, d))
+        n = math.sqrt(sum(c * c for c in h))
+        return tuple(c / n for c in h) if n > 0.15 else None
+
+    front = horizontal(_tagged_direction(angles, FRONT_NAMES, d) or (0.0, 0.0, 0.0))
+    if front is None:
+        back = horizontal(_tagged_direction(angles, BACK_NAMES, d) or (0.0, 0.0, 0.0))
+        front = tuple(-c for c in back) if back is not None else None
+    moving = horizontal(travel) if travel else None
+    if moving is not None:
+        # the measured direction of travel decides; a tagged axis within 30° of it is the better aim
+        if front is not None:
+            dot = sum(a * b for a, b in zip(front, moving))
+            front = (front if dot > 0 else tuple(-c for c in front)) if abs(dot) >= math.cos(math.radians(30)) else moving
+        else:
+            front = moving
+    if front is not None:  # back is always straight behind, along the bike
+        return [_level_view(front, d, fov), _level_view(tuple(-c for c in front), d, fov)]
+    ref = (0.0, 0.0, 1.0) if abs(d[2]) < 0.9 else (1.0, 0.0, 0.0)  # the lens axis, unless it points straight down/up
+    k = sum(a * b for a, b in zip(ref, d))
+    f = tuple(a - k * b for a, b in zip(ref, d))
+    fn = math.sqrt(sum(c * c for c in f)) or 1.0
+    f = tuple(c / fn for c in f)
+    return [_level_view(f, d, fov), _level_view(tuple(-c for c in f), d, fov)]
+
+
+def _level_view(fwd, down, fov: float) -> dict:
+    """The upright v360 view looking along horizontal `fwd` with `down` as down."""
+    d = down
+    right = (d[1] * fwd[2] - d[2] * fwd[1], d[2] * fwd[0] - d[0] * fwd[2], d[0] * fwd[1] - d[1] * fwd[0])
+    m = tuple(tuple((right, d, fwd)[col][row] for col in range(3)) for row in range(3))  # columns: right, down, forward
+    yaw, pitch, roll = v360_angles(m)  # type: ignore[arg-type]
+    return {"yaw": round(yaw, 3), "pitch": round(pitch, 3), "fov": fov, "roll": round(roll, 3)}
+
+
+# --------------------------------------------------------------------------
+# Direction of travel (which way along the ground is the bike's front)
+# --------------------------------------------------------------------------
+
+
+def _accl(path: Path, info: dict) -> tuple[list[float], list[tuple[float, float, float]]]:
+    """GoPro accelerometer samples (ACCL), in sphere coordinates (verified: same axes as CORI/GRAV)."""
+    index = gpmd_stream(info)
+    times: list[float] = []
+    values: list[tuple[float, float, float]] = []
+    if index is None:
+        return times, values
+    with open(path, "rb") as f:
+        for pts, dur, pos, size in _packets(path, index):
+            f.seek(pos)
+            buf = f.read(size)
+            for key, typ, _, _, data in klv(buf):
+                if key != "DEVC":
+                    continue
+                for skey, _, _, _, sdata in klv(data):
+                    if skey != "STRM":
+                        continue
+                    scal, rows = 1.0, None
+                    for k, t, sz, rep, d in klv(sdata):
+                        if k == "SCAL":
+                            scal = float((_values(t, sz, rep, d) or [1])[0]) or 1.0
+                        elif k == "ACCL" and t == "s" and sz == 6:
+                            rows = list(struct.iter_unpack(">3h", d[: rep * 6]))
+                    if rows:
+                        for i, (x, y, z) in enumerate(rows):
+                            times.append(pts + i * dur / len(rows))
+                            values.append((x / scal, y / scal, z / scal))
+    return times, values
+
+
+def travel_direction(path: Path, gravity, info: dict | None = None, min_corr: float = 0.2):
+    """The bike's forward direction along the ground (sphere coordinates), or None.
+
+    Speeding up and slowing down (GPS speed changes) show up in the accelerometer along
+    the direction of travel, with a sign: the horizontal direction whose acceleration
+    tracks the GPS dv/dt best is forward. Needs GPS and some changes of speed."""
+    from .telemetry import extract
+
+    if not gravity:
+        return None
+    info = info or ffprobe_json(path)
+    track = extract(path)
+    samples = (track or {}).get("samples") or []
+    if len(samples) < 30:
+        return None
+    ts = [s[0] for s in samples]
+    speed = [s[4] for s in samples]
+    dv = [(speed[i + 1] - speed[i - 1]) / max(ts[i + 1] - ts[i - 1], 1e-3) for i in range(1, len(ts) - 1)]
+    ts = ts[1:-1]
+    at, acc = _accl(path, info)
+    if len(at) < 200:
+        return None
+    gn = math.sqrt(sum(c * c for c in gravity))
+    d = tuple(c / gn for c in gravity)
+    ref = (0.0, 0.0, 1.0) if abs(d[2]) < 0.9 else (1.0, 0.0, 0.0)
+    k = sum(a * b for a, b in zip(ref, d))
+    e1 = tuple(a - k * b for a, b in zip(ref, d))
+    n1 = math.sqrt(sum(c * c for c in e1))
+    e1 = tuple(c / n1 for c in e1)
+    e2 = (d[1] * e1[2] - d[2] * e1[1], d[2] * e1[0] - d[0] * e1[2], d[0] * e1[1] - d[1] * e1[0])
+    # 1 s means of the two horizontal accelerometer components at each GPS sample
+    p1s = [0.0]
+    p2s = [0.0]
+    for v in acc:
+        p1s.append(p1s[-1] + sum(a * b for a, b in zip(v, e1)))
+        p2s.append(p2s[-1] + sum(a * b for a, b in zip(v, e2)))
+    rows = []
+    for t, g in zip(ts, dv):
+        lo, hi = bisect.bisect_left(at, t - 0.5), bisect.bisect_right(at, t + 0.5)
+        if hi - lo >= 20:
+            rows.append(((p1s[hi] - p1s[lo]) / (hi - lo), (p2s[hi] - p2s[lo]) / (hi - lo), g))
+    if len(rows) < 30:
+        return None
+
+    def corr(xs, ys):
+        mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+        sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+        sxx = sum((x - mx) ** 2 for x in xs)
+        syy = sum((y - my) ** 2 for y in ys)
+        return sxy / math.sqrt(sxx * syy) if sxx > 0 and syy > 0 else 0.0
+
+    gs = [r[2] for r in rows]
+    best, best_th = -1.0, 0.0
+    for step in range(72):
+        th = math.radians(step * 5)
+        c = corr([math.cos(th) * r[0] + math.sin(th) * r[1] for r in rows], gs)
+        if c > best:
+            best, best_th = c, th
+    if best < min_corr:
+        return None
+    return tuple(math.cos(best_th) * a + math.sin(best_th) * b for a, b in zip(e1, e2))

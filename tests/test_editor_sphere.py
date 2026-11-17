@@ -201,3 +201,32 @@ class SphereEditTransactionTests(unittest.TestCase):
             store.apply({"expected": again["revisions"], "origin": "manual", "reason": "bad", "operations": [
                 {"op": "set_field", "id": seg["id"], "path": "/path",
                  "value": [{"at": 0, "yaw": 0}, {"at": 0.05, "yaw": 10, "cut": True}]}]})
+
+
+@unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
+class SourceFrontBackTests(unittest.TestCase):
+    def test_360_source_proxy_shows_front_and_back(self):
+        from reels.editor.worker import _stat_identity, prepare_source_proxy
+
+        fixture = TempProject(self)
+        media = fixture.project.media_dir / "pano.mp4"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=512x256:rate=30:duration=2",
+                        "-c:v", "libx264", "-pix_fmt", "yuv420p", str(media)], check=True)  # fmt: skip
+        workspace = fixture.root / "ws"
+        workspace.mkdir()
+        job = {
+            "sourcePath": str(media), "sourceIdentity": _stat_identity(media), "sourceKind": "video",
+            "probe": {"duration": 2.0, "sphere": {"projection": "equirect", "width": 512, "height": 256}},
+            "revisionDir": str(workspace / "sources" / "fb"), "mediaRoot": str(fixture.project.media_dir),
+            "workspaceRoot": str(workspace), "assetId": "pano", "revisions": {"renderer": "r"}, "view": {},
+        }
+        result = prepare_source_proxy(job)
+        self.assertEqual((result["status"], result["layout"]), ("ready", "front-back"), result)
+        probe = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", result["path"]],
+                                          capture_output=True, text=True, check=True).stdout)
+        video = next(s for s in probe["streams"] if s["codec_type"] == "video")
+        self.assertEqual((video["width"], video["height"]), (1440, 1280))
+        marker = json.loads((workspace / "sources" / "fb" / "source.json").read_text())
+        self.assertEqual([v["yaw"] for v in marker["views"]], [0.0, 180.0])  # no gravity data: plain front/back
+        single = prepare_source_proxy({**job, "view": {"yaw": 90}, "revisionDir": str(workspace / "sources" / "one")})
+        self.assertEqual(single["layout"], "single")

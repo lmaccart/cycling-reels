@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		00A3627CE6E154E29390BC7C /* InspectorSchemaSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7428FC87929BDE57E2CFEC1 /* InspectorSchemaSupportTests.swift */; };
 		060B81885CE66D26FA655FDA /* SphereViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D09EE0962C7C5FF6C23E2F3 /* SphereViewer.swift */; };
+		08CD90455894E386F245A5F9 /* EditorStore+Flags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C9AE32D2B38815E4EC9D663 /* EditorStore+Flags.swift */; };
 		10C7A74033B7B2F5AB5579B8 /* UXPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 742C94E4DF78E1865BE6A48A /* UXPresentationTests.swift */; };
 		1290C528AF956681AB34D170 /* EditorOperationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 492085F9487856C3D07CC1DC /* EditorOperationTests.swift */; };
 		17ED6F6E7A21F1F0DE87E973 /* PreviewBridgeContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C4985573D277B58FF02AA0 /* PreviewBridgeContract.swift */; };
@@ -25,6 +26,7 @@
 		6B878737A22F21256DAE97A8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC77A5F4780F6E55DD51BE03 /* AppEnvironment.swift */; };
 		6D2035D52BB6766A142346D2 /* SphereAim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E52F15D85ACAF9EB0DEDC6 /* SphereAim.swift */; };
 		6E4EAB092C31F81838ED7301 /* TimelinePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9539EBB73468D7135AB2E87 /* TimelinePanel.swift */; };
+		74CC40CD4D9B8AA90D90C945 /* ClipFlagTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6F2D981B539145DB96B5A5B /* ClipFlagTests.swift */; };
 		7E2C46EE7F6177C54980FAD6 /* EditorStore+Tracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D9E017A9210B0237982CEC /* EditorStore+Tracks.swift */; };
 		86E38C69C4263D91A0E14D73 /* InspectorSchemaSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86D5BF0B4504F0FF2D5C5307 /* InspectorSchemaSupport.swift */; };
 		8B9A459B1451BC1B78245632 /* SphereAimPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EE1C683534511987217FF5B /* SphereAimPanel.swift */; };
@@ -67,6 +69,7 @@
 		0D09EE0962C7C5FF6C23E2F3 /* SphereViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereViewer.swift; sourceTree = "<group>"; };
 		0E7B2FAFB02DF745D8788327 /* SphereMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereMath.swift; sourceTree = "<group>"; };
 		12C1CCC02E779D3DAE84519C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1C9AE32D2B38815E4EC9D663 /* EditorStore+Flags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Flags.swift"; sourceTree = "<group>"; };
 		1E8E68321021C475128F87A0 /* ReelsEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReelsEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		26E3C70A95A3557A2C749875 /* EditorStore+Music.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorStore+Music.swift"; sourceTree = "<group>"; };
 		31C4985573D277B58FF02AA0 /* PreviewBridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewBridgeContract.swift; sourceTree = "<group>"; };
@@ -89,6 +92,7 @@
 		A64C3FA65A24DD65E7D641C3 /* SphereAimTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SphereAimTests.swift; sourceTree = "<group>"; };
 		A6D1F7FD4F69A4DE76BDE529 /* EditorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorService.swift; sourceTree = "<group>"; };
 		B0128F19EE04F4CD8B257246 /* MediaMonitors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaMonitors.swift; sourceTree = "<group>"; };
+		B6F2D981B539145DB96B5A5B /* ClipFlagTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipFlagTests.swift; sourceTree = "<group>"; };
 		B7428FC87929BDE57E2CFEC1 /* InspectorSchemaSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorSchemaSupportTests.swift; sourceTree = "<group>"; };
 		BCB15C3B99C2CEA2FDD51C09 /* OptimisticTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimisticTimeline.swift; sourceTree = "<group>"; };
 		BF0715F54C9153218C6048C7 /* ReelsEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReelsEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -119,6 +123,7 @@
 				0AB78B999DBE7CCCA6AEF46A /* EditorOperations.swift */,
 				A6D1F7FD4F69A4DE76BDE529 /* EditorService.swift */,
 				C312C20309FAA0C382EA1BA1 /* EditorStore.swift */,
+				1C9AE32D2B38815E4EC9D663 /* EditorStore+Flags.swift */,
 				26E3C70A95A3557A2C749875 /* EditorStore+Music.swift */,
 				5264BF8BCCFA857B890DAFED /* EditorStore+Schedule.swift */,
 				D7D9E017A9210B0237982CEC /* EditorStore+Tracks.swift */,
@@ -166,6 +171,7 @@
 		E711DDFA46F364A4B56C550F /* ReelsEditorTests */ = {
 			isa = PBXGroup;
 			children = (
+				B6F2D981B539145DB96B5A5B /* ClipFlagTests.swift */,
 				9AC261352427B10DE38523B2 /* EditorModelTests.swift */,
 				492085F9487856C3D07CC1DC /* EditorOperationTests.swift */,
 				E9A15B4061D53DB60EC70595 /* EditorUXHelpersTests.swift */,
@@ -269,6 +275,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				74CC40CD4D9B8AA90D90C945 /* ClipFlagTests.swift in Sources */,
 				EBD2FC7A3E296DB480FF8670 /* EditorModelTests.swift in Sources */,
 				1290C528AF956681AB34D170 /* EditorOperationTests.swift in Sources */,
 				A171CF4D86E12BB7111DD94E /* EditorUXHelpersTests.swift in Sources */,
@@ -293,6 +300,7 @@
 				9DD3709154F919B8CB1CD118 /* EditorAppDelegate.swift in Sources */,
 				C08A91727A7EC1BC1FFB6F94 /* EditorOperations.swift in Sources */,
 				5538B3811C385061A9001AE8 /* EditorService.swift in Sources */,
+				08CD90455894E386F245A5F9 /* EditorStore+Flags.swift in Sources */,
 				DB69077274011B641AC15C11 /* EditorStore+Music.swift in Sources */,
 				B64505FC0D612340BD9BD734 /* EditorStore+Schedule.swift in Sources */,
 				7E2C46EE7F6177C54980FAD6 /* EditorStore+Tracks.swift in Sources */,

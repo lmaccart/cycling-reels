@@ -90,7 +90,25 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
   Undo/redo covers both manual and Claude changes. Failed edits leave the last
   committed revision intact.
 - Source video uses AVFoundation; still photos are images. Unsupported formats
-  and 360 media use private proxies. Preparing a full 360 source can be expensive.
+  and 360 media use private proxies.
+- A 360 clip in Source shows **Front** and **Back** side by side, both level with
+  the horizon. Front is the direction of travel, measured from the camera's
+  accelerometer against GPS speed changes, so it works whichever way the camera
+  was mounted; clips without GPS use their tagged angles, then the lens. The
+  first open of a long clip takes a few minutes (about half its length); after
+  that it's cached. Mark In/Out as usual, then **Aim 360°** on the timeline to
+  pick the exact angle.
+
+### Flagging clips
+
+- In the Source monitor, **Flag** marks the selected clip to come back to: the
+  In–Out range (In + 5 s when only In is set, the whole clip when neither is),
+  with an optional note.
+- Flags appear under **Flagged** at the top of the Footage list (and a small
+  flag on the clip's row). Click one to open it in Source with its range marked
+  In/Out; right-click to edit the note or remove it.
+- Flags live in `flags.json`, shared with `./reels flag` / `./reels flags` and
+  Claude Code. They never change footage, tags or plans.
 
 ### Aiming 360 clips
 

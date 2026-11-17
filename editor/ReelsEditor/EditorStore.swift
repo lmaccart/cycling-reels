@@ -32,6 +32,7 @@ final class EditorStore {
     @ObservationIgnored var editTail: Task<Void, Never>?
     var plans: [JSONValue] = []
     var library: [JSONValue] = []
+    var flags: [ClipFlag] = []
     var searchHits: [SearchHit] = []
     var selectedIDs: Set<String> = []
     var recentlyChangedIDs: Set<String> = []
@@ -39,6 +40,8 @@ final class EditorStore {
     var selectedAsset: JSONValue?
     var timelineSourceURLs: [String: URL] = [:]
     var sourceStates: [String: String] = [:]
+    /// "front-back" when an asset's Source proxy shows level front and back 360 views side by side.
+    var sourceLayouts: [String: String] = [:]
     var playheadFrame = 0
     var seekGeneration = 0
     private var isScrubbing = false
@@ -246,6 +249,7 @@ final class EditorStore {
                 workspaceInfo = try await service.call("workspace.info")
                 syncPermissions(from: workspaceInfo)
                 loadLibrary()
+                loadFlags()
                 await refreshPlans()
                 importer.refreshInbox()
                 if let launchPlanPath, !launchPlanPath.isEmpty {
@@ -1353,6 +1357,7 @@ final class EditorStore {
                     } else {
                         sourceStates[id] = "pending"
                         let result = try await service.call("source.prepare", params: .object(["id": .string(id)]))
+                        if let layout = result["layout"]?.stringValue { sourceLayouts[id] = layout }
                         if let url = Self.registeredURL(from: result) {
                             timelineSourceURLs[id] = url
                             sourceStates[id] = "ready"
@@ -1374,6 +1379,7 @@ final class EditorStore {
                     if type.contains("360") || asset["is360"]?.boolValue == true {
                         sourceStates[id] = "pending"
                         let result = try await service.call("source.prepare", params: .object(["id": .string(id)]))
+                        if let layout = result["layout"]?.stringValue { sourceLayouts[id] = layout }
                         if let url = Self.registeredURL(from: result) {
                             timelineSourceURLs[id] = url
                             sourceStates[id] = "ready"
@@ -1384,6 +1390,7 @@ final class EditorStore {
                     } else {
                         sourceStates[id] = "pending"
                         let result = try await service.call("source.prepare", params: .object(["id": .string(id)]))
+                        if let layout = result["layout"]?.stringValue { sourceLayouts[id] = layout }
                         if let url = Self.registeredURL(from: result) {
                             timelineSourceURLs[id] = url
                             sourceStates[id] = "ready"
@@ -1536,6 +1543,7 @@ final class EditorStore {
             let assetID = payload["assetId"]?.stringValue ?? payload["id"]?.stringValue
             let url = Self.registeredURL(from: payload["asset"] ?? payload)
             if let assetID {
+                if let layout = payload["layout"]?.stringValue { sourceLayouts[assetID] = layout }
                 if let url { timelineSourceURLs[assetID] = url; sourceStates[assetID] = "ready" }
                 else { sourceStates[assetID] = "error" }
                 if assetID == selectedAssetID, let asset = payload["asset"] { selectedAsset = asset }
@@ -1559,8 +1567,11 @@ final class EditorStore {
             music.handleSearchResults(payload)
         } else if name == "plans.changed" {
             Task { await refreshPlans() }
+        } else if name == "flags.changed" {
+            receiveFlags(payload)
         } else if name == "library.changed" {
             loadLibrary()
+            loadFlags()
             Task { await refreshPlans() }
             importer.refreshInbox()
         } else if name.hasPrefix("job.") {

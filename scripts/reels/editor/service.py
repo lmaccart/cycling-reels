@@ -420,6 +420,35 @@ class EditorService:
             result.pop(key, None)
         return result
 
+    def _flags(self, method: str, params: dict) -> dict:
+        """Flagged clips (flags.json): list, add, change the note, remove."""
+        from .. import flags
+        from ..util import ReelsError
+
+        try:
+            if method == "flags.add":
+                aid = self._require_asset_id(params.get("asset"))
+                def seconds(key):
+                    value = params.get(key)
+                    if value is None:
+                        return None
+                    value = float(value)
+                    if not math.isfinite(value):
+                        raise ReelsError(f"{key} must be a number of seconds")
+                    return value
+                changed = flags.add(self.project, aid, seconds("in"), seconds("out"), str(params.get("note") or ""))
+            elif method == "flags.update":
+                changed = flags.update(self.project, str(params.get("id") or ""), params.get("note"))
+            elif method == "flags.remove":
+                changed = flags.unflag(self.project, str(params.get("id") or ""))
+            else:
+                return {"flags": flags.load(self.project)}
+        except (ReelsError, TypeError, ValueError) as exc:
+            raise ProtocolError("invalid_flag", str(exc))
+        listing = flags.load(self.project)
+        self.emit("flags.changed", {"flags": listing}, self.current_revisions() if self.document is not None else {})
+        return {"flag": changed, "flags": listing}
+
     def _sphere_camera(self, node_id: str) -> dict:
         """A 360 clip's camera resolved to numbers: named angles, the moment's view and a
         split segment's camera window become plain yaw/pitch/fov/roll keyframes in
@@ -811,6 +840,8 @@ class EditorService:
                 return result
             self.jobs.cancel_kind("source")
             return self.jobs.submit("source", revisions, lambda ctx: manager.prepare_source(aid, view=params.get("view"), context=ctx), publish_source)
+        if method in ("flags.list", "flags.add", "flags.update", "flags.remove"):
+            return self._flags(method, params)
         if method == "sphere.camera":
             return self._sphere_camera(str(params.get("id") or ""))
         if method == "sphere.prepare":

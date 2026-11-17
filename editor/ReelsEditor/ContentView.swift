@@ -309,11 +309,22 @@ private struct LibraryPane: View {
             get: { store.selectedAssetID },
             set: { id in if let id, let item = store.library.first(where: { $0["id"]?.stringValue == id }) { store.selectAsset(item) } }
         )) {
-            ForEach(Array(store.library.enumerated()), id: \.offset) { _, item in
-                let id = item["id"]?.stringValue ?? UUID().uuidString
-                AssetRow(item: item, root: store.repositoryRoot)
-                    .tag(id)
-                    .draggable(id)
+            if !store.flags.isEmpty {
+                Section("Flagged") {
+                    ForEach(store.flags) { flag in
+                        FlagRow(store: store, flag: flag)
+                    }
+                }
+            }
+            Section {
+                ForEach(Array(store.library.enumerated()), id: \.offset) { _, item in
+                    let id = item["id"]?.stringValue ?? UUID().uuidString
+                    AssetRow(item: item, root: store.repositoryRoot, flagged: store.isFlagged(assetID: item["id"]?.stringValue))
+                        .tag(id)
+                        .draggable(id)
+                }
+            } header: {
+                if !store.flags.isEmpty { Text("Clips") }
             }
         }
         .listStyle(.sidebar)
@@ -334,7 +345,7 @@ private struct LibraryPane: View {
                 Section("Clips") {
                     ForEach(Array(clips.prefix(50).enumerated()), id: \.offset) { _, item in
                         let id = item["id"]?.stringValue ?? UUID().uuidString
-                        AssetRow(item: item, root: store.repositoryRoot).tag(id).draggable(id)
+                        AssetRow(item: item, root: store.repositoryRoot, flagged: store.isFlagged(assetID: item["id"]?.stringValue)).tag(id).draggable(id)
                     }
                 }
             }
@@ -428,9 +439,106 @@ enum PlanRowSummary {
     }
 }
 
+/// A flagged range in the Library: click to open it in Source with In/Out marked.
+private struct FlagRow: View {
+    @Bindable var store: EditorStore
+    let flag: ClipFlag
+    @State private var editing = false
+    @State private var draft = ""
+
+    private var asset: JSONValue? { store.library.first { $0["id"]?.stringValue == flag.asset } }
+
+    var body: some View {
+        Button { store.openFlag(flag) } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "flag.fill")
+                    .foregroundStyle(EditorPalette.warning)
+                    .font(.system(size: 11))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(flag.note ?? asset.map(AssetPresentation.title) ?? flag.asset)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(2)
+                    Text([flag.range, asset.map(AssetPresentation.title).flatMap { flag.note == nil ? nil : $0 } ?? flag.asset]
+                        .compactMap { $0 }.joined(separator: " · "))
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Open in Source with this range marked")
+        .contextMenu {
+            Button("Edit note…") { draft = flag.note ?? ""; editing = true }
+            Button("Remove flag", role: .destructive) { store.removeFlag(flag) }
+        }
+        .popover(isPresented: $editing) {
+            FlagNoteEditor(title: "Flag note", note: $draft, confirm: "Save") {
+                store.renameFlag(flag, note: draft)
+                editing = false
+            }
+        }
+        .accessibilityLabel("Flagged clip \(flag.note ?? flag.asset)")
+    }
+}
+
+/// The Source monitor's Flag button: flags the marked range (In–Out, In + 5 s, or the whole clip).
+private struct FlagSourceButton: View {
+    @Bindable var store: EditorStore
+    @State private var asking = false
+    @State private var note = ""
+
+    var body: some View {
+        Button { note = ""; asking = true } label: {
+            Label("Flag", systemImage: "flag")
+        }
+        .disabled(store.selectedAssetID == nil)
+        .help("Flag this clip (the marked In–Out range) to come back to")
+        .popover(isPresented: $asking) {
+            FlagNoteEditor(title: flagTitle, note: $note, confirm: "Flag") {
+                store.flagSource(note: note)
+                asking = false
+            }
+        }
+    }
+
+    private var flagTitle: String {
+        if store.selectedAssetIsPhoto { return "Flag this photo" }
+        let range = store.sourceFlagRange
+        guard let a = range.in, let b = range.out else { return "Flag the whole clip" }
+        return "Flag \(TimeFormat.precise(a))–\(TimeFormat.precise(b))"
+    }
+}
+
+private struct FlagNoteEditor: View {
+    let title: String
+    @Binding var note: String
+    let confirm: String
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(EditorType.section)
+            TextField("Note (optional)", text: $note)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 240)
+                .onSubmit(action)
+            HStack {
+                Spacer()
+                Button(confirm, action: action).keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(12)
+    }
+}
+
 private struct AssetRow: View {
     let item: JSONValue
     var root: URL?
+    var flagged = false
 
     private var detail: String {
         AssetPresentation.detailParts(item, currentYear: Calendar.current.component(.year, from: Date()))
@@ -445,6 +553,12 @@ private struct AssetRow: View {
                     .font(.system(size: 11, weight: .medium))
                     .lineLimit(2)
                 HStack(spacing: 4) {
+                    if flagged {
+                        Image(systemName: "flag.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(EditorPalette.warning)
+                            .help("Flagged")
+                    }
                     if AssetPresentation.hasTranscript(item) {
                         Image(systemName: "text.bubble")
                             .font(.system(size: 9))
@@ -745,6 +859,7 @@ private struct MonitorPanel: View {
     @ViewBuilder
     private func monitorActions(source: Bool) -> some View {
         if source {
+            FlagSourceButton(store: store)
             Button { store.insertFromSource() } label: {
                 Label("Insert", systemImage: "arrow.down.to.line")
             }
