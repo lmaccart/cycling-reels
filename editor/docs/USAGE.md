@@ -144,9 +144,12 @@ what renders.
 - While the panel is open it follows the timeline: selecting another 360 clip
   aims that one, and with nothing selected it aims the 360 clip under the
   playhead. Splitting a selected clip moves selection and aim to the new right
-  piece when the playhead is there. Split playback retains the original path's
-  easing intervals and hard cuts; bounded start/end keys are editing handles,
-  not a replacement playback path.
+  piece when the playhead is there. Undo/redo restores the corresponding selection
+  and aim target. Clearing the selection keeps playhead-following active across
+  aim edits and refreshes. Split playback retains the original path's easing
+  intervals and hard cuts; bounded start/end keys are editing handles, not a
+  replacement playback path.
+  Editable key times use the compiler's millisecond grid and 100 ms minimum gap.
   Aim edits preserve the source camera window, including when clearing old
   angle overrides. Deleting an endpoint key holds the nearest remaining pose.
   Tiny-planet paths interpolate after applying their fixed downward pitch.

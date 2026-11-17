@@ -170,31 +170,75 @@ final class SphereAimTests: XCTestCase {
         XCTAssertNil(target([], 200))
     }
 
-    func testSelectedClipSplitMovesSelectionAndAimToRightPiece() throws {
-        func snapshot(_ nodes: [EditorNode]) throws -> EditorSnapshot {
-            let rawNodes = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(nodes))
-            return try XCTUnwrap(EditorSnapshot.decode(.object([
-                "documentId": .string("split-doc"),
-                "revisions": .object(["document": .string("d"), "library": .string("l"), "renderer": .string("r")]),
-                "plan": .object([:]), "nodes": rawNodes, "fps": .number(30), "durationFrames": .number(180),
-                "warnings": .array([]), "preview": .object([:]),
-            ])))
-        }
+    private func snapshot(_ nodes: [EditorNode], revision: String = "d") throws -> EditorSnapshot {
+        let rawNodes = try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(nodes))
+        return try XCTUnwrap(EditorSnapshot.decode(.object([
+            "documentId": .string("split-doc"),
+            "revisions": .object(["document": .string(revision), "library": .string("l"), "renderer": .string("r")]),
+            "plan": .object([:]), "nodes": rawNodes, "fps": .number(30),
+            "durationFrames": .number(Double(nodes.map(\.endFrame).max() ?? 0)),
+            "warnings": .array([]), "preview": .object([:]),
+        ])))
+    }
+
+    func testAimEditRefreshKeepsEmptySelectionAndLaterClip() throws {
         let store = EditorStore()
         store.library = [.object(["id": .string("a360"), "kind": .string("video"),
                                    "probe": .object(["sphere": .object([:])])])]
-        store.snapshot = try snapshot([node("selected", "segment", "a360", 0, 180)])
+        let first = node("first", "segment", "a360", 0, 90)
+        var later = node("later", "segment", "a360", 90, 270)
+        store.acceptRefreshedSnapshot(try snapshot([first, later]))
+        XCTAssertEqual(store.selectedIDs, ["first"])  // initial document selection remains
+        store.selectedIDs = []
+        store.playheadFrame = 135
+        store.sphereAim.isActive = true
+        store.sphereAim.boundNodeID = "later"
+        store.sphereAim.testingSetCamera(try XCTUnwrap(SphereAimModel.parseCamera(cameraJSON(), nodeID: "later")))
+        let edits = store.sphereAim.operationsForAim(SphereView(yaw: 35, pitch: 10, fov: 80, roll: 0),
+                                                   atLocal: 1.5, fps: 30, raw: later.raw)
+        XCTAssertEqual(edits.last?["id"]?.stringValue, "later")
+        later.raw = later.raw.setting(try XCTUnwrap(ops(edits)["/view"]), at: ["view"])
+        store.acceptRefreshedSnapshot(try snapshot([first, later], revision: "aim-edit"))
+        XCTAssertTrue(store.selectedIDs.isEmpty)
+        XCTAssertFalse(store.followSphereAim())
+        XCTAssertEqual(store.sphereAim.boundNodeID, "later")
+        XCTAssertEqual(store.sphereAim.node(in: store)?.raw["view"]?["yaw"]?.numberValue, 35)
+        XCTAssertEqual(store.playheadFrame, 135)
+        store.sphereAim.close()
+    }
+
+    func testSelectedClipSplitMovesSelectionAndAimToRightPiece() throws {
+        let store = EditorStore()
+        store.library = [.object(["id": .string("a360"), "kind": .string("video"),
+                                   "probe": .object(["sphere": .object([:])])])]
+        let merged = try snapshot([node("earlier", "segment", "a360", 0, 90),
+                                   node("selected", "segment", "a360", 90, 270)])
+        let split = try snapshot([node("earlier", "segment", "a360", 0, 90),
+                                  node("selected", "segment", "a360", 90, 180),
+                                  node("new-right", "segment", "a360", 180, 270)], revision: "split")
+        store.snapshot = merged
         store.selectedIDs = ["selected"]
-        store.playheadFrame = 90
+        store.playheadFrame = 180
         store.sphereAim.isActive = true
         store.sphereAim.boundNodeID = "selected"
         // The ordinary split response keeps the selected ID on the left.
-        store.snapshot = try snapshot([node("selected", "segment", "a360", 0, 90),
-                                       node("new-right", "segment", "a360", 90, 180)])
+        store.snapshot = split
         XCTAssertEqual(store.selectedIDs, ["new-right"])
-        XCTAssertTrue(store.followSphereAim())
         XCTAssertEqual(store.sphereAim.boundNodeID, "new-right")
-        XCTAssertEqual(store.playheadFrame, 90)
+        XCTAssertEqual(store.playheadFrame, 180)
+        // Undo removes the right ID and restores the merged clip, not the first clip.
+        store.snapshot = merged
+        XCTAssertEqual(store.selectedIDs, ["selected"])
+        XCTAssertEqual(store.sphereAim.boundNodeID, "selected")
+        XCTAssertEqual(store.playheadFrame, 180)
+        // A refresh after undo must not substitute a default selection.
+        store.acceptRefreshedSnapshot(merged)
+        XCTAssertEqual(store.selectedIDs, ["selected"])
+        // Redo retains the left ID again; the selected piece follows the playhead.
+        store.snapshot = split
+        XCTAssertEqual(store.selectedIDs, ["new-right"])
+        XCTAssertEqual(store.sphereAim.boundNodeID, "new-right")
+        XCTAssertEqual(store.playheadFrame, 180)
         store.sphereAim.close()
     }
 }

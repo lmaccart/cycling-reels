@@ -26,7 +26,7 @@ final class EditorStore {
     var snapshot: EditorSnapshot? {
         didSet {
             if let oldValue, let snapshot, oldValue.documentId == snapshot.documentId {
-                followSphereAimAfterSplit(previous: oldValue.nodes, next: snapshot.nodes)
+                reconcileSphereAimSelection(previous: oldValue.nodes, next: snapshot.nodes)
             }
         }
     }
@@ -405,9 +405,7 @@ final class EditorStore {
             let value = try await service.call("document.snapshot")
             syncPermissions(from: value)
             if let next = EditorSnapshot.decode(value) {
-                authoritativeSnapshot = next
-                snapshot = withPendingPredictions(next)
-                inspectorSchema = next.inspectorSchema ?? inspectorSchema
+                acceptRefreshedSnapshot(next)
                 if next.preview["state"]?.stringValue == "ready" {
                     previewManifest = next.preview
                     NotificationCenter.default.post(name: .reelsEditorPreviewReady, object: next.preview)
@@ -415,17 +413,6 @@ final class EditorStore {
                 requestTimelineMedia(next.nodes.compactMap(\.assetId))
                 displayedPreviewRevision = next.preview["documentRevision"]?.stringValue
                     ?? next.preview["revision"]?.stringValue
-                playheadFrame = min(playheadFrame, next.durationFrames)
-                selectedIDs.formIntersection(Set(next.nodes.map(\.id)))
-                if selectedIDs.isEmpty,
-                   let firstPrimary = next.nodes.first(where: { $0.kind.lowercased() == "segment" }) {
-                    selectNode(firstPrimary.id)
-                    if let assetID = firstPrimary.assetId {
-                        let asset = library.first(where: { $0["id"]?.stringValue == assetID })
-                            ?? .object(["id": .string(assetID)])
-                        selectAsset(asset)
-                    }
-                }
                 await loadInspectorSchema(for: selectedNode?.id ?? "project")
                 NotificationCenter.default.post(name: .reelsEditorDocumentReady, object: nil)
                 if ProcessInfo.processInfo.arguments.contains("--capture-window"),

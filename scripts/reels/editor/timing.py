@@ -190,9 +190,21 @@ def window_piece_keys(window_path: list, offset: float, seconds: float, *, proje
         return []
     keys = _slice_keys(window_path, offset, offset + seconds, rebase=True, projection=projection)
     first, *inner, last = keys
-    last["at"] = round(seconds, 6)
-    inner = [k for k in inner if MIN_KEY_GAP <= k["at"] <= seconds - MIN_KEY_GAP]
-    return [first, *inner, last]
+    last["at"] = round(seconds, 3)
+    if last["at"] > seconds:
+        last["at"] = round(last["at"] - 0.001, 3)
+    end_ms = round(last["at"] * 1000)
+    kept = [first]
+    previous_ms = 0
+    for key in inner:
+        key["at"] = round(key["at"], 3)
+        at_ms = round(key["at"] * 1000)
+        # Match plan_camera after millisecond rounding, including inner gaps
+        # which can shrink when shifted from the source window.
+        if at_ms - previous_ms >= 100 and end_ms - at_ms >= 100:
+            kept.append(key)
+            previous_ms = at_ms
+    return [*kept, last]
 
 
 def _key_times(path: list, duration: float) -> list:

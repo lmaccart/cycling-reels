@@ -427,7 +427,7 @@ def plan_camera(
                     errors.append(f"{w}: cut must be true or false")
                 keys.append(key)
             keys.sort(key=lambda x: x["at"])
-            if any(b["at"] - a["at"] < 0.1 for a, b in zip(keys, keys[1:])):
+            if any(round(b["at"] * 1000) - round(a["at"] * 1000) < 100 for a, b in zip(keys, keys[1:])):
                 errors.append(f"{where}: path keyframes need to be at least 0.1 s apart")
             path = keys
     from .stabilize import parse_setting

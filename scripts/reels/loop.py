@@ -30,14 +30,18 @@ def _view_at_end(sg, fps: int) -> dict | None:
     sph = sg.spec.get("sphere")
     if not sph:
         return None
-    return path_value(sph["path"], (sg.frames - 1) / fps, sph["projection"]) if sph["path"] else sph["view"]
+    keys = sph["path"] or [{"at": 0, **sph["view"]}]
+    return path_value(keys, (sg.frames - 1) / fps, sph["projection"])
 
 
 def _view_at_start(sg) -> dict | None:
+    from .sphere import path_value
+
     sph = sg.spec.get("sphere")
     if not sph:
         return None
-    return sph["path"][0] if sph["path"] else sph["view"]
+    keys = sph["path"] or [{"at": 0, **sph["view"]}]
+    return path_value(keys, 0, sph["projection"])
 
 
 def swap_halves(segs: list, fps: int) -> tuple[bool, str]:
