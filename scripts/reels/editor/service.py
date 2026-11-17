@@ -322,7 +322,7 @@ class EditorService:
         index = self.index()
         if self._search is None:
             from .search import SearchCoordinator
-            self._search = SearchCoordinator(index, semantic_runner=self.claude.search, emit=self._search_event)
+            self._search = SearchCoordinator(index, semantic_runner=None, emit=self._search_event)
         return self._search
 
     def _search_event(self, *args, **kwargs):

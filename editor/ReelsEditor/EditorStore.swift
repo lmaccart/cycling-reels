@@ -34,6 +34,8 @@ final class EditorStore {
     var library: [JSONValue] = []
     var flags: [ClipFlag] = []
     var searchHits: [SearchHit] = []
+    /// True from submitting a non-empty query until its first results event (or an error).
+    var searchInFlight = false
     var selectedIDs: Set<String> = []
     var recentlyChangedIDs: Set<String> = []
     var selectedAssetID: String?
@@ -48,7 +50,6 @@ final class EditorStore {
     var sourceIn: Double?
     var sourceOut: Double?
     var searchText = ""
-    var semanticSearchPending = false
     var notice: String? {
         didSet {
             noticeTask?.cancel()
@@ -1310,16 +1311,13 @@ final class EditorStore {
         semanticGeneration += 1
         expectedSearchFilterHash = nil
         let generation = semanticGeneration
-        Task {
-            _ = try? await service.call("search.cancel", params: .object(["generation": .number(Double(generation - 1))]))
-        }
         guard !query.isEmpty else {
             searchHits = []
-            semanticSearchPending = false
+            searchInFlight = false
             loadLibrary()
             return
         }
-        semanticSearchPending = false
+        searchInFlight = true
         searchTask = Task {
             do {
                 let result = try await service.call("search.query", params: .object([
@@ -1334,13 +1332,9 @@ final class EditorStore {
                 searchHits = Self.hits(from: result, related: false, keys: ["matches", "regexRows", "results"])
             } catch {
                 guard generation == semanticGeneration else { return }
+                searchInFlight = false
                 errorMessage = error.localizedDescription
             }
-            do {
-                try await Task.sleep(for: .milliseconds(600))
-                guard !Task.isCancelled, generation == semanticGeneration else { return }
-                semanticSearchPending = true
-            } catch { return }
         }
     }
 
@@ -1501,6 +1495,7 @@ final class EditorStore {
                let expectedSearchFilterHash, eventFilterHash != expectedSearchFilterHash { return }
             switch payload["type"]?.stringValue {
             case "regex":
+                searchInFlight = false
                 searchHits = Self.hits(from: payload, related: false, keys: ["matches", "regexRows"])
             case "semantic":
                 let regex = Self.hits(from: payload, related: false, keys: ["regexRows"])
@@ -1508,16 +1503,14 @@ final class EditorStore {
                 let related = Self.hits(from: payload, related: true, keys: ["relatedRows"])
                 let enriched = Self.hits(from: payload, related: true, keys: ["enrichedRows"])
                 searchHits = Self.merge(Self.merge(searchHits, related: related), related: enriched)
-                semanticSearchPending = false
             case "semanticError":
-                semanticSearchPending = false
                 notice = Self.errorMessage(from: payload, fallback: "Related search unavailable; local matches remain.")
             default:
                 break
             }
         } else if name.hasPrefix("search.") {
             if name.contains("error") {
-                semanticSearchPending = false
+                searchInFlight = false
                 notice = Self.errorMessage(from: payload, fallback: "Search failed.")
             }
         } else if name.hasPrefix("preview.") {
