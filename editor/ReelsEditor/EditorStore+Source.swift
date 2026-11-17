@@ -12,7 +12,7 @@ struct SourcePreparation {
         case failed
         case timedOut
         case cancelled
-        /// No word about the job for longer than the service's own deadline plus `grace`.
+        /// A status check could not find a live job within its execution deadline plus `grace`.
         case lost
     }
 
@@ -65,10 +65,24 @@ struct SourcePreparation {
         }
     }
 
-    /// How long to wait for a job's event, counted from the reply or its latest job.changed.
+    /// Execution budget plus time for the service to publish its terminal event.
     static func patience(serverTimeout: Double?) -> TimeInterval {
         let server = serverTimeout.flatMap { $0 > 0 ? $0 : nil } ?? defaultServerTimeout
         return server + grace
+    }
+
+    /// Queued work has no execution deadline. Poll it without spending a retry; once running,
+    /// use the server's start time, never the acknowledgement or latest progress event.
+    static func watchdogDelay(for job: JSONValue, now: TimeInterval = Date().timeIntervalSince1970) -> TimeInterval {
+        switch job["state"]?.stringValue {
+        case "queued":
+            return grace
+        case "running":
+            guard let started = job["started"]?.numberValue else { return grace }
+            return max(0, started + patience(serverTimeout: job["timeoutSeconds"]?.numberValue) - now)
+        default:
+            return 0  // Read back a terminal record immediately if its source event was missed.
+        }
     }
 
     /// A new request for the asset; returns its attempt number.
@@ -156,7 +170,7 @@ extension EditorStore {
                 return
             case .waiting:
                 armSourceWatchdog(assetID, jobID: jobID,
-                                  after: SourcePreparation.patience(serverTimeout: job["timeoutSeconds"]?.numberValue))
+                                  after: SourcePreparation.watchdogDelay(for: job))
             case .ended(let outcome, let message):
                 finishSource(assetID, outcome, message: message)
             }
@@ -180,13 +194,38 @@ extension EditorStore {
         finishSource(assetID, outcome, message: message)
     }
 
-    /// job.changed for a source job: the service is still on it, so the wait starts over.
+    /// Progress can reveal when execution started, but must not extend its deadline.
     func sourceJobChanged(_ payload: JSONValue) {
         guard let jobID = payload["id"]?.stringValue,
               let assetID = sourcePreparation.asset(forJob: jobID),
               ["queued", "running"].contains(payload["state"]?.stringValue ?? "") else { return }
         armSourceWatchdog(assetID, jobID: jobID,
-                          after: SourcePreparation.patience(serverTimeout: payload["timeoutSeconds"]?.numberValue))
+                          after: SourcePreparation.watchdogDelay(for: payload))
+    }
+
+    /// Reconcile a fresh job.status response before declaring a source lost.
+    func reconcileSourceJob(_ assetID: String, job: JSONValue, now: TimeInterval = Date().timeIntervalSince1970) {
+        guard let jobID = job["id"]?.stringValue,
+              sourcePreparation.job(for: assetID) == jobID else { return }
+        let delay = SourcePreparation.watchdogDelay(for: job, now: now)
+        if delay > 0 {
+            armSourceWatchdog(assetID, jobID: jobID, after: delay)
+            return
+        }
+        if job["state"]?.stringValue == "completed", let result = job["result"] {
+            let name = (result["status"]?.stringValue ?? "ready") == "ready" ? "source.ready" : "source.unavailable"
+            receiveSource(name: name, payload: result, url: Self.registeredURL(from: result["asset"] ?? result))
+            return
+        }
+        let outcome: SourcePreparation.Outcome
+        switch job["state"]?.stringValue {
+        case "failed": outcome = .failed
+        case "cancelled": outcome = .cancelled
+        case "timed_out": outcome = .timedOut
+        default: outcome = .lost
+        }
+        finishSource(assetID, outcome, message: job["error"]?["message"]?.stringValue
+                     ?? "The editing service stopped answering about this source.")
     }
 
     private func finishSource(_ assetID: String, _ outcome: SourcePreparation.Outcome, message: String?) {
@@ -215,7 +254,15 @@ extension EditorStore {
         sourceWatchdogs[assetID] = Task { [weak self] in
             try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled, let self, self.sourcePreparation.job(for: assetID) == jobID else { return }
-            self.finishSource(assetID, .lost, message: "The editing service stopped answering about this source.")
+            do {
+                let job = try await self.service.call("job.status", params: .object(["id": .string(jobID)]))
+                // An event may have finished this job or replaced this watchdog while the RPC was in flight.
+                guard !Task.isCancelled, self.sourcePreparation.job(for: assetID) == jobID else { return }
+                self.reconcileSourceJob(assetID, job: job)
+            } catch {
+                guard !Task.isCancelled, self.sourcePreparation.job(for: assetID) == jobID else { return }
+                self.finishSource(assetID, .lost, message: error.localizedDescription)
+            }
         }
     }
 }

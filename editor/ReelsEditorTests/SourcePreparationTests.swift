@@ -107,4 +107,88 @@ final class SourcePreparationTests: XCTestCase {
         XCTAssertGreaterThan(SourcePreparation.patience(serverTimeout: nil), SourcePreparation.defaultServerTimeout)
         XCTAssertEqual(SourcePreparation.patience(serverTimeout: 0), SourcePreparation.patience(serverTimeout: nil))
     }
+
+    @MainActor
+    func testQueueWaitDoesNotSpendRetriesAndTheSourceStillBecomesReady() {
+        let store = EditorStore()
+        defer { store.sourceWatchdogs.values.forEach { $0.cancel() } }
+        let attempt = store.sourcePreparation.requested("a")
+        XCTAssertEqual(store.sourcePreparation.accepted("a", attempt: attempt, jobID: "job-1"), .waiting)
+        store.sourceStates["a"] = "pending"
+        let queued: JSONValue = .object([
+            "id": .string("job-1"), "state": .string("queued"),
+            "created": .number(1_000), "timeoutSeconds": .number(20)
+        ])
+        // Each status check is later than another entire execution budget plus grace.
+        // Previously these waits exhausted all three attempts while joining the same queued job.
+        for check in 1...SourcePreparation.maxAttempts + 1 {
+            let now = 1_000 + Double(check) * SourcePreparation.patience(serverTimeout: 20)
+            store.reconcileSourceJob("a", job: queued, now: now)
+            XCTAssertEqual(store.sourceStates["a"], "pending")
+            XCTAssertEqual(store.sourcePreparation.attempts["a"], 1)
+            XCTAssertEqual(store.sourcePreparation.job(for: "a"), "job-1")
+        }
+        let running: JSONValue = .object([
+            "id": .string("job-1"), "state": .string("running"),
+            "created": .number(1_000), "started": .number(10_000), "timeoutSeconds": .number(20)
+        ])
+        store.reconcileSourceJob("a", job: running, now: 10_019)
+        XCTAssertEqual(store.sourceStates["a"], "pending")
+        XCTAssertEqual(store.sourcePreparation.attempts["a"], 1)
+        // Recover the published result even if the source.ready event did not reach the store.
+        store.reconcileSourceJob("a", job: .object([
+            "id": .string("job-1"), "state": .string("completed"), "result": .object([
+                "assetId": .string("a"), "jobId": .string("job-1"), "status": .string("ready"),
+                "layout": .string("front-back"), "sourceURL": .string("http://127.0.0.1:9000/source.mp4")
+            ])
+        ]), now: 10_020)
+        XCTAssertEqual(store.sourceStates["a"], "ready")
+        XCTAssertEqual(store.timelineSourceURLs["a"], URL(string: "http://127.0.0.1:9000/source.mp4"))
+        XCTAssertEqual(store.sourceLayouts["a"], "front-back")
+        XCTAssertFalse(store.sourcePreparation.isWaiting("a"))
+        XCTAssertNil(store.sourcePreparation.attempts["a"])
+        XCTAssertNil(store.sourceWatchdogs["a"])
+    }
+
+    func testRunningDeadlineUsesStartedEvenAfterALongQueueOrProgressUpdate() {
+        let running: JSONValue = .object([
+            "state": .string("running"), "created": .number(1_000),
+            "started": .number(10_000), "timeoutSeconds": .number(20)
+        ])
+        XCTAssertEqual(SourcePreparation.watchdogDelay(for: running, now: 10_000), 20 + SourcePreparation.grace)
+        XCTAssertEqual(SourcePreparation.watchdogDelay(for: running, now: 10_019), 1 + SourcePreparation.grace)
+        XCTAssertEqual(SourcePreparation.watchdogDelay(for: running, now: 10_020), SourcePreparation.grace)
+        XCTAssertEqual(SourcePreparation.watchdogDelay(for: running, now: 10_020 + SourcePreparation.grace), 0)
+        XCTAssertEqual(SourcePreparation.watchdogDelay(for: running, now: 20_000), 0)
+    }
+
+    @MainActor
+    func testStatusCheckHonorsCancellationAndTimeoutWithoutRetrying() {
+        for state in ["cancelled", "timed_out"] {
+            let store = EditorStore()
+            let attempt = store.sourcePreparation.requested("a")
+            _ = store.sourcePreparation.accepted("a", attempt: attempt, jobID: "job-1")
+            store.sourceStates["a"] = "pending"
+            store.reconcileSourceJob("a", job: .object([
+                "id": .string("job-1"), "state": .string(state)
+            ]))
+            XCTAssertEqual(store.sourceStates["a"], state == "cancelled" ? nil : "error")
+            XCTAssertFalse(store.sourcePreparation.isWaiting("a"))
+            XCTAssertNil(store.sourcePreparation.attempts["a"])
+        }
+    }
+
+    @MainActor
+    func testStatusFromAnOlderJobCannotEndTheCurrentWait() {
+        let store = EditorStore()
+        let attempt = store.sourcePreparation.requested("a")
+        _ = store.sourcePreparation.accepted("a", attempt: attempt, jobID: "job-2")
+        store.sourceStates["a"] = "pending"
+        store.reconcileSourceJob("a", job: .object([
+            "id": .string("job-1"), "state": .string("timed_out")
+        ]))
+        XCTAssertEqual(store.sourceStates["a"], "pending")
+        XCTAssertEqual(store.sourcePreparation.job(for: "a"), "job-2")
+        XCTAssertEqual(store.sourcePreparation.attempts["a"], 1)
+    }
 }

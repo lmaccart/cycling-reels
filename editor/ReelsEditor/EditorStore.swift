@@ -1705,7 +1705,7 @@ final class EditorStore {
         return "\(message) (\(code))"
     }
 
-    private static func registeredURL(from value: JSONValue?) -> URL? {
+    static func registeredURL(from value: JSONValue?) -> URL? {
         guard let value else { return nil }
         let raw = value["sourceURL"]?.stringValue
             ?? value["proxyURL"]?.stringValue

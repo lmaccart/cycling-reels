@@ -88,6 +88,11 @@ ends without a proxy answers its `requestId` with `sphere.unavailable`. Library
 discovery returns `sourceState=proxy_required` rather than a falsely playable
 original URL. Starting the service deletes `.source-*`/`.sphere-*` partials older
 than 10 minutes from `preview/sources|spheres/` (cache only).
+The native source watchdog checks `job.status` before declaring a job lost.
+Queued jobs are polled every 120 s without consuming retries. Running jobs get
+until `started + timeoutSeconds + 120 s`; acknowledgements and progress events
+do not restart that execution budget. Status checks also recover completed
+results and terminal errors when their source event was missed.
 `chat.history` returns `{sessionId,records:[{role,text,state}]}`; `chat.delta`
 streams prose, while `chat.record` carries completed prose/tool activity.
 `export.ready` is emitted only after a completed job and includes its `jobId`.
