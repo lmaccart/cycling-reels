@@ -559,9 +559,6 @@ private final class TimelineCanvas: NSView {
     private static let labelWidth = TimelineLayout.labelWidth
     private static let rulerHeight = TimelineLayout.rulerHeight
     private static let topInset = TimelineLayout.topInset
-    private static let rulerAttributes: [NSAttributedString.Key: Any] = [
-        .font: EditorType.nsRuler, .foregroundColor: NSColor.white.withAlphaComponent(0.6)
-    ]
     private static let cornerAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedSystemFont(ofSize: 15, weight: .medium),
         .foregroundColor: TimelineColors.playhead
@@ -1171,7 +1168,7 @@ private final class TimelineCanvas: NSView {
             guard x <= bounds.maxX, x >= visibleRect.minX - 60, x <= visibleRect.maxX else { continue }
             ticks.move(to: CGPoint(x: x, y: ruler.minY + 8))
             ticks.line(to: CGPoint(x: x, y: ruler.maxY))
-            NSAttributedString(string: TimeFormat.clock(Double(second)), attributes: Self.rulerAttributes)
+            NSAttributedString(string: TimeFormat.clock(Double(second)), attributes: EditorType.rulerAttributes)
                 .draw(at: CGPoint(x: x + 4, y: ruler.minY + 8))
             let minor = interval > 1 ? 4 : 2
             for step in 1..<minor {
