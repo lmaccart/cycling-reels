@@ -176,6 +176,29 @@ final class OfflineRenderer {
                                 threadsPerThreadgroup: MTLSize(width: w, height: min(8, pipeline.maxTotalThreadsPerThreadgroup / w), depth: 1))
     }
 
+    /// No CPU lock, allocation or copy on the normal production path.
+    private func writeProofSample(_ buffer: CVPixelBuffer, frame: Int) throws {
+        guard CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess
+        else { throw SphereFailure.runtime("proof readback lock") }
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        let width = request.width, height = request.height
+        var bytes = Data(count: width * height * 3 / 2)
+        try bytes.withUnsafeMutableBytes { (target: UnsafeMutableRawBufferPointer) in
+            for plane in 0...1 {
+                guard let source = CVPixelBufferGetBaseAddressOfPlane(buffer, plane)
+                else { throw SphereFailure.runtime("proof readback plane") }
+                let stride = CVPixelBufferGetBytesPerRowOfPlane(buffer, plane)
+                let rows = plane == 0 ? height : height / 2
+                let offset = plane == 0 ? 0 : width * height
+                for row in 0..<rows {
+                    memcpy(target.baseAddress!.advanced(by: offset + row * width),
+                           source.advanced(by: row * stride), width)
+                }
+            }
+        }
+        try bytes.write(to: request.proofSampleURL(frame: frame), options: .withoutOverwriting)
+    }
+
     func render() throws -> [String: Any] {
         let r = request, started = Date()
         let destination = URL(fileURLWithPath: r.destination)
@@ -311,6 +334,9 @@ final class OfflineRenderer {
                 enc.endEncoding(); command.commit(); command.waitUntilCompleted()
                 withExtendedLifetime(retained) {}
                 guard command.status == .completed else { throw SphereFailure.runtime("Metal: \(String(describing: command.error))") }
+                if let samples = r.proofSampleFrames, samples.contains(n) {
+                    try writeProofSample(output, frame: n)
+                }
                 CVBufferSetAttachment(output, kCVImageBufferColorPrimariesKey, kCVImageBufferColorPrimaries_ITU_R_709_2, .shouldPropagate)
                 CVBufferSetAttachment(output, kCVImageBufferTransferFunctionKey, kCVImageBufferTransferFunction_ITU_R_709_2, .shouldPropagate)
                 CVBufferSetAttachment(output, kCVImageBufferYCbCrMatrixKey, kCVImageBufferYCbCrMatrix_ITU_R_709_2, .shouldPropagate)

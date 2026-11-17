@@ -54,6 +54,8 @@ struct RenderRequest: Decodable {
     let preset: String?
     let views: [CameraKey]?
     let maxOutputBytes: Int64?
+    /// Opt-in benchmark readback only; files are siblings of the private destination.
+    let proofSampleFrames: [Int]?
 
     var isProxy: Bool { preset == "proxy" }
     var presetName: String { preset ?? "render" }
@@ -99,6 +101,16 @@ struct RenderRequest: Decodable {
         } else if views != nil || maxOutputBytes != nil {
             throw SphereFailure.invalid("views and maxOutputBytes are proxy-only")
         }
+        if let samples = proofSampleFrames {
+            guard isProxy, !samples.isEmpty, samples.count <= 8,
+                  samples.allSatisfy({ (0..<frames).contains($0) }),
+                  zip(samples, samples.dropFirst()).allSatisfy({ $0 < $1 })
+            else { throw SphereFailure.invalid("proof samples require a proxy and at most eight ordered, unique output frames") }
+            for frame in samples {
+                guard !FileManager.default.fileExists(atPath: proofSampleURL(frame: frame).path)
+                else { throw SphereFailure.invalid("proof sample destination already exists") }
+            }
+        }
         if let c = corrections {
             guard c.sourceStart.isFinite, c.sourceStep.isFinite, c.sourceStep > 0,
                   !c.quaternions.isEmpty, c.quaternions.allSatisfy({ q in
@@ -108,6 +120,10 @@ struct RenderRequest: Decodable {
                   c.quaternions.count == frames
             else { throw SphereFailure.invalid("correction quaternions must cover every output frame on the explicit source clock") }
         }
+    }
+
+    func proofSampleURL(frame: Int) -> URL {
+        URL(fileURLWithPath: destination).appendingPathExtension("proof-\(frame).nv12")
     }
 
     func validateProxyTiming(firstPTS: CMTime) throws {

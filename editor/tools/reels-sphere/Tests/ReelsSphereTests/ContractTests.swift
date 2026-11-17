@@ -54,6 +54,21 @@ final class ContractTests: XCTestCase {
         ] { XCTAssertThrowsError(try proxy(change).validate()) }
     }
 
+    func testProofReadbackIsProxyOnlyBoundedAndCannotOverwrite() throws {
+        let r = try proxy(["proofSampleFrames": [0, 29]])
+        try r.validate()
+        XCTAssertEqual(r.proofSampleURL(frame: 29).path, r.destination + ".proof-29.nv12")
+        for frames in [[], [-1], [30], [1, 1], [2, 1], Array(0..<9)] {
+            XCTAssertThrowsError(try proxy(["proofSampleFrames": frames]).validate())
+        }
+        XCTAssertThrowsError(try request(["proofSampleFrames": [0]]).validate())
+        let existing = r.proofSampleURL(frame: 0)
+        try Data([0]).write(to: existing)
+        defer { try? FileManager.default.removeItem(at: existing) }
+        XCTAssertThrowsError(try r.validate())
+        XCTAssertEqual(try Data(contentsOf: existing), Data([0]))
+    }
+
     func testFrontBackUsesEachResolvedAimAndPortraitAspect() throws {
         let views: [[String: Any]] = [
             ["at": 0, "yaw": 37, "pitch": -13, "roll": 9, "fov": 82],

@@ -213,6 +213,13 @@ opens split pieces without re-encoding; stabilization uses each requested piece'
 own clock. Workers share inherited process locks and finite disk reservations
 with prewarm, preserving the 50 GB floor. Cached editor media remains playable
 below that floor, with missing corrections computed without a disk write.
+`./reels bench-proxy-metal --asset <id> --seconds 30 --report /tmp/proxies.json`
+checks pre-encode parity ≥35 dB and native-vs-W5b quality against the same raw
+v360 reference (Y and average, ≤0.10 dB deficit per sample), plus ≥2× original
+full aim preparation. Encoded-to-encoded PSNR stays diagnostic: its old ≥35 dB
+proxy gate failed and was explicitly replaced, not passed. W7 render's encoded
+≥35 dB gate is unchanged. Proof readback is bounded, opt-in and measured
+separately from normal cold preparation; temporary derived footage is deleted.
 See [measured proxy performance and fallback details](../README.md#metal-proxy-preparation).
 
 
