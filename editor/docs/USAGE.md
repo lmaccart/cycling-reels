@@ -86,6 +86,10 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
   re-stages the clips you changed.
 - Drag the timeline playhead or ruler to scrub: the Program preview updates
   while the mouse is held down. The final playhead position is saved on release.
+  Clicking or dragging anywhere else in the tracks never moves the playhead.
+- Drag across empty track space to draw a selection box, like Premiere: every
+  clip it touches is selected (locked tracks are skipped). Hold ⌘ or ⇧ to add
+  to the current selection. A plain click on empty space deselects.
 - Each validated gesture or operation batch autosaves as one transaction.
   Undo/redo covers both manual and Claude changes. Failed edits leave the last
   committed revision intact.
