@@ -43,6 +43,7 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "live.py": {"unlink": 1},                          # the import's own .part temp inside inbox/
         "preview.py": {"replace": 2, "rmtree": 10, "unlink": 2},  # private job/export dirs (incl. the 360 proxy job); out/<slug>/ publish
         "proxy_cache.py": {"unlink": 2},                   # reservation leases under preview/proxy-reservations only
+        "proxy_metal.py": {"unlink": 6},                   # this locked proxy job's native/mux/request temporaries only
         "proxy_stabilize.py": {"replace": 1, "unlink": 1},  # CORI JSON and its own temporary in the private proxy cache
         "relay.py": {"unlink": 3, "rmdir": 1},             # this launch's capability files
         "renderer.py": {"rmtree": 2, "unlink": 1},         # candidate renderer snapshots under .cache/editor/live

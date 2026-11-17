@@ -138,8 +138,7 @@ encoders, sizes and all sampled PSNRs, including either side of the 10.5 s key.
 cuts, fractional split windows/speed, tiny planet, and an equirectangular
 conversion made solely from the user's real GoPro frames. It never manufactures
 synthetic footage or passes by falling back on both sides. These are render
-measurements, not proxy-prep measurements: W5b's requested 2× prep target remains
-open; this helper is not integrated into proxies.
+measurements, not proxy-prep measurements; see the separate proxy measurement below.
 
 ### Local 30-second sprint measurement
 
@@ -179,3 +178,141 @@ All temporary plan copies, encoded comparisons and sampled footage were deleted
 after collecting these numbers. Native equirectangular camera originals and
 10-bit/HDR paths were not visually measured: equirectangular parity uses only an
 own-footage conversion, while unsupported 10-bit/HDR sources explicitly use v360.
+
+## Metal proxy preparation
+
+The installed service's source/aim workers and CLI `prewarm-360` use the same
+trusted native adapter, cache keys, publication lock and disk reservations.
+No editor UI or plan/config changes are required. Missing helpers and unsupported
+colour/layout/codec/timing select the existing accurate ffmpeg/v360 pipeline,
+with an explicit `fallbackReason`; it prefers VideoToolbox, then libx264.
+Native H.264 failure tries native HEVC before that fallback. Required
+`REELS_SPHERE_BACKEND=metal` fails rather than silently measuring ffmpeg.
+Worker results, cache markers and prewarm logs expose backend and encoder.
+
+- **Front/back:** 1440×1280, two 720×1280 rectilinear views packed horizontally,
+  30 fps. The worker supplies its existing resolved travel-direction/gravity/
+  tagged fallback views. One source decode and GPU pass serve both viewports.
+- **Aim:** 2048×1024 equirectangular, 30 fps, at most 180 source seconds.
+  Whole-sphere pixels remain unstabilized; aiming and requested stabilization
+  stay live. Covering-cache reuse never changes the request-relative CORI clock.
+- **Proxy preset:** hardware H.264 preferred, 8 Mb/s target, 12 Mb/s ceiling,
+  GOP 10, no B-frames, 8-bit 4:2:0 BT.709 SDR, preserving source full/limited
+  range. This is not W7's quality-first limited-range render preset.
+- **Audio:** the native helper is silent; bounded ffmpeg copies the native video
+  and retains the existing input audio seek/trim, first-audio mapping and AAC
+  160 kb/s mux. Video PTS remain `n/30`.
+- **Cache version 5:** version 4 is retained but not reused under the new pixel/
+  codec contract. Compatible v5 ranges remain reusable regardless of ordinary
+  Python edits or frozen renderer revision. Helper hashes identify execution,
+  not proxy keys; requiring Metal cannot count a cached ffmpeg result as native.
+- **Safety:** both native and mux processes inherit the same key-lock and lease
+  descriptors. The existing 50 GB floor and finite reservation cover simultaneous
+  video/mux outputs. Hard per-process file limits and final size checks reject
+  truncation before atomic publication. Interrupted writers retain their inputs
+  and partials; startup cleanup cannot acquire their inherited lock. A cached
+  covering range still plays below the floor; missing CORI is computed in memory.
+
+The v1 helper request additionally accepts `preset: "proxy"` with
+`projection: "equirect"` or `"front-back"`, `speed: 1`, `fps: 30`, empty `keys`,
+no corrections and positive `maxOutputBytes`. Front/back requires exactly two
+resolved `views` with `at: 0`, yaw/pitch/roll/fov; aim takes no views.
+Omitting `preset` preserves the W7 render contract.
+
+Sandbox grants remain exact helper/metallib reads and execution plus named
+AGX/IOSurface, Metal compiler and codec services—no broad filesystem or network
+grant. The trusted `reels.editor` modules work even when the frozen snapshot
+lacks all proxy helpers. `tests/test_proxy_metal.py` requires real Metal for both
+actual worker actions, checks old snapshots, and kills Python with SIGINT/SIGKILL
+while real native and audio-mux writers retain their key lock and reservation.
+
+Reproduce cold preparation (only the user's original is read; temporary derived
+media is deleted, optional numeric JSON survives):
+
+```bash
+./reels bench-proxy-metal --asset 260627-gs010096-7da3 --seconds 30 \
+  --report /tmp/proxy-metal-results.json
+```
+
+Each backend gets fresh media/CORI directories. The original software path and
+merged W5b VideoToolbox+v360 path use the same dimensions, fps, range and GOP as
+native. The source-only benchmark bounds the browsing encoder to 30 seconds;
+normal browsing preparation still covers the original. Full worker time includes
+sandbox setup/probe, telemetry, encoding/mux, CORI and publication. Process times
+are reported separately; none of these runs is a warm-media hit.
+
+### Local 30-second proxy measurement
+
+Apple M2 Pro; original `260627-gs010096-7da3.360` (634,125,741 bytes),
+source 0–30 s, 900 frames at 30 fps. Front/back 1440×1280; aim 2048×1024.
+All three paths ran through `PreviewManager._run_worker` and its production
+sandbox, with fresh media/CORI directories and the same uncached telemetry work.
+The operating-system source-page cache was shared. Every video PTS matched
+`n/30`; audio packet PTS/durations/sizes and decoded PCM SHA-256 matched.
+All outputs preserve this source's full-range 8-bit 4:2:0; GOP ≤10, no B-frames.
+
+| Proxy | Actual backend / encoder | Full worker s | Encode job s | Output bytes |
+| --- | --- | ---: | ---: | ---: |
+| Front/back | v360 / libx264 ultrafast CRF 21 | 14.814253 | 14.225456 | 47,857,801 |
+| Front/back | v360 / h264_videotoolbox | 10.643911 | 10.209209 | 30,629,646 |
+| Front/back | Metal / h264_videotoolbox | 5.652135 | 5.181799 | 30,628,341 |
+| Aim | v360 / libx264 ultrafast CRF 23 | 14.001434 | 13.643501 | 47,938,683 |
+| Aim | v360 / h264_videotoolbox | 10.591574 | 10.230247 | 30,636,620 |
+| Aim | Metal / h264_videotoolbox | 5.993431 | 5.603202 | 30,637,650 |
+
+Encode job includes capability/startup, decode, reprojection, encoding and mux,
+not telemetry/CORI/publication. Native internal decode/GPU/encode times:
+4.482362 s front/back, 4.951560 s aim. Native subprocess wall times:
+4.604780 / 5.075779 s; separate audio-mux subprocesses: 0.400874 / 0.406782 s.
+No number here is isolated hardware-encoder time.
+
+Full preparation speedup: **2.621001× front/back and 2.336130× aim** against
+the original software path; **1.883166× / 1.767197×** against W5b.
+The ≥2× original-baseline aim timing target is met on this run, **not** a 2×
+claim against W5b and **not** an overall acceptance pass. Earlier W5b
+measurements were 16.595→11.750 s front/back and 16.056→11.625 s aim; those are
+historical runs, not replacements for the contemporaneous baselines above.
+
+Encoded sample PSNR (dB):
+
+| Frame | Front/back vs software | Front/back vs W5b | Aim vs software | Aim vs W5b |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 39.638094 | 42.412696 | 37.927270 | 40.606686 |
+| 30 | 35.826417 | 39.226808 | 31.539648 | 37.110133 |
+| 150 | 31.599655 | 37.175137 | 29.745059 | 34.613933 |
+| 300 | 37.609411 | 41.251904 | 34.450745 | 38.371885 |
+| 450 | 37.074983 | 40.671032 | 34.251974 | 37.889927 |
+| 600 | 36.839791 | 40.733835 | 34.143688 | 38.056415 |
+| 750 | 37.343167 | 40.717300 | 33.293326 | 38.373758 |
+| 899 | 29.796037 | 32.730961 | 29.241763 | 32.594121 |
+
+### Proxy parity investigation
+
+The encoded-output ≥35 dB acceptance gate is **not met** on every sample.
+Do not treat the speedup or raw projection parity as a substitute for that gate;
+`bench-proxy-metal` retains `pass: false` and exits 1.
+
+To isolate the cause, temporary instrumentation captured native NV12 immediately
+before the encoder and compared it with the existing v360 filter's uncompressed
+NV12 on the same original, source frame, range and output dimensions. No visuals
+were synthesized. Instrumentation and derived media were removed afterwards.
+
+| Frame | Front/back raw PSNR dB | Aim raw PSNR dB |
+| ---: | ---: | ---: |
+| 0 | 69.402028 | 68.306652 |
+| 30 | 70.148443 | 69.023920 |
+| 150 | 69.495863 | 68.484035 |
+| 300 | 70.695137 | 69.182277 |
+| 450 | 70.641323 | 69.447897 |
+| 600 | 70.481341 | 69.516303 |
+| 750 | 70.182068 | 69.333131 |
+| 899 | 70.240142 | 69.176652 |
+
+Maximum raw component error: 1/255 front/back, 2/255 aim. Geometry/horizon,
+whole-sphere poles/seams and source-frame selection agree closely. Compression
+dominates the remaining difference: at frame 899, native-vs-own-raw /
+W5b-vs-own-raw PSNR is 30.939830 / 30.963732 dB front/back and
+30.201032 / 30.212758 dB aim. Nevertheless, comparing the two encoded outputs
+gives 32.730961 / 32.594121 dB respectively. The original software and W5b
+encoders also disagree below 35 dB; this does not prove the requested threshold
+impossible and does not waive it. Bitrate, dimensions and GOP were not relaxed.

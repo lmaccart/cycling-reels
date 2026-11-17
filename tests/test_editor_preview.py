@@ -125,11 +125,14 @@ class EditorPreviewTests(unittest.TestCase):
         proxy = self.manager.preview_root / "sources/fixture/source.mp4"
         proxy.parent.mkdir(parents=True)
         proxy.write_bytes(b"private-view-specific-proxy")
-        with patch.object(self.manager, "_run_worker", return_value={"path": str(proxy)}) as run_worker:
+        evidence = {"backend": "metal", "encoder": "h264_videotoolbox", "fallbackReason": None,
+                    "native": {"renderer": "metal", "frames": 30}}
+        with patch.object(self.manager, "_run_worker", return_value={"path": str(proxy), **evidence}) as run_worker:
             result = self.manager.prepare_source("spherical", {"yaw": 90, "pitch": -5, "fov": 70})
         self.assertEqual(result["status"], "ready")
         self.assertEqual(Path(result["path"]), proxy.resolve())
         self.assertTrue(result["proxy"])
+        self.assertEqual({key: result[key] for key in evidence}, evidence)
         job = run_worker.call_args.args[0]
         self.assertEqual(job["action"], "source_proxy")
         self.assertEqual(job["view"]["yaw"], 90)

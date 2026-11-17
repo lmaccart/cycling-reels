@@ -527,6 +527,9 @@ def _safe_env(workspace, job_root: Path, code_root: Path, node: str | None = Non
     if sphere:
         env["REELS_SPHERE"] = str(sphere)
         env["REELS_SPHERE_REVISION"] = hashlib.sha256(sphere.read_bytes() + sphere.with_name("sphere.metallib").read_bytes()).hexdigest()
+    backend = os.environ.get("REELS_SPHERE_BACKEND")
+    if backend in ("auto", "metal", "v360"):
+        env["REELS_SPHERE_BACKEND"] = backend
     browser = _browser_executable(workspace)
     if browser:
         env["REELS_BROWSER"] = str(browser)
@@ -690,7 +693,8 @@ class PreviewManager:
         profile = job_root / "worker.sb"
         profile_text = _profile_text(reads, writes, executables, browser=browser_worker,
                                      videotoolbox=job.get("action") in ("source_proxy", "sphere_proxy"),
-                                     metal=browser_worker and bool(env.get("REELS_SPHERE")))
+                                     metal=bool(env.get("REELS_SPHERE")) and
+                                     (browser_worker or job.get("action") in ("source_proxy", "sphere_proxy")))
         # Candidate source/tests are inputs even when nested inside a writable
         # job directory. Candidate Python must not rewrite trusted contracts or
         # the runner while those contracts are executing.
@@ -1118,6 +1122,7 @@ class PreviewManager:
             if not _inside(proxy, self.preview_root.resolve()):
                 raise ReelsError("source proxy escaped the private preview workspace")
             return {
+                **result,
                 "status": "ready",
                 "assetId": asset_id,
                 "path": str(proxy),
