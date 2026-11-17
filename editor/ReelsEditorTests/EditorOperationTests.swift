@@ -33,6 +33,23 @@ private final class RecordingWebView: WKWebView {
     func count(_ type: String) -> Int { commands.filter { $0.contains("\"\(type)\"") }.count }
 }
 
+/// Records the playhead the store persists through `selection.set` / `state.save`.
+@MainActor
+private final class PersistLog {
+    var selectionPlayheads: [Double] = []
+    var savedPlayheads: [Double] = []
+    init(_ store: EditorStore) {
+        store.service.callStub = { [self] method, params in
+            switch method {
+            case "selection.set": selectionPlayheads.append(params["playhead"]?.numberValue ?? -1)
+            case "state.save": savedPlayheads.append(params["playhead"]?.numberValue ?? -1)
+            default: break
+            }
+            return .object([:])
+        }
+    }
+}
+
 @MainActor
 private final class DeleteRedrawObservation {
     var inputTime: TimeInterval?
@@ -312,8 +329,9 @@ final class EditorOperationTests: XCTestCase {
         return (coordinator, web)
     }
 
-    func testHidingPausesPlayingInteractiveProgramAndFreezesTimecodeWithoutResuming() throws {
+    func testHidingPausesPlayingInteractiveProgramAndFreezesTimecodeWithoutResuming() async throws {
         let store = EditorStore()
+        let log = PersistLog(store)
         let (coordinator, web) = try interactiveCoordinator(store: store)
         defer { coordinator.deactivate() }
         store.playheadFrame = 150
@@ -326,6 +344,8 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(web.count("pause"), 1, "Hiding sends the page its existing pause command")
         coordinator.receivePlaybackFrame(120, revision: "mixed", playing: true)
         XCTAssertEqual(store.playheadFrame, 155, "Late frames from the throttled page do not move the timecode")
+        try await eventually("The frozen frame is persisted for context.json") { log.selectionPlayheads == [155] }
+        XCTAssertEqual(log.savedPlayheads, [155])
 
         postUnhide()
         NotificationCenter.default.post(name: NSWindow.didChangeOcclusionStateNotification, object: nil)
@@ -334,8 +354,9 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(web.count("play"), 2, "The next press of play starts it again")
     }
 
-    func testHidingLeavesPausedInteractiveProgramUntouched() throws {
+    func testHidingLeavesPausedInteractiveProgramUntouched() async throws {
         let store = EditorStore()
+        let log = PersistLog(store)
         let (coordinator, web) = try interactiveCoordinator(store: store)
         defer { coordinator.deactivate() }
         store.playheadFrame = 150
@@ -348,6 +369,23 @@ final class EditorOperationTests: XCTestCase {
         let sent = web.commands.count
         postHide()
         XCTAssertEqual(web.commands.count, sent, "A page the user already paused gets no second pause")
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(log.selectionPlayheads.isEmpty, "Paused playback persists nothing on hide")
+    }
+
+    func testPlayToggleImmediatelyFollowedByHideLeavesInteractiveProgramPaused() async throws {
+        let store = EditorStore()
+        let log = PersistLog(store)
+        let (coordinator, web) = try interactiveCoordinator(store: store)
+        defer { coordinator.deactivate() }
+        store.playheadFrame = 150
+        NotificationCenter.default.post(name: .reelsTogglePlayback, object: nil)
+        postHide()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(web.count("play"), 1, "The toggle took effect before the hide, not after it")
+        XCTAssertEqual(web.count("pause"), 1)
+        XCTAssertTrue(web.commands.last?.contains("\"pause\"") == true, "The page ends paused while hidden")
+        XCTAssertEqual(log.selectionPlayheads, [150])
     }
 
     func testOnlyAMainWindowLosingVisibilityOrMinimizingPausesPlayback() throws {
@@ -393,7 +431,7 @@ final class EditorOperationTests: XCTestCase {
         let movie = URL(fileURLWithPath: ProcessInfo.processInfo.environment["REELS_TEST_MEDIA"]
             ?? "/Users/leif/rice/cycling/library/media/261115-img-3672-2875.mov")
         let store = EditorStore()
-        store.service.callStub = { _, _ in .object([:]) }
+        let log = PersistLog(store)
         store.workspaceInfo = .object(["previewOrigin": .string("file:///")])
         store.snapshot = try previewSnapshot(revision: "mixed", movie: movie)
         store.authoritativeSnapshot = store.snapshot
@@ -409,6 +447,7 @@ final class EditorOperationTests: XCTestCase {
 
         postHide()
         XCTAssertEqual(player.rate, 0, "A paused player stays paused")
+        XCTAssertTrue(log.selectionPlayheads.isEmpty, "Paused playback persists nothing on hide")
         store.performShortcut(.togglePlayback)
         try await eventually("Hiding a paused player left play available") { player.rate > 0 }
         store.performShortcut(.togglePlayback)
@@ -421,6 +460,10 @@ final class EditorOperationTests: XCTestCase {
         postHide()
         XCTAssertEqual(player.rate, 0, "Hiding pauses through the existing player path")
         let frozen = store.playheadFrame
+        try await eventually("The frozen frame is persisted for context.json") {
+            log.selectionPlayheads == [Double(frozen)]
+        }
+        XCTAssertEqual(log.savedPlayheads, [Double(frozen)])
         try await Task.sleep(for: .milliseconds(400))
         XCTAssertEqual(store.playheadFrame, frozen, "The timecode freezes at the paused frame")
 
@@ -431,6 +474,38 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(store.playheadFrame, frozen)
         store.performShortcut(.togglePlayback)
         try await eventually("Pressing play resumes") { player.rate > 0 }
+    }
+
+    func testHidingPauses360AimViewerPersistsFrameAndLeavesPausedOneAlone() async throws {
+        let movie = URL(fileURLWithPath: ProcessInfo.processInfo.environment["REELS_TEST_MEDIA"]
+            ?? "/Users/leif/rice/cycling/library/media/261115-img-3672-2875.mov")
+        let store = EditorStore()
+        let log = PersistLog(store)
+        let model = SpherePlayerModel()
+        let host = NSHostingView(rootView: SphereAimPanel(store: store, aim: store.sphereAim, player: model))
+        let window = HostedTestWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 420),
+                                      styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        defer { model.pause(); window.close() }
+        model.load(url: movie)
+        try await eventually("360 media loads") { model.player.currentItem?.status == .readyToPlay }
+        store.playheadFrame = 40
+
+        postHide()
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(log.selectionPlayheads.isEmpty, "A paused viewer persists nothing on hide")
+
+        model.player.play()
+        try await eventually("360 viewer plays") { model.isPlaying && model.player.rate > 0 }
+        postHide()
+        XCTAssertEqual(model.player.rate, 0, "Hiding pauses the aim viewer")
+        try await eventually("The paused frame is persisted for context.json") {
+            log.selectionPlayheads == [40] && log.savedPlayheads == [40]
+        }
+        postUnhide()
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(model.player.rate, 0, "Unhiding does not resume")
     }
 
     func testHidingPausesSourcePlayerAndLeavesAnEmptyOneAlone() async throws {

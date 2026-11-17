@@ -611,9 +611,10 @@ final class ExactProgramPlayerModel: ObservableObject {
 
     /// Hidden-window pause: stays paused until the user presses play.
     private func pausePlayback() {
-        guard isActive else { return }
+        guard isActive, wantsPlayback || (player?.rate ?? 0) != 0 else { return }
         wantsPlayback = false
         player?.pause()
+        store?.setPlayhead(store?.playheadFrame ?? 0)
     }
 
     private func setRate(_ value: Double) {
@@ -710,7 +711,7 @@ struct ProgramWebView: NSViewRepresentable {
             playbackObserver = NotificationCenter.default.addObserver(
                 forName: .reelsTogglePlayback, object: nil, queue: .main
             ) { [weak self] _ in
-                Task { @MainActor in self?.togglePlayback() }
+                MainActor.assumeIsolated { self?.togglePlayback() }
             }
             rateObserver = NotificationCenter.default.addObserver(
                 forName: .reelsPlaybackRate, object: nil, queue: .main
@@ -905,6 +906,7 @@ struct ProgramWebView: NSViewRepresentable {
             guard isPlaying, let revision = loadedRevision else { return }
             isPlaying = false
             send(["type": "pause", "revision": revision])
+            store?.setPlayhead(store?.playheadFrame ?? 0)
         }
 
         private func setPlaybackRate(_ rate: Double) {

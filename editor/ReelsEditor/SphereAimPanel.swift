@@ -5,8 +5,15 @@ import simd
 struct SphereAimPanel: View {
     @Bindable var store: EditorStore
     @Bindable var aim: SphereAimModel
-    @StateObject private var player = SpherePlayerModel()
+    @StateObject private var player: SpherePlayerModel
     @State private var viewSize: CGSize = .zero
+
+    /// `player` is injectable so tests can drive playback without a Metal viewer.
+    init(store: EditorStore, aim: SphereAimModel, player: SpherePlayerModel? = nil) {
+        self.store = store
+        self.aim = aim
+        _player = StateObject(wrappedValue: player ?? SpherePlayerModel())
+    }
 
     private var local: Double? { aim.localSeconds(frame: store.playheadFrame, store: store) }
     private var raw: JSONValue? { aim.node(in: store)?.raw }
