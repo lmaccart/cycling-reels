@@ -78,7 +78,7 @@ class EditorPreviewTests(unittest.TestCase):
 
     def test_prepare_refuses_to_fall_back_from_an_unavailable_renderer_revision(self):
         snapshot = {
-            "plan": {"slug": "draft", "segments": []},
+            "plan": {"slug": "draft", "segments": [{"asset": "fixture", "in": 0, "out": 1}]},
             "revisions": {"document": "doc-1", "library": self.workspace.library_revision(), "renderer": "missing-r"},
         }
         with self.assertRaisesRegex(Exception, "unavailable"):
