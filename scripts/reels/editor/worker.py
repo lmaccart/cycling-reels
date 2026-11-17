@@ -1,6 +1,7 @@
 """Isolated renderer work. This module is launched in its own sandboxed process."""
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -17,6 +18,7 @@ from typing import Any
 from ..config import Project
 from ..util import ReelsError, quick_hash
 from .proxy import PROXY_VERSION, PROXY_FPS as SPHERE_PROXY_FPS, SPHERE_PROXY_WIDTH, SPHERE_PROXY_MAX, encode_proxy
+from .preview_cache import remove_tree
 from .proxy_cache import proxy_job
 from .proxy_metal import cached_execution, render_proxy, reusable_execution
 
@@ -24,6 +26,7 @@ _STAGE_SPEC_FIELDS = {
     "in", "out", "speed", "frame", "zoom", "focusX", "focusY", "fit", "motion",
     "sphere", "punch", "blur", "clean", "nat", "bleep", "tone", "volume", "_bleeps", "grade",
 }
+_CLONE_NOFOLLOW = 0x0001  # clonefile(2) flag: never follow a symlink at the source
 _OMIT_DATA_DIRS = {"out", ".cache", "__pycache__"}
 
 
@@ -302,11 +305,10 @@ def _product_roles(stage_function: str, out: Path) -> dict[str, Path]:
 
 
 def _product_manifest(entry: Path, key: str) -> dict | None:
-    if entry.is_symlink():
+    info = entry.lstat()
+    if stat.S_ISLNK(info.st_mode):
         raise ReelsError("staged-media product cache path is a symlink")
-    if not entry.exists():
-        return None
-    if not entry.is_dir():
+    if not stat.S_ISDIR(info.st_mode):
         raise ReelsError("staged-media product cache entry is not a directory")
     _cache_tree_safe(entry)
     marker_path = entry / "cache.json"
@@ -357,6 +359,24 @@ def _restore_product(entry: Path, roles: dict[str, Path], marker: dict) -> None:
             shutil.copy2(entry / cached_name, destination)
 
 
+def _reuse_product(entry: Path, key: str, roles: dict[str, Path]) -> bool:
+    """Restore a cached product into the staging tree; False is a miss.
+
+    An entry the preview cache dropped while we read it is a miss too: whatever was restored so far is
+    removed so the renderer writes the product afresh."""
+    try:
+        marker = _product_manifest(entry, key)
+        if marker is None:
+            return False
+        _restore_product(entry, roles, marker)
+    except FileNotFoundError:
+        for destination in roles.values():
+            destination.unlink(missing_ok=True)
+        return False
+    _touch_entry(entry)
+    return True
+
+
 def _publish_product(entry: Path, key: str, roles: dict[str, Path]) -> None:
     if entry.exists() or entry.is_symlink():
         # An invalid immutable entry is a miss, but must never be replaced by a
@@ -393,7 +413,7 @@ def _publish_product(entry: Path, key: str, roles: dict[str, Path]) -> None:
                 raise
     finally:
         if scratch.exists():
-            shutil.rmtree(scratch, ignore_errors=True)
+            _discard_tree(scratch)
 
 
 def _staged_media_count(built: dict) -> int:
@@ -414,45 +434,92 @@ def _copy_current_audio(project: Project, built: dict, staging: Path) -> None:
         shutil.copy2(cue["path"], target)
 
 
-def _stage_cached(
+def _clonefile(source: Path, destination: Path) -> bool:
+    """APFS copy-on-write clone of one file or directory tree: a new inode, no extra bytes on disk.
+
+    False means cloning is unavailable here (not macOS, another volume or an unsupported filesystem).
+    Other failures propagate; a vanished source raises FileNotFoundError."""
+    if sys.platform != "darwin":
+        return False
+    import ctypes
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    clone = libc.clonefile
+    clone.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32]
+    clone.restype = ctypes.c_int
+    if clone(os.fsencode(source), os.fsencode(destination), _CLONE_NOFOLLOW) == 0:
+        return True
+    code = ctypes.get_errno()
+    if code == errno.ENOENT:
+        raise FileNotFoundError(code, os.strerror(code), str(source))
+    if code == errno.EEXIST:
+        raise FileExistsError(code, os.strerror(code), str(destination))
+    if code in (errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV):
+        return False
+    raise OSError(code, os.strerror(code), str(source))
+
+
+def _clone_entry(source: Path, destination: Path) -> None:
+    """Fill a fresh `destination` from the cache entry `source` (minus its marker), cloning each child and
+    copying only where cloning is unsupported. A missing entry raises FileNotFoundError."""
+    destination.mkdir(mode=0o700)
+    for name in sorted(os.listdir(source)):
+        if name == "cache.json":
+            continue
+        origin, target = source / name, destination / name
+        if _clonefile(origin, target):
+            continue
+        if stat.S_ISDIR(origin.lstat().st_mode):
+            shutil.copytree(origin, target, symlinks=True, ignore=shutil.ignore_patterns("cache.json"))
+        else:
+            shutil.copy2(origin, target, follow_symlinks=False)
+
+
+def _discard_tree(path: Path) -> None:
+    """Remove a tree that may hold read-only directories (a published-style cache entry or a half clone).
+
+    Descriptor-relative and never follows a link, so a symlink or hard link planted in the tree is only
+    unlinked and its target is left as it was."""
+    remove_tree(path)
+
+
+def _stage_from_cache(cache: Path, stage_dir: Path) -> bool:
+    """Populate the revision's staging tree from an immutable cache entry.
+
+    False when the entry vanished underneath us (the preview cache was trimmed): the caller treats that
+    as a miss and stages again. The clone is independent of the entry (own inodes), so the entry's
+    one-link/no-symlink invariant, which `_cache_tree_safe` enforces, still holds for both trees."""
+    try:
+        _clone_entry(cache, stage_dir)
+    except FileNotFoundError:
+        _discard_tree(stage_dir)
+        return False
+    _cache_tree_safe(stage_dir)
+    # Cache assets are immutable, but the revision-owned staging root
+    # still needs room for props and its audio copies.
+    stage_dir.chmod(0o700)
+    return True
+
+
+def _touch_entry(entry: Path) -> None:
+    """Mark a cache entry as used now: the preview cache trims least recently used entries first."""
+    try:
+        os.utime(entry, follow_symlinks=False)
+    except (OSError, NotImplementedError):
+        pass
+
+
+def _build_cache_entry(
     project: Project,
     built: dict,
-    stage_dir: Path,
     cache_root: Path,
+    cache: Path,
     cache_key: str,
     *,
-    snapshot: dict | None = None,
-    code_root: Path | None = None,
-    pipeline_revision: str | None = None,
-    media_stats: dict | None = None,
-) -> bool:
-    if cache_root.is_symlink():
-        raise ReelsError("staged-media cache root is a symlink")
-    cache_root = cache_root.resolve()
-    cache = cache_root / cache_key
-    stage_dir.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    count = _staged_media_count(built)
-    if cache.is_symlink():
-        raise ReelsError("staged-media cache path is a symlink")
-    if cache.is_dir() and (cache / "cache.json").is_file():
-        _cache_tree_safe(cache)
-        try:
-            marker = json.loads((cache / "cache.json").read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            marker = {}
-        if marker.get("key") == cache_key:
-            shutil.copytree(cache, stage_dir, ignore=shutil.ignore_patterns("cache.json"))
-            # Cache assets are immutable, but the revision-owned staging root
-            # still needs room for props and its audio copies.
-            stage_dir.chmod(0o700)
-            _copy_current_audio(project, built, stage_dir)
-            if media_stats is not None:
-                media_stats.update(hits=count, misses=0)
-            return True
-        raise ReelsError("staged-media cache identity is inconsistent; refusing to reuse it")
-    if cache.exists():
-        raise ReelsError("staged-media cache entry is not a regular directory")
-
+    snapshot: dict | None,
+    code_root: Path | None,
+    pipeline_revision: str | None,
+) -> dict:
     # Build the immutable cache artifact within its own write root so the
     # sandbox never needs to authorize cross-root rename semantics.
     cache_root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -488,9 +555,7 @@ def _stage_cached(
                     )
                     entry = product_root / key
                     roles = _product_roles(stage_name, out)
-                    marker = _product_manifest(entry, key)
-                    if marker is not None:
-                        _restore_product(entry, roles, marker)
+                    if _reuse_product(entry, key, roles):
                         if _source_record(args[0], seg) != source_before:
                             raise ReelsError(f"{seg.asset.get('id', 'asset')}: original changed during staged-media reuse.")
                         counts["hits"] += 1
@@ -519,18 +584,79 @@ def _stage_cached(
         except OSError:
             if not cache.is_dir() or not (cache / "cache.json").is_file():
                 raise
-            shutil.rmtree(temporary, ignore_errors=True)
+            _discard_tree(temporary)
     finally:
         for name, original in originals.items():
             setattr(render, name, original)
         if temporary.exists():
-            shutil.rmtree(temporary, ignore_errors=True)
-    shutil.copytree(cache, stage_dir, ignore=shutil.ignore_patterns("cache.json"))
-    stage_dir.chmod(0o700)
-    _copy_current_audio(project, built, stage_dir)
-    if media_stats is not None:
-        media_stats.update(hits=counts["hits"], misses=counts["misses"])
-    return False
+            _discard_tree(temporary)
+    return counts
+
+
+def _stage_cached(
+    project: Project,
+    built: dict,
+    stage_dir: Path,
+    cache_root: Path,
+    cache_key: str,
+    *,
+    snapshot: dict | None = None,
+    code_root: Path | None = None,
+    pipeline_revision: str | None = None,
+    media_stats: dict | None = None,
+) -> bool:
+    if cache_root.is_symlink():
+        raise ReelsError("staged-media cache root is a symlink")
+    cache_root = cache_root.resolve()
+    cache = cache_root / cache_key
+    stage_dir.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    count = _staged_media_count(built)
+    # The preview cache may drop an entry at any moment (rename, then delete). An entry that vanishes
+    # while we read or clone it is a miss: stage again instead of failing the preview.
+    for _attempt in range(3):
+        try:
+            info = cache.lstat()
+            if stat.S_ISLNK(info.st_mode):
+                raise ReelsError("staged-media cache path is a symlink")
+            if not stat.S_ISDIR(info.st_mode):
+                raise ReelsError("staged-media cache entry is not a regular directory")
+            marker_info = (cache / "cache.json").lstat()
+            if stat.S_ISREG(marker_info.st_mode):
+                _cache_tree_safe(cache)
+                try:
+                    marker = json.loads((cache / "cache.json").read_text(encoding="utf-8"))
+                except FileNotFoundError:
+                    raise
+                except (OSError, ValueError):
+                    marker = {}
+                if marker.get("key") != cache_key:
+                    raise ReelsError("staged-media cache identity is inconsistent; refusing to reuse it")
+                if _stage_from_cache(cache, stage_dir):
+                    _touch_entry(cache)
+                    _copy_current_audio(project, built, stage_dir)
+                    if media_stats is not None:
+                        media_stats.update(hits=count, misses=0)
+                    return True
+        except FileNotFoundError:
+            pass
+        try:
+            remaining = cache.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if stat.S_ISLNK(remaining.st_mode):
+                raise ReelsError("staged-media cache path is a symlink")
+            raise ReelsError("staged-media cache entry is not a regular directory")
+        counts = _build_cache_entry(
+            project, built, cache_root, cache, cache_key,
+            snapshot=snapshot, code_root=code_root, pipeline_revision=pipeline_revision,
+        )
+        if _stage_from_cache(cache, stage_dir):
+            _copy_current_audio(project, built, stage_dir)
+            if media_stats is not None:
+                media_stats.update(hits=counts["hits"], misses=counts["misses"])
+            return False
+    raise ReelsError("staged-media cache entry kept disappearing while it was staged; try the preview again")
 
 
 def _bundle_key(code_root: Path, snapshot: dict) -> str:
@@ -599,6 +725,22 @@ def _verify_sources(project: Project, built: dict, prior: dict[str, dict]) -> No
             current[identifier] = now
 
 
+def _drop_intermediate(intermediate: Path, final: Path) -> bool:
+    """Delete Remotion's intermediate movie once exact.mp4 is encoded from it.
+
+    Nothing records it (the result names only exact.mp4 and the review mix), so it is only dead weight.
+    It stays when the final encode left no usable regular file, or when the intermediate is not a regular
+    file itself (a link is never removed through, and unlinking it would only drop the name)."""
+    try:
+        finished, spare = final.lstat(), intermediate.lstat()
+        if not stat.S_ISREG(finished.st_mode) or finished.st_size == 0 or not stat.S_ISREG(spare.st_mode):
+            return False
+        intermediate.unlink()
+    except FileNotFoundError:
+        return False
+    return True
+
+
 def _run_exact(project: Project, built: dict, stage_dir: Path, revision_dir: Path) -> dict:
     from .. import render
 
@@ -616,6 +758,7 @@ def _run_exact(project: Project, built: dict, stage_dir: Path, revision_dir: Pat
     render.run_remotion(project, props_path, stage_dir, intermediate, log_path)
     boost = project.cfg("audio", "rideOnlyMaxBoost") if built.get("music") is None else None
     render.final_encode(project, intermediate, final, float(boost) if boost is not None else None)
+    _drop_intermediate(intermediate, final)
     duration = built["total"] / built["fps"]
     preview = None
     ig = (built.get("music") or {}).get("instagram")

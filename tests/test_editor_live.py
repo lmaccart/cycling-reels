@@ -41,7 +41,8 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "exporting.py": {"unlink": 2, "replace": 1},      # save-as temp files next to the chosen destination
         "jobs.py": {"replace": 1, "unlink": 1},            # atomic write of private job records
         "live.py": {"unlink": 1},                          # the import's own .part temp inside inbox/
-        "preview.py": {"replace": 2, "rmtree": 10, "unlink": 2},  # private job/export dirs (incl. the 360 proxy job); out/<slug>/ publish
+        "preview.py": {"replace": 2, "rmtree": 10, "unlink": 2},  # private jobs/exports and out/<slug>; document.json uses exclusive temp creation + fd chmod + atomic replace, never writes through worker links
+        "preview_cache.py": {"rename": 1, "rmdir": 1, "unlink": 2},  # preview revisions (including renderer drafts) + cache only: shared worker/exclusive trim lock, refreshed protections, fd-relative no-follow deletion; never library/, plans/, proxies or reservations
         "proxy_cache.py": {"unlink": 2},                   # reservation leases under preview/proxy-reservations only
         "proxy_metal.py": {"unlink": 6},                   # this locked proxy job's native/mux/request temporaries only
         "proxy_stabilize.py": {"replace": 1, "unlink": 1},  # CORI JSON and its own temporary in the private proxy cache
@@ -49,7 +50,7 @@ class DestructiveCallAuditTests(unittest.TestCase):
         "renderer.py": {"rmtree": 2, "unlink": 1},         # candidate renderer snapshots under .cache/editor/live
         "service.py": {"unlink": 1},                       # stale .source-/.sphere- partials in preview/sources|spheres only
         "transactions.py": {"replace": 1, "unlink": 2, "remove": 1},  # temp files, scratch clone, guarded _delete_private
-        "worker.py": {"replace": 6, "rmtree": 5, "unlink": 3},        # inside the sandboxed worker's own job folder / private 360 proxy cache
+        "worker.py": {"replace": 6, "rmtree": 2, "unlink": 5},  # sandbox-owned jobs/proxies; unlink also half-restored products and superseded render.mp4; read-only scratch uses preview_cache.remove_tree's no-follow deletion
         "document.py": {"remove": 1},
     }
     NAMES = {"unlink", "rmtree", "remove", "rename", "renames", "rmdir", "move", "removedirs", "truncate", "replace"}

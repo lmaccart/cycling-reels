@@ -1,14 +1,24 @@
 from __future__ import annotations
 
+import ctypes
+import errno
+import sys
 import tempfile
 import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import reels
 from reels.editor import worker
 from reels.util import ReelsError, quick_hash
+
+
+def _evict(trim, entry: Path) -> bool:
+    """Evict one cache folder the way the trim does (by its place under preview/), whatever spelling of the path a reader holds."""
+    import os
+    key = Path(os.path.realpath(entry)).relative_to(os.path.realpath(trim.preview_root)).parts
+    return trim._evict(key)
 
 
 class StagingCacheTests(unittest.TestCase):
@@ -328,6 +338,387 @@ class StagingCacheTests(unittest.TestCase):
         entry.symlink_to(target, target_is_directory=True)
         with self.assertRaisesRegex(ReelsError, "symlink"):
             self._run(built, "symlink")
+
+    def test_non_directory_product_is_rejected(self):
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (entry,) = (self.cache_root / "products").iterdir()
+        worker._discard_tree(entry)
+        entry.write_bytes(b"not a directory")
+        with self.assertRaisesRegex(ReelsError, "not a directory"):
+            self._run(built, "non-directory")
+
+    def test_symlink_and_non_directory_aggregate_entries_are_rejected(self):
+        built = self._built([self._seg("clip")])
+        self.cache_root.mkdir()
+        target = self.root / "external-cache"
+        target.mkdir()
+        (self.cache_root / "symlink").symlink_to(target, target_is_directory=True)
+        with self.assertRaisesRegex(ReelsError, "symlink"):
+            self._run(built, "symlink")
+        (self.cache_root / "non-directory").write_bytes(b"not a directory")
+        with self.assertRaisesRegex(ReelsError, "not a regular directory"):
+            self._run(built, "non-directory")
+
+    # -- clones instead of copies, and a cache the editor may trim underneath a prepare ----------------
+
+    def _use_preview_layout(self):
+        """Put the cache where the editor does, so the real trim can evict from it."""
+        self.cache_root = self.root / "preview/cache/staged-media/renderer-x"
+        from reels.editor.preview_cache import PreviewCache
+        self.addCleanup(self._unlock_tree)
+        return PreviewCache(self.root, budget=0, grace=0)
+
+    def _unlock_tree(self):
+        import os
+        for current, dirs, _ in os.walk(self.root):
+            for name in dirs:
+                os.chmod(os.path.join(current, name), 0o700)
+
+    def _assert_independent_copy(self, entry: Path, stage: Path):
+        names = sorted(path.name for path in entry.iterdir() if path.name != "cache.json")
+        self.assertEqual(sorted(path.name for path in stage.iterdir()), names)
+        for name in names:
+            cached, staged = entry / name, stage / name
+            self.assertEqual(cached.read_bytes(), staged.read_bytes())
+            self.assertNotEqual(cached.stat().st_ino, staged.stat().st_ino)
+            self.assertEqual((cached.stat().st_nlink, staged.stat().st_nlink), (1, 1))
+        worker._cache_tree_safe(entry)  # clones are separate inodes: the one-link invariant holds on both sides
+        worker._cache_tree_safe(stage)
+        self.assertEqual(stage.stat().st_mode & 0o777, 0o700)
+        return names
+
+    def test_revision_staging_is_cloned_from_the_cache_entry_on_miss_and_hit(self):
+        import os
+        built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
+        probe = self.root / "probe"
+        probe.write_bytes(b"x")
+        supported = False
+        if sys.platform == "darwin":
+            # Probe libc independently: a worker that always copies must fail on a clone-capable volume.
+            clone = ctypes.CDLL(None, use_errno=True).clonefile
+            clone.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32]
+            clone.restype = ctypes.c_int
+            if clone(os.fsencode(probe), os.fsencode(self.root / "probe-clone"), 0) == 0:
+                supported = True
+            else:
+                self.assertIn(ctypes.get_errno(), (errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV))
+        calls: list[tuple[str, bool]] = []
+        real = worker._clonefile
+
+        def spy(source, destination):
+            result = real(source, destination)
+            calls.append((source.name, result))
+            return result
+
+        with patch.object(worker, "_clonefile", spy):
+            built_stage, reused, _ = self._run(built, "clone")
+            hit_stage, hit_reused, _ = self._run(built, "clone")
+        self.assertEqual((reused, hit_reused), (False, True))
+        entry = self.cache_root / "clone"
+        for stage in (built_stage, hit_stage):
+            names = self._assert_independent_copy(entry, stage)
+            self.assertFalse((stage / "cache.json").exists())
+            self.assertEqual(sorted(name for name, _ in calls[:len(names)]), names)
+        self.assertEqual([result for _, result in calls], [supported] * len(calls))
+        # Rewriting a revision's copy (props, audio) never reaches the shared cache entry.
+        target = hit_stage / names[0]
+        target.chmod(0o600)
+        target.write_bytes(b"rewritten for this revision")
+        self.assertNotEqual((entry / names[0]).read_bytes(), b"rewritten for this revision")
+        worker._cache_tree_safe(entry)
+        self.assertTrue(all(os.stat(entry / name).st_nlink == 1 for name in names))
+
+    def test_unsupported_cloning_falls_back_to_a_plain_copy(self):
+        built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
+        with patch.object(worker, "_clonefile", return_value=False) as clone:
+            first, reused, first_stats = self._run(built, "copy")
+            second, hit_reused, hit_stats = self._run(built, "copy")
+        self.assertGreaterEqual(clone.call_count, 4)
+        self.assertEqual((reused, hit_reused), (False, True))
+        self.assertEqual((first_stats, hit_stats), ({"hits": 0, "misses": 2}, {"hits": 2, "misses": 0}))
+        for stage in (first, second):
+            self._assert_independent_copy(self.cache_root / "copy", stage)
+
+    def test_only_unsupported_clone_errors_fall_back_to_a_plain_copy(self):
+        for code in sorted({errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV}):
+            with self.subTest(errno=code):
+                entry = self.root / f"entry-{code}"
+                entry.mkdir()
+                (entry / "seg0.mp4").write_bytes(b"staged clip")
+                stage = self.root / f"stage-{code}"
+                clone = Mock(return_value=-1)
+                with (
+                    patch.object(sys, "platform", "darwin"),
+                    patch("ctypes.CDLL", return_value=types.SimpleNamespace(clonefile=clone)),
+                    patch("ctypes.get_errno", return_value=code),
+                ):
+                    self.assertTrue(worker._stage_from_cache(entry, stage))
+                clone.assert_called_once()
+                self._assert_independent_copy(entry, stage)
+
+    def test_clone_io_and_space_errors_propagate_without_copying(self):
+        for code in (errno.EIO, errno.ENOSPC):
+            with self.subTest(errno=code):
+                entry = self.root / f"entry-{code}"
+                entry.mkdir()
+                (entry / "seg0.mp4").write_bytes(b"staged clip")
+                stage = self.root / f"stage-{code}"
+                clone = Mock(return_value=-1)
+                with (
+                    patch.object(sys, "platform", "darwin"),
+                    patch("ctypes.CDLL", return_value=types.SimpleNamespace(clonefile=clone)),
+                    patch("ctypes.get_errno", return_value=code),
+                    self.assertRaises(OSError) as raised,
+                ):
+                    worker._stage_from_cache(entry, stage)
+                self.assertEqual(raised.exception.errno, code)
+                clone.assert_called_once()
+                self.assertFalse((stage / "seg0.mp4").exists())
+
+    @unittest.skipUnless(sys.platform == "darwin", "clonefile is macOS-only")
+    def test_a_missing_clone_source_is_reported_as_missing_not_as_unsupported(self):
+        with self.assertRaises(FileNotFoundError):
+            worker._clonefile(self.root / "no-such-file", self.root / "no-such-clone")
+        (self.root / "present").write_bytes(b"x")
+        (self.root / "taken").write_bytes(b"y")
+        with self.assertRaises(FileExistsError):
+            worker._clonefile(self.root / "present", self.root / "taken")
+
+    def test_entry_trimmed_while_a_prepare_clones_it_is_a_miss_and_restages(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("one", index=0), self._seg("two", index=1)])
+        self._run(built, "key")
+        entry = self.cache_root / "key"
+        real = worker._clonefile
+        trimmed = []
+
+        def clone_after_trim(source, destination):
+            if not trimmed:
+                trimmed.append(_evict(trim, entry))  # rename aside, then delete: the reader loses the folder
+            return real(source, destination)
+
+        self.encodes.clear()
+        with patch.object(worker, "_clonefile", clone_after_trim):
+            stage, reused, stats = self._run(built, "key")
+        self.assertEqual(trimmed, [True])
+        self.assertFalse(reused, "a lost entry is staged again, not reported as a cache hit")
+        self.assertEqual(stats, {"hits": 2, "misses": 0}, "the per-clip products survived, so no clip is re-encoded")
+        self.assertEqual(self.encodes, [])
+        self._assert_independent_copy(entry, stage)
+        self.assertEqual(len(list(stage.parent.glob(f"{stage.name}*"))), 1)
+
+    def test_entry_trimmed_before_its_marker_is_read_is_a_miss(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("one")])
+        self._run(built, "key")
+        entry = self.cache_root / "key"
+        real = worker._cache_tree_safe
+        calls = []
+
+        def safe_then_gone(root):
+            real(root)
+            if not calls and Path(root).resolve() == entry.resolve():
+                calls.append(_evict(trim, entry))
+
+        with patch.object(worker, "_cache_tree_safe", safe_then_gone):
+            stage, reused, stats = self._run(built, "key")
+        self.assertEqual(calls, [True])
+        self.assertFalse(reused)
+        self.assertEqual(stats["misses"], 0)
+        self.assertTrue((stage / "seg0.mp4").is_file())
+
+    def test_product_disappearing_during_initial_lstat_is_a_miss(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (product,) = (self.cache_root / "products").iterdir()
+        product = product.resolve()
+        real = Path.lstat
+        trimmed = []
+
+        def lstat_after_trim(path, *args, **kwargs):
+            if path == product and not trimmed:
+                trimmed.append(False)
+                trimmed[0] = _evict(trim, product)
+            return real(path, *args, **kwargs)
+
+        self.encodes.clear()
+        with patch.object(Path, "lstat", lstat_after_trim):
+            stage, reused, stats = self._run(built, "second")
+        self.assertEqual(trimmed, [True])
+        self.assertFalse(reused)
+        self.assertEqual(stats, {"hits": 0, "misses": 1})
+        self.assertEqual([entry[0] for entry in self.encodes], ["clip"])
+        self.assertIn(b"clip|", (stage / "seg0.mp4").read_bytes())
+        self.assertTrue((product / "cache.json").is_file())
+
+    def test_product_trimmed_at_initial_metadata_check_is_a_miss_and_regenerates(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (product,) = (self.cache_root / "products").iterdir()
+        product = product.resolve()
+        real = Path.stat
+        checks = []
+        trimmed = []
+
+        def stat_then_trim(path, *args, **kwargs):
+            info = real(path, *args, **kwargs)
+            if path == product and not trimmed:
+                checks.append(kwargs.get("follow_symlinks", True))
+                # The old validator's second lookup was exists(): it could return True just as the
+                # entry vanished, making its later is_dir() incorrectly report an unsafe entry.
+                # The single-lstat validator reaches its tree safety check instead; disappearing
+                # there must also regenerate rather than treating the missing directory as unsafe.
+                if kwargs.get("follow_symlinks", True) or len(checks) == 2:
+                    trimmed.append(False)  # Do not recurse if eviction inspects the same path.
+                    trimmed[0] = _evict(trim, product)
+            return info
+
+        self.encodes.clear()
+        with patch.object(Path, "stat", stat_then_trim):
+            stage, reused, stats = self._run(built, "second")
+        self.assertEqual(trimmed, [True])
+        self.assertFalse(reused)
+        self.assertEqual(stats, {"hits": 0, "misses": 1})
+        self.assertEqual([entry[0] for entry in self.encodes], ["clip"])
+        self.assertIn(b"clip|", (stage / "seg0.mp4").read_bytes())
+        self.assertTrue((product / "cache.json").is_file())
+
+    def test_product_trimmed_while_it_is_restored_is_a_miss_and_encodes_again(self):
+        trim = self._use_preview_layout()
+        built = self._built([self._seg("clip")])
+        self._run(built, "first")
+        (product,) = [path for path in (self.cache_root / "products").iterdir() if path.is_dir()]
+        real = worker._restore_product
+        trimmed = []
+
+        def restore_after_trim(entry, roles, marker):
+            if not trimmed:
+                trimmed.append(_evict(trim, entry))
+            return real(entry, roles, marker)
+
+        self.encodes.clear()
+        with patch.object(worker, "_restore_product", restore_after_trim):
+            stage, reused, stats = self._run(built, "second")
+        self.assertEqual(trimmed, [True])
+        self.assertEqual(stats, {"hits": 0, "misses": 1})
+        self.assertEqual([entry[0] for entry in self.encodes], ["clip"])
+        self.assertIn(b"clip|", (stage / "seg0.mp4").read_bytes())
+        self.assertTrue((product / "cache.json").is_file(), "the re-encoded product is published again")
+
+    def _exact_fixture(self, final_bytes: bytes):
+        import os
+        browser = self.root / "browser"
+        browser.write_bytes(b"#!/bin/sh\n")
+        project = types.SimpleNamespace(cfg=lambda *_args: None, root=self.root / "project")
+        revision = self.root / "revision"
+        stage = revision / "public"
+        stage.mkdir(parents=True)
+        built = {"props": {"width": 1080}, "music": None, "total": 60, "fps": 30}
+        seen = {}
+
+        def run_remotion(project, props, static, intermediate, log):
+            seen["props"] = Path(props).is_file()
+            Path(intermediate).write_bytes(b"remotion intermediate")
+
+        def final_encode(project, intermediate, final, boost):
+            seen["intermediate_present"] = Path(intermediate).is_file()
+            Path(final).write_bytes(final_bytes)
+
+        self.render.run_remotion = run_remotion
+        self.render.final_encode = final_encode
+        environment = patch.dict(os.environ, {"REELS_BROWSER": str(browser)})
+        environment.start()
+        self.addCleanup(environment.stop)
+        return project, built, stage, revision, seen
+
+    def test_exact_mode_drops_the_intermediate_movie_once_exact_mp4_exists(self):
+        project, built, stage, revision, seen = self._exact_fixture(b"final movie")
+        result = worker._run_exact(project, built, stage, revision)
+        self.assertTrue(seen["intermediate_present"], "final_encode still reads render.mp4")
+        self.assertFalse((revision / "render.mp4").exists())
+        self.assertEqual((revision / "exact.mp4").read_bytes(), b"final movie")
+        self.assertEqual(result, {"exactPath": str(revision / "exact.mp4"), "attachedAudioPreviewPath": None,
+                                  "movie": str(revision / "exact.mp4")})
+
+    def test_exact_mode_keeps_the_intermediate_when_the_final_encode_left_nothing_usable(self):
+        project, built, stage, revision, _ = self._exact_fixture(b"")
+        worker._run_exact(project, built, stage, revision)
+        self.assertTrue((revision / "render.mp4").is_file())
+
+    def _planted_links(self, folder: Path):
+        """A stand-in original plus every kind of link a worker could leave in `folder`."""
+        import os
+        import stat
+        originals = self.root / "stand-in-originals"
+        originals.mkdir(exist_ok=True)
+        original = originals / "clip.mp4"
+        original.write_bytes(b"ORIGINAL-FOOTAGE")
+        inner = originals / "inner"
+        inner.mkdir()
+        (inner / "more.mp4").write_bytes(b"ORIGINAL-INNER")
+        inner.chmod(0o500)
+        self.addCleanup(inner.chmod, 0o700)
+        folder.mkdir(parents=True, exist_ok=True)
+        os.symlink(original, folder / "file-link.mp4")
+        os.symlink(originals, folder / "dir-link")
+        os.symlink(inner, folder / "inner-link")
+        os.link(original, folder / "hard.mp4")
+
+        def unchanged():
+            self.assertEqual(original.read_bytes(), b"ORIGINAL-FOOTAGE")
+            self.assertEqual((inner / "more.mp4").read_bytes(), b"ORIGINAL-INNER")
+            self.assertEqual(stat.S_IMODE(inner.stat().st_mode), 0o500)
+            self.assertEqual(sorted(p.name for p in inner.iterdir()), ["more.mp4"])
+            self.assertEqual(original.stat().st_nlink, 1)
+        return original, unchanged
+
+    def test_discarding_scratch_never_follows_or_writes_through_links(self):
+        scratch = self.root / "scratch-tree"
+        _original, unchanged = self._planted_links(scratch / "assets")
+        import os
+        os.symlink(_original, scratch / "top-link")
+        os.link(_original, scratch / "top-hard")
+        scratch.chmod(0o555)
+        (scratch / "assets").chmod(0o555)
+        worker._discard_tree(scratch)
+        self.assertFalse(scratch.exists())
+        unchanged()
+
+    def test_discarding_a_symlink_unlinks_only_the_link(self):
+        import os
+        _original, unchanged = self._planted_links(self.root / "unused")
+        link = self.root / "scratch-link"
+        os.symlink(self.root / "stand-in-originals", link)
+        worker._discard_tree(link)
+        self.assertFalse(link.is_symlink())
+        self.assertTrue(link.parent.is_dir())
+        (self.root / "unused" / "hard.mp4").unlink()
+        unchanged()
+
+    def test_exact_mode_intermediate_that_is_a_link_is_never_removed_through(self):
+        import os
+        original, unchanged = self._planted_links(self.root / "links")
+        revision = self.root / "revision"
+        revision.mkdir()
+        (self.root / "links" / "hard.mp4").unlink()  # leave the original with its one name
+        final = revision / "exact.mp4"
+        final.write_bytes(b"encoded")
+        os.symlink(original, revision / "render.mp4")
+        self.assertFalse(worker._drop_intermediate(revision / "render.mp4", final))
+        self.assertTrue((revision / "render.mp4").is_symlink())
+        (revision / "render.mp4").unlink()
+        os.link(original, revision / "render.mp4")
+        self.assertTrue(worker._drop_intermediate(revision / "render.mp4", final))
+        self.assertFalse((revision / "render.mp4").exists())
+        final.unlink()
+        os.symlink(original, final)
+        (revision / "render.mp4").write_bytes(b"intermediate")
+        self.assertFalse(worker._drop_intermediate(revision / "render.mp4", final), "a linked exact.mp4 is no finished encode")
+        self.assertTrue((revision / "render.mp4").is_file())
+        unchanged()
 
 
 if __name__ == "__main__":

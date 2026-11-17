@@ -296,6 +296,57 @@ the selected export artifact and its post metadata rather than treating every
 MP4 as interchangeable. Still-frame and loudness measurements do not establish
 that someone has watched motion or listened to the mix.
 
+### Preview cache and disk use
+
+Everything a preview needs is rebuilt from the plan and your originals, so the editor
+keeps it in `.cache/editor/live/preview/` and trims it:
+
+| Folder | What it holds | Trimmed? |
+| --- | --- | --- |
+| `revisions/<id>/` | One folder per prepared preview, including `renderer-*` drafts: its `public/` staged media, and for Exact mode `exact.mp4` (and `preview.mp4`). | Yes |
+| `cache/staged-media/renderer-<hash>/` | Staged clips shared by previews (one entry per cache key, plus per-clip `products/`), one folder per renderer revision. | Yes |
+| `cache/bundles/` | The preview player bundle (a few MB). | Only for old renderer revisions |
+| `sources/`, `spheres/`, `proxy-reservations/` | Source/360 proxies (hours of GPU encode) and their locks. | **Never** |
+
+A revision's `public/` is an APFS clone of its cache entry (copy-on-write, no extra
+bytes on disk); where the volume cannot clone it falls back to a normal copy. Only
+`props.json` and the audio are written per revision. `du` counts clones in full, so the
+folder looks bigger than the space it uses.
+
+`revisions/` and `cache/` together are kept under **8 GB**; set `editor.previewCacheGB`
+in `config.json` to change it (`config.example.json` shows it). The service checks when
+it starts and after every preview it publishes, on a background thread. What a check
+never removes, whatever the budget:
+
+- any folder named by `last-ready.json`, `documents/*.json`, the open preview or a URL the
+  app can still load;
+- the newest 3 revisions of each document, anything touched in the last 10 minutes and
+  anything a running prepare is writing;
+- the staged media the kept previews were built from, and the current renderer's bundle.
+
+It frees what is left in this order until the budget is met: old renderer revisions,
+unreferenced revisions (oldest first), then staged media and clip products (least
+recently used first). Workers hold shared admission on this workspace's
+`preview/.evict.lock` throughout cache use; a trim takes it exclusively. A prepare
+arriving during a trim waits, and a trim skips active workers. The trim refreshes
+manifest and in-flight protections before each rename, then renames the entry to
+`.evict-<id>` and deletes it. Missing cache entries are misses and stage again;
+symlinked or non-directory entries remain errors. Exact mode also deletes its
+unreferenced intermediate `render.mp4` once `exact.mp4` is encoded. Only this
+workspace's `preview/` is ever touched; `library/`, `plans/`, `out/` and proxies are not.
+
+Restored and newly published previews share the same HTTP-registration retirement:
+only the latest three per document retain their URLs. A failed registration or
+publication rolls back its new URLs rather than pinning an obsolete revision.
+
+The broker treats worker-written cache contents as untrusted. It replaces each
+revision's `document.json` through an exclusively created temporary file in a pinned
+directory, never opening an existing marker for writing or following a replacement
+directory symlink. Cleanup descends through no-follow directory
+descriptors, changes permissions only on those directories, and unlinks file names
+without writing through symlinks or hard links. A linked file's original contents and
+permissions stay unchanged; removing a hard link only removes the cache's name.
+
 ## Renderer changes
 
 The app does not change renderer or effect code (`renderer.submit` returns an
@@ -347,7 +398,9 @@ Metricool before retrying in case the post exists.
   correcting its cause. Manual editing and previous committed revisions remain
   separate from failed candidate work.
 - **Disk full:** free space outside original footage/active history, then reopen
-  and retry. Do not manually remove transaction journals or recorded sources.
+  and retry. Do not manually remove transaction journals or recorded sources. The
+  preview cache trims itself (see Preview cache and disk use); lower
+  `editor.previewCacheGB` to make it smaller.
 
 Back up `plans/` and `.cache/editor/live/history` if you want the undo history kept; original footage is backed up separately.
 

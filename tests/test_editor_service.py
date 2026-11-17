@@ -20,6 +20,7 @@ from unittest.mock import Mock, patch
 from helpers import TempProject
 from reels.editor.delta import snapshot_token
 from reels.editor.protocol import ProtocolError
+from reels.editor.preview_cache import KEEP_PER_DOCUMENT
 from reels.editor.service import EditorService
 
 
@@ -253,6 +254,174 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.service.dispatch("state.save", {"panels": {"library": 230}, "upload": {"bucket": "must-not-save"}})
         self.assertEqual(self.service.state["panels"], {"library": 230})
         self.assertNotIn("upload", self.service.state)
+
+    def _wait_trim(self):
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and self.service._trim_thread is not None:
+            time.sleep(0.01)
+        self.assertIsNone(self.service._trim_thread, "the cache trim did not finish")
+
+    def test_publishing_a_preview_trims_the_preview_cache_but_never_what_it_points_at(self):
+        preview = Path(self.workspace.root) / "preview"
+        self.fixture.project.config["editor"] = {"previewCacheGB": 0}
+        old = time.time() - 7200
+        stale = []
+        for seed in range(5):
+            folder = preview / "revisions" / f"{seed:020x}-{seed:08x}"
+            (folder / "public").mkdir(parents=True)
+            (folder / "public/seg0.mp4").write_bytes(b"x" * 100)
+            os.utime(folder / "public/seg0.mp4", (old, old))
+            os.utime(folder / "public", (old, old))
+            os.utime(folder, (old + seed, old + seed))  # seed 0 is the oldest
+            stale.append(folder)
+        proxy = preview / "sources/abc/proxy.mp4"
+        proxy.parent.mkdir(parents=True)
+        proxy.write_bytes(b"proxy")
+        os.utime(proxy.parent, (old, old))
+        revisions = {"document": "d1", "library": "l", "renderer": "r"}
+        self.service.document = SimpleNamespace(
+            snapshot=lambda: {"revisions": revisions},
+            publish_if_current=lambda expected, callback: callback())
+        current = preview / "revisions" / f"{9:020x}-{9:08x}"
+        (current / "public").mkdir(parents=True)
+        (current / "public/seg0.mp4").write_bytes(b"x" * 100)
+        (current / "public/props.json").write_text("{}")
+        os.utime(current, (old, old))  # old enough to rely on the manifest, not the grace period
+        try:
+            self.service._publish_preview({
+                "documentId": "doc", "revisions": revisions, "mode": "interactive",
+                "staticDir": str(current / "public"), "propsPath": str(current / "public/props.json")})
+            self._wait_trim()
+        finally:
+            self.service.document = None
+        self.assertTrue(current.is_dir(), "the published preview's folder is referenced by last-ready.json")
+        self.assertEqual(sorted(p.name for p in stale if p.exists()), sorted(p.name for p in stale[2:]),
+                         "unreferenced folders go oldest first, the newest three unowned ones stay")
+        self.assertEqual(proxy.read_bytes(), b"proxy")
+
+    def _ready_preview_manifest(self, number, document_id="doc"):
+        movie = Path(self.workspace.root) / f"preview/revisions/lifecycle-{number}/exact.mp4"
+        movie.parent.mkdir(parents=True)
+        movie.write_bytes(b"movie")
+        revisions = {"document": f"d{number}", "library": "l", "renderer": "r"}
+        snapshot = {"documentId": document_id, "revisions": revisions,
+                    "plan": {"segments": [{"asset": "fixture"}]}}
+        self.service.document = SimpleNamespace(
+            snapshot=lambda: snapshot,
+            publish_if_current=lambda expected, callback: callback())
+        self.addCleanup(setattr, self.service, "document", None)
+        return {"documentId": document_id, "revisions": revisions,
+                "mode": "exact", "movie": str(movie)}
+
+    def test_a_documents_preview_urls_beyond_the_newest_three_are_released(self):
+        keys = []
+        with patch.object(self.service, "trim_preview_cache"):
+            for number in range(KEEP_PER_DOCUMENT + 2):
+                published = self.service._publish_preview(self._ready_preview_manifest(number))
+                keys.append(published["httpKey"])
+        self.assertEqual(set(self.service.http.files),
+                         {f"{key}/exact.mp4" for key in keys[-KEEP_PER_DOCUMENT:]})
+
+    def test_restored_preview_urls_are_retired_by_later_publications(self):
+        saved = self._ready_preview_manifest(0)
+        record = self.service._preview_record_path(saved["documentId"])
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps(saved))
+        self.service._restore_preview(self.service.document.snapshot())
+        restored = self.service.preview
+        self.assertTrue(restored["restored"])
+        restored_key = restored["httpKey"]
+        self.assertIn(f"{restored_key}/exact.mp4", self.service.http.files)
+        self.assertEqual(self.service._published_previews["doc"], [restored_key])
+
+        keys = []
+        with patch.object(self.service, "trim_preview_cache"):
+            for number in range(1, KEEP_PER_DOCUMENT + 1):
+                published = self.service._publish_preview(self._ready_preview_manifest(number))
+                keys.append(published["httpKey"])
+        self.assertEqual(set(self.service.http.files), {f"{key}/exact.mp4" for key in keys})
+        self.assertNotIn(restored_key, self.service._published_previews["doc"])
+
+    def test_rejected_preview_publication_retires_only_the_new_registration(self):
+        with patch.object(self.service, "trim_preview_cache") as trim:
+            for number in range(KEEP_PER_DOCUMENT):
+                previous = self.service._publish_preview(self._ready_preview_manifest(number))
+            registered = dict(self.service.http.files)
+            enrolled = deepcopy(self.service._published_previews)
+            candidate = self._ready_preview_manifest(KEEP_PER_DOCUMENT)
+            candidate["httpKey"] = previous["httpKey"]
+
+            def reject(expected, callback):
+                self.assertGreater(len(self.service.http.files), len(registered))
+                raise ProtocolError("stale_job", "Document changed after registration.")
+
+            self.service.document.publish_if_current = reject
+            with self.assertRaisesRegex(ProtocolError, "Document changed"):
+                self.service._publish_preview(candidate)
+
+        self.assertEqual(dict(self.service.http.files), registered)
+        self.assertEqual(self.service._published_previews, enrolled)
+        self.assertIs(self.service.preview, previous)
+        self.assertEqual(trim.call_count, KEEP_PER_DOCUMENT)
+
+    def test_partial_preview_registration_failure_retires_only_the_new_prefix(self):
+        with patch.object(self.service, "trim_preview_cache"):
+            previous = self.service._publish_preview(self._ready_preview_manifest(0))
+            registered = dict(self.service.http.files)
+            candidate = self._ready_preview_manifest(1)
+            bundle = Path(candidate["movie"]).parent / "bundle"
+            bundle.mkdir()
+            (bundle / "index.html").write_text("preview")
+            (bundle / "z-link.mp4").symlink_to(candidate["movie"])
+            candidate.update(bundleDir=str(bundle), httpKey=previous["httpKey"])
+            with self.assertRaisesRegex(ProtocolError, "Bundle contains a symlink"):
+                self.service._publish_preview(candidate)
+
+        self.assertEqual(dict(self.service.http.files), registered)
+        self.assertEqual(self.service._published_previews["doc"], [previous["httpKey"]])
+        self.assertIs(self.service.preview, previous)
+
+    def test_failed_preview_record_write_preserves_previous_preview_and_registrations(self):
+        with patch.object(self.service, "trim_preview_cache"):
+            previous = self.service._publish_preview(self._ready_preview_manifest(0))
+            registered = dict(self.service.http.files)
+            candidate = self._ready_preview_manifest(1)
+            with (patch("reels.editor.service.atomic_json", side_effect=OSError("disk full")),
+                  self.assertRaisesRegex(OSError, "disk full")):
+                self.service._publish_preview(candidate)
+
+        self.assertEqual(dict(self.service.http.files), registered)
+        self.assertEqual(self.service._published_previews["doc"], [previous["httpKey"]])
+        self.assertIs(self.service.preview, previous)
+
+    def test_partial_restored_preview_registration_failure_leaves_no_pins(self):
+        saved = self._ready_preview_manifest(0)
+        bundle = Path(saved["movie"]).parent / "bundle"
+        bundle.mkdir()
+        (bundle / "index.html").write_text("preview")
+        (bundle / "z-link.mp4").symlink_to(saved["movie"])
+        saved["bundleDir"] = str(bundle)
+        record = self.service._preview_record_path(saved["documentId"])
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps(saved))
+
+        self.service._restore_preview(self.service.document.snapshot())
+
+        self.assertEqual(self.service.preview["state"], "unavailable")
+        self.assertEqual(self.service.http.files, {})
+        self.assertEqual(self.service._published_previews, {})
+
+    def test_previews_without_document_ids_have_bounded_registration_lifetimes(self):
+        keys = []
+        with patch.object(self.service, "trim_preview_cache"):
+            for number in range(KEEP_PER_DOCUMENT + 2):
+                candidate = self._ready_preview_manifest(number, document_id=None)
+                candidate.pop("documentId")
+                published = self.service._publish_preview(candidate)
+                keys.append(published["httpKey"])
+        self.assertEqual(set(self.service.http.files),
+                         {f"{key}/exact.mp4" for key in keys[-KEEP_PER_DOCUMENT:]})
+        self.assertEqual(self.service._published_previews[""], keys[-KEEP_PER_DOCUMENT:])
 
     def test_automatic_and_native_preview_requests_coalesce_instead_of_cancelling_each_other(self):
         entered, release = threading.Event(), threading.Event()

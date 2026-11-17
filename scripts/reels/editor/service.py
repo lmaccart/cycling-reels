@@ -24,6 +24,7 @@ from .delta import snapshot_delta as _snapshot_delta, snapshot_token
 from .http import CapabilityServer
 from . import live, music_service
 from .jobs import JobManager, atomic_json
+from .preview_cache import KEEP_PER_DOCUMENT, PreviewCache, budget_bytes
 from .protocol import MAX_MESSAGE, ProtocolError, Writer, decode, error_value, respond
 from .relay import Relay
 
@@ -83,6 +84,10 @@ class EditorService:
         self._observed_library_revision: str | None = None
         self._timeline_leases: dict[str, float] = {}
         self._manual_apply_inflight = 0
+        self._trim_lock = threading.Lock()
+        self._trim_thread: threading.Thread | None = None
+        self._trim_again = False
+        self._published_previews: dict[str, list[str]] = {}
         self.watcher: threading.Thread | None = None
         self._plans_stamp: dict | None = live.plans_stamp(self.project)
         self._ingest_job: str | None = None
@@ -112,6 +117,7 @@ class EditorService:
                 self._observed_library_revision = None
             self.watcher = self._new_service_watcher()
             self.watcher.start()
+            self.trim_preview_cache()
         except Exception:
             self.shutdown_requested.set()
             try:
@@ -532,32 +538,43 @@ class EditorService:
                 result.update(sourceState="offline", sourceReason=str(exc))
         return result
 
+    @contextlib.contextmanager
     def _register_preview(self, manifest):
         manifest = dict(manifest)
         if manifest.get("state") == "empty":
-            return manifest
+            yield manifest
+            return
         revisions = manifest.get("revisions", self.current_revisions())
-        key = manifest.get("httpKey") or ("previews/" + str(revisions.get("document", uuid.uuid4().hex))
-                                           + "/" + str(manifest.get("mode", "interactive")) + "/" + uuid.uuid4().hex)
+        # Each attempt owns its prefix, even when restoring a saved manifest. A
+        # failed registration/publication can then retire it without touching
+        # the current preview's URLs.
+        key = ("previews/" + str(revisions.get("document", uuid.uuid4().hex))
+               + "/" + str(manifest.get("mode", "interactive")) + "/" + uuid.uuid4().hex)
         manifest["httpKey"] = key
-        bundle = manifest.get("bundleDir") or manifest.get("bundle_dir")
-        static = manifest.get("staticDir") or manifest.get("static_dir") or manifest.get("stagingDir")
-        for directory in (bundle, static):
-            if directory and not Path(directory).resolve().is_relative_to(Path(self.workspace.root).resolve()):
-                raise ProtocolError("invalid_preview_path", "Preview bundles and staged media must be private revision artifacts.")
-        if bundle:
-            manifest["url"] = self.http.register_tree(key, Path(bundle))
-        if static:
-            manifest["staticURL"] = self.http.register_tree(key + "/public", Path(static)).rsplit("/", 1)[0] + "/"
-            manifest["staticBaseUrl"] = manifest["staticURL"]
-        for field in ("movie", "review", "reel", "path"):
-            path = manifest.get(field)
-            if isinstance(path, (str, Path)) and Path(path).is_file() and Path(path).suffix.lower() in (".mp4", ".mov"):
-                manifest[field + "URL"] = self.http.register_file(key + "/" + Path(path).name, Path(path))
-                if manifest.get("mode") == "exact":
-                    manifest["url"] = manifest[field + "URL"]
-        manifest.update(state="ready", revisions=revisions, revision=str(revisions.get("document", "")))
-        return manifest
+        try:
+            bundle = manifest.get("bundleDir") or manifest.get("bundle_dir")
+            static = manifest.get("staticDir") or manifest.get("static_dir") or manifest.get("stagingDir")
+            for directory in (bundle, static):
+                if directory and not Path(directory).resolve().is_relative_to(Path(self.workspace.root).resolve()):
+                    raise ProtocolError("invalid_preview_path", "Preview bundles and staged media must be private revision artifacts.")
+            if bundle:
+                manifest["url"] = self.http.register_tree(key, Path(bundle))
+            if static:
+                manifest["staticURL"] = self.http.register_tree(key + "/public", Path(static)).rsplit("/", 1)[0] + "/"
+                manifest["staticBaseUrl"] = manifest["staticURL"]
+            for field in ("movie", "review", "reel", "path"):
+                path = manifest.get(field)
+                if isinstance(path, (str, Path)) and Path(path).is_file() and Path(path).suffix.lower() in (".mp4", ".mov"):
+                    manifest[field + "URL"] = self.http.register_file(key + "/" + Path(path).name, Path(path))
+                    if manifest.get("mode") == "exact":
+                        manifest["url"] = manifest[field + "URL"]
+            manifest.update(state="ready", revisions=revisions, revision=str(revisions.get("document", "")))
+            yield manifest
+        except BaseException:
+            self.http.retire(key)
+            raise
+        else:
+            self._retire_superseded_previews(manifest)
 
     def _preview_record_path(self, document_id):
         key = hashlib.sha256(str(document_id).encode()).hexdigest()
@@ -576,33 +593,111 @@ class EditorService:
             saved = json.loads(path.read_text())
             if saved.get("documentId") != snapshot.get("documentId"):
                 return
-            restored = self._register_preview(saved)
-            if restored["revisions"] != snapshot.get("revisions"):
-                restored["state"] = "stale"
-                restored["requestedRevisions"] = snapshot.get("revisions")
-            self.preview = {**restored, "restored": True}
+            with self._register_preview(saved) as restored:
+                if restored["revisions"] != snapshot.get("revisions"):
+                    restored["state"] = "stale"
+                    restored["requestedRevisions"] = snapshot.get("revisions")
+                self.preview = {**restored, "restored": True}
         except Exception as exc:
-            self.preview = {"state": "unavailable", "reason": str(exc)}
+            if not self.preview.get("httpKey"):
+                self.preview = {"state": "unavailable", "reason": str(exc)}
 
     def _publish_preview(self, manifest):
         manifest = dict(manifest)
         revisions = manifest.get("revisions", self.current_revisions())
         if revisions != self.current_revisions():
             raise ProtocolError("stale_job", "Prepared preview belongs to an older document revision.")
-        manifest = self._register_preview(manifest)
-        def publish():
-            self.preview = manifest
-            atomic_json(Path(self.workspace.root) / "preview" / "last-ready.json", manifest)
-            if manifest.get("documentId"):
-                atomic_json(self._preview_record_path(manifest["documentId"]), manifest)
-            self.emit("preview.ready", manifest, revisions)
-            return manifest
-        document = self._doc()
-        if hasattr(document, "publish_if_current"):
-            return document.publish_if_current(revisions, publish)
-        if revisions != self.current_revisions():
-            raise ProtocolError("stale_job", "Preview preparation lost a race to a manual edit.")
-        return publish()
+        previous = self.preview
+        try:
+            with self._register_preview(manifest) as manifest:
+                def publish():
+                    atomic_json(Path(self.workspace.root) / "preview" / "last-ready.json", manifest)
+                    if manifest.get("documentId"):
+                        atomic_json(self._preview_record_path(manifest["documentId"]), manifest)
+                    self.preview = manifest
+                    self.emit("preview.ready", manifest, revisions)
+                    return manifest
+                document = self._doc()
+                if hasattr(document, "publish_if_current"):
+                    published = document.publish_if_current(revisions, publish)
+                else:
+                    if revisions != self.current_revisions():
+                        raise ProtocolError("stale_job", "Preview preparation lost a race to a manual edit.")
+                    published = publish()
+        except BaseException:
+            if self.preview is manifest:
+                self.preview = previous
+            raise
+        self.trim_preview_cache()
+        return published
+
+    def _retire_superseded_previews(self, manifest):
+        """Forget the HTTP URLs of a document's previews older than the newest few: the app only plays the
+        current one, and a registered URL would otherwise pin its revision folder in the cache forever."""
+        key = manifest.get("httpKey")
+        if not key:
+            return
+        document = str(manifest.get("documentId") or "")
+        with self._trim_lock:
+            keys = [known for known in self._published_previews.get(document, []) if known != key] + [key]
+            retired, self._published_previews[document] = keys[:-KEEP_PER_DOCUMENT], keys[-KEEP_PER_DOCUMENT:]
+        for old in retired:
+            self.http.retire(old)
+
+    def _preview_protected(self) -> list:
+        with self.lock:
+            current = dict(self.preview)
+        with self.http.lock:
+            registered = [str(item.path) for item in self.http.files.values()]
+        return [current, *registered]
+
+    def _current_renderers(self) -> set[str]:
+        found: set[str] = set()
+        with contextlib.suppress(Exception):
+            value = self.current_revisions().get("renderer")
+            if value:
+                found.add(str(value))
+        provider = getattr(self.workspace, "renderer_revision", None)
+        with contextlib.suppress(Exception):
+            value = provider() if callable(provider) else provider
+            if value:
+                found.add(str(value))
+        return found
+
+    def _in_flight_preview_paths(self) -> list[Path]:
+        managers = (self._preview_manager, getattr(self._renderer_manager, "preview", None))
+        return [path for manager in managers if manager is not None for path in manager.in_flight_paths()]
+
+    def trim_preview_cache(self) -> None:
+        """Keep revisions/ and cache/ under the configured budget, off the request path: at start and after
+        every published preview. A pass requested while one runs makes it run again."""
+        with self._trim_lock:
+            if self.shutdown_requested.is_set():
+                return
+            if self._trim_thread is not None:
+                self._trim_again = True
+                return
+            self._trim_thread = threading.Thread(target=self._trim_loop, name="reels-preview-cache-trim", daemon=True)
+            self._trim_thread.start()
+
+    def _trim_loop(self) -> None:
+        while True:
+            with self._trim_lock:
+                self._trim_again = False
+            try:
+                PreviewCache(
+                    Path(self.workspace.root),
+                    budget=budget_bytes(self.project.config),
+                    protected=self._preview_protected,
+                    in_flight=self._in_flight_preview_paths,
+                    current_renderers=self._current_renderers,
+                ).run()
+            except Exception:  # noqa: BLE001 - housekeeping never disturbs the editor; the next publish tries again
+                pass
+            with self._trim_lock:
+                if not self._trim_again or self.shutdown_requested.is_set():
+                    self._trim_thread = None
+                    return
 
     def _start_preview(self, mode):
         # Serialize reservation through job submission. Otherwise a native
@@ -1132,6 +1227,9 @@ class EditorService:
                 self.emit("service.cleanup_error", error_value(exc), {})
             if self.watcher is not None and self.watcher.is_alive():
                 self.watcher.join(timeout=2)
+            trim = self._trim_thread
+            if trim is not None and trim.is_alive():
+                trim.join(timeout=3)
             stop_library_watcher = getattr(self.workspace, "stop_library_watcher", None)
             if callable(stop_library_watcher):
                 stop_library_watcher()

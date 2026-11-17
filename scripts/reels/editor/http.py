@@ -193,6 +193,12 @@ class CapabilityServer:
                 self.register_file(f"{prefix}/{path.relative_to(directory).as_posix()}", path)
         return self.url(prefix + "/index.html")
 
+    def retire(self, prefix: str) -> None:
+        """Forget every file registered at `prefix` or below it (a superseded preview): later requests get 404."""
+        with self.lock:
+            for key in [key for key in self.files if key == prefix or key.startswith(prefix + "/")]:
+                del self.files[key]
+
     def url(self, key: str) -> str:
         return self.origin + self.prefix + quote(key, safe="/")
 
