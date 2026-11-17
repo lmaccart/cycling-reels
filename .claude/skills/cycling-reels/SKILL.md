@@ -62,7 +62,8 @@ Nobody is there to approve, so do steps 0–5 only, then stop: don't approve, qu
 | Command | What it does |
 | --- | --- |
 | `./reels doctor [--fix]` | Checks ffmpeg, Node, Remotion, Whisper, yt-dlp; `--fix` installs/updates what's missing |
-| `./reels ingest` | Inbox → library, contact sheets, speech detection |
+| `./reels ingest` | Inbox → library, contact sheets, speech detection; queues and then prepares front/back source proxies for new 360 videos |
+| `./reels prewarm-360 [--all] [ids…]` | Backfill front/back and whole-clip aim proxies (aim in ≤180 s chunks, including medium stabilization corrections); no arguments resumes the pending ingest queue. Prints bytes written and stops before its next output reservation would leave under 50 GB free |
 | `./reels pending` | Assets waiting for tags |
 | `./reels frames <id> --start A --end B` / `--at t1,t2` | Closer looks at a clip (also works on `out/<slug>/reel.mp4`) |
 | `./reels frames <id> --views` / `--view rider` or `--view 180,-15,85` / `--planet` (360 only) | Four directions, or a preview of an exact 9:16 reframe / tiny planet |
@@ -107,6 +108,8 @@ Nobody is there to approve, so do steps 0–5 only, then stop: don't approve, qu
 | `./reels export --to <folder> [slugs…]` | Copy approved/queued reels + caption `.txt` files (e.g. to iCloud Drive for posting from a phone) |
 | `./reels upload <slug…>` / `--queued` | Optional: push to S3/R2 for a public media URL |
 | `./reels selftest` | End-to-end test on throwaway clips in a temp folder |
+
+360 proxies live under `.cache/editor/live/preview/`, shared with the editor; originals are only read. Ingest drains its durable queue serially after the other ingest work; interrupted, failed or disk-blocked entries can be resumed with `./reels prewarm-360`. Explicit IDs and `--all` also prepare every aim range. Repeated runs reuse matching cached media, including a larger aim range covering a split piece. VideoToolbox decode/encode is tried on macOS (H.264 for front/back, HEVC for aim, then the other hardware encoder); failure retries with software decode/libx264. Both use a 30-frame GOP and no B-frames. The disk guard reserves a conservative bounded output before each job, so it can stop with more than 50 GB still free; unrelated concurrent disk writers are outside that reservation. `scripts/reels/proxy.py:PROXY_VERSION` must be bumped for incompatible proxy changes, not ordinary source edits. Old cache files are retained.
 
 Prune rounds bind each listed asset to its media path and file identity (resolved path, device, inode, size and modification/change timestamps). A changed or replaced file is skipped. Older rounds require a fresh dry run and approval. Plan protections use the renderer's exact ID resolver, including prefixes and substrings; unreadable or unresolved plans stop pruning.
 

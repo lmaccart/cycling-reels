@@ -235,8 +235,6 @@ class EditorPreviewTests(unittest.TestCase):
         self.assertEqual(marker["kind"], "video")
         self.assertEqual(marker["sourceCodec"], "vp9")
         self.assertEqual(marker["fps"], 29.97)
-        self.assertEqual(marker["rendererRevision"], "fixture-renderer")
-        self.assertEqual(marker["runtimeRevision"], "fixture-runtime")
 
     def test_360_video_proxy_reframes_the_requested_view_and_keeps_optional_audio(self):
         source = self._register_source(

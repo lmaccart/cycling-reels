@@ -905,6 +905,7 @@ def build_parser() -> argparse.ArgumentParser:
     from .search import add_commands as add_search_commands
     from .search import add_deleted_arg, add_shelf_args
     from .takes import add_commands as add_takes_commands
+    from .prewarm import add_commands as add_prewarm_commands
 
     p = argparse.ArgumentParser(prog="reels", description="Turn ride footage into captioned Instagram Reels.")
     p.add_argument("--version", action="version", version=f"cycling-reels {__version__}")
@@ -918,6 +919,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--dry-run", action="store_true")
     s.add_argument("--no-speech", action="store_true", help="skip speech detection")
     s.set_defaults(fn=cmd_ingest)
+    add_prewarm_commands(sub)
 
     s = sub.add_parser("pending", help="list assets waiting to be tagged")
     s.add_argument("--json", action="store_true")

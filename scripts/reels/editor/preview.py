@@ -608,7 +608,8 @@ class PreviewManager:
         job["cacheRoot"] = str(cache_root)
         job["bundleCache"] = str(bundle_cache)
         job["workspaceRoot"] = str(Path(self.workspace.root).resolve())
-        job["runtimeRevision"] = hashlib.sha256(Path(__file__).with_name("worker.py").read_bytes()).hexdigest()
+        if job.get("action") not in ("source_proxy", "sphere_proxy"):
+            job["runtimeRevision"] = hashlib.sha256(Path(__file__).with_name("worker.py").read_bytes()).hexdigest()
         job["trustedTestsRoot"] = str(Path(__file__).resolve().parents[3] / "tests")
         _atomic_json(Path(job["jobPath"]), job)
 
@@ -894,7 +895,7 @@ class PreviewManager:
     def prepare_sphere(self, asset_id: str, start: float, end: float, stabilize=None, context=None) -> dict:
         """An equirectangular proxy of [start, end] of a 360 clip for the live 360 viewer,
         with the stabilization rotations for `stabilize` (a plan's stabilize value)."""
-        import hashlib
+        from ..proxy import SPHERE_PROXY_MAX, sphere_cache_key
 
         from ..util import quick_hash, read_json
 
@@ -924,13 +925,13 @@ class PreviewManager:
         duration = float(probe.get("duration") or end)
         lo = max(0.0, math.floor(max(0.0, float(start) - 1.0) / 5.0) * 5.0)
         hi = min(duration, math.ceil((float(end) + 1.0) / 5.0) * 5.0)
+        if hi - lo > SPHERE_PROXY_MAX:
+            lo, hi = max(0.0, float(start)), min(duration, float(end))
         from .renderer import RendererManager
 
         renderer_manager = RendererManager(self.workspace)
         renderer_revision = renderer_manager._active_revision()
-        key = hashlib.sha256(json.dumps(
-            {"asset": asset_id, "identity": identity, "start": lo, "end": hi, "renderer": renderer_revision},
-            sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        key = sphere_cache_key(asset_id, identity, probe)
         job_root = self.worker_root / f"sphere-{uuid.uuid4().hex}"
         job_root.mkdir(parents=True, mode=0o700)
         proxy_root = self.preview_root / "spheres" / key
@@ -950,6 +951,8 @@ class PreviewManager:
                     "probe": copy.deepcopy(probe),
                     "start": lo,
                     "end": hi,
+                    "requestedStart": max(0.0, float(start)),
+                    "requestedEnd": min(duration, float(end)),
                     "stabilize": copy.deepcopy(stabilize),
                     "mediaRoot": str(self.workspace.project.media_dir.resolve()),
                     "workspaceRoot": str(Path(self.workspace.root).resolve()),
@@ -971,7 +974,7 @@ class PreviewManager:
 
     def prepare_source(self, asset_id: str, view: dict | None = None, context=None) -> dict:
         """Return a playable original or a private view-specific proxy."""
-        import hashlib
+        from ..proxy import source_cache_key
 
         from ..util import read_json, quick_hash
 
@@ -999,7 +1002,6 @@ class PreviewManager:
         source_kind = str(asset.get("kind") or "")
         if source_kind not in {"video", "photo"}:
             return {"status": "unsupported", "assetId": asset_id, "reason": "The registered asset has an unsupported media kind."}
-        vcodec = str(probe.get("vcodec") or "").lower()
         if source_proxy_reason(asset, path):
             from .renderer import RendererManager
 
@@ -1010,22 +1012,7 @@ class PreviewManager:
             }
             view_value = copy.deepcopy(view or {})
             renderer_revision = renderer_manager._active_revision()
-            key_data = json.dumps(
-                {
-                    "asset": asset_id,
-                    "identity": identity_value,
-                    "kind": source_kind,
-                    "view": view_value,
-                    "angles": (asset.get("tags") or {}).get("angles") or {},
-                    "codec": vcodec,
-                    "fps": probe.get("fps"),
-                    "renderer": renderer_revision,
-                    "runtime": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            )
-            proxy_id = hashlib.sha256(key_data.encode()).hexdigest()
+            proxy_id = source_cache_key(asset, identity_value, view_value)
             job_root = self.worker_root / f"source-{uuid.uuid4().hex}"
             job_root.mkdir(parents=True, mode=0o700)
             proxy_root = self.preview_root / "sources" / proxy_id
