@@ -92,6 +92,31 @@ Do not run it beside the app on the same folder. See [INTEGRATION.md](INTEGRATIO
 - Source video uses AVFoundation; still photos are images. Unsupported formats
   and 360 media use private proxies. Preparing a full 360 source can be expensive.
 
+### Aiming 360 clips
+
+Select a 360 clip on the timeline and click **Aim 360°** in the Program header.
+The Program monitor becomes a live view into the sphere (a private equirectangular
+proxy of the clip plus a little either side; the first open takes a few seconds,
+then it is reused). It uses the renderer's exact v360 math, so what you see is
+what renders.
+
+- **Drag** the picture to aim; **scroll or pinch** to zoom (field of view).
+- With no keyframes, aiming sets the clip's one angle (`view`).
+- **Add keyframe** (or double-click the picture) stores the angle at the
+  playhead in the clip's `path`. Once there are keyframes, aiming at a keyframe
+  updates it and aiming between keyframes adds one. Keyframes must be 0.1 s apart.
+- **Hard cut** makes the camera jump to that keyframe's angle instead of panning
+  there. The strip under the picture shows keyframes (filled = hard cut); click
+  one to jump to it.
+- **Angles** lists the clip's tagged angles, **Level horizon** (needs camera
+  gravity data) and **Remove all keyframes**.
+- **Stabilize** (Off / Light / Medium / Strong / Lock) cancels shake using the
+  GoPro MAX's own orientation track. Light follows turns closely, Strong
+  smooths more, Lock holds the direction the camera faced at the clip's start.
+  It costs nothing in picture (the sphere is rotated, not cropped), but
+  stabilized clips take a few seconds per second of footage to stage.
+- Space plays the clip in the 360 view; **Done** returns to the Program preview.
+
 ### Footage dragging
 
 - Drag footage horizontally to a frame position or vertically between V1, V2,

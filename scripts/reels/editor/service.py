@@ -5,6 +5,7 @@ import contextlib
 import copy
 import inspect
 import json
+import math
 import os
 import selectors
 import signal
@@ -419,6 +420,60 @@ class EditorService:
             result.pop(key, None)
         return result
 
+    def _sphere_camera(self, node_id: str) -> dict:
+        """A 360 clip's camera resolved to numbers: named angles, the moment's view and a
+        split segment's camera window become plain yaw/pitch/fov/roll keyframes in
+        segment seconds — what the live 360 viewer edits."""
+        import copy as _copy
+
+        from ..library import load_asset, resolve_id, resolve_moment
+        from ..sphere import plan_camera
+        from .document import node_location
+
+        plan = _copy.deepcopy(self._doc()._current_raw_plan())
+        try:
+            _, target = node_location(plan, node_id)
+        except KeyError:
+            raise ProtocolError("node_not_found", "That clip is no longer in the reel.")
+        if not isinstance(target, dict) or not target.get("asset"):
+            raise ProtocolError("not_360", "Select a 360 clip on the timeline.")
+        try:
+            asset = load_asset(self.project, resolve_id(self.project, str(target["asset"])))
+        except Exception as exc:
+            raise ProtocolError("asset_not_found", str(exc))
+        if asset.get("kind") != "video" or not (asset.get("probe") or {}).get("sphere"):
+            raise ProtocolError("not_360", "This clip isn't 360 video.")
+        tags = asset.get("tags") or {}
+        moment_view = None
+        spec = dict(target)
+        if "moment" in spec:
+            moment = resolve_moment(asset, spec["moment"])
+            spec.setdefault("in", moment["in"])
+            spec.setdefault("out", moment["out"])
+            moment_view = moment.get("view")
+        try:
+            start, end = float(spec["in"]), float(spec["out"])
+            speed = float(spec.get("speed") or 1.0)
+        except (KeyError, TypeError, ValueError):
+            raise ProtocolError("invalid_clip", "This clip has no in/out range.")
+        seconds = max(0.0, (end - start) / speed)
+        window = spec.get("cameraWindow") if isinstance(spec.get("cameraWindow"), dict) else None
+        camera_spec = {**spec, "path": window["path"]} if window and isinstance(window.get("path"), list) else spec
+        errors: list[str] = []
+        warnings: list[str] = []
+        span = float(window["durationSeconds"]) if window and isinstance(window.get("durationSeconds"), (int, float)) else seconds
+        camera = plan_camera(camera_spec, tags, moment_view, span, errors, warnings, "clip")
+        path = camera.get("path") or []
+        if window:
+            offset = float(window.get("offsetSeconds") or 0)
+            path = [{**key, "at": round(key["at"] - offset, 4)} for key in path]
+        return {
+            "id": node_id, "assetId": asset["id"], "in": start, "out": end, "speed": speed, "seconds": seconds,
+            "projection": camera["projection"], "view": camera["view"], "path": path,
+            "stabilize": target.get("stabilize"), "stabilizeSetting": camera.get("stabilize"),
+            "angles": tags.get("angles") or {}, "errors": errors,
+        }
+
     def _require_asset_id(self, value):
         if (not isinstance(value, str) or not value or value in (".", "..")
                 or "/" in value or "\\" in value or "\x00" in value):
@@ -756,6 +811,35 @@ class EditorService:
                 return result
             self.jobs.cancel_kind("source")
             return self.jobs.submit("source", revisions, lambda ctx: manager.prepare_source(aid, view=params.get("view"), context=ctx), publish_source)
+        if method == "sphere.camera":
+            return self._sphere_camera(str(params.get("id") or ""))
+        if method == "sphere.prepare":
+            aid = self._require_asset_id(params.get("id"))
+            try:
+                start, end = float(params.get("start")), float(params.get("end"))
+            except (TypeError, ValueError):
+                raise ProtocolError("invalid_params", "sphere.prepare needs start and end source seconds.")
+            if not (math.isfinite(start) and math.isfinite(end) and end > start):
+                raise ProtocolError("invalid_params", "sphere.prepare needs end after start.")
+            revisions = self.current_revisions()
+            manager = self.preview_manager()
+            request = str(params.get("requestId") or "")
+            def publish_sphere(result):
+                result = dict(result)
+                result["requestId"] = request
+                if result.get("status", "ready") != "ready":
+                    self.emit("sphere.unavailable", result, revisions)
+                    return result
+                path = result.get("path")
+                if not isinstance(path, (str, Path)):
+                    raise ProtocolError("invalid_sphere_result", "360 preparation returned no proxy.")
+                result["url"] = self.http.register_file(f"sphere/{uuid.uuid4().hex}.mp4", path)
+                result.pop("path", None)
+                self.emit("sphere.ready", result, revisions)
+                return result
+            self.jobs.cancel_kind("sphere")
+            return self.jobs.submit("sphere", revisions, lambda ctx: manager.prepare_sphere(
+                aid, start, end, stabilize=params.get("stabilize"), context=ctx), publish_sphere)
         if method == "job.status":
             return self.jobs.status(str(params.get("id", "")))
         if method == "job.cancel":

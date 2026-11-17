@@ -359,7 +359,8 @@ The project default lives in config `render.grade` (`look`, `strength`, `rescue`
 | --- | --- | --- |
 | `view` | moment's view → first tagged angle → front | An angle name from the tags (`"rider"`, `"road"`…) or built in `front`/`right`/`back`/`left`, or `{"view": "rider", "yaw", "pitch", "fov", "roll"}` |
 | `yaw`, `pitch`, `fov`, `roll` | from `view` | Quick overrides on top of the view |
-| `path` | – | Camera move: `[{"at": 0.5, "view": "road"}, {"at": 2.5, "view": "rider", "fov": 95}]`. `at` = seconds from the segment start (after `speed`); holds the first view until the first keyframe; eased, and yaw turns the short way round |
+| `path` | – | Camera move: `[{"at": 0.5, "view": "road"}, {"at": 2.5, "view": "rider", "fov": 95}]`. `at` = seconds from the segment start (after `speed`); holds the first view until the first keyframe; eased, and yaw turns the short way round. `"cut": true` on a keyframe = hold the previous view, then hard-cut to this one |
+| `stabilize` | off | 360 video only: cancels shake using the camera's orientation track (GoPro MAX `CORI`), by rotating the sphere — no crop. `true`/`"medium"` (~0.8 s smoothing), `"light"`, `"strong"`, a number of seconds (0.1–5), or `"lock"` (hold the direction at the segment start). Without orientation data the render logs it and skips it. Costs ~4–5 s of staging per second of footage |
 | `projection` | `flat` | `tiny-planet` = the little-planet look. Its yaw decides which direction faces up; a path with yaw keyframes spins it |
 
 On a 360 **photo**, `view`/`projection` reframe it and the usual `motion` (slow zoom/pan) applies; with a `path` the photo becomes a camera move instead.
@@ -368,7 +369,10 @@ On a 360 **photo**, `view`/`projection` reframe it and the usual `motion` (slow 
 {"asset": "261026-gs010042-77aa", "moment": 1, "path": [{"at": 0.3, "view": "road"}, {"at": 2.6, "view": "rider"}]}
 {"asset": "261026-gs010042-77aa", "in": 140.0, "out": 143.0, "view": "rider", "fov": 95, "speed": 0.5}
 {"asset": "261026-gsaa0457-1b2c", "duration": 2.4, "projection": "tiny-planet", "path": [{"at": 0, "yaw": 0}, {"at": 2.4, "yaw": 120}]}
+{"asset": "261031-gs010112-b674", "in": 186.0, "out": 192.0, "stabilize": true, "path": [{"at": 0, "view": "side"}, {"at": 2, "view": "forward", "cut": true}]}
 ```
+
+The editor's **Aim 360°** mode (Program monitor) writes these same fields: drag to aim, keyframes at the playhead, hard cuts, stabilize.
 
 Preview any framing before rendering: `./reels frames <id> --view rider --at 140,141.5` or `--planet`.
 

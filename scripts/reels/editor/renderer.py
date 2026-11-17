@@ -168,7 +168,7 @@ class RendererManager:
             return str(provided())
         digest = hashlib.sha256()
         code_root = Path(self.workspace.code_root).resolve()
-        for name in ("render.py", "mix.py", "music.py", "punch.py", "sphere.py", "exhibits.py"):
+        for name in ("render.py", "mix.py", "music.py", "punch.py", "sphere.py", "stabilize.py", "exhibits.py"):
             path = code_root / "scripts" / "reels" / name
             try:
                 digest.update(path.read_bytes())

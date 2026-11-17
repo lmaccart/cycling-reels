@@ -182,10 +182,16 @@ def _ease(u: float) -> float:
 
 
 def path_value(keys: list[dict], t: float) -> dict:
-    """Camera at time t along keyframes [{'at', 'yaw', 'pitch', 'fov', 'roll'}], yaw the short way round."""
+    """Camera at time t along keyframes [{'at', 'yaw', 'pitch', 'fov', 'roll'[, 'cut']}], yaw the short way round.
+
+    A keyframe with `cut: true` is reached by a hard cut instead of an eased move."""
     if t <= keys[0]["at"]:
         return dict(keys[0])
     for a, b in zip(keys, keys[1:]):
+        if b.get("cut"):  # hard cut: hold the previous view until this keyframe, then jump
+            if t < b["at"]:
+                return {**a, "at": t, "cut": False}
+            continue
         if t <= b["at"]:
             span = max(1e-6, b["at"] - a["at"])
             e = _ease((t - a["at"]) / span)
@@ -200,24 +206,40 @@ def path_value(keys: list[dict], t: float) -> dict:
     return dict(keys[-1])
 
 
-def camera_filter(sph_spec: dict, inproj: str, w: int, h: int, fps: int, frames: int, cmd_file: Path) -> str:
+def camera_filter(
+    sph_spec: dict, inproj: str, w: int, h: int, fps: int, frames: int, cmd_file: Path,
+    stab: list | None = None,
+) -> str:
     """v360 for a segment; animated paths get per-frame commands in cmd_file.
 
     With reset_rot=1 every value is absolute and v360 keeps the ones not sent,
     so each frame only carries what changed. That matters: every command makes
     v360 rebuild its whole remap table, by far the slowest part of a camera move.
+
+    `stab` (stabilize.segment_corrections: one rotation per output frame) turns
+    the sphere under the view each frame, so the camera's shake cancels out.
     """
+    from .stabilize import mmul, v360_angles, v360_matrix
+
     projection = sph_spec["projection"]
     keys = sph_spec.get("path") or []
     start = keys[0] if keys else sph_spec["view"]
     first = view_params(start, projection, w, h)
-    if not keys:
+    if not keys and not stab:
         return v360_filter(inproj, projection, first, w, h)
+
+    def frame_params(n: int) -> dict:
+        p = view_params(path_value(keys, n / fps), projection, w, h) if keys else dict(first)
+        if stab:
+            a = stab[min(n, len(stab) - 1)]
+            p["yaw"], p["pitch"], p["roll"] = v360_angles(mmul(a, v360_matrix(p["yaw"], p["pitch"], p["roll"])))
+        return p
+
+    first = frame_params(0)
     current = {k: f"{first[k]:.3f}" for k in CAMERA_KEYS}
     lines = []
-    for n in range(frames):
-        t = n / fps
-        p = view_params(path_value(keys, t), projection, w, h)
+    for n in range(1, frames):
+        p = frame_params(n)
         cmds = []
         for k in CAMERA_KEYS:
             value = f"{p[k]:.3f}"
@@ -382,12 +404,20 @@ def plan_camera(
                     continue
                 if not 0 <= at <= seconds + 0.01:
                     errors.append(f"{w}: at={at:g}s is outside this {seconds:.1f}s segment")
-                keys.append({"at": round(at, 3), **parse_view(k, angles, errors, w, view)})
+                key = {"at": round(at, 3), **parse_view(k, angles, errors, w, view)}
+                if k.get("cut") is True and i > 0:
+                    key["cut"] = True
+                elif k.get("cut") not in (None, False, True):
+                    errors.append(f"{w}: cut must be true or false")
+                keys.append(key)
             keys.sort(key=lambda x: x["at"])
             if any(b["at"] - a["at"] < 0.1 for a, b in zip(keys, keys[1:])):
                 errors.append(f"{where}: path keyframes need to be at least 0.1 s apart")
             path = keys
-    return {"projection": projection, "view": view, "path": path}
+    from .stabilize import parse_setting
+
+    stabilize = parse_setting(spec.get("stabilize"), errors, where)
+    return {"projection": projection, "view": view, "path": path, "stabilize": stabilize}
 
 
 def describe(sph: dict) -> str:

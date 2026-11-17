@@ -134,7 +134,10 @@ def _slice_keys(keys: list, start: float, end: float, *, rebase: bool) -> list:
         left = before[-1] if before else ordered[0]
         right = after[0] if after else ordered[-1]
         result = deepcopy(left)
+        result.pop("cut", None)  # a boundary pose is a hold point, never a hard cut of its own
         distance = float(right["at"]) - float(left["at"])
+        if right.get("cut") is True and at < float(right["at"]):
+            distance = 0  # before a hard-cut keyframe the camera holds the previous pose
         if distance:
             fraction = (at - float(left["at"])) / distance
             for key, value in left.items():
