@@ -239,9 +239,9 @@ if not plan.get("segments") and not plan.get("timeline"):
         "segs": [], "props": {}, "sound": {"cues": []}, "loop": None,
         "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})}))
     sys.exit(0)
-built = build(p, plan)
+built = build(p, plan, **({"aligned": True} if hasattr(renderer, "split_disabled") else {}))
 segs = []
-for sg in built["segs"]:
+for sg in sorted([*built["segs"], *built.get("disabled", [])], key=lambda item: item.index):
     spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
     cuts = []
     for cut in sg.spec.get("_cutaways") or []:
@@ -255,7 +255,7 @@ for sg in built["segs"]:
                  "sourceDuration":sg.asset.get("probe", {}).get("duration"),
                  "hasAudio":bool(sg.asset.get("probe", {}).get("hasAudio")),
                  "spec":spec, "frames":sg.frames, "trans":sg.trans, "start":sg.start,
-                 "cutaways":cuts})
+                 "cutaways":cuts, **({"disabled": True} if getattr(sg, "disabled", False) else {})})
 sound = dict(built.get("sound") or {})
 sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
 result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],
@@ -1462,7 +1462,8 @@ class DocumentStore:
                     and (compiled_before.get("timelineCapabilities") or {}).get("version") == 1
                     and any(isinstance(op, dict) and (
                         op.get("op") in ("reorder_segments", "trim_segment", "split_segment",
-                                         "insert_segment", "remove_segments", "move_segments", "set_node_track")
+                                         "insert_segment", "remove_segments", "move_segments", "set_node_track",
+                                         "duplicate_segments", "ripple_remove", "paste_segments", "set_enabled")
                         or (op.get("op") == "set_field" and op.get("path") in (
                             "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap",
                             "/music", "/render/fps",
@@ -1590,13 +1591,16 @@ class DocumentStore:
         entry = plan["_editor"]["nodes"].get(str(operation.get("id")), {})
         source_kind = entry.get("kind")
         if ((capable and op == "set_node_track" and entry.get("kind") in ("segment", "cutaway"))
-                or (positioned(plan) and op in ("insert_segment", "reorder_segments"))):
+                or (positioned(plan) and op in ("insert_segment", "reorder_segments", "paste_segments"))):
             edit = str(uuid.uuid5(uuid.NAMESPACE_URL, canonical_json({
                 "operation": operation, "document": self._revisions()["document"]})))
             if op == "set_node_track":
                 node = next(item for item in editing_snapshot(plan, ctx["compiled"], self._revisions())["nodes"]
                             if item["id"] == operation["id"])
                 placements = [{"id": operation["id"], "track": operation["track"], "atFrame": node["startFrame"]}]
+            elif op == "paste_segments":
+                from .segment_ops import paste_placements
+                placements = paste_placements(plan, operation, ctx["fps"])
             elif op == "insert_segment":
                 value = deepcopy(operation["value"])
                 value.pop("timeline", None)
@@ -1644,7 +1648,7 @@ class DocumentStore:
         locked = locked_target(plan, operation)
         if locked:
             raise DocumentError("track_locked", locked)
-        if operation.get("op") == "remove_segments":
+        if operation.get("op") in ("remove_segments", "ripple_remove"):
             for source in operation.get("ids") or []:
                 entry = plan["_editor"]["nodes"].get(source)
                 if entry:
@@ -1691,11 +1695,26 @@ class DocumentStore:
                 metadata[node_id]["fingerprint"] = fingerprint(descriptor["raw"])
             else:
                 metadata.pop(node_id, None)
+        fresh = {id(root) for root in ctx.pop("newObjects", ())}
+        if fresh:
+            # Brand-new segments (copies, pastes) get their own IDs now. Left to ensure_node_ids, a copy
+            # that sits before an identical original would take over the original's ID.
+            roots = [item["path"] for item in descriptors if item["kind"] == "segment" and id(item["raw"]) in fresh]
+            created: dict[str, str] = {}
+            for item in descriptors:
+                if any(item["path"] == root or item["path"].startswith(root + "/") for root in roots):
+                    created[item["path"]] = new_id = str(uuid.uuid4())
+                    metadata[new_id] = {"kind": item["kind"], "parentId": created.get(item["parentPath"]),
+                                        "locator": item["path"], "fingerprint": fingerprint(item["raw"])}
         for node_id, entry in ctx.pop("newNodeMetadata", {}).items():
             if node_id not in metadata:
                 metadata[node_id] = entry
         plan["_editor"]["nodes"] = metadata
         ensure_node_ids(plan)
+        copied = ctx.pop("copyPairs", None)
+        if copied:
+            from .segment_ops import inherit_tracks
+            inherit_tracks(plan, copied)
         if source_kind == "cutaway":
             # Promotion and later cutaway edits resolve through compiled specs
             # and rawIndex. Refresh after removal too, before indexes can shift.
@@ -1704,7 +1723,8 @@ class DocumentStore:
             return
         op = operation.get("op")
         edited_kind = metadata.get(str(operation.get("id")), {}).get("kind")
-        timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments")
+        timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments",
+                                "duplicate_segments", "ripple_remove", "paste_segments", "set_enabled")
         timing_changed |= op == "trim_segment" and edited_kind == "segment"
         timing_changed |= op == "set_field" and operation.get("path") in (
             "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps", "/render",
@@ -1718,8 +1738,9 @@ class DocumentStore:
         if positioned(plan):
             return  # absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
-        old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment"]
-        new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
+        # Disabled segments hold no time: events inside one go with it, like a removed segment's.
+        old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment" and n.get("enabled") is not False]
+        new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment" and n.get("enabled") is not False}
         old_fps, new_fps = old_snapshot["fps"], new_snapshot["fps"]
         old_total, new_total = old_snapshot["durationFrames"] / old_fps, new_snapshot["durationFrames"] / new_fps
         def remap(at):
@@ -1812,6 +1833,19 @@ class DocumentStore:
                     raise ValueError(f"{node_id} is not a primary segment")
                 affected.add(node_id)
                 segments.pop(next(i for i, candidate in enumerate(segments) if candidate is item))
+            return
+
+        if op in ("duplicate_segments", "ripple_remove", "paste_segments", "set_enabled"):
+            from . import segment_ops
+            if op == "duplicate_segments":
+                segment_ops.duplicate(plan, operation.get("ids") or [], ctx)
+            elif op == "ripple_remove":
+                segment_ops.ripple_remove(plan, operation.get("ids") or [], affected)
+            elif op == "paste_segments":
+                ctx["newObjects"] = segment_ops.paste_sequential(plan, ctx["compiled"], operation)
+            else:
+                segment_ops.set_enabled(plan, operation.get("ids") or [], operation.get("enabled"))
+                affected.update(str(item) for item in operation.get("ids") or [])
             return
 
         if op == "reorder_segments":

@@ -39,7 +39,8 @@ def normalize_compiled(compiled: dict[str, Any]) -> dict[str, Any]:
                          "spec": child["spec"]})
         return {"index": value.index, "kind": value.kind, "asset": deepcopy(value.asset),
                 "spec": spec, "frames": value.frames, "trans": value.trans,
-                "start": value.start, "cutaways": cuts}
+                "start": value.start, "cutaways": cuts,
+                **({"disabled": True} if getattr(value, "disabled", False) else {})}
     return {**compiled, "segs": [segment(value) for value in compiled.get("segs", [])]}
 
 
@@ -293,6 +294,7 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
                 exact.append(desc["path"])
         return exact[0] if len(exact) == 1 else None
 
+    ghosts_before = 0  # props.segments holds only what renders; disabled segments are ghosts in segs
     for i, seg in enumerate(segs):
         if i >= len(plan.get("segments") or []):
             continue
@@ -301,13 +303,17 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
         node_id = id_by_path[path]
         start = int(seg["start"])
         end = start + int(seg["frames"])
+        ghost = bool(seg.get("disabled"))
+        prop_index = i - ghosts_before
+        ghosts_before += ghost
         resolve(path, seg["spec"], start, end, assetId=seg["asset"]["id"], sourceIn=seg["spec"].get("in"),
             sourceOut=seg["spec"].get("out"), speed=seg["spec"].get("speed", 1),
             transitionInFrames=int(seg.get("trans", 0)), mediaKind=seg.get("kind"),
-            assetKind=seg.get("kind"), sourceDuration=seg.get("sourceDuration"))
+            assetKind=seg.get("kind"), sourceDuration=seg.get("sourceDuration"),
+            **({"enabled": False} if ghost else {}))
         if ((compiled.get("timelineCapabilities") or {}).get("version") == 1
-                and seg.get("hasAudio") and seg["spec"].get("volume") != 0):
-            visual = (props.get("segments") or [])[i] if i < len(props.get("segments") or []) else {}
+                and seg.get("hasAudio") and seg["spec"].get("volume") != 0 and not ghost):
+            visual = (props.get("segments") or [])[prop_index] if prop_index < len(props.get("segments") or []) else {}
             audio = {
                 "asset": seg["asset"]["id"], "in": seg["spec"].get("in"), "out": seg["spec"].get("out"),
                 "speed": seg["spec"].get("speed", 1), "volume": visual.get("volume", 0),
@@ -367,7 +373,7 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
                 generated("generated_punch", "effects", value, id_by_path.get(path + "/punch", node_id),
                           assetId=seg["asset"]["id"])
         segment_props = (props.get("segments") or [])
-        visual = segment_props[i] if i < len(segment_props) else {}
+        visual = segment_props[prop_index] if prop_index < len(segment_props) and not ghost else {}
         for j, patch in enumerate(visual.get("blur") or []):
             keys = patch.get("keys") or []
             if not keys:
@@ -403,6 +409,8 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
             if kind == "route":
                 mapped = False
                 for i, seg in enumerate(segs):
+                    if seg.get("disabled"):
+                        continue
                     left, right = max(seg["start"], value["startFrame"]), min(
                         seg["start"] + seg["frames"], value["endFrame"])
                     if right > left and resolve(f"/segments/{i}/route", value, left, right):
@@ -425,7 +433,8 @@ def compiled_nodes(plan: dict[str, Any], compiled: dict[str, Any]) -> list[dict[
         owner = page.get("ownerSegmentIndex")
         if owner is None:
             owner = next((i for i, sg in enumerate(segs)
-                          if sg["start"] <= page["startFrame"] < sg["start"] + sg["frames"]), None)
+                          if not sg.get("disabled")
+                          and sg["start"] <= page["startFrame"] < sg["start"] + sg["frames"]), None)
         parent = id_by_path.get(f"/segments/{owner}/captions", id_by_path.get(f"/segments/{owner}"))
         asset_id = segs[owner]["asset"]["id"] if owner is not None else None
         page_node = generated("caption_page", "captions", page, parent, assetId=asset_id)

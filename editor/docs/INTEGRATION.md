@@ -53,6 +53,22 @@ Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai)
 - `insert_segment`: `value`, optional `beforeId`
 - `remove_segments`: `ids`
 - `reorder_segments`: `ids`, optional `beforeId`
+- `duplicate_segments`: `ids` (primary segments). Copies get new IDs (linked cutaways, text,
+  sfx… are copied with them). Sequential plans: inserted directly after the last original in
+  plan order, later clips ripple right. Positioned plans: placed on the same tracks, shifted by
+  the span of the selection (so a single clip lands right after itself); nothing else moves and
+  an occupied range is rejected.
+- `ripple_remove`: `ids`. Like `remove_segments`, but later items close the gap in positioned
+  plans too (every track shifts left by the removed length; a clip crossing the removed range
+  is rejected).
+- `paste_segments`: `values` (segment dicts as copied from `get_project`; `timeline`, `_editor`
+  and ID metadata are stripped and reissued), `atFrame` (global frame), optional `track`.
+  Sequential plans insert at the nearest cut at or before `atFrame`. Positioned plans place at
+  `atFrame` on `track` (default the first video track) with `move_segments` overwrite rules.
+- `set_enabled`: `ids`, `enabled`. Stores `"enabled": false` on the segment (absent = enabled).
+  A disabled segment stays on the timeline at full length (compiled segs and nodes carry
+  `disabled: true` / `enabled: false`) but renders no video or audio; sequential plans close up
+  around it.
 - `trim_segment` / `trim_cutaway`: `id`, `sourceIn`, `sourceOut`
 - `split_segment`: `id`, `atFrame` (global frame)
 - `insert_overlay`: `parentId` (or document), `collection`, `value`

@@ -169,7 +169,8 @@ class EditorService:
             if not isinstance(operation, dict):
                 continue
             name = operation.get("op", "")
-            if name in ("insert_segment", "remove_segments", "reorder_segments", "split_segment"):
+            if name in ("insert_segment", "remove_segments", "reorder_segments", "split_segment",
+                        "duplicate_segments", "ripple_remove", "paste_segments", "set_enabled"):
                 targets.add("spine")
             for key in ("id", "parentId", "assetId"):
                 if operation.get(key):

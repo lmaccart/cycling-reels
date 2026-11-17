@@ -257,13 +257,19 @@ def timing_build(renderer, project, plan: dict) -> dict:
         loop = False
     on_beats = renderer.check_beats_punch(plan, errors)
     segments, warnings = renderer.normalize(project, plan)
+    segments, ghosts = (renderer.split_disabled(segments) if hasattr(renderer, "split_disabled")
+                        else (segments, []))
+    if not segments and ghosts:
+        return serialize(renderer.empty_build(plan, ghosts, warnings, fps))
     swap = renderer.swap_halves(segments, fps) if loop else (False, "")
     if swap[0]:
         segments[-1].spec["_keepOut"] = True
     renderer.resolve_music(project, plan, segments, fps, warnings, loop=loop,
                            grid_for="punchOnBeats" if on_beats else "")
     renderer.fit_cutaways(segments, fps, warnings)
-    return serialize({"fps": fps, "total": duration(plan, segments, fps), "segs": segments,
+    if ghosts:
+        renderer.fit_cutaways(ghosts, fps, [])
+    return serialize({"fps": fps, "total": duration(plan, segments, fps), "segs": segments, "disabled": ghosts,
                       "props": {"timeline": plan["timeline"]} if positioned(plan) else {},
                       "sound": {}, "warnings": warnings,
                       "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})})
@@ -378,7 +384,8 @@ def instrument(renderer: Any) -> None:
 
 def serialize(built: dict[str, Any]) -> dict[str, Any]:
     segments = []
-    for segment in built["segs"]:
+    # Disabled segments stay in the list (full length, flagged) so list position == plan index.
+    for segment in sorted([*built["segs"], *built.get("disabled", [])], key=lambda item: item.index):
         cuts = []
         for cut in segment.spec.get("_cutaways") or []:
             child = cut["seg"]
@@ -395,6 +402,7 @@ def serialize(built: dict[str, Any]) -> dict[str, Any]:
             "hasAudio": bool(segment.asset.get("probe", {}).get("hasAudio")),
             "spec": {key: value for key, value in segment.spec.items() if key != "_cutaways"},
             "frames": segment.frames, "trans": segment.trans, "start": segment.start, "cutaways": cuts,
+            **({"disabled": True} if getattr(segment, "disabled", False) else {}),
         })
     sound = dict(built.get("sound") or {})
     sound["cues"] = [
@@ -455,7 +463,9 @@ def main() -> None:
                         "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {}),
                     }
                 else:
-                    result = serialize(renderer.build(project, deepcopy(plan)))
+                    result = serialize(renderer.build(
+                        project, deepcopy(plan),
+                        **({"aligned": True} if hasattr(renderer, "split_disabled") else {})))
                 stage = "inputs"
                 mirror.verify()
             response = {
