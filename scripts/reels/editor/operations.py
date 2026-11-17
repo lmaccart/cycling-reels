@@ -68,10 +68,10 @@ class PasteSegments(OperationModel):
 
 
 class SetEnabled(OperationModel):
-    """Disable or enable primary segments. A disabled segment keeps its place and full length in the
-    editor but renders no video and no audio; sequential plans close up around it. Reel-level events
-    inside it are preserved in the saved plan and retimed source-relatively through trims and speed
-    changes, but suspended from rendering until enabled.
+    """Only set/clear the primary segment's enabled flag. Editing clips and events keep their
+    full timeline timing. A derived render plan drops disabled footage and its owned items,
+    drops global events anchored inside its interval, and closes sequential gaps without
+    changing the saved plan. Positioned rendering leaves holes.
     Stored as "enabled": false on the segment (the key is absent when enabled)."""
     op: Literal["set_enabled"]
     ids: list[str] = Field(min_length=1)

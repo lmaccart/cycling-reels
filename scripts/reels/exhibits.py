@@ -435,14 +435,12 @@ def build_exhibits(project: Project, plan: dict, segs: list, total: int, fps: in
     tw, th = int(project.cfg("render", "width")), int(project.cfg("render", "height"))
     out: list[dict] = []
     n = {None: 0}
-    from .timeline import suspended_event_paths
-    suspended = suspended_event_paths(plan)
     for seg_i, raw in _raw(plan):
-        sg = next((s for s in segs if s.index == seg_i), None) if seg_i is not None else None
+        sg = segs[seg_i] if seg_i is not None and seg_i < len(segs) else None
+        if sg is not None:
+            seg_i = sg.index
         n[seg_i] = n.get(seg_i, 0) + 1
         where = f"segment {seg_i + 1} exhibit {n[seg_i]}" if seg_i is not None else f"exhibit {n[None]}"
-        if seg_i is None and f"/exhibits/{n[None]-1}" in suspended:
-            continue
         if not isinstance(raw, dict):
             errors.append(f'{where}: use {{"image": "<file in exhibits/>", "at": 1.0, "for": 4.0}} (or "chart")')
             continue

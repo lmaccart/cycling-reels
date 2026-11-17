@@ -47,10 +47,14 @@ seconds or schema-local `at`/`for` seconds. `assetKind` distinguishes video/phot
 `generated`, `readOnly` and `timingState` describe projected nodes. A `viewOnly`
 offline snapshot cannot be exported. The renderer is timing authority.
 
-`durationFrames` remains the rendered duration. `editingDurationFrames` is the maximum of that
-duration and every primary segment's endpoint, including disabled ghosts: use it for the timeline
-viewport/scroll extent, not preview playback or export. Compiled payloads carry the same
-`editingDurationFrames` next to `total`. Ghost starts use final beat/loop-snapped timing.
+`durationFrames` / compiled `total` are derived rendered duration. `editingDurationFrames` covers
+the complete editing timeline, with every disabled clip and later clip still in place. Use it
+for viewport/scroll extent, not playback/export. Compiled `segs` and snapshot nodes use editing
+coordinates; `props` and `sound` use render coordinates. Internal `editingProps` / `editingSound`
+retain editing-coordinate projections for node resolution; clients need not consume them.
+Disabled source-audio, caption, effect and cutaway nodes stay on the editing timeline with
+their owner; their presence is not evidence of rendered output. No legacy suspension tokens
+are read or emitted.
 
 Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai),
 `operations`, and optional `lease`. Operations use `op`:
@@ -75,16 +79,13 @@ Batches contain `expected` (all three revisions), `reason`, `origin` (manual/ai)
   timeline starts are laid back-to-back in input order using resolved moment/source ranges and speed
   (photos use their duration), not an assumed video length.
 - `set_enabled`: `ids`, `enabled`. Stores `"enabled": false` on the segment (absent = enabled).
-  A disabled segment stays on the timeline at full length (compiled segs and nodes carry
-  `disabled: true` / `enabled: false`) but renders no video or audio; sequential plans close up
-  around it. Global events inside a disabled sequential segment retain their definitions and IDs
-  but are suspended from rendering. Suspended events carry `disabledTiming: {"owner": "<token>"}`
-  and their primary segment carries the matching `timingId`. Both are saved in the plan, not
-  `_editor`, so disk-only render/check and a fresh editor preserve suspension. Hidden events retime
-  with each trim/speed edit using source-relative timing, including their durations and endAt cues.
-  Enabling removes suspension; unreferenced owner tokens are removed. Copies/pastes do not reuse
-  an original segment's timing token. Child track assignments, including scalar text, are copied
-  by their corresponding locators.
+  Nothing else in the plan changes. Disabled segments and all their events/cutaways remain at
+  full editing length; split/trim/speed/move/undo use the same editing coordinates as enabled clips.
+  No timing tokens or suspended-event state are saved. One pure render projection drops disabled
+  footage and owned items; global text/sfx/music drops/exhibits anchored inside disabled intervals
+  are omitted. Later global events shift left in sequential renders; positioned renders leave holes.
+  Compiled segs / nodes retain `disabled: true` / `enabled: false`. Child track assignments, including
+  scalar text, are copied by their corresponding locators.
 - `trim_segment` / `trim_cutaway`: `id`, `sourceIn`, `sourceOut`
 - `split_segment`: `id`, `atFrame` (global frame)
 - `insert_overlay`: `parentId` (or document), `collection`, `value`

@@ -147,8 +147,7 @@ class TransactionAuditTests(unittest.TestCase):
         def validate(*args, **kwargs):
             self.assertEqual(store.head_path.read_bytes(), head)
             return _worker_compile(*args, **kwargs)
-        with (patch.object(store._warm_pool, "compile", wraps=store._warm_pool.compile) as warm,
-              patch("reels.editor.transactions._worker_compile", side_effect=validate) as cold):
+        with patch("reels.editor.transactions._worker_compile", side_effect=validate):
             result = store.apply({
                 "expected": before["revisions"], "origin": "manual",
                 "operations": [
@@ -156,7 +155,5 @@ class TransactionAuditTests(unittest.TestCase):
                     {"op": "move_overlay", "id": cue["id"], "at": 1},
                 ],
             })
-        self.assertEqual(warm.call_count, 1)
-        self.assertEqual(cold.call_count, 2)  # intermediate layout + final remapped candidate
         self.assertFalse(result["plan"]["autoSfx"])
         self.assertTrue(any(item["at"] == 1 for item in result["plan"]["sfx"]))

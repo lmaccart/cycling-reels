@@ -17,14 +17,6 @@ def positioned(plan: dict) -> bool:
             and type(plan["timeline"].get("version")) is int and plan["timeline"]["version"] == 1)
 
 
-def suspended_event_paths(plan: dict) -> set[str]:
-    """Suspension lives in the saved plan; rendering never depends on private editor sidecars."""
-    return {f"/{collection}/{index}"
-            for collection in ("text", "sfx", "musicDrops", "exhibits")
-            for index, event in enumerate(plan.get(collection) or [])
-            if isinstance(event, dict) and event.get("disabledTiming")}
-
-
 def video_track(value: Any) -> int:
     if not isinstance(value, str) or not re.fullmatch(r"V[1-9][0-9]*", value):
         raise ValueError("destination must be a canonical video track V1, V2, …")
@@ -108,5 +100,5 @@ def requantize(plan: dict, fps: int) -> None:
     plan["timeline"].update(fps=fps, durationFrames=max(
         1, round(plan["timeline"]["durationFrames"] * fps / old),
         max((item["timeline"]["startFrame"] + item["timeline"]["durationFrames"]
-             for item in plan.get("segments") or []), default=0),
+             for item in plan.get("segments") or [] if item.get("enabled") is not False), default=0),
     ))

@@ -10,11 +10,11 @@ from copy import deepcopy
 from typing import Any
 
 from ..timeline import positioned, video_track
-from .document import _descriptors, node_location, pointer_get
+from .document import _descriptors, node_location
 from .tracks import track_list
 
 # Editor metadata that never travels with a pasted segment.
-PASTE_STRIP = ("timeline", "_editor", "id", "__timelineEditorId", "timingId")
+PASTE_STRIP = ("timeline", "_editor", "id", "__timelineEditorId")
 
 
 def primary_segments(plan: dict[str, Any], ids: list[str]) -> list[dict[str, Any]]:
@@ -53,46 +53,12 @@ def set_enabled(plan: dict[str, Any], ids: list[str], enabled: bool) -> None:
             clip["enabled"] = False
 
 
-def suspend_events(plan: dict[str, Any], old_snapshot: dict[str, Any]) -> None:
-    """Keep global event definitions and their owner-relative timing while that owner is disabled.
-
-    Suspension and its owner token are render-relevant plan content, not private editor metadata.
-    Disk-only renders and a fresh editor without sidecars must observe the same state.
-    """
-    nodes = plan["_editor"]["nodes"]
-    disabled = {key for key, entry in nodes.items() if entry["kind"] == "segment"
-                and pointer_get(plan, entry["locator"]).get("enabled") is False}
-    if not disabled:
-        return
-    anchors = [node for node in old_snapshot["nodes"]
-               if node["kind"] == "segment" and node.get("enabled") is not False]
-    fps = old_snapshot["fps"]
-    for entry in nodes.values():
-        if not entry["locator"].startswith(("/text/", "/sfx/", "/musicDrops/", "/exhibits/")):
-            continue
-        if entry["locator"].count("/") != 2:
-            continue
-        event = pointer_get(plan, entry["locator"])
-        if not isinstance(event, dict) or event.get("disabledTiming"):
-            continue
-        at = event.get("at", event.get("endAt"))
-        if at is None:
-            continue
-        anchor = next((node for node in reversed(anchors) if node["startFrame"] / fps <= float(at)), None)
-        if anchor and anchor["id"] in disabled and float(at) < anchor["endFrame"] / fps:
-            owner = pointer_get(plan, nodes[anchor["id"]]["locator"])
-            token = owner.setdefault("timingId", anchor["id"])
-            event["disabledTiming"] = {"owner": token}
-
-
 def duplicate(plan: dict[str, Any], ids: list[str], ctx: dict[str, Any]) -> None:
     picked = primary_segments(plan, ids)
     if positioned(plan):
         copies = _duplicate_positioned(plan, picked)
     else:
         copies = [deepcopy(item) for item in picked]
-    for copy in copies:
-        copy.pop("timingId", None)  # reel-global events are not duplicated with a disabled owner
     last = _index(plan, picked[-1])
     plan["segments"][last + 1:last + 1] = copies
     ctx["copyPairs"] = list(zip(picked, copies))
@@ -129,7 +95,8 @@ def _duplicate_positioned(plan: dict[str, Any], picked: list[dict[str, Any]]) ->
             copy["transition"] = "cut"
         copies.append(copy)
     plan["timeline"]["durationFrames"] = max(
-        plan["timeline"]["durationFrames"], max(_bounds(copy)[1] for copy in copies))
+        plan["timeline"]["durationFrames"], max((_bounds(copy)[1] for copy in copies
+                                               if copy.get("enabled") is not False), default=0))
     return copies
 
 
@@ -182,7 +149,7 @@ def ripple_remove(plan: dict[str, Any], ids: list[str], affected: set[str]) -> l
     segments[:] = survivors
     header = plan["timeline"]
     header["durationFrames"] = max(
-        1, max((_bounds(other)[1] for other in survivors), default=0),
+        1, max((_bounds(other)[1] for other in survivors if other.get("enabled") is not False), default=0),
         header["durationFrames"] - sum(b - a for a, b in merged))
     return merged
 

@@ -110,13 +110,18 @@ class RenderTimelineTests(unittest.TestCase):
         self.assertEqual([s["src"] for s in built["props"]["segments"]], ["seg0.mp4", "seg2.mp4"])
 
     def test_all_disabled_is_empty_for_the_editor_and_an_error_for_render(self):
-        segments = [dict(s, enabled=False) for s in self.three()]
-        path = self.temp.plan("none", segments)
-        plan = load_plan(self.project, path)
-        built = build(self.project, plan, aligned=True)
-        self.assertEqual((built["total"], len(built["segs"]), len(built["disabled"])), (0, 0, 3))
-        with self.assertRaisesRegex(ReelsError, "every segment is disabled"):
-            build(self.project, plan)
+        for absolute in (False, True):
+            with self.subTest(positioned=absolute):
+                segments = ([placed("a", 0, 60, enabled=False), placed("b", 60, 90, enabled=False),
+                             placed("c", 150, 30, enabled=False)] if absolute
+                            else [dict(s, enabled=False) for s in self.three()])
+                path = self.temp.plan("none", segments, **({"timeline": header(180)} if absolute else {}))
+                plan = load_plan(self.project, path)
+                built = build(self.project, plan, aligned=True)
+                self.assertEqual((built["total"], len(built["segs"]), len(built["disabled"])), (0, 0, 3))
+                self.assertEqual(built["editing"]["total"], 180)
+                with self.assertRaisesRegex(ReelsError, "every segment is disabled"):
+                    build(self.project, plan)
 
     def test_enabled_must_be_a_boolean_and_true_is_normal(self):
         with self.assertRaisesRegex(ReelsError, "enabled must be true or false"):
@@ -169,7 +174,7 @@ class RenderTimelineTests(unittest.TestCase):
                 a, ghost, c = compiled["segs"]
                 self.assertEqual(a["frames"], 60)
                 self.assertEqual(ghost["start"], a["start"] + a["frames"])
-                self.assertEqual(c["start"], ghost["start"])
+                self.assertEqual(c["start"], ghost["start"] + ghost["frames"])
 
     def test_editing_extent_covers_tail_ghosts_without_extending_render(self):
         import reels.render as renderer
@@ -179,7 +184,7 @@ class RenderTimelineTests(unittest.TestCase):
         for segments, extra, total, extent in (
             ([{"asset": "a", "in": 0, "out": 2}, {"asset": "b", "in": 0, "out": 3, "enabled": False}],
              {}, 60, 150),
-            ([dict(s, enabled=False) for s in self.three()], {}, 0, 90),
+            ([dict(s, enabled=False) for s in self.three()], {}, 0, 180),
             ([placed("a", 0, 60), placed("b", 120, 90, enabled=False)], {"timeline": header(60)}, 60, 210),
         ):
             with self.subTest(total=total, extent=extent):
@@ -192,6 +197,22 @@ class RenderTimelineTests(unittest.TestCase):
                     snap = editing_snapshot(deepcopy(plan), compiled, {"document": "d", "library": "l", "renderer": "r"})
                     self.assertEqual(snap["durationFrames"], total)
                     self.assertEqual(snap["editingDurationFrames"], extent)
+
+    def test_render_derivation_preserves_plan_and_maps_fade_boundaries(self):
+        from reels.render import derive_render_plan
+        segments = self.three(enabled=False, transition="fade")
+        segments[2]["transition"] = "fade"
+        path = self.temp.plan("fade-off", segments)
+        plan = load_plan(self.project, path)
+        timing = build(self.project, plan, aligned=True, timing_only=True)
+        tail = timing["editing"]["segs"][-1].start / 30
+        plan["text"] = [{"text": "late", "at": tail, "for": 0.5}]
+        original = deepcopy(plan)
+        rendered = derive_render_plan(plan, timing["editing"]["segs"], 30)
+        built = build(self.project, plan)
+        self.assertEqual(plan, original)
+        self.assertAlmostEqual(rendered["text"][0]["at"], built["segs"][-1].start / 30, places=6)
+        self.assertEqual(built["props"]["beats"][0]["startFrame"], built["segs"][-1].start)
 
 
 
@@ -350,10 +371,11 @@ class SequentialOpsTests(OpsBase):
         self.assertEqual(off["durationFrames"], 120)
         node = self.clips(off)[1]
         self.assertEqual((node["id"], node["frames"], node["enabled"]), (middle["id"], 60, False))
-        self.assertEqual(self.clips(off)[2]["startFrame"], 60)
-        self.assertEqual(off["plan"]["text"][0]["at"], 2.0)
+        self.assertEqual(self.clips(off)[2]["startFrame"], 120)
+        self.assertEqual(off["plan"]["text"][0]["at"], 4.0)
         self.assertEqual({n["id"] for n in self.children(off, node)}, {n["id"] for n in self.children(before, middle)})
-        self.assertFalse([n for n in off["nodes"] if n["kind"] == "source_audio" and n["parentId"] == middle["id"]])
+        audio = next(n for n in off["nodes"] if n["kind"] == "source_audio" and n["parentId"] == middle["id"])
+        self.assertEqual((audio["startFrame"], audio["endFrame"]), (60, 120))
         on = self.apply(store, [{"op": "set_enabled", "ids": [middle["id"]], "enabled": True}], off)
         self.assertNotIn("enabled", on["plan"]["segments"][1])
         self.assertEqual(self.layout(on), self.layout(before))
@@ -368,7 +390,7 @@ class SequentialOpsTests(OpsBase):
         self.assertEqual(off["durationFrames"], 0)
         self.assertEqual(len(self.clips(off)), 3)
         back = self.apply(store, [{"op": "set_enabled", "ids": ids[:1], "enabled": True}], off)
-        self.assertEqual(self.layout(back), [("a", 0, 60), ("b", 60, 120), ("c", 60, 120)])
+        self.assertEqual(self.layout(back), self.layout(before))
 
     def test_disable_preserves_global_events_and_enable_restores_them_after_other_edits(self):
         events = self.global_events(3.0)
@@ -377,8 +399,7 @@ class SequentialOpsTests(OpsBase):
         middle = self.clips(before)[1]
         off = self.apply(store, [{"op": "set_enabled", "ids": [middle["id"]], "enabled": False}], before)
         for collection, values in events.items():
-            self.assertEqual([{k: v for k, v in event.items() if k != "disabledTiming"}
-                              for event in off["plan"][collection]], values)
+            self.assertEqual(off["plan"][collection], values)
         self.assertFalse(store._current_compiled["props"].get("exhibits"))
         self.assertFalse(store._current_compiled["props"]["beats"])
         self.assertFalse(store._current_compiled["sound"]["cues"])
@@ -668,12 +689,9 @@ class LinkedItemsTests(OpsBase):
                     for snap in (before, after, self.assert_round_trip(store, before, after)):
                         for clip in self.clips(snap):
                             audio = [n for n in snap["nodes"] if n["kind"] == "source_audio" and n["parentId"] == clip["id"]]
-                            if clip.get("enabled") is False:
-                                self.assertEqual(audio, [])
-                            else:
-                                self.assertEqual([(n["startFrame"], n["endFrame"]) for n in audio],
-                                                 [(clip["startFrame"], clip["endFrame"])])
-                                self.assertEqual(audio[0]["raw"]["asset"], clip["assetId"])
+                            self.assertEqual([(n["startFrame"], n["endFrame"]) for n in audio],
+                                             [(clip["startFrame"], clip["endFrame"])])
+                            self.assertEqual(audio[0]["raw"]["asset"], clip["assetId"])
                             if clip["assetId"] == "b":
                                 cut = next(n for n in self.children(snap, clip) if n["kind"] == "cutaway")
                                 self.assertEqual((cut["startFrame"], cut["endFrame"]),

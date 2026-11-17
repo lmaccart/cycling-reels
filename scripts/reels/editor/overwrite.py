@@ -301,7 +301,7 @@ def apply_overwrite(ctx, operation, project):
     results.extend(incoming)
     plan["segments"] = results
     plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
-        max((_bounds(clip)[1] for clip in results), default=0))
+        max((_bounds(clip)[1] for clip in results if clip.get("enabled") is not False), default=0))
     finish_index(plan, old_nodes, old_objects, bindings, edit)
     ctx["overwriteMetadata"] = True
 
@@ -435,7 +435,7 @@ def positioned_source_edit(ctx, operation, project, revisions):
         plan["segments"][plan["segments"].index(clip)] = piece
         ctx["affected"].add(node_id)
     plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
-        max((_bounds(value)[1] for value in plan["segments"]), default=0))
+        max((_bounds(value)[1] for value in plan["segments"] if value.get("enabled") is not False), default=0))
     finish_index(plan, nodes, objects, bindings, edit)
     ctx["overwriteMetadata"] = True
     return True

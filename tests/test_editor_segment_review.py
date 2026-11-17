@@ -1,4 +1,4 @@
-"""Regression coverage for persisted disable state and segment-edit edge cases."""
+"""Regression coverage for derived disabled rendering and segment-edit edge cases."""
 from __future__ import annotations
 
 import threading
@@ -49,7 +49,7 @@ class ReviewOpsTests(OpsBase):
         on = self.apply(fresh, [{"op": "set_enabled", "ids": [owner["id"]], "enabled": True}])
         self.assertEqual(on["plan"]["text"], [{"text": "global words", "at": 3.0, "for": 0.5}])
 
-    def test_suspended_events_restore_source_time_after_speed_and_trim(self):
+    def test_disabled_events_follow_the_same_source_edits_as_enabled_events(self):
         for change in ("speed", "trim", "both"):
             with self.subTest(change=change):
                 events = self.global_events(5.0)
@@ -164,6 +164,112 @@ class ReviewOpsTests(OpsBase):
                 finally:
                     for store in stores:
                         store.close()
+
+    def test_split_while_disabled_keeps_events_with_the_correct_source_half(self):
+        store = self.store([{"asset": "a", "in": 0, "out": 2},
+                            {"asset": "b", "in": 4, "out": 12},
+                            {"asset": "c", "in": 0, "out": 2}], **self.global_events(7.0))
+        before = store.snapshot()
+        owner = self.clips(before)[1]
+        off = self.apply(store, [{"op": "set_enabled", "ids": [owner["id"]], "enabled": False}])
+        # The flag is the only public plan mutation; no hidden ownership state exists.
+        expected = deepcopy(before["plan"])
+        expected["segments"][1]["enabled"] = False
+        self.assertEqual({k: v for k, v in off["plan"].items() if k != "_editor"},
+                         {k: v for k, v in expected.items() if k != "_editor"})
+        self.assertEqual(self.layout(off), self.layout(before))
+        split = self.apply(store, [{"op": "split_segment", "id": owner["id"], "atFrame": 180}])
+        self.assert_round_trip(store, off, split)
+        left, right = self.clips(split)[1:3]
+        self.assertNotEqual(left["id"], right["id"])
+        self.assertEqual((left["sourceOut"], right["sourceIn"]), (8, 8))
+        first_on = self.apply(store, [{"op": "set_enabled", "ids": [left["id"]], "enabled": True}])
+        self.assertFalse(store._current_compiled["props"].get("exhibits"))
+        self.assertEqual(first_on["plan"]["exhibits"][0]["at"], 7.0)
+        # The event lies in the right half, which becomes reel time 3 after dropping the left.
+        self.apply(store, [{"op": "set_enabled", "ids": [left["id"]], "enabled": False},
+                           {"op": "set_enabled", "ids": [right["id"]], "enabled": True}])
+        shown = store._current_compiled["props"]["exhibits"][0]
+        self.assertEqual(shown["startFrame"], 90)
+        on = self.apply(store, [{"op": "set_enabled", "ids": [left["id"]], "enabled": True}])
+        self.assertEqual(on["plan"]["exhibits"], before["plan"]["exhibits"])
+        self.assertEqual(store._current_compiled["props"]["exhibits"][0]["startFrame"], 210)
+
+    def test_positioned_conversion_and_speed_are_identical_while_disabled(self):
+        results = []
+        for disabled in (False, True):
+            store = self.store([{"asset": "a", "in": 0, "out": 2},
+                                {"asset": "b", "in": 4, "out": 12},
+                                {"asset": "c", "in": 0, "out": 2}], **self.global_events(5.0))
+            before = store.snapshot()
+            owner, last = self.clips(before)[1:]
+            if disabled:
+                self.apply(store, [{"op": "set_enabled", "ids": [owner["id"]], "enabled": False}])
+            converted = self.apply(store, [{"op": "move_segments", "mode": "overwrite",
+                                           "editId": "a0000000-0000-4000-8000-000000000001",
+                                           "placements": [{"id": last["id"], "track": "V2", "atFrame": 300}]}])
+            sped = self.apply(store, [{"op": "set_field", "id": owner["id"], "path": "/speed", "value": 2}])
+            self.assert_round_trip(store, converted, sped)
+            if disabled:
+                self.apply(store, [{"op": "set_enabled", "ids": [owner["id"]], "enabled": True}])
+            results.append(render_timeline(self.temp.project, store.snapshot()["plan"]))
+            store.close()
+        self.assertEqual(results[0], results[1])
+
+    def test_cold_ai_disable_retimes_a_late_exhibit_only_in_the_render_plan(self):
+        store = self.store(SEQUENTIAL, **self.global_events(5.0))
+        before = store.snapshot()
+        result = store.apply({"expected": before["revisions"], "origin": "ai",
+                              "operations": [{"op": "set_enabled", "ids": [self.clips(before)[0]["id"]],
+                                              "enabled": False}]})
+        self.assertEqual(result["plan"]["exhibits"][0]["at"], 5.0)
+        self.assertEqual(result["durationFrames"], 120)
+        self.assertEqual(result["editingDurationFrames"], 180)
+        self.assertEqual(store._current_compiled["props"]["exhibits"][0]["startFrame"], 90)
+        self.assert_round_trip(store, before, result)
+        # A shortening edit also needs timing-only compilation before global-event validation.
+        current = store.snapshot()
+        owner = self.clips(current)[1]
+        trimmed = store.apply({"expected": current["revisions"], "origin": "ai",
+                               "operations": [{"op": "trim_segment", "id": owner["id"],
+                                               "sourceIn": 0, "sourceOut": 1}]})
+        self.assertEqual(trimmed["plan"]["exhibits"][0]["at"], 4.0)
+        self.assertEqual(store._current_compiled["props"]["exhibits"][0]["startFrame"], 60)
+
+    def test_track_and_fps_changes_do_not_extend_render_to_disabled_endpoints(self):
+        store = self.store([placed("a", 0, 60), placed("b", 120, 90, enabled=False)], timeline=header(60))
+        before = store.snapshot()
+        moved = self.apply(store, [{"op": "set_node_track", "id": self.clips(before)[0]["id"], "track": "V2"}])
+        self.assertEqual((moved["durationFrames"], moved["editingDurationFrames"]), (60, 210))
+        self.assertEqual(moved["plan"]["timeline"]["durationFrames"], 60)
+        self.assert_round_trip(store, before, moved)
+        changed = self.apply(store, [{"op": "set_field", "id": "project", "path": "/render/fps", "value": 60}])
+        self.assertEqual((changed["fps"], changed["durationFrames"], changed["editingDurationFrames"]), (60, 120, 420))
+        self.assertEqual(changed["plan"]["timeline"]["durationFrames"], 120)
+        disk = load_plan(self.temp.project, self.path)
+        from reels.config import Project
+        compact = build(Project(self.temp.root), disk)
+        self.assertEqual(compact["total"], 120)
+        self.assert_round_trip(store, moved, changed)
+        # Enabling an edited clip beyond the render header changes only the flag.
+        before_enable = store.snapshot()
+        owner = next(n for n in self.clips(before_enable) if n["assetId"] == "b")
+        enabled = self.apply(store, [{"op": "set_enabled", "ids": [owner["id"]], "enabled": True}])
+        self.assertEqual(enabled["plan"]["timeline"], before_enable["plan"]["timeline"])
+        self.assertEqual(enabled["durationFrames"], 420)
+        self.assert_round_trip(store, before_enable, enabled)
+
+    def test_all_disabled_cutaways_fit_identically_in_full_and_timing_compilation(self):
+        import reels.render as renderer
+        from reels.editor.compile_runtime import timing_build
+        path = self.temp.plan("all-off-cuts", [{"asset": "a", "in": 0, "out": 2, "enabled": False,
+                                               "cutaways": [{"asset": "d", "in": 0, "out": 0.4, "at": 49 / 30}]}])
+        plan = load_plan(self.temp.project, path)
+        full = serialize(build(self.temp.project, deepcopy(plan), aligned=True))
+        timing = timing_build(renderer, self.temp.project, deepcopy(plan))
+        for result in (full, timing):
+            self.assertEqual((result["total"], result["editingDurationFrames"]), (0, 60))
+            self.assertEqual(result["segs"][0]["cutaways"], [])
 
 
 class ReviewPreviewTests(unittest.TestCase):

@@ -239,9 +239,12 @@ if not plan.get("segments") and not plan.get("timeline"):
         "segs": [], "props": {}, "sound": {"cues": []}, "loop": None,
         "timelineCapabilities": getattr(renderer, "TIMELINE_CAPABILITIES", {})}))
     sys.exit(0)
-built = build(p, plan, **({"aligned": True} if hasattr(renderer, "split_disabled") else {}))
+built = build(p, plan, **({"aligned": True,
+    "timing_only": bool(json.loads(overrides_path.read_text()).get("__editor_timing_only__"))}
+    if hasattr(renderer, "derive_render_plan") else {}))
+editing = built.get("editing", built)
 segs = []
-for sg in sorted([*built["segs"], *built.get("disabled", [])], key=lambda item: item.index):
+for sg in editing["segs"]:
     spec = {k:v for k,v in sg.spec.items() if k != "_cutaways"}
     cuts = []
     for cut in sg.spec.get("_cutaways") or []:
@@ -259,7 +262,10 @@ for sg in sorted([*built["segs"], *built.get("disabled", [])], key=lambda item: 
 sound = dict(built.get("sound") or {})
 sound["cues"] = [{k:v for k,v in cue.items() if k != "path"} for cue in sound.get("cues") or []]
 result = {"fps":built["fps"], "total":built["total"], "warnings":built["warnings"],
+           "editingDurationFrames": editing["total"],
            "segs":segs, "props":built["props"], "sound":sound, "loop":built.get("loop")}
+if editing is not built:
+    result.update(editingProps=editing["props"], editingSound=editing["sound"])
 if built.get("timelineCapabilities"):
     result["timelineCapabilities"] = built["timelineCapabilities"]
 result_path.write_text(json.dumps(result, ensure_ascii=False, default=lambda value: sorted(value) if isinstance(value, set) else str(value)), encoding="utf-8")
@@ -413,7 +419,8 @@ class DocumentStore:
         project = self._project_for_renderer(renderer_revision, project)
         token = self._compile_token
         origin = token[0] if token else getattr(self._compile_state, "origin", "system")
-        if (origin in ("manual", "system")
+        timing_only = getattr(self._compile_state, "timing_only", False)
+        if (origin in ("manual", "system") and not timing_only
                 and not getattr(self._compile_state, "force_cold", False)
                 and (not self._head_revision() or renderer_revision == self._renderer_revision())):
             from .compile_worker import WorkerUnavailable, WorkerRejected, WorkerCancelled
@@ -448,6 +455,8 @@ class DocumentStore:
                     current.remove(process)
         if self._closed or (token is not None and self._epoch(origin) != token[1]):
             raise DocumentError("cancelled", "validation was cancelled before cold fallback")
+        if timing_only:
+            overrides = {**overrides, "__editor_timing_only__": True}
         return _worker_compile(project, plan, overrides, process_started=started, process_finished=finished,
                                originals=getattr(self.workspace, "_originals", None))
 
@@ -1584,6 +1593,12 @@ class DocumentStore:
         from ..timeline import positioned, requantize
         from .overwrite import apply_overwrite, positioned_source_edit, video_source_bounds
         op = operation.get("op")
+        if (ctx.get("timingOnly") and op in ("move_overlay", "resize_overlay", "remove_overlay")
+                and operation.get("id") not in plan["_editor"]["nodes"]
+                and operation.get("id") not in ctx.get("generatedAliases", {})):
+            # Generated IDs require overlays, after the preceding operation remapped global events.
+            ctx["compiled"] = self._compile(plan, ctx["aux"])
+            ctx["timingOnly"] = False
         capable = (ctx["compiled"].get("timelineCapabilities") or {}).get("version") == 1
         if positioned(plan):
             requantize(plan, ctx["fps"])
@@ -1671,8 +1686,9 @@ class DocumentStore:
                     video_source_bounds(asset, clip["in"], clip["out"], clip.get("speed", 1))
                 frames = max(1, round(source_duration(clip) * plan["timeline"]["fps"]))
                 clip["timeline"].update(durationFrames=frames, transitionInFrames=0)
-                plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
-                                                        clip["timeline"]["startFrame"] + frames)
+                if clip.get("enabled") is not False:
+                    plan["timeline"]["durationFrames"] = max(plan["timeline"]["durationFrames"],
+                                                            clip["timeline"]["startFrame"] + frames)
         # Moving identical clips must preserve identities, not just fingerprints.
         from .document import _descriptors
         descriptors = _descriptors(plan)
@@ -1724,7 +1740,7 @@ class DocumentStore:
         op = operation.get("op")
         edited_kind = metadata.get(str(operation.get("id")), {}).get("kind")
         timing_changed = op in ("split_segment", "insert_segment", "remove_segments", "reorder_segments",
-                                "duplicate_segments", "ripple_remove", "paste_segments", "set_enabled")
+                                "duplicate_segments", "ripple_remove", "paste_segments")
         timing_changed |= op == "trim_segment" and edited_kind == "segment"
         timing_changed |= op == "set_field" and operation.get("path") in (
             "/speed", "/duration", "/in", "/out", "/transition", "/beatSnap", "/music", "/render/fps", "/render",
@@ -1733,23 +1749,18 @@ class DocumentStore:
             timing_changed = False
         if not timing_changed:
             return
-        if not positioned(plan):
-            from .segment_ops import suspend_events
-            suspend_events(plan, old_snapshot)
         self._refresh_edit_timing(ctx)
         compiled = ctx["compiled"]
         absolute = positioned(plan)
         intervals = ctx.pop("removedIntervals", [])
-        if absolute and op not in ("ripple_remove", "set_enabled"):
-            return  # other absolute placements never ripple reel-global events
+        if absolute and op != "ripple_remove":
+            return  # absolute placements never ripple reel-global events
         new_snapshot = editing_snapshot(plan, compiled, self._revisions())
-        old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment" and n.get("enabled") is not False]
-        old_owners = {n["raw"].get("timingId", n["id"]): n for n in old_snapshot["nodes"] if n["kind"] == "segment"}
-        all_new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
-        new_owners = {n["raw"].get("timingId", n["id"]): n for n in all_new_nodes.values()}
-        new_nodes = {key: n for key, n in all_new_nodes.items() if n.get("enabled") is not False}
+        old_nodes = [n for n in old_snapshot["nodes"] if n["kind"] == "segment"]
+        new_nodes = {n["id"]: n for n in new_snapshot["nodes"] if n["kind"] == "segment"}
         old_fps, new_fps = old_snapshot["fps"], new_snapshot["fps"]
-        old_total, new_total = old_snapshot["durationFrames"] / old_fps, new_snapshot["durationFrames"] / new_fps
+        old_total = old_snapshot.get("editingDurationFrames", old_snapshot["durationFrames"]) / old_fps
+        new_total = new_snapshot.get("editingDurationFrames", new_snapshot["durationFrames"]) / new_fps
         def source_time(at, anchor, target):
             offset = at - anchor["startFrame"] / old_fps
             if anchor.get("sourceIn") is not None and target.get("sourceIn") is not None:
@@ -1781,27 +1792,6 @@ class DocumentStore:
                 if not isinstance(event, dict) or (event.get("at") is None and event.get("endAt") is None):
                     kept.append(event)
                     continue
-                suspended = event.get("disabledTiming")
-                if suspended:
-                    token = suspended["owner"]
-                    anchor, target = old_owners.get(token), new_owners.get(token)
-                    if target is None:
-                        continue  # deleting the disabled owner deletes its suspended events too
-                    if anchor is not None:
-                        time_field = "at" if event.get("at") is not None else "endAt"
-                        old_at = float(event[time_field])
-                        at = source_time(old_at, anchor, target)
-                        old_end = float(event.get("endAt", old_at + float(event.get("for", 0) or 0)))
-                        end = source_time(old_end, anchor, target)
-                        event[time_field] = round(at, 6)
-                        if "for" in event:
-                            event["for"] = round(max(0.0, end - at), 6)
-                        if time_field == "at" and "endAt" in event:
-                            event["endAt"] = round(max(at, end), 6)
-                    if target.get("enabled") is not False:
-                        event.pop("disabledTiming")
-                    kept.append(event)
-                    continue
                 time_field = "at" if event.get("at") is not None else "endAt"
                 old_at = float(event[time_field])
                 at = remap(old_at)
@@ -1820,13 +1810,6 @@ class DocumentStore:
                     event["endAt"] = round(max(at, end), 6)
                 kept.append(event)
             plan[collection] = kept
-        suspended_owners = {event["disabledTiming"]["owner"]
-                            for name in ("text", "musicDrops", "sfx", "exhibits")
-                            for event in plan.get(name) or []
-                            if isinstance(event, dict) and event.get("disabledTiming")}
-        for clip in plan.get("segments") or []:
-            if clip.get("timingId") not in suspended_owners:
-                clip.pop("timingId", None)
         ensure_node_ids(plan)
 
     def _refresh_edit_timing(self, ctx):
@@ -1840,12 +1823,16 @@ class DocumentStore:
         else:
             prior_token = self._compile_token
             self._compile_token = ctx.get("cancelToken", prior_token)
+            prior_timing = getattr(self._compile_state, "timing_only", False)
+            self._compile_state.timing_only = True
             try:
                 compiled = self._compile(ctx["plan"], ctx["aux"])
             finally:
                 self._compile_token = prior_token
+                self._compile_state.timing_only = prior_timing
         ctx["compiled"] = compiled
         ctx["fps"] = int(compiled["fps"])
+        ctx["timingOnly"] = True
 
     def _apply_operation(self, ctx: dict[str, Any], operation: dict[str, Any]) -> None:
         plan: dict[str, Any] = ctx["plan"]
