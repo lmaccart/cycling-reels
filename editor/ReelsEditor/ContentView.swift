@@ -362,27 +362,12 @@ private struct LibraryPane: View {
                     }
                 }
             }
-            if store.searchHits.contains(where: \.related) {
-                Section("Related moments") {
-                    ForEach(store.searchHits.filter(\.related)) { hit in
-                        SearchHitRow(
-                            hit: hit,
-                            addAsBroll: { store.addSearchHitAsBroll(hit) },
-                            replaceCutaway: store.selectedCutaway == nil
-                                ? nil
-                                : { store.replaceSelectedCutaway(with: hit) }
-                        )
-                    }
-                }
-            }
         }
         .listStyle(.sidebar)
         .overlay {
-            if store.searchHits.isEmpty && !store.semanticSearchPending {
+            if AssetPresentation.showsNoResults(clipCount: store.library.filter { AssetPresentation.matches($0, query: localQuery) }.count, hitCount: store.searchHits.count) {
                 ContentUnavailableView("No matching footage", systemImage: "text.magnifyingglass",
                                        description: Text("Try a word from the transcript, a place, or an activity. Regular expressions work too."))
-            } else if store.searchHits.isEmpty && store.semanticSearchPending {
-                ProgressView("Finding related moments…").controlSize(.small)
             }
         }
     }

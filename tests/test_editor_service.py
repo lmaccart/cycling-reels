@@ -34,6 +34,10 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.service = EditorService(self.workspace, lambda *args, **kwargs: self.events.append((args, kwargs)))
         self.addCleanup(self.service.close)
 
+    def test_search_never_wires_a_semantic_runner(self):
+        coordinator = self.service.search_coordinator()
+        self.assertIsNone(coordinator.semantic_runner)
+
     def test_workspace_roots_are_explicit(self):
         info = self.service.dispatch("workspace.info", {})
         self.assertEqual(info["dataRoot"], str(self.fixture.root))

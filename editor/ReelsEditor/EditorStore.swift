@@ -48,7 +48,6 @@ final class EditorStore {
     var sourceIn: Double?
     var sourceOut: Double?
     var searchText = ""
-    var semanticSearchPending = false
     var notice: String? {
         didSet {
             noticeTask?.cancel()
@@ -1310,16 +1309,11 @@ final class EditorStore {
         semanticGeneration += 1
         expectedSearchFilterHash = nil
         let generation = semanticGeneration
-        Task {
-            _ = try? await service.call("search.cancel", params: .object(["generation": .number(Double(generation - 1))]))
-        }
         guard !query.isEmpty else {
             searchHits = []
-            semanticSearchPending = false
             loadLibrary()
             return
         }
-        semanticSearchPending = false
         searchTask = Task {
             do {
                 let result = try await service.call("search.query", params: .object([
@@ -1336,11 +1330,6 @@ final class EditorStore {
                 guard generation == semanticGeneration else { return }
                 errorMessage = error.localizedDescription
             }
-            do {
-                try await Task.sleep(for: .milliseconds(600))
-                guard !Task.isCancelled, generation == semanticGeneration else { return }
-                semanticSearchPending = true
-            } catch { return }
         }
     }
 
@@ -1508,16 +1497,13 @@ final class EditorStore {
                 let related = Self.hits(from: payload, related: true, keys: ["relatedRows"])
                 let enriched = Self.hits(from: payload, related: true, keys: ["enrichedRows"])
                 searchHits = Self.merge(Self.merge(searchHits, related: related), related: enriched)
-                semanticSearchPending = false
             case "semanticError":
-                semanticSearchPending = false
                 notice = Self.errorMessage(from: payload, fallback: "Related search unavailable; local matches remain.")
             default:
                 break
             }
         } else if name.hasPrefix("search.") {
             if name.contains("error") {
-                semanticSearchPending = false
                 notice = Self.errorMessage(from: payload, fallback: "Search failed.")
             }
         } else if name.hasPrefix("preview.") {
