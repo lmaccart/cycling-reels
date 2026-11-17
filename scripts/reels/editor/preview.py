@@ -206,6 +206,11 @@ def _path_roots(workspace, code_root: Path, job_root: Path, revision_dir: Path,
         dependencies = application_root / "remotion/node_modules"
         if dependencies.is_dir():
             reads.add(dependencies.resolve())
+    from ..sphere_metal import executable as sphere_executable
+
+    sphere = sphere_executable(Path(workspace.code_root).resolve())
+    if sphere:
+        reads.update((sphere, sphere.with_name("sphere.metallib")))
     # Project.abs() and the trusted worker still verify registered identities.
     # Reading a media directory must not expose unregistered sibling originals.
     for record in workspace._originals.values():
@@ -285,6 +290,7 @@ def _profile_text(
     *,
     browser: bool = False,
     videotoolbox: bool = False,
+    metal: bool = False,
 ) -> str:
     lines = [
         "(version 1)",
@@ -314,12 +320,19 @@ def _profile_text(
         lines.append(f"(allow file-write* (subpath {_sbpl_quote(root)}))")
     for executable in sorted(executables, key=str):
         lines.append(f"(allow process-exec (literal {_sbpl_quote(executable)}))")
-    if videotoolbox:
+    if videotoolbox or metal:
         # Pixel buffers shared with the codec XPC services; no GPU/device-wide grant.
         lines.extend([
             '(allow iokit-open-user-client (iokit-user-client-class "IOSurfaceRootUserClient"))',
             '(allow mach-lookup (xpc-service-name "com.apple.coremedia.videoencoder"))',
             '(allow mach-lookup (xpc-service-name "com.apple.coremedia.videodecoder"))',
+        ])
+    if metal:
+        # Offline reprojection only: no broad IOKit, filesystem or Mach grant.
+        lines.extend([
+            '(allow iokit-open-user-client (iokit-user-client-class "AGXDeviceUserClient"))',
+            '(allow iokit-open-user-client (iokit-user-client-class "AGXSharedUserClient"))',
+            '(allow mach-lookup (global-name "com.apple.MTLCompilerService"))',
         ])
     if browser:
         # Chrome's renderer processes use a PID-scoped local rendezvous port;
@@ -423,6 +436,11 @@ def _executables(
     python_app = python_executable.parent.parent / "Resources/Python.app/Contents/MacOS/Python"
     if python_app.is_file():
         found.add(python_app.resolve())
+    from ..sphere_metal import executable as sphere_executable
+
+    sphere = sphere_executable(Path(workspace.code_root).resolve())
+    if sphere:
+        found.add(sphere)
     if node:
         found.add(Path(node).resolve())
     for root in {Path(code_root).resolve(), Path(workspace.code_root).resolve()}:
@@ -503,6 +521,12 @@ def _safe_env(workspace, job_root: Path, code_root: Path, node: str | None = Non
         "LANG": "en_US.UTF-8",
         "LC_ALL": "en_US.UTF-8",
     }
+    from ..sphere_metal import executable as sphere_executable
+
+    sphere = sphere_executable(Path(workspace.code_root).resolve())
+    if sphere:
+        env["REELS_SPHERE"] = str(sphere)
+        env["REELS_SPHERE_REVISION"] = hashlib.sha256(sphere.read_bytes() + sphere.with_name("sphere.metallib").read_bytes()).hexdigest()
     browser = _browser_executable(workspace)
     if browser:
         env["REELS_BROWSER"] = str(browser)
@@ -632,7 +656,8 @@ class PreviewManager:
         job["bundleCache"] = str(bundle_cache)
         job["workspaceRoot"] = str(Path(self.workspace.root).resolve())
         if job.get("action") not in ("source_proxy", "sphere_proxy"):
-            job["runtimeRevision"] = hashlib.sha256(Path(__file__).with_name("worker.py").read_bytes()).hexdigest()
+            runtime = Path(__file__).with_name("worker.py").read_bytes() + env.get("REELS_SPHERE_REVISION", "").encode()
+            job["runtimeRevision"] = hashlib.sha256(runtime).hexdigest()
         job["trustedTestsRoot"] = str(Path(__file__).resolve().parents[3] / "tests")
         _atomic_json(Path(job["jobPath"]), job)
 
@@ -664,7 +689,8 @@ class PreviewManager:
         executables = _executables(self.workspace, code_root, node=job["node"], browser=browser_worker)
         profile = job_root / "worker.sb"
         profile_text = _profile_text(reads, writes, executables, browser=browser_worker,
-                                     videotoolbox=job.get("action") in ("source_proxy", "sphere_proxy"))
+                                     videotoolbox=job.get("action") in ("source_proxy", "sphere_proxy"),
+                                     metal=browser_worker and bool(env.get("REELS_SPHERE")))
         # Candidate source/tests are inputs even when nested inside a writable
         # job directory. Candidate Python must not rewrite trusted contracts or
         # the runner while those contracts are executing.

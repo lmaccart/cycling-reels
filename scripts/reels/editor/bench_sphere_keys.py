@@ -27,6 +27,7 @@ import sys
 import tempfile
 import time
 import uuid
+from contextlib import nullcontext, redirect_stdout
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -267,7 +268,8 @@ def main(argv: list[str] | None = None) -> int:
     out = args.out or Path(tempfile.mkdtemp(prefix="bench-sphere-keys-"))
     with tempfile.TemporaryDirectory(prefix="bench-sphere-project-") as work:
         project = _private_project(root, Path(work), str(segments[args.segment - 1].get("asset")), args.scale)
-        report = run(project, plan, args.segment - 1, out, start=args.start, end=args.end)
+        with redirect_stdout(sys.stderr) if args.json else nullcontext():
+            report = run(project, plan, args.segment - 1, out, start=args.start, end=args.end)
     if args.json:
         print(json.dumps(report, indent=2))
     else:

@@ -207,6 +207,24 @@ class StagingCacheTests(unittest.TestCase):
         self.assertIn(b"one|", (output / "seg1.jpg").read_bytes())
         self.assertEqual((output / "seg1.bg.jpg").read_text(), "background-one")
 
+    def test_helper_runtime_identity_invalidates_whole_tree_and_same_identity_hits(self):
+        built = self._built([self._seg("clip", **{"sphere": {"view": {"yaw": 0}}})])
+        # The broker folds the helper binary/metallib digest into runtimeRevision.
+        # Compute the aggregate key exactly as prepare() does on every request.
+        for runtime, expected_reuse, expected_encodes in [
+            ("a" * 64, False, 1),
+            ("a" * 64, True, 1),
+            ("b" * 64, False, 2),
+            ("b" * 64, True, 2),
+        ]:
+            with self.subTest(runtime=runtime, reused=expected_reuse):
+                self.snapshot["runtimeRevision"] = runtime
+                key, _ = worker._cache_identity(self.project, built, self.snapshot, self.code_root)
+                _, reused, stats = self._run(built, key)
+                self.assertEqual(reused, expected_reuse)
+                self.assertEqual(stats, {"hits": 1, "misses": 0} if expected_reuse else {"hits": 0, "misses": 1})
+                self.assertEqual(len(self.encodes), expected_encodes)
+
     def test_source_spec_flags_renderer_and_runtime_revisions_invalidate(self):
         base = self._built([self._seg("clip", **{"sphere": {"view": {"yaw": 0}}})])
         self._run(base, "warm")

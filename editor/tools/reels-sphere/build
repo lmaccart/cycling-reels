@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Build only this checkout's offline renderer; never install/launch the editor.
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
+SCRATCH="${REELS_SPHERE_SCRATCH:-$ROOT/.cache/editor/sphere-spm}"
+DEST="$ROOT/.cache/editor/bin"
+mkdir -p "$SCRATCH" "$DEST"
+xcrun -sdk macosx metal -std=metal3.0 -O2 -c "$HERE/Sources/ReelsSphere/Sphere.metal" -o "$SCRATCH/sphere.air"
+xcrun -sdk macosx metallib "$SCRATCH/sphere.air" -o "$SCRATCH/sphere.metallib"
+swift build --package-path "$HERE" --scratch-path "$SCRATCH" -c release
+BIN="$(swift build --package-path "$HERE" --scratch-path "$SCRATCH" -c release --show-bin-path)"
+install -m 755 "$BIN/reels-sphere" "$DEST/reels-sphere"
+install -m 644 "$SCRATCH/sphere.metallib" "$DEST/sphere.metallib"
+printf 'Built %s\n' "$DEST/reels-sphere"
