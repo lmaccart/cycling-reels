@@ -1,13 +1,13 @@
 """Fast render path for plain-footage reels.
 
 The full render screenshots every frame in headless Chrome (Remotion). When a reel's picture is only
-footage the CLI already staged — hard cuts, video cutaways — plus text (hook, text beats, speech captions,
+footage the CLI already staged — hard cuts, video cutaways — plus stat pills and text (hook, text beats, speech captions,
 end card), that's wasted work: the text holds still for most frames. Here Remotion instead renders
   * the sound (ReelAudio: the same clip audio, music and sound effects, no pictures), and
   * one transparent still of the text layer (ReelOverlay) per distinct text state, plus each frame of
     the short entrance/exit animations,
 and ffmpeg joins the staged clips, lays the cutaways and the text stills over them, and adds the sound.
-Anything else (punch-ins, blur, photos, crossfades, exhibits, stats, maps, progress bars, title boards,
+Anything else (punch-ins, blur, photos, crossfades, exhibits, maps, progress bars, title boards,
 highlight captions) goes through the full render.
 """
 
@@ -26,6 +26,7 @@ from .util import ReelsError, write_json
 TEXT_IN = 4  # hook / text beat / end card: pop in over 4 frames (the 4th is fully in)
 TEXT_OUT = 4  # and fade out over the last 4
 CAPTION_IN = 2  # captions: 0.4 -> 1 opacity over 2 frames
+CHIP_FADE = 4  # stat pills: fade in over the first 4 frames and out over the last 4 (StatChips)
 
 
 def why_not(props: dict) -> str | None:
@@ -44,7 +45,7 @@ def why_not(props: dict) -> str | None:
         for c in s.get("cutaways") or []:
             if c["kind"] != "video":
                 return f"segment {i + 1} has a photo cutaway"
-    for key, what in (("stats", "stat pills"), ("routes", "a route map"), ("progress", "a progress bar"),
+    for key, what in (("routes", "a route map"), ("progress", "a progress bar"),
                       ("exhibits", "exhibits"), ("foregrounds", "exhibits"), ("titleCard", "a title board")):  # fmt: skip
         if props.get(key):
             return f"it has {what}"
@@ -63,9 +64,24 @@ def _text_state(item: dict, f: int, enter: bool = True) -> Any:
     return "static"
 
 
+def _chip_state(chip: dict, f: int) -> tuple:
+    """A stat pill's look on frame `f`: its fade frame (or 'static' while fully in) and which live value it shows."""
+    local, dur = f - chip["startFrame"], chip["endFrame"] - chip["startFrame"]
+    short_owned = dur < 2 * CHIP_FADE and chip.get("ownerSegmentIndex") is not None
+    fade = "static" if short_owned or CHIP_FADE <= local <= dur - CHIP_FADE else local
+    live = chip.get("live")
+    value = 0
+    if live and live["values"]:
+        value = min(len(live["values"]) - 1, max(0, local // live["everyFrames"]))
+    return ("stat", fade, value)
+
+
 def frame_state(props: dict, f: int) -> tuple:
-    """Everything that decides what the text layer looks like on frame `f`. Equal states draw identically."""
+    """Everything that decides what the overlay layer looks like on frame `f`. Equal states draw identically."""
     state: list = []
+    for i, c in enumerate(props.get("stats") or []):
+        if c["startFrame"] <= f < c["endFrame"]:
+            state.append((i,) + _chip_state(c, f))
     for i, b in enumerate(props["beats"]):
         if b["startFrame"] <= f < b["endFrame"]:
             state.append(("beat", i, _text_state(b, f)))
