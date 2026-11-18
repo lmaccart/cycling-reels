@@ -1541,6 +1541,7 @@ def _stage_video(
     speed = spec["speed"]
     pre = hdr_filters(probe) + [f"setpts=(PTS-STARTPTS)/{speed:g}", f"fps={fps}"]
     tail = f"setsar=1,{grading.to_bt709(grading.source_colour(probe, src))},tpad=stop_mode=clone:stop_duration=2[v]"
+    graded = grade is not None and grading.active(grade)
     metal = None
     metal_video = work / "metal.mp4"
     if spec.get("sphere"):
@@ -1548,9 +1549,9 @@ def _stage_video(
 
         metal = render_metal(project, sg, metal_video, fps, tw, th, work)
 
+    sphere_graph = ""
     if metal:
-        # Already retimed, projected and BT.709 limited. Never repeat colour/look.
-        graph = ""
+        pass  # Already retimed, projected and BT.709 limited. Never repeat colour/look.
     elif spec.get("sphere"):
         # 360: rebuild the sphere, then point a virtual camera (fixed, or moving along a path)
         src_graph, pad, inproj = source_graph(probe)
@@ -1562,33 +1563,61 @@ def _stage_video(
             if stab is None:
                 log(f"  segment {sg.index + 1}: no camera orientation data in {src.name} — not stabilized")
         cam = camera_filter(spec["sphere"], inproj, tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"), stab=stab)
-        graph = f"{src_graph};[{pad}]setpts=(PTS-STARTPTS)/{speed:g},fps={fps},{cam},{tail}"
-    elif spec["frame"] == "crop":
-        zoom = spec["zoom"]
-        if w / h > tw / th:
-            sh = even(th * zoom)
-            sw = even(w * sh / h)
-        else:
-            sw = even(tw * zoom)
-            sh = even(h * sw / w)
-        sw, sh = max(sw, tw), max(sh, th)
-        x = int(clamp(round(spec["focusX"] * sw - tw / 2), 0, sw - tw))
-        y = int(clamp(round(spec["focusY"] * sh - th / 2), 0, sh - th))
-        graph = f"[0:v]{','.join(pre + [f'scale={sw}:{sh}:flags=lanczos', f'crop={tw}:{th}:{x}:{y}'])},{tail}"
-    elif spec["frame"] == "blurfill":
-        bw, bh = tw // 4, th // 4
-        graph = (
-            f"[0:v]{','.join(pre)},split=2[a][b];"
-            f"[a]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},boxblur=10:2,"
-            f"eq=brightness=-0.08:saturation=1.15,scale={tw}:{th}[bg];"
-            f"[b]scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1[fg];"
-            f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{tail}"
-        )
-    else:
-        graph = (
-            f"[0:v]{','.join(pre)},scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,"
+        sphere_graph = f"{src_graph};[{pad}]setpts=(PTS-STARTPTS)/{speed:g},fps={fps},{cam},{tail}"
+
+    def video_graph(sampling: bool = False) -> str:
+        """The picture graph ending in `[v]`. `sampling` = only the frames the grade measures reach the
+        expensive filters (a 360 view is always rendered whole: its camera moves are per-frame)."""
+        if metal:
+            return ""
+        if sphere_graph:
+            return sphere_graph
+        p = pre + ([grading.select_expr(sg.frames)] if sampling else [])
+        if spec["frame"] == "crop":
+            zoom = spec["zoom"]
+            if w / h > tw / th:
+                sh = even(th * zoom)
+                sw = even(w * sh / h)
+            else:
+                sw = even(tw * zoom)
+                sh = even(h * sw / w)
+            sw, sh = max(sw, tw), max(sh, th)
+            x = int(clamp(round(spec["focusX"] * sw - tw / 2), 0, sw - tw))
+            y = int(clamp(round(spec["focusY"] * sh - th / 2), 0, sh - th))
+            return f"[0:v]{','.join(p + [f'scale={sw}:{sh}:flags=lanczos', f'crop={tw}:{th}:{x}:{y}'])},{tail}"
+        if spec["frame"] == "blurfill":
+            bw, bh = tw // 4, th // 4
+            return (
+                f"[0:v]{','.join(p)},split=2[a][b];"
+                f"[a]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},boxblur=10:2,"
+                f"eq=brightness=-0.08:saturation=1.15,scale={tw}:{th}[bg];"
+                f"[b]scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1[fg];"
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{tail}"
+            )
+        return (
+            f"[0:v]{','.join(p)},scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,"
             f"pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:color=black,{tail}"
         )
+
+    # Grading in ONE encode: measure a handful of frames cheaply (no intermediate file), write the LUT,
+    # then the staging pass itself applies it (grade.chain) and encodes once at the final quality.
+    measured = None
+    if graded:
+        lut = out.with_name(f"{out.stem}.grade.cube")
+        inputs: list[Any] = ["-ss", f"{spec['in']:.12f}", "-t", f"{spec['out'] - spec['in']:.12f}", "-i", src]
+        if metal:
+            frames_rgb = grading.sample(metal_video, sg.frames, tw, th)
+        elif sphere_graph:
+            frames_rgb = grading.sample_graph(inputs, sphere_graph.replace("[v]", "[gr_full]") + f";[gr_full]{grading.select_expr(sg.frames)}[v]",
+                                              "v", tw, th, out.parent)
+        else:
+            frames_rgb = grading.sample_graph(inputs, video_graph(True), "v", tw, th, out.parent)
+        measured = grading.measure(frames_rgb)
+        amount, quality = grading.prepare(measured, grade, lut, probe=probe, w=tw, h=th, fps=fps)
+        graded_chain = grading.chain("gr_src", "v", lut, amount, quality, tw, th, fps)
+    graph = video_graph()
+    if graded:
+        graph = graded_chain.replace("[gr_src]", "[1:v:0]", 1) if metal else graph.removesuffix("[v]") + "[gr_src];" + graded_chain
 
     use_audio = audio and bool(probe.get("hasAudio")) and 0.5 <= speed <= 2.0
     if use_audio:
@@ -1609,25 +1638,22 @@ def _stage_video(
         cmd += ["-i", metal_video]
     if graph:
         cmd += ["-filter_complex", graph.lstrip(";")]
-    cmd += ["-map", "1:v:0" if metal else "[v]"]
+    copy_metal = bool(metal) and not graded  # the Metal picture is already final: just mux it
+    cmd += ["-map", "1:v:0" if copy_metal else "[v]"]
     cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"] if use_audio else ["-an"]
-    graded = grade is not None and grading.active(grade)
-    first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
-    quality = ["-qp", "0"] if graded else ["-crf", "16"]  # lossless when a grade pass follows
-    if metal:
-        cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "copy",
-                *grading.ENCODE_TAGS, "-movflags", "+faststart", work / "muxed.mp4"]
-    else:
-        cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "libx264", "-preset", "veryfast", *quality]
-        cmd += ["-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS, "-movflags", "+faststart", first]
-    run(cmd, cwd=out.parent)
-    if metal:
-        (work / "muxed.mp4").replace(first)
+    cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}"]
+    cmd += ["-c:v", "copy"] if copy_metal else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-g", fps, "-pix_fmt", "yuv420p"]
+    cmd += [*grading.ENCODE_TAGS, "-movflags", "+faststart", work / "muxed.mp4" if metal and copy_metal else out]
+    try:
+        run(cmd, cwd=out.parent)
+    finally:
+        if graded:
+            lut.unlink(missing_ok=True)
+    if copy_metal:
+        (work / "muxed.mp4").replace(out)
     if not graded:
         return None
-    measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe=probe, s=grade)
-    first.unlink(missing_ok=True)
-    return measured
+    return grading.summary(measured, grade, amount, quality)
 
 
 def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int, *, grade: dict | None = None) -> dict | None:
@@ -1637,16 +1663,22 @@ def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int, *, grade: di
     cam = camera_filter(sg.spec["sphere"], "e", tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"))
     graph = f"[0:v]format=yuv420p,fps={fps},{cam},setsar=1,format=yuv420p[v]"
     graded = grade is not None and grading.active(grade)
-    first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
-    run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", fps, "-t", f"{sg.frames / fps + 0.5:.3f}", "-i", src,
-         "-filter_complex", graph, "-map", "[v]", "-an", "-frames:v", sg.frames, "-c:v", "libx264", "-preset", "veryfast",
-         *(["-qp", "0"] if graded else ["-crf", "16"]), "-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS,
-         "-movflags", "+faststart", first], cwd=out.parent)  # fmt: skip
-    if not graded:
-        return None
-    measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe={"width": tw, "height": th}, s=grade)
-    first.unlink(missing_ok=True)
-    return measured
+    inputs: list[Any] = ["-loop", "1", "-framerate", fps, "-t", f"{sg.frames / fps + 0.5:.3f}", "-i", src]
+    measured = None
+    if graded:
+        lut = out.with_name(f"{out.stem}.grade.cube")
+        measured = grading.measure(grading.sample_graph(
+            inputs, graph.replace("[v]", "[gr_full]") + f";[gr_full]{grading.select_expr(sg.frames)}[v]", "v", tw, th, out.parent))
+        amount, quality = grading.prepare(measured, grade, lut, probe={"width": tw, "height": th}, w=tw, h=th, fps=fps)
+        graph = graph.removesuffix("[v]") + "[gr_src];" + grading.chain("gr_src", "v", lut, amount, quality, tw, th, fps)
+    try:
+        run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", graph, "-map", "[v]", "-an", "-frames:v", sg.frames,
+             "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS,
+             "-movflags", "+faststart", out], cwd=out.parent)  # fmt: skip
+    finally:
+        if graded:
+            lut.unlink(missing_ok=True)
+    return grading.summary(measured, grade, amount, quality) if graded else None
 
 
 def stage_photo(project: Project, sg: Seg, out: Path, *, grade: dict | None = None) -> dict | None:

@@ -190,22 +190,44 @@ def _hue(x: np.ndarray) -> np.ndarray:
     return h * 60
 
 
-def sample(staged: Path, frames: int, w: int, h: int) -> np.ndarray:
-    """SAMPLES frames spread over the clip's own frames (not the padding), as RGB floats (n, h, w, 3)."""
-    sh = int(round(SAMPLE_W * h / w / 2)) * 2
+def select_expr(frames: int) -> str:
+    """Filter keeping the SAMPLES frames of a clip's own `frames` that `sample` measures (counted from 0)."""
     step = max(1, frames // SAMPLES)
+    return f"select='lt(n\\,{frames})*not(mod(n\\,{step}))'"
+
+
+def sample_tail(w: int, h: int) -> str:
+    """Filters from BT.709 limited yuv420p frames of size w x h to the small RGB frames `measure` reads."""
+    sh = int(round(SAMPLE_W * h / w / 2)) * 2
     conv = ("zscale=min=709:pin=709:tin=709:rin=limited:p=709:t=709:r=full,format=gbrp" if use_zscale()
             else "scale=in_color_matrix=bt709:in_range=tv:out_range=pc,format=gbrp")  # fmt: skip
-    vf = f"select='lt(n\\,{frames})*not(mod(n\\,{step}))',scale={SAMPLE_W}:{sh}:flags=area,{conv}"
+    return f"scale={SAMPLE_W}:{sh}:flags=area,{conv}"
+
+
+def _read_samples(args: list, w: int, h: int, what: str, cwd: Path | None = None) -> np.ndarray:
+    sh = int(round(SAMPLE_W * h / w / 2)) * 2
     import subprocess  # binary output: media.run decodes text
 
-    raw = subprocess.run([*_ffmpeg_cmd(), "-v", "error", "-i", str(staged), "-vf", vf, "-fps_mode", "passthrough",
-                          "-frames:v", str(SAMPLES), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-                         capture_output=True, stdin=subprocess.DEVNULL).stdout  # fmt: skip
+    raw = subprocess.run([*_ffmpeg_cmd(), "-v", "error", *map(str, args), "-fps_mode", "passthrough", "-frames:v", str(SAMPLES),
+                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         capture_output=True, stdin=subprocess.DEVNULL, cwd=cwd).stdout  # fmt: skip
     n = len(raw) // (SAMPLE_W * sh * 3)
     if n == 0:
-        raise ReelsError(f"grade: could not read frames from {staged.name}")
+        raise ReelsError(f"grade: could not read frames from {what}")
     return np.frombuffer(raw[: n * SAMPLE_W * sh * 3], np.uint8).reshape(n, sh, SAMPLE_W, 3).astype(np.float32) / 255
+
+
+def sample(staged: Path, frames: int, w: int, h: int) -> np.ndarray:
+    """SAMPLES frames spread over the clip's own frames (not the padding), as RGB floats (n, h, w, 3)."""
+    vf = f"{select_expr(frames)},{sample_tail(w, h)}"
+    return _read_samples(["-i", staged, "-vf", vf], w, h, staged.name)
+
+
+def sample_graph(inputs: list, graph: str, label: str, w: int, h: int, cwd: Path | None = None) -> np.ndarray:
+    """The same frames as `sample`, taken straight from a staging filtergraph (no intermediate file):
+    `graph` ends in the BT.709 yuv420p video `[label]` and already selects (select_expr) where that is cheap."""
+    return _read_samples([*inputs, "-filter_complex", f"{graph};[{label}]{sample_tail(w, h)}[gr_s]", "-map", "[gr_s]"],
+                         w, h, "the staging graph", cwd)
 
 
 def _ffmpeg_cmd() -> list[str]:
@@ -364,23 +386,33 @@ def rescue_graph(src: str, out: str, amount: float, quality: float, w: int, h: i
 # --------------------------------------------------------------------------
 
 
+def prepare(p: dict, s: dict, lut: Path, *, probe: dict, w: int, h: int, fps: int) -> tuple[float, float]:
+    """Write the clip's LUT for measurement `p`; returns (rescue amount, source quality) for `chain`."""
+    write_lut(lut, p, s)
+    return rescue_amount(p, s), source_quality(probe)
+
+
+def chain(src: str, dst: str, lut: Path, amount: float, quality: float, w: int, h: int, fps: int) -> str:
+    """Filtergraph from `[src]` (BT.709 limited yuv420p) to `[dst]`: the LUT and, on grey days, the rescue.
+    The LUT is named relative to the ffmpeg process's working directory (its own folder)."""
+    to_rgb = ("zscale=min=709:pin=709:tin=709:rin=limited:p=709:t=709:r=full,format=gbrp16le" if use_zscale()
+              else "scale=in_color_matrix=bt709:in_range=tv:out_range=pc,format=gbrp16le")  # fmt: skip
+    to_yuv = "zscale=m=709:p=709:t=709:r=limited,format=yuv420p" if use_zscale() else "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p"
+    g = f"[{src}]{to_rgb},lut3d=file='{lut.name}':interp=tetrahedral,{to_yuv}"
+    if amount > 0.05:
+        return g + "[gr_in];" + rescue_graph("gr_in", dst, amount, quality, w, h, fps)
+    return g + f"[{dst}]"
+
+
 def apply(staged: Path, out: Path, *, frames: int, fps: int, probe: dict, s: dict) -> dict:
-    """Measure `staged` (BT.709 limited, from stage_video), write its LUT next to `out`, and encode the graded clip."""
+    """Measure `staged` (BT.709 limited), write its LUT next to `out`, and encode the graded clip.
+    Staging itself now grades in its single encode (render._stage_video); this stays for a finished file."""
     probe_out = _tags(str(staged))
     w, h = int(probe_out.get("width") or 1080), int(probe_out.get("height") or 1920)
     p = measure(sample(staged, frames, w, h))
     lut = out.with_name(f"{out.stem}.grade.cube")
-    write_lut(lut, p, s)
-    amount = rescue_amount(p, s)
-    quality = source_quality(probe)
-    to_rgb = ("zscale=min=709:pin=709:tin=709:rin=limited:p=709:t=709:r=full,format=gbrp16le" if use_zscale()
-              else "scale=in_color_matrix=bt709:in_range=tv:out_range=pc,format=gbrp16le")  # fmt: skip
-    to_yuv = "zscale=m=709:p=709:t=709:r=limited,format=yuv420p" if use_zscale() else "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p"
-    graph = f"[0:v]{to_rgb},lut3d=file='{lut.name}':interp=tetrahedral,{to_yuv}"
-    if amount > 0.05:
-        graph += "[gr_in];" + rescue_graph("gr_in", "v", amount, quality, w, h, fps)
-    else:
-        graph += "[v]"
+    amount, quality = prepare(p, s, lut, probe=probe, w=w, h=h, fps=fps)
+    graph = chain("0:v", "v", lut, amount, quality, w, h, fps)
     cmd: list[Any] = ["ffmpeg", "-v", "error", "-y", "-i", staged.name, "-filter_complex", graph, "-map", "[v]", "-map", "0:a?",
                       "-c:a", "copy", "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-g", fps, "-pix_fmt", "yuv420p",
                       *ENCODE_TAGS, "-movflags", "+faststart", out.name]  # fmt: skip
@@ -388,10 +420,10 @@ def apply(staged: Path, out: Path, *, frames: int, fps: int, probe: dict, s: dic
         run(cmd, cwd=out.parent)
     finally:
         lut.unlink(missing_ok=True)
-    return _summary(p, s, amount, quality)
+    return summary(p, s, amount, quality)
 
 
-def _summary(p: dict, s: dict, amount: float, quality: float) -> dict:
+def summary(p: dict, s: dict, amount: float, quality: float) -> dict:
     out = {**p, "version": VERSION, "look": s.get("look"), "strength": s.get("strength"), "rescue": round(amount, 3), "quality": round(quality, 2)}
     out.update({k: s[k] for k in ("warmth", "exposure") if s.get(k)})
     return out
@@ -413,4 +445,4 @@ def grade_image(path: Path, s: dict, *, also: list[Path] | None = None) -> dict:
             x = np.asarray(im.convert("RGB"), np.float32) / 255
         graded = grade_rgb(x, p, s)
         Image.fromarray((graded * 255 + 0.5).astype(np.uint8)).save(f, quality=90)
-    return _summary(p, s, rescue_amount(p, s), 1.0)
+    return summary(p, s, rescue_amount(p, s), 1.0)
