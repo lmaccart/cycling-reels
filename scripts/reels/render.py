@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 from dataclasses import dataclass
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
@@ -22,6 +25,7 @@ from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
 from . import grade as grading
 from . import overlay
+from . import stagecache
 from .timeline import CAPABILITIES as TIMELINE_CAPABILITIES, positioned, requantize, place as place_timeline, duration as timeline_duration
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
@@ -1541,6 +1545,7 @@ def _stage_video(
     speed = spec["speed"]
     pre = hdr_filters(probe) + [f"setpts=(PTS-STARTPTS)/{speed:g}", f"fps={fps}"]
     tail = f"setsar=1,{grading.to_bt709(grading.source_colour(probe, src))},tpad=stop_mode=clone:stop_duration=2[v]"
+    graded = grade is not None and grading.active(grade)
     metal = None
     metal_video = work / "metal.mp4"
     if spec.get("sphere"):
@@ -1548,9 +1553,9 @@ def _stage_video(
 
         metal = render_metal(project, sg, metal_video, fps, tw, th, work)
 
+    sphere_graph = ""
     if metal:
-        # Already retimed, projected and BT.709 limited. Never repeat colour/look.
-        graph = ""
+        pass  # Already retimed, projected and BT.709 limited. Never repeat colour/look.
     elif spec.get("sphere"):
         # 360: rebuild the sphere, then point a virtual camera (fixed, or moving along a path)
         src_graph, pad, inproj = source_graph(probe)
@@ -1562,33 +1567,61 @@ def _stage_video(
             if stab is None:
                 log(f"  segment {sg.index + 1}: no camera orientation data in {src.name} — not stabilized")
         cam = camera_filter(spec["sphere"], inproj, tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"), stab=stab)
-        graph = f"{src_graph};[{pad}]setpts=(PTS-STARTPTS)/{speed:g},fps={fps},{cam},{tail}"
-    elif spec["frame"] == "crop":
-        zoom = spec["zoom"]
-        if w / h > tw / th:
-            sh = even(th * zoom)
-            sw = even(w * sh / h)
-        else:
-            sw = even(tw * zoom)
-            sh = even(h * sw / w)
-        sw, sh = max(sw, tw), max(sh, th)
-        x = int(clamp(round(spec["focusX"] * sw - tw / 2), 0, sw - tw))
-        y = int(clamp(round(spec["focusY"] * sh - th / 2), 0, sh - th))
-        graph = f"[0:v]{','.join(pre + [f'scale={sw}:{sh}:flags=lanczos', f'crop={tw}:{th}:{x}:{y}'])},{tail}"
-    elif spec["frame"] == "blurfill":
-        bw, bh = tw // 4, th // 4
-        graph = (
-            f"[0:v]{','.join(pre)},split=2[a][b];"
-            f"[a]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},boxblur=10:2,"
-            f"eq=brightness=-0.08:saturation=1.15,scale={tw}:{th}[bg];"
-            f"[b]scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1[fg];"
-            f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{tail}"
-        )
-    else:
-        graph = (
-            f"[0:v]{','.join(pre)},scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,"
+        sphere_graph = f"{src_graph};[{pad}]setpts=(PTS-STARTPTS)/{speed:g},fps={fps},{cam},{tail}"
+
+    def video_graph(sampling: bool = False) -> str:
+        """The picture graph ending in `[v]`. `sampling` = only the frames the grade measures reach the
+        expensive filters (a 360 view is always rendered whole: its camera moves are per-frame)."""
+        if metal:
+            return ""
+        if sphere_graph:
+            return sphere_graph
+        p = pre + ([grading.select_expr(sg.frames)] if sampling else [])
+        if spec["frame"] == "crop":
+            zoom = spec["zoom"]
+            if w / h > tw / th:
+                sh = even(th * zoom)
+                sw = even(w * sh / h)
+            else:
+                sw = even(tw * zoom)
+                sh = even(h * sw / w)
+            sw, sh = max(sw, tw), max(sh, th)
+            x = int(clamp(round(spec["focusX"] * sw - tw / 2), 0, sw - tw))
+            y = int(clamp(round(spec["focusY"] * sh - th / 2), 0, sh - th))
+            return f"[0:v]{','.join(p + [f'scale={sw}:{sh}:flags=lanczos', f'crop={tw}:{th}:{x}:{y}'])},{tail}"
+        if spec["frame"] == "blurfill":
+            bw, bh = tw // 4, th // 4
+            return (
+                f"[0:v]{','.join(p)},split=2[a][b];"
+                f"[a]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},boxblur=10:2,"
+                f"eq=brightness=-0.08:saturation=1.15,scale={tw}:{th}[bg];"
+                f"[b]scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,setsar=1[fg];"
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{tail}"
+            )
+        return (
+            f"[0:v]{','.join(p)},scale={tw}:{th}:force_original_aspect_ratio=decrease:flags=lanczos,"
             f"pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:color=black,{tail}"
         )
+
+    # Grading in ONE encode: measure a handful of frames cheaply (no intermediate file), write the LUT,
+    # then the staging pass itself applies it (grade.chain) and encodes once at the final quality.
+    measured = None
+    if graded:
+        lut = out.with_name(f"{out.stem}.grade.cube")
+        inputs: list[Any] = ["-ss", f"{spec['in']:.12f}", "-t", f"{spec['out'] - spec['in']:.12f}", "-i", src]
+        if metal:
+            frames_rgb = grading.sample(metal_video, sg.frames, tw, th)
+        elif sphere_graph:
+            frames_rgb = grading.sample_graph(inputs, sphere_graph.replace("[v]", "[gr_full]") + f";[gr_full]{grading.select_expr(sg.frames)}[v]",
+                                              "v", tw, th, out.parent)
+        else:
+            frames_rgb = grading.sample_graph(inputs, video_graph(True), "v", tw, th, out.parent)
+        measured = grading.measure(frames_rgb)
+        amount, quality = grading.prepare(measured, grade, lut, probe=probe, w=tw, h=th, fps=fps)
+        graded_chain = grading.chain("gr_src", "v", lut, amount, quality, tw, th, fps)
+    graph = video_graph()
+    if graded:
+        graph = graded_chain.replace("[gr_src]", "[1:v:0]", 1) if metal else graph.removesuffix("[v]") + "[gr_src];" + graded_chain
 
     use_audio = audio and bool(probe.get("hasAudio")) and 0.5 <= speed <= 2.0
     if use_audio:
@@ -1609,25 +1642,22 @@ def _stage_video(
         cmd += ["-i", metal_video]
     if graph:
         cmd += ["-filter_complex", graph.lstrip(";")]
-    cmd += ["-map", "1:v:0" if metal else "[v]"]
+    copy_metal = bool(metal) and not graded  # the Metal picture is already final: just mux it
+    cmd += ["-map", "1:v:0" if copy_metal else "[v]"]
     cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"] if use_audio else ["-an"]
-    graded = grade is not None and grading.active(grade)
-    first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
-    quality = ["-qp", "0"] if graded else ["-crf", "16"]  # lossless when a grade pass follows
-    if metal:
-        cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "copy",
-                *grading.ENCODE_TAGS, "-movflags", "+faststart", work / "muxed.mp4"]
-    else:
-        cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}", "-c:v", "libx264", "-preset", "veryfast", *quality]
-        cmd += ["-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS, "-movflags", "+faststart", first]
-    run(cmd, cwd=out.parent)
-    if metal:
-        (work / "muxed.mp4").replace(first)
+    cmd += ["-frames:v", sg.frames, "-t", f"{sg.frames / fps:.4f}"]
+    cmd += ["-c:v", "copy"] if copy_metal else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-g", fps, "-pix_fmt", "yuv420p"]
+    cmd += [*grading.ENCODE_TAGS, "-movflags", "+faststart", work / "muxed.mp4" if metal and copy_metal else out]
+    try:
+        run(cmd, cwd=out.parent)
+    finally:
+        if graded:
+            lut.unlink(missing_ok=True)
+    if copy_metal:
+        (work / "muxed.mp4").replace(out)
     if not graded:
         return None
-    measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe=probe, s=grade)
-    first.unlink(missing_ok=True)
-    return measured
+    return grading.summary(measured, grade, amount, quality)
 
 
 def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int, *, grade: dict | None = None) -> dict | None:
@@ -1637,16 +1667,22 @@ def stage_photo_pan(project: Project, sg: Seg, out: Path, fps: int, *, grade: di
     cam = camera_filter(sg.spec["sphere"], "e", tw, th, fps, sg.frames, out.with_name(f"{out.stem}.cam.cmd"))
     graph = f"[0:v]format=yuv420p,fps={fps},{cam},setsar=1,format=yuv420p[v]"
     graded = grade is not None and grading.active(grade)
-    first = out.with_name(f"{out.stem}.ungraded{out.suffix}") if graded else out
-    run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", fps, "-t", f"{sg.frames / fps + 0.5:.3f}", "-i", src,
-         "-filter_complex", graph, "-map", "[v]", "-an", "-frames:v", sg.frames, "-c:v", "libx264", "-preset", "veryfast",
-         *(["-qp", "0"] if graded else ["-crf", "16"]), "-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS,
-         "-movflags", "+faststart", first], cwd=out.parent)  # fmt: skip
-    if not graded:
-        return None
-    measured = grading.apply(first, out, frames=sg.frames, fps=fps, probe={"width": tw, "height": th}, s=grade)
-    first.unlink(missing_ok=True)
-    return measured
+    inputs: list[Any] = ["-loop", "1", "-framerate", fps, "-t", f"{sg.frames / fps + 0.5:.3f}", "-i", src]
+    measured = None
+    if graded:
+        lut = out.with_name(f"{out.stem}.grade.cube")
+        measured = grading.measure(grading.sample_graph(
+            inputs, graph.replace("[v]", "[gr_full]") + f";[gr_full]{grading.select_expr(sg.frames)}[v]", "v", tw, th, out.parent))
+        amount, quality = grading.prepare(measured, grade, lut, probe={"width": tw, "height": th}, w=tw, h=th, fps=fps)
+        graph = graph.removesuffix("[v]") + "[gr_src];" + grading.chain("gr_src", "v", lut, amount, quality, tw, th, fps)
+    try:
+        run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", graph, "-map", "[v]", "-an", "-frames:v", sg.frames,
+             "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-g", fps, "-pix_fmt", "yuv420p", *grading.ENCODE_TAGS,
+             "-movflags", "+faststart", out], cwd=out.parent)  # fmt: skip
+    finally:
+        if graded:
+            lut.unlink(missing_ok=True)
+    return grading.summary(measured, grade, amount, quality) if graded else None
 
 
 def stage_photo(project: Project, sg: Seg, out: Path, *, grade: dict | None = None) -> dict | None:
@@ -1676,7 +1712,10 @@ def stage_photo(project: Project, sg: Seg, out: Path, *, grade: dict | None = No
     return grading.grade_image(out, grade, also=[bg_path] if spec["fit"] == "blurfill" else None)
 
 
-def stage(project: Project, built: dict, staging: Path) -> None:
+def stage(project: Project, built: dict, staging: Path, *, use_cache: bool = False) -> None:
+    """Stages every segment and cutaway (independent ffmpeg / Metal jobs, run on a bounded thread pool:
+    config render.stageWorkers), then the exhibits, which cut the rider out of the staged clips and so
+    must run after. `use_cache` reuses clips staged by an earlier render (stagecache.py)."""
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
@@ -1686,31 +1725,61 @@ def stage(project: Project, built: dict, staging: Path) -> None:
     segs = built["segs"]
     seam = bool(built.get("loop") and built["loop"]["swap"][0])  # ride audio runs on across the seam: no edge fades there
     gcfg, gplan = project.cfg("render", "grade"), built.get("grade")
+    grading.use_zscale()  # settle which ffmpeg / colour converter is used before any clip runs concurrently
+    cache = stagecache.StageCache.for_project(project) if use_cache else None
+    # Metal 360 renders share the GPU and its hardware encoder: fewer of them at once than ffmpeg-only clips
+    sphere_slots = threading.Semaphore(stagecache.worker_count(project.cfg("render", "stageSphereWorkers") or 1))
     built["graded"] = []
 
-    def visual(seg: Seg, name: str, **video: Any) -> None:
-        """One segment or cutaway, graded per config render.grade < plan grade < its own grade (grade.py)."""
+    def visual(seg: Seg, name: str, **video: Any) -> tuple[dict | None, bool]:
+        """One segment or cutaway, graded per config render.grade < plan grade < its own grade (grade.py).
+        Returns (grade summary or None, served from the cache)."""
         g = grading.settings(gcfg, gplan, seg.spec.get("grade"))
-        if seg.kind == "video":
-            m = stage_video(project, seg, staging / f"{name}.mp4", built["fps"], grade=g, **video)
-        elif (seg.spec.get("sphere") or {}).get("path"):
-            m = stage_photo_pan(project, seg, staging / f"{name}.mp4", built["fps"], grade=g)
-        else:
-            m = stage_photo(project, seg, staging / f"{name}.jpg", grade=g)
-        if m:
-            built["graded"].append({"clip": name, "asset": seg.asset["id"], **m})
-            log(f"  grade {name}: {m['look']}, overcast {m['overcast']:.2f}, rescue {m['rescue']:.2f}, "
-                f"wb {'/'.join(f'{v:.2f}' for v in m['wb'])}, gamma {m['gamma']:.2f}")
+        key = stagecache.clip_key(project, seg, seg.kind, built["fps"], video, g) if cache else None
+        if cache and key:
+            hit = cache.fetch(key, name, staging)
+            if hit is not None:
+                return hit["grade"], True
+        gate = sphere_slots if seg.spec.get("sphere") else contextlib.nullcontext()
+        with gate:
+            if seg.kind == "video":
+                m = stage_video(project, seg, staging / f"{name}.mp4", built["fps"], grade=g, **video)
+            elif (seg.spec.get("sphere") or {}).get("path"):
+                m = stage_photo_pan(project, seg, staging / f"{name}.mp4", built["fps"], grade=g)
+            else:
+                m = stage_photo(project, seg, staging / f"{name}.jpg", grade=g)
+        if cache and key:
+            cache.store(key, name, staging, m)
+        return m, False
 
+    def job(seg: Seg, name: str, **video: Any) -> Callable[[], None]:
+        def run_one() -> tuple[str, str, dict | None]:
+            t0 = time.monotonic()
+            m, hit = visual(seg, name, **video)
+            line = f"  staged {name} ({'cached' if hit else f'{time.monotonic() - t0:.1f}s'})"
+            if m:
+                line += (f"; grade {m['look']}, overcast {m['overcast']:.2f}, rescue {m['rescue']:.2f}, "
+                         f"wb {'/'.join(f'{v:.2f}' for v in m['wb'])}, gamma {m['gamma']:.2f}")
+            log(line)  # one write per clip: lines from parallel jobs never interleave mid-line
+            return name, seg.asset["id"], m
+
+        return run_one
+
+    jobs: list[Callable[[], Any]] = []
     for sg in segs:
         video: dict[str, Any] = {}
         if sg.kind == "video":
             edges = (not (seam and sg.index == 0), not (seam and sg.index == len(segs) - 1))
             video = {"clean": bool(sg.spec.get("clean") or (clean_nat and sg.spec.get("nat"))), "scale": stage_scale(sg, tw, th, most),
                      "edges": edges}  # fmt: skip
-        visual(sg, f"seg{sg.index}", **video)
+        jobs.append(job(sg, f"seg{sg.index}", **video))
         for k, c in enumerate(sg.spec.get("_cutaways") or []):  # silent B-roll over the segment
-            visual(c["seg"], cutaway_name(sg, k), **({"audio": False} if c["seg"].kind == "video" else {}))
+            jobs.append(job(c["seg"], cutaway_name(sg, k), **({"audio": False} if c["seg"].kind == "video" else {})))
+    workers = stagecache.worker_count(project.cfg("render", "stageWorkers"))
+    results = stagecache.run_jobs(jobs, workers)
+    for name, asset_id, m in results:  # job order, whatever order they finished in
+        if m:
+            built["graded"].append({"clip": name, "asset": asset_id, **m})
     stage_exhibits(project, built, staging)  # images, and the rider cut out of the staged clips for depth
     if built["props"]["music"]:
         mp: Path = built["music"]["path"]
@@ -1868,7 +1937,7 @@ def mark_usage(project: Project, slug: str, segs: list[Seg]) -> None:
         save_asset(project, a)
 
 
-def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool = False) -> dict:
+def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool = False, stage_cache: bool = True) -> dict:
     require("ffmpeg")
     require("ffprobe")
     plan = load_plan(project, plan_path)
@@ -1881,7 +1950,9 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log(f"rendering {slug}: {total / fps:.1f}s from {len(built['segs'])} segment(s)…")
-    stage(project, built, staging)
+    t_stage = time.monotonic()
+    stage(project, built, staging, use_cache=stage_cache)
+    log(f'  staged clips in {time.monotonic() - t_stage:.1f}s')
     props_path = staging / "props.json"
     write_json(props_path, built["props"])
     tmp = staging / "render.mp4"

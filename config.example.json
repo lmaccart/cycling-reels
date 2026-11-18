@@ -39,6 +39,10 @@
     "endCardSeconds": 1.6,
     "loudness": -14,
     "concurrency": null,
+    "stageWorkers": null,
+    "stageSphereWorkers": 1,
+    "stageCache": true,
+    "stageCacheGB": 10,
     "browserExecutable": null,
     "punchStageScale": 1.4,
     "grade": {"look": "none", "strength": 1.0, "rescue": "auto"}
