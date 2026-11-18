@@ -15,6 +15,7 @@ from typing import Any
 from .config import Project
 from .library import load_asset, resolve_id, resolve_moment
 from .mix import check_segment, nat_windows, volume_keys
+from .timeline import positioned, video_track
 from .util import ReelsError, log, now_iso, read_json, warn, write_json
 
 TAG_FIELDS = ("score", "role", "speaker", "face", "mood", "opener", "line", "thread", "beat")
@@ -79,6 +80,36 @@ def _picture_spans(segments: list[dict]) -> list[tuple[int, float, float]]:
     return spans
 
 
+def _layered_spans(segments: list[dict]) -> list[tuple[int, float, float]]:
+    """Picture spans for a positioned timeline, where segments sit on tracks V1, V2, … and may
+    overlap: each segment runs its own length, and the highest track (a cutaway above its own
+    segment) is the one on screen. Entry indices follow _lineage's visuals order."""
+    layers: list[tuple[int, float, float, tuple]] = []
+    index = 0
+    for seg in segments:
+        seg["end"] = seg["start"] + seg["seconds"]
+        layers.append((index, seg["start"], seg["end"], (seg["track"], 0, seg["start"], index)))
+        own_track = seg["track"]
+        index += 1
+        for c in seg["cutaways"]:
+            a, b = max(c["start"], seg["start"]), min(c["start"] + c["seconds"], seg["end"])
+            if b > a:
+                layers.append((index, a, b, (own_track, 1, c["start"], index)))
+            index += 1
+    edges = sorted({t for _, a, b, _ in layers for t in (a, b)})
+    spans: list[tuple[int, float, float]] = []
+    for a, b in zip(edges, edges[1:]):
+        live = [layer for layer in layers if layer[1] <= a and layer[2] >= b]
+        if not live:
+            continue
+        top = max(live, key=lambda layer: layer[3])[0]
+        if spans and spans[-1][0] == top and abs(spans[-1][2] - a) < 1e-9:
+            spans[-1] = (top, spans[-1][1], b)
+        else:
+            spans.append((top, a, b))
+    return spans
+
+
 def _rider_voice(entry: dict) -> bool:
     tags = entry["tags"]
     return tags.get("speaker") == "me" and (tags.get("role") == "voice" or entry.get("captions") == "transcript")
@@ -101,7 +132,8 @@ def _lineage(slug: str, segments: list[dict], *, backfilled: bool) -> dict:
     """The lineage document for a timeline of segments, each {"asset", "in", "out", "captions",
     "start", "seconds", "cutaway": False, "cutaways": [{"asset", "in", "out", "start", "seconds",
     "cutaway": True}]}, with times in reel seconds."""
-    spans = _picture_spans(segments)
+    layered = any(seg.get("track") is not None for seg in segments)
+    spans = _layered_spans(segments) if layered else _picture_spans(segments)
     runtime = max((e for _, _, e in spans), default=0.0)
     visuals = [v for seg in segments for v in (seg, *seg["cutaways"])]
     entries = [_snapshot(v) for v in visuals]
@@ -126,6 +158,7 @@ def _lineage(slug: str, segments: list[dict], *, backfilled: bool) -> dict:
         if tags["thread"]:
             threads[tags["thread"]] += 1
             thread_seconds[tags["thread"]] += seg["end"] - seg["start"]
+    voice = min(voice, runtime)  # voice clips stacked on two tracks can't cover more than the reel
     face = sum(on_screen[i] for i, e in enumerate(entries) if e["tags"]["face"] is True)
     thread = max(threads, key=lambda t: (threads[t], thread_seconds[t], t)) if threads else None
     return {
@@ -133,6 +166,15 @@ def _lineage(slug: str, segments: list[dict], *, backfilled: bool) -> dict:
         "voiceShare": round(voice / runtime, 4) if runtime else 0.0, "faceShare": round(face / runtime, 4) if runtime else 0.0,
         "avgShotSeconds": round(runtime / len(spans), 3) if spans else None, "thread": thread, "segments": entries,
     }  # fmt: skip
+
+
+def _track_number(spec: dict) -> int | None:
+    """The video track of a positioned segment (V2 → 2), None on a sequential plan."""
+    track = (spec.get("timeline") or {}).get("track") if isinstance(spec.get("timeline"), dict) else None
+    try:
+        return video_track(track) if track is not None else None
+    except ValueError:
+        return None
 
 
 def from_built(slug: str, built: dict) -> dict:
@@ -147,7 +189,7 @@ def from_built(slug: str, built: dict) -> dict:
                      "seconds": c["seg"].frames / fps, "cutaway": True} for c in sg.spec.get("_cutaways") or []]  # fmt: skip
         segments.append({"asset": sg.asset, "in": sg.spec.get("in"), "out": sg.spec.get("out"), "captions": sg.spec.get("captions"),
                           "start": sg.start / fps, "seconds": sg.frames / fps, "cutaway": False, "cutaways": cutaways,
-                          "audio": audio, "fps": fps})  # fmt: skip
+                          "audio": audio, "fps": fps, "track": _track_number(sg.spec)})  # fmt: skip
     out = _lineage(slug, segments, backfilled=False)
     if built.get("graded"):  # what the colour grade measured and did per clip (grade.py), for comparing looks later
         from .grade import VERSION
@@ -216,11 +258,19 @@ def from_plan(project: Project, plan: dict, post: dict) -> dict:
 
     segments: list[dict] = []
     start, prev_frames = 0.0, None
+    layered = positioned(plan)
+    if layered:
+        fps = int(plan["timeline"].get("fps") or fps)
     for raw in plan.get("segments") or []:
         seg = _visual_from_plan(project, raw, next_rendered(raw), False)
         seg["captions"] = raw.get("captions")
         frames = max(1, round(seg["seconds"] * fps))
-        if prev_frames is not None:
+        track = _track_number(raw) if layered else None
+        if track is not None:
+            start = int(raw["timeline"]["startFrame"]) / fps
+            seg["seconds"] = int(raw["timeline"].get("durationFrames") or frames) / fps
+            seg["track"] = track
+        elif prev_frames is not None:
             trans = max(0, min(fade, prev_frames - 1, frames - 1)) if raw.get("transition") == "fade" else 0
             start += (prev_frames - trans) / fps
         seg["start"] = start

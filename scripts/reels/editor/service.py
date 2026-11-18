@@ -835,6 +835,11 @@ class EditorService:
             for operation in batch.get("operations", []):
                 if isinstance(operation, dict) and operation.get("op") == "correct_words":
                     self._require_asset_id(operation.get("assetId"))
+            splits = [op for op in batch.get("operations", []) if isinstance(op, dict) and op.get("op") == "split_segment"]
+            if splits:  # service.log: which clips a cut targeted, next to the app's last reported selection
+                selection = getattr(self, "selection", None) or {}
+                print(f"split ({batch['origin']}): {[(op.get('id'), op.get('atFrame')) for op in splits]} "
+                      f"selection={selection.get('ids')} playhead={selection.get('playhead')}", file=sys.stderr, flush=True)
             manual_request = source != "ai"
             if manual_request:
                 with self.lock:

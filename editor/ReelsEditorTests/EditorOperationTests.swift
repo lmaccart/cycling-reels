@@ -192,8 +192,16 @@ final class EditorOperationTests: XCTestCase {
         let caption = EditorNode(id: "cap", kind: "caption_page", lane: "captions", parentId: "a", startFrame: 25,
                                  endFrame: 35, frames: 10, raw: .object([:]), assetId: nil, sourceIn: nil,
                                  sourceOut: nil, assetKind: nil, generated: true, readOnly: true, track: nil)
-        XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes + [caption], selectedIDs: ["cap"], at: 30), ["a", "b"])
+        // A selected caption (or a stale id) is a selection, just not of a clip: nothing is cut,
+        // rather than every track.
+        XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes + [caption], selectedIDs: ["cap"], at: 30), [])
+        XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes, selectedIDs: ["gone"], at: 30), [])
         XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes + [caption], selectedIDs: ["cap", "b"], at: 30), ["b"])
+        // Linked ride audio stands for its clip.
+        let audio = EditorNode(id: "a-audio", kind: "source_audio", lane: "audio", parentId: "a", startFrame: 0,
+                               endFrame: 40, frames: 40, raw: .object([:]), assetId: nil, sourceIn: nil,
+                               sourceOut: nil, assetKind: nil, generated: true, readOnly: true, track: "A1")
+        XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes + [audio], selectedIDs: ["a-audio"], at: 30), ["a"])
     }
     func testNewTimelineEditingOperationsEncodeContractFields() {
         let ids = ["a", "b"]
@@ -1573,5 +1581,54 @@ final class EditorOperationTests: XCTestCase {
             current = try await settle(after: current.revisions.document)
             XCTAssertEqual(current.nodes.filter { $0.kind == "segment" }.count, 2)
         }
+
+        // Reported 2026-11-17: with a clip clicked on a two-track timeline, ⌘K cut the other
+        // track's clip too. Clicking a clip (or its linked audio) and pressing ⌘K cuts only it.
+        for track in ["V1", "V2", "A1"] where store.tracks.first(where: { $0.id == track })?.locked == true {
+            store.setTrackLocked(id: track, locked: false)
+            current = try await settle(after: current.revisions.document)
+        }
+        func element(_ prefix: String) -> NSAccessibilityElement? {
+            (canvas.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+                .first { $0.accessibilityLabel()?.hasPrefix(prefix) == true }
+        }
+        func click(_ prefix: String) throws {
+            let target = try XCTUnwrap(element(prefix), prefix)
+            let rect = timelineWindow.convertFromScreen(target.accessibilityFrame())
+            let point = NSPoint(x: rect.minX + rect.width * 0.25, y: rect.midY)
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                let event = try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                    timestamp: 0, windowNumber: timelineWindow.windowNumber, context: nil,
+                    eventNumber: 0, clickCount: 1, pressure: 1))
+                if type == .leftMouseDown { canvas.mouseDown(with: event) } else { canvas.mouseUp(with: event) }
+            }
+        }
+        timelineHost.layoutSubtreeIfNeeded()
+        try await eventually("Two-track clips are hosted") { element("a, V1,") != nil && element("b, V2,") != nil }
+        for (label, expected) in [("a, V1,", "a"), ("b, V2,", "b"), ("a, A1 linked audio", "a")] {
+            store.setPlayhead(60)
+            try click(label)
+            XCTAssertEqual(Set(current.nodes.filter { store.selectedIDs.contains($0.id) }.compactMap(\.assetId)),
+                           [expected], "clicking \(label) selects its clip")
+            XCTAssertEqual(store.playheadFrame, 60, label)
+            store.performShortcut(.split)
+            current = try await settle(after: current.revisions.document)
+            for aid in ["a", "b"] {
+                XCTAssertEqual(current.nodes.filter { $0.kind == "segment" && $0.assetId == aid }.count,
+                               aid == expected ? 2 : 1, "⌘K after clicking \(label) cuts only \(expected)")
+            }
+            store.undo()
+            current = try await settle(after: current.revisions.document)
+            XCTAssertEqual(current.nodes.filter { $0.kind == "segment" }.count, 2)
+            try await eventually("Clips are hosted again after undo") { element(label) != nil }
+        }
+        // A selection that isn't a clip (or no longer exists) cuts nothing, with a notice.
+        store.selectedIDs = ["gone"]
+        let beforeStale = current.revisions.document
+        store.performShortcut(.split)
+        XCTAssertTrue(store.notice?.contains("selected clip") == true, store.notice ?? "no notice")
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(store.snapshot?.revisions.document, beforeStale)
+        XCTAssertEqual(store.snapshot?.nodes.filter { $0.kind == "segment" }.count, 2)
     }
 }

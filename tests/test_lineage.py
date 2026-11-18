@@ -53,6 +53,41 @@ class LineageTests(unittest.TestCase):
         self.assertAlmostEqual(doc["avgShotSeconds"], 8 / 4)
         self.assertEqual(doc["thread"], "road-to-5")
 
+    def test_two_track_voice_under_footage_counts_the_whole_voice(self):
+        # The sprint-zone layout: voice pieces back to back on V1, one long clip on V2 over all of them.
+        self.t.asset("voice-aaaa", duration=20, tags=tags(moment("m-v", 0, 20, role="voice", speaker="me", face=True)))
+        self.t.asset("sprint-bbbb", duration=20, tags=tags(moment("m-s", 0, 20, role="effort")))
+        timeline = lambda track, start, frames: {"track": track, "startFrame": start, "durationFrames": frames, "transitionInFrames": 0}
+        segments = [{"asset": "voice-aaaa", "in": 0, "out": 3, "timeline": timeline("V1", 0, 90)},
+                    {"asset": "voice-aaaa", "in": 5, "out": 10, "timeline": timeline("V1", 90, 150)},
+                    {"asset": "sprint-bbbb", "in": 0, "out": 8, "timeline": timeline("V2", 0, 240)}]  # fmt: skip
+        path = self.t.plan("r", segments, timeline={"version": 1, "fps": 30, "durationFrames": 240})
+        plan = read_json(path)
+        for doc in (from_built("r", build(self.project, plan)), from_plan(self.project, plan, {"slug": "r"})):
+            with self.subTest(backfilled=doc["backfilled"]):
+                self.assertAlmostEqual(doc["runtimeSeconds"], 8)
+                self.assertAlmostEqual(doc["voiceShare"], 1.0)
+                first, second, sprint = doc["segments"]
+                self.assertEqual((first["seconds"], second["seconds"]), (0, 0))  # V2 covers the picture
+                self.assertAlmostEqual(sprint["share"], 1.0)
+                self.assertEqual(sprint["position"], "first")
+                self.assertAlmostEqual(doc["faceShare"], 0.0)
+
+    def test_upper_track_only_covers_where_it_sits(self):
+        self.t.asset("voice-aaaa", duration=20, tags=tags(moment("m-v", 0, 20, role="voice", speaker="me")))
+        self.t.asset("broll-bbbb", duration=20, tags=tags(moment("m-b", 0, 20)))
+        timeline = lambda track, start, frames: {"track": track, "startFrame": start, "durationFrames": frames, "transitionInFrames": 0}
+        path = self.t.plan("r", [{"asset": "voice-aaaa", "in": 0, "out": 6, "timeline": timeline("V1", 0, 180)},
+                                 {"asset": "broll-bbbb", "in": 0, "out": 2, "timeline": timeline("V2", 60, 60)}],
+                           timeline={"version": 1, "fps": 30, "durationFrames": 180})  # fmt: skip
+        doc = from_built("r", build(self.project, read_json(path)))
+        voice, broll = doc["segments"]
+        self.assertAlmostEqual(voice["share"], 4 / 6, places=3)
+        self.assertAlmostEqual(broll["share"], 2 / 6, places=3)
+        self.assertEqual((voice["position"], broll["position"]), ("first", "middle"))
+        self.assertAlmostEqual(doc["voiceShare"], 1.0)
+        self.assertAlmostEqual(doc["avgShotSeconds"], 6 / 3)
+
     def test_record_writes_the_file_and_never_fails_a_render(self):
         self.t.asset("clip-aaaa", tags=tags(moment("m-a", 0, 8)))
         path = self.t.plan("r", [{"asset": "clip-aaaa", "in": 0, "out": 4}])

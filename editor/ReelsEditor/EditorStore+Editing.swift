@@ -29,11 +29,26 @@ enum TimelineEditingTargets {
         let segments = OptimisticTimeline.segments(nodes).filter {
             frame > $0.startFrame && frame < $0.endFrame && canSplit(node: $0)
         }
-        // Only a clip selection narrows the split: a selected caption, sound or text isn't a clip,
-        // so with one of those selected ⌘K cuts every clip under the playhead, as with nothing selected.
-        let clipSelected = nodes.contains { selectedIDs.contains($0.id) && $0.kind.lowercased() == "segment" }
-        let selected = segments.filter { selectedIDs.contains($0.id) }
-        return (clipSelected ? selected : segments).map(\.id)
+        // Nothing selected: as in Premiere, ⌘K cuts every clip under the playhead.
+        guard !selectedIDs.isEmpty else { return segments.map(\.id) }
+        // Anything selected: only the selected clips are cut, never the other tracks. A clip's
+        // linked ride audio stands for the clip; a selected caption, sound or text, or an id
+        // that no longer exists, cuts nothing (the caller shows a notice) instead of everything.
+        let clips = selectedClipIDs(nodes: nodes, selectedIDs: selectedIDs)
+        return segments.filter { clips.contains($0.id) }.map(\.id)
+    }
+
+    /// The clips a selection stands for: selected segments, and the owners of selected linked audio.
+    static func selectedClipIDs(nodes: [EditorNode], selectedIDs: Set<String>) -> Set<String> {
+        var ids = Set<String>()
+        for node in nodes where selectedIDs.contains(node.id) {
+            switch node.kind.lowercased() {
+            case "segment": ids.insert(node.id)
+            case "source_audio": if let owner = node.parentId { ids.insert(owner) }
+            default: break
+            }
+        }
+        return ids
     }
 
     static func flaggedDrop(id: String, flags: [ClipFlag], library: [JSONValue])
