@@ -113,6 +113,26 @@ class ResolveBleepTests(unittest.TestCase):
         got = [(w["index"], w["w"], w["s"]) for pg in pages for w in pg["words"]]
         self.assertEqual(got, [(i, WORDS[i]["w"], WORDS[i]["s"]) for i in range(1, 5)])
 
+
+class CaptionPageConfigTests(unittest.TestCase):
+    def test_plan_override_keeps_pages_to_its_limits(self):
+        from reels.render import caption_page_config
+        errors: list[str] = []
+        cfg = caption_page_config({"maxWordsPerPage": 6, "maxCharsPerPage": 32}, {"maxCharsPerPage": 12}, errors)
+        self.assertEqual((errors, cfg), ([], {"maxWordsPerPage": 6, "maxCharsPerPage": 12}))
+        spec = {"in": 13.0, "out": 16.0, "speed": 1.0, "captions": "transcript"}
+        sg = Seg(index=0, kind="video", asset=VIDEO, spec=spec, frames=90)
+        for page in caption_pages_for(sg, WORDS, 30, cfg):
+            self.assertLessEqual(len(" ".join(w["text"] for w in page["words"])), 12)
+
+    def test_bad_overrides_are_errors(self):
+        from reels.render import caption_page_config
+        base = {"maxWordsPerPage": 6, "maxCharsPerPage": 32}
+        for bad in ("one line", {"lines": 1}, {"maxCharsPerPage": 0}, {"maxWordsPerPage": 2.5}):
+            errors: list[str] = []
+            self.assertEqual(caption_page_config(base, bad, errors), base)
+            self.assertTrue(errors, bad)
+
 @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
 class StageBleepTests(unittest.TestCase):
     """Stages a real clip and measures the audio inside and outside the bleep."""

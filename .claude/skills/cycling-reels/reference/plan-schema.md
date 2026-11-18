@@ -10,6 +10,7 @@ Every segment must be a clip or photo from `library/` — footage the user recor
 | --- | --- | --- | --- |
 | `slug` | yes | file name | lowercase letters, digits, dashes; becomes the `out/` folder name |
 | `postDate` | no | – | `YYYY-MM-DD` the reel is meant for; `./reels queue` honours it when that slot is free |
+| `captions` | no | config `captions` | Caption page limits for this reel only: `{"maxWordsPerPage": 4, "maxCharsPerPage": 22}`. 22 characters keeps every page on one line (checked 2026-11-17); the project default (6 words / 32 characters) can wrap to two |
 | `spine` | no (`check` warns) | – | What carries the reel: `voice`, `story`, `sound` or `trend`. See **Spine** below |
 | `format` | no | – | Free-text recipe name from [recipes.md](recipes.md), e.g. `"pov-joke"`, `"beat-edit"`; `./reels stats` groups performance by it (shown as "—" when missing) |
 | `hook` | no | – | `"text"` or `{"text", "style", "position", "seconds", "size"}`. Upper third by default (`position: "center"` also works). Stays up ~0.28 s per word (2.6–4.5 s) unless `seconds` is set. `"size": "big"` = a statement hook for trend formats ("THIS\nIS\nMY\nART"): huge off-white text with a soft glow (no box or outline; `style` doesn't apply), one line per `\n`, and it stays on top of exhibits instead of moving out of their way |

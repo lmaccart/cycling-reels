@@ -441,6 +441,24 @@ def _clean_word(w: str) -> str:
     return re.sub(r"[,.;:]+$", "", w)
 
 
+def caption_page_config(base: dict, override: Any, errors: list[str]) -> dict:
+    """The project's caption page limits, with a plan's top-level "captions" overriding them for that reel."""
+    cfg = dict(base)
+    if override is None:
+        return cfg
+    if not isinstance(override, dict):
+        errors.append('captions must be an object like {"maxWordsPerPage": 4, "maxCharsPerPage": 20}')
+        return cfg
+    for key, value in override.items():
+        if key not in ("maxWordsPerPage", "maxCharsPerPage"):
+            errors.append(f"captions: unknown setting {key!r} (maxWordsPerPage, maxCharsPerPage)")
+        elif type(value) is not int or value < 1:
+            errors.append(f"captions.{key} must be a whole number of at least 1")
+        else:
+            cfg[key] = value
+    return cfg
+
+
 def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[dict]:
     a, b, speed = sg.spec["in"], sg.spec["out"], sg.spec["speed"]
     items: list[list[Any]] = []
@@ -1196,6 +1214,7 @@ def _build(project: Project, plan: dict, *, timing_only: bool = False,
     if positioned(plan):
         loop = False  # explicit placements are never retimed to a loop/bar grid
     check_spine(plan, errors)
+    caption_cfg = caption_page_config(project.config["captions"], plan.get("captions"), errors)
     grading.check("plan", plan.get("grade"), errors)
     for i, s in enumerate(plan.get("segments") or []):
         if isinstance(s, dict):
@@ -1258,7 +1277,7 @@ def _build(project: Project, plan: dict, *, timing_only: bool = False,
                 warnings.append(f"segment {sg.index + 1}: swearing not bleeped ({', '.join(left)}) — add \"bleep\": true or cut around it")
         if sg.spec["captions"] == "transcript":
             aid = sg.asset["id"]
-            got = caption_pages_for(sg, masked_words(sg.spec, transcripts[aid].get("words") or []), fps, project.config["captions"])
+            got = caption_pages_for(sg, masked_words(sg.spec, transcripts[aid].get("words") or []), fps, caption_cfg)
             if not got:
                 warnings.append(f"segment {sg.index + 1}: no transcript words between {sg.spec['in']}s and {sg.spec['out']}s")
             warnings += caption_cuts(sg, transcripts[aid].get("words") or [])
