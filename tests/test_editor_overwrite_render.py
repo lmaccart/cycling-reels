@@ -18,11 +18,32 @@ from reels.overlay import why_not
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _render_project(case, root):
+    """Use the real template and installed packages, but give webpack a private node_modules/.cache."""
+    from reels.editor.preview import _browser_executable
+
+    project = Project(root)
+    browser = _browser_executable(SimpleNamespace(project=project, code_root=ROOT))
+    if browser is None:
+        case.skipTest("no installed browser; the test never downloads one")
+    project.config["render"]["browserExecutable"] = str(browser)
+
+    template = ROOT / "remotion"
+    private = project.remotion_dir
+    modules = private / "node_modules"
+    modules.mkdir(parents=True)
+    for name in ("package.json", "package-lock.json", "tsconfig.json", "remotion.config.ts", "src", "editorStaticFile.ts"):
+        (private / name).symlink_to(template / name)
+    for entry in (template / "node_modules").iterdir():
+        if not entry.name.startswith(".") or entry.name == ".bin":
+            (modules / entry.name).symlink_to(entry)
+    return project
+
+
 @unittest.skipUnless(shutil.which("ffmpeg") and (ROOT / "remotion/node_modules/.bin/remotion").exists(),
                      "installed ffmpeg and Remotion required")
 class PositionedRenderTests(unittest.TestCase):
     def _color_fixture(self):
-        from reels.editor.preview import _browser_executable
         from reels.render import build, stage
         fixture = TempProject(self)
         (fixture.root / "config.json").write_text(json.dumps({
@@ -30,11 +51,7 @@ class PositionedRenderTests(unittest.TestCase):
                        "grade": {"look": "none", "rescue": "off"}, "concurrency": 1},
             "brand": {"endCard": False},
         }))
-        project = Project(fixture.root, code_root=ROOT)
-        browser = _browser_executable(SimpleNamespace(project=project, code_root=ROOT))
-        if browser is None:
-            self.skipTest("no installed browser; the test never downloads one")
-        project.config["render"]["browserExecutable"] = str(browser)
+        project = _render_project(self, fixture.root)
         for name, color in (("red", "red"), ("blue", "blue")):
             path = project.media_dir / f"{name}.mp4"
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
@@ -335,17 +352,12 @@ class PositionedRenderTests(unittest.TestCase):
 
     def test_rendered_layers_source_gap_and_independent_linked_audio(self):
         import numpy as np
-        from reels.editor.preview import _browser_executable
         from reels.render import build, stage, run_remotion
         fixture = TempProject(self)
         config = {"render": {"width": 96, "height": 96, "fps": 10, "grade": {"look": "none", "rescue": "off"}, "concurrency": 1},
                   "brand": {"endCard": False}}
         (fixture.root / "config.json").write_text(json.dumps(config))
-        project = Project(fixture.root, code_root=ROOT)
-        browser = _browser_executable(SimpleNamespace(project=project, code_root=ROOT))
-        if browser is None:
-            self.skipTest("no installed browser; the test never downloads one")
-        project.config["render"]["browserExecutable"] = str(browser)
+        project = _render_project(self, fixture.root)
         originals = {}
         for name, color, frequency in (("red", "red", 440), ("blue", "blue", 880)):
             path = project.media_dir / f"{name}.mp4"

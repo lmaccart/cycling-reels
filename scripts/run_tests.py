@@ -18,6 +18,28 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Seconds measured on an eight-worker run. These are scheduling hints only:
+# unknown tests still run, and stale estimates affect balance, not coverage.
+_SECONDS = {
+    "test_random_retimed_cutaway_transaction_cuts_keep_legal_handles_and_playback": 195,
+    "test_disable_edit_sequences_preserve_never_disabled_render_invariant": 179,
+    "test_short_owned_animation_frames_visible_and_legacy_unchanged": 73,
+    "test_full_length_short_fades_render_at_the_correct_frames": 42,
+    "test_positioned_fade_matches_legacy_picture_at_each_frame": 37,
+    "test_random_split_keys_compile_and_playback_matches_render": 31,
+}
+
+
+def _schedule(ids: list[str], jobs: int) -> list[list[str]]:
+    chunks = [[] for _ in range(jobs)]
+    loads = [0.0] * jobs
+    weighted = [(_SECONDS.get(test.rsplit(".", 1)[-1], 0.6), test) for test in ids]
+    for seconds, test in sorted(weighted, key=lambda item: -item[0]):
+        worker = min(range(jobs), key=loads.__getitem__)
+        chunks[worker].append(test)
+        loads[worker] += seconds
+    return chunks
+
 
 def test_ids(pattern: str | None) -> list[str]:
     sys.path[:0] = [str(ROOT / "scripts"), str(ROOT / "tests")]
@@ -46,7 +68,7 @@ def main() -> int:
         print("no tests match")
         return 1
     jobs = max(1, min(args.jobs, len(ids)))
-    chunks = [ids[i::jobs] for i in range(jobs)]  # round-robin: each module's slow tests land on different workers
+    chunks = _schedule(ids, jobs)
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT / "scripts"), str(ROOT / "tests"), os.environ.get("PYTHONPATH", "")]).rstrip(os.pathsep))
     start = time.monotonic()
 

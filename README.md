@@ -88,11 +88,16 @@ Aim for five familiar approaches and two tests in a seven-reel week when footage
 Experiments stay inconclusive until enough comparable results exist. Permanent skill,
 recipe, shot-list or code changes are proposed for your approval, not silently applied.
 See [.claude/skills/cycling-reels/reference/learning.md](.claude/skills/cycling-reels/reference/learning.md)
-for input schemas, safeguards and missing-connector behavior. Run the unit tests (no network;
-a few use ffmpeg) with `.venv/bin/python scripts/run_tests.py` (parallel, ~10 s; `-j N` workers, or a
-pattern like `editor` to run only matching tests) or one at a time with
-`PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests` (~50 s) —
-GitHub Actions runs them, plus a typecheck of the Remotion template, on every pull request.
+for input schemas, safeguards and missing-connector behavior.
+
+Run the Python tests with `.venv/bin/python scripts/run_tests.py` (parallel, `-j N`
+workers; known slow tests are assigned first to the least-loaded worker) or
+`PYTHONPATH=scripts .venv/bin/python -m unittest discover -s tests`
+(sequential). For a focused edit loop, pass a test ID substring, e.g.
+`.venv/bin/python scripts/run_tests.py test_editor_overwrite.`. The real layer
+and fade render tests share the installed Remotion packages, but each fixture
+keeps its own writable webpack cache so concurrent renders cannot overwrite
+each other's cache files.
 
 ### Music
 
