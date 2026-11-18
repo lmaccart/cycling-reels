@@ -6,7 +6,7 @@ For the next ingest (added 2026-11-17, worked through 2026-11-18).
 
 - [x] **⌘K split bug.** Cut every clip under the playhead instead of only the selected one. Fixed 11-18 (details below).
 - [x] **Voice share shows "-9%".** `lineage.py` assumed one picture track, so on a two-track plan a V1 piece "ended" where the V2 clip started (0 s) and its length went negative. Positioned plans are now laid out per track (highest track on screen, each clip runs its own length), with two-track tests. `./reels check` on the sprint zone plan no longer warns.
-- [ ] **Hitmarker download in `music/`.** `music/mlg-gaming-hitmarker-greenscreen-sound-e.mp3` (+ `.json`) came in through `yt2mp3` but is a sound effect. The trimmed hit is now `sfx/hitmarker.wav`. Remove the music entry so it's never picked as a song (ask first: it's not in git, so deleting is permanent).
+- [x] **Hitmarker download in `music/`.** Removed 11-18 (user OK); the trimmed hit stays as `sfx/hitmarker.wav`.
 - [x] **Commit this session's data.** Done in 43e86b5.
 - [x] **Stacked PRs closed on merge.** Noted for next time: merge stacked PRs from the top down, or retarget each one to `main` (`gh pr edit N --base main`) before deleting its base.
 
