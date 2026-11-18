@@ -710,6 +710,8 @@ def make_room(exhibits: list[dict], hook: dict | None, beats: list[dict], pages:
                   e["props"].get("ownerSegmentIndex")) for e in exhibits]
 
     def shares_layer(item: dict, owner: int | None) -> bool:
+        if any(item is pg for pg in pages):  # speech captions always draw on top of every track (PlacedSegments.ownerProps)
+            return True
         item_owner = item.get("ownerSegmentIndex")
         return not positioned or owner is None or item_owner is None or owner == item_owner
 

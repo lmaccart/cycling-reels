@@ -81,7 +81,9 @@ export const PlacedSegments: React.FC<{
   </AbsoluteFill>
 );
 
-/** Keep absolute overlay clocks, but group each overlay with its actual owner. */
+/** Keep absolute overlay clocks, but group each overlay with its actual owner. Speech captions are the
+ *  exception: they belong to the sound, which plays whatever track covers the picture, so they always
+ *  draw in the top (unowned) layer — a voice clip on V1 under footage on V2 still shows its captions. */
 export const ownerProps = (input: ReelProps, index: number | null): ReelProps => {
   const owned = (value: object): boolean => {
     const owner = (value as {ownerSegmentIndex?: number}).ownerSegmentIndex;
@@ -92,7 +94,7 @@ export const ownerProps = (input: ReelProps, index: number | null): ReelProps =>
     hook: index === null ? input.hook : null,
     endCard: index === null ? input.endCard : null,
     titleCard: index === null ? input.titleCard : undefined,
-    beats: input.beats.filter(owned), captions: input.captions.filter(owned),
+    beats: input.beats.filter(owned), captions: index === null ? input.captions : [],
     stats: input.stats.filter(owned), routes: input.routes?.filter(owned),
     progress: input.progress?.filter(owned), exhibits: input.exhibits?.filter(owned),
     foregrounds: input.foregrounds?.filter(owned),
