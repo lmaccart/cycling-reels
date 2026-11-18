@@ -189,6 +189,11 @@ final class EditorOperationTests: XCTestCase {
         XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes, selectedIDs: [], at: 30), ["a", "b"])
         XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes, selectedIDs: ["b"], at: 30), ["b"])
         XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes, selectedIDs: ["c"], at: 30), [])
+        let caption = EditorNode(id: "cap", kind: "caption_page", lane: "captions", parentId: "a", startFrame: 25,
+                                 endFrame: 35, frames: 10, raw: .object([:]), assetId: nil, sourceIn: nil,
+                                 sourceOut: nil, assetKind: nil, generated: true, readOnly: true, track: nil)
+        XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes + [caption], selectedIDs: ["cap"], at: 30), ["a", "b"])
+        XCTAssertEqual(TimelineEditingTargets.split(nodes: nodes + [caption], selectedIDs: ["cap", "b"], at: 30), ["b"])
     }
     func testNewTimelineEditingOperationsEncodeContractFields() {
         let ids = ["a", "b"]

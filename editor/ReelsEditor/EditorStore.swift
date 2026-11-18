@@ -534,6 +534,7 @@ final class EditorStore {
     func enqueue(_ operations: [JSONValue], reason: String,
                  predict: OptimisticTimeline.Change? = nil,
                  inspectorTarget: InspectorTarget? = nil) -> Task<Void, Never> {
+        guard !operations.isEmpty else { return Task {} }  // the service rejects an empty batch
         let token = UUID()
         if let predict, let current = snapshot {
             pendingPredictions.append((token, predict))
