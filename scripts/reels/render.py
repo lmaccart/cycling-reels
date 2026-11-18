@@ -1958,7 +1958,7 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
     tmp = staging / "render.mp4"
     why = "turned off (render.fastPath)" if project.cfg("render", "fastPath") is False else overlay.why_not(built["props"])
     if why is None:
-        log("  fast path: plain footage + text — text drawn once per change, footage joined by ffmpeg")
+        log("  fast path: footage joined by ffmpeg, Chrome draws only the text changes and the frames that need it")
         try:
             overlay.render(project, built["props"], props_path, staging, tmp, out_dir / "render.log")
         except ReelsError as e:

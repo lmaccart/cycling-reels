@@ -3,6 +3,7 @@ cutaway and text still on exactly the right frames. Also: render_plan falls back
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import tempfile
@@ -39,27 +40,36 @@ class EligibilityTests(unittest.TestCase):
         p["segments"][0]["cutaways"] = [{"kind": "video", "src": "cut0-0.mp4", "startFrame": 10, "durationInFrames": 20}]
         self.assertIsNone(overlay.why_not(p))
 
-    def test_animated_features_need_the_full_render(self):
-        seg = props()["segments"][0]
-        cases = {
-            "photo": props(segments=[{**seg, "kind": "photo"}]),
-            "crossfades": props(segments=[seg, {**seg, "transitionInFrames": 8}]),
-            "punch-ins": props(segments=[{**seg, "punch": [[0, 1.2, 0.5, 0.5]]}]),
-            "blur": props(segments=[{**seg, "blur": [{"strength": 20, "keys": [[0, 0.5, 0.5, 0.2, 0.2]]}]}]),
-            "photo cutaway": props(segments=[{**seg, "cutaways": [{"kind": "photo", "src": "c.jpg", "startFrame": 0, "durationInFrames": 9}]}]),
-            "route map": props(routes=[{}]),
-            "progress bar": props(progress=[{}]),
-            "exhibits": props(exhibits=[{}]),
-            "title board": props(titleCard={"title": "x"}),
-            "safe-area": props(safeArea=True),
-            "highlight": props(captions=[{"startFrame": 0, "endFrame": 9, "words": []}],
-                               brand={**props()["brand"], "captionStyle": "highlight"}),
-        }  # fmt: skip
-        for word, p in cases.items():
+    def test_editor_tracks_and_safe_area_need_the_full_render(self):
+        for word, p in {"tracks": props(timeline=True), "safe-area": props(safeArea=True)}.items():
             with self.subTest(word):
-                why = overlay.why_not(p)
-                self.assertIsNotNone(why)
-                self.assertIn(word.split()[0], why)
+                self.assertIn(word, overlay.why_not(p))
+
+    def test_chrome_only_effects_take_the_fast_path_when_they_are_a_small_part(self):
+        seg = props()["segments"][0]
+        long = {**seg, "durationInFrames": 300}
+        base = props(totalFrames=300, segments=[long])
+        cases = {
+            "punch-ins": {"segments": [{**long, "punch": [[0, 1.0, 0.5, 0.5], [20, 1.2, 0.5, 0.5], [40, 1.2, 0.5, 0.5], [44, 1.0, 0.5, 0.5]]}]},
+            "blur": {"segments": [{**long, "blur": [{"strength": 20, "keys": [[10, 0.5, 0.5, 0.2, 0.2], [30, 0.5, 0.5, 0.2, 0.2]]}]}]},
+            "photo cutaway": {"segments": [{**long, "cutaways": [{"kind": "photo", "src": "c.jpg", "startFrame": 0, "durationInFrames": 9}]}]},
+            "route map": {"routes": [{"startFrame": 10, "endFrame": 40, "paths": [], "dots": []}]},
+            "progress bar": {"progress": [{"startFrame": 10, "endFrame": 40}]},
+            "exhibits": {"exhibits": [{"startFrame": 10, "endFrame": 40}]},
+            "title board": {"titleCard": {"title": "x", "startFrame": 0, "endFrame": 30}},
+            "highlight": {"captions": [{"startFrame": 0, "endFrame": 9, "words": []}], "brand": {**props()["brand"], "captionStyle": "highlight"}},
+        }  # fmt: skip
+        for word, over in cases.items():
+            with self.subTest(word):
+                self.assertIsNone(overlay.why_not({**base, **over}))
+
+    def test_a_reel_that_is_mostly_chrome_frames_keeps_the_full_render(self):
+        why = overlay.why_not(props(exhibits=[{"startFrame": 0, "endFrame": 88, "depth": "behind"}]))
+        self.assertIn("need Chrome", why)
+        self.assertIn("exhibits", why)
+        seg = props()["segments"][0]
+        why = overlay.why_not(props(segments=[{**seg, "kind": "photo"}]))
+        self.assertIn("photos", why)
 
     def test_crossfade_on_the_first_segment_is_ignored(self):
         self.assertIsNone(overlay.why_not(props(segments=[{**props()["segments"][0], "transitionInFrames": 8}])))
@@ -98,6 +108,139 @@ class StatPillTests(unittest.TestCase):
         self.assertIn(10, starts)
         self.assertIn(50, starts)  # pill gone
         self.assertEqual(overlay.frame_state(p, 60), ())
+
+
+class ChromeFrameTests(unittest.TestCase):
+    """Which frames Chrome must draw: whole (the footage changes) or just the overlay layer."""
+
+    def seg(self, n=100, **over):
+        return {"kind": "video", "src": "s.mp4", "durationInFrames": n, "transitionInFrames": 0, "volume": 1.0, **over}
+
+    def chrome(self, **over):
+        full, over_, why = overlay.chrome_frames(props(**over))
+        return sorted(full), sorted(over_), why
+
+    def test_plain_footage_needs_no_chrome_frames(self):
+        self.assertEqual(self.chrome(), ([], [], {}))
+
+    def test_exhibit_like_layers_are_overlay_frames(self):
+        full, over, why = self.chrome(
+            totalFrames=100, segments=[self.seg()], exhibits=[{"startFrame": 10, "endFrame": 14}],
+            routes=[{"startFrame": 20, "endFrame": 22}], progress=[{"startFrame": 30, "endFrame": 31}],
+            titleCard={"startFrame": 40, "endFrame": 42}, foregrounds=[{"startFrame": 50, "durationInFrames": 2}])  # fmt: skip
+        self.assertEqual(full, [])
+        self.assertEqual(over, [10, 11, 12, 13, 20, 21, 30, 40, 41, 50, 51])
+        self.assertEqual(set(why), {"exhibits", "route maps", "progress bars", "title board"})
+
+    def test_punch_in_frames_are_the_non_identity_ones(self):
+        keys = [[0, 1.0, 0.5, 0.5], [10, 1.0, 0.5, 0.5], [14, 1.15, 0.5, 0.5], [30, 1.15, 0.5, 0.5], [34, 1.0, 0.5, 0.5]]
+        full, over, why = self.chrome(totalFrames=100, segments=[self.seg(punch=keys)])
+        self.assertEqual(full, list(range(10, 34)))  # from the key where the zoom starts to the one where it is back at 1x
+        self.assertEqual(over, [])
+        self.assertIn("punch-ins", why)
+
+    def test_punch_that_stays_zoomed_covers_the_rest_of_the_segment(self):
+        full, _, _ = self.chrome(totalFrames=100, segments=[self.seg(punch=[[0, 1.0, 0.5, 0.5], [10, 1.2, 0.5, 0.5]])])
+        self.assertEqual(full, list(range(0, 100)))
+
+    def test_blur_patches_are_drawn_by_ffmpeg_so_they_cost_no_chrome_frames(self):
+        blur = [{"strength": 20, "keys": [[5, 0.5, 0.5, 0.2, 0.2], [9, 0.5, 0.5, 0.2, 0.2]]}]
+        full, over, why = self.chrome(totalFrames=100, segments=[self.seg(50), self.seg(50, blur=blur)])
+        self.assertEqual((full, over, why), ([], [], {}))
+
+    def test_blur_under_a_punch_in_is_drawn_by_chrome(self):
+        punch = [[0, 1.0, 0.5, 0.5], [6, 1.2, 0.5, 0.5], [8, 1.0, 0.5, 0.5]]
+        blur = [{"strength": 20, "keys": [[5, 0.5, 0.5, 0.2, 0.2], [30, 0.5, 0.5, 0.2, 0.2]]}]
+        full, _, _ = self.chrome(totalFrames=100, segments=[self.seg(100, punch=punch, blur=blur)])
+        self.assertEqual(full, list(range(0, 8)))  # the zoom frames; the rest of the patch is ffmpeg's
+
+    def test_piecewise_expression_is_linear_between_keys_and_held_after(self):
+        keys = [[0, 0.0, 1.0], [10, 1.0, 1.0], [20, 3.0, 1.0]]
+        self.assertEqual(overlay._piecewise(keys, 2), "1.0")  # constant column
+        expr = overlay._piecewise(keys, 1)
+        # test-only: evaluates the expression string overlay.py itself just generated (numbers and if/lt only)
+        n = lambda v: eval(expr.replace("if(", "_if(").replace("lt(N,", "_lt(N,"), {"_if": lambda c, a, b: a if c else b, "_lt": lambda x, y: x < y, "N": v})  # noqa: E731
+        self.assertEqual([n(0), n(5), n(10), n(15), n(20), n(40)], [0.0, 0.5, 1.0, 2.0, 3.0, 3.0])
+
+    def test_crossfade_photo_and_photo_cutaway(self):
+        a = self.seg(40)
+        b = self.seg(40, transitionInFrames=6)
+        c = {**self.seg(20), "kind": "photo"}
+        d = self.seg(40, cutaways=[{"kind": "photo", "src": "p.jpg", "startFrame": 5, "durationInFrames": 3},
+                                   {"kind": "video", "src": "v.mp4", "startFrame": 20, "durationInFrames": 5}])  # fmt: skip
+        full, over, why = self.chrome(totalFrames=40 + 34 + 20 + 40, segments=[a, b, c, d])
+        # starts 0, 34 (crossfade 34..39), 74 (photo 74..93), 94 (photo cutaway 99..101)
+        self.assertEqual(full, list(range(34, 40)) + list(range(74, 94)) + [99, 100, 101])
+        self.assertEqual(set(why), {"crossfades", "photos", "photo cutaways"})
+
+    def test_chrome_frames_win_over_overlay_frames(self):
+        full, over, _ = self.chrome(totalFrames=100, segments=[self.seg(punch=[[0, 1.0, 0.5, 0.5], [10, 1.0, 0.5, 0.5], [20, 1.0, 0.5, 0.5], [21, 1.2, 0.5, 0.5], [22, 1.0, 0.5, 0.5]])],
+                                    exhibits=[{"startFrame": 15, "endFrame": 30}])  # fmt: skip
+        self.assertEqual(full, list(range(20, 22)))
+        self.assertEqual(over, list(range(15, 20)) + [26, 27, 28, 29])  # 20, 21 are Chrome's whole frames; holds 22..25; leaves after 25
+
+    def test_short_gaps_between_runs_are_bridged(self):
+        _, over, _ = self.chrome(totalFrames=100, segments=[self.seg()], exhibits=[
+            {"startFrame": 10, "endFrame": 20}, {"startFrame": 22, "endFrame": 30}, {"startFrame": 34, "endFrame": 40}])  # fmt: skip
+        self.assertEqual(overlay.runs(set(over)), [(10, 30), (34, 40)])  # gap of 2 joined, gap of 4 kept
+
+    def test_runs(self):
+        self.assertEqual(overlay.runs({1, 2, 3, 7, 9, 10}), [(1, 4), (7, 8), (9, 11)])
+        self.assertEqual(overlay.runs(set()), [])
+
+    def test_seg_starts_follow_crossfades(self):
+        p = props(segments=[self.seg(30), self.seg(30, transitionInFrames=5), self.seg(30)])
+        self.assertEqual(overlay.seg_starts(p), [0, 25, 55])
+
+    def test_each_chrome_frame_is_its_own_still_and_text_states_still_merge(self):
+        p = props(totalFrames=100, segments=[self.seg()], exhibits=[{"startFrame": 10, "endFrame": 13}],
+                  beats=[{"text": "b", "startFrame": 40, "endFrame": 70, "position": "lower", "style": "light"}])  # fmt: skip
+        sp = overlay.spans(p)
+        self.assertEqual(sp[:3], [(0, 10), (10, 3), (13, 27)])  # Chrome's frames are one blank span in the still stream
+        self.assertEqual(sum(n for _, n in sp), 100)
+
+    def test_exhibit_only_needs_chrome_while_it_moves(self):
+        e = {"startFrame": 100, "endFrame": 160, "enter": "pop", "exit": "fade", "depth": "front"}
+        _, over, _ = self.chrome(totalFrames=200, segments=[self.seg(200)], exhibits=[e])
+        self.assertEqual(over, list(range(100, 107)) + list(range(156, 160)))  # in: 7 frames, out: frames after dur - 5
+        sp = overlay.spans(props(totalFrames=200, segments=[self.seg(200)], exhibits=[e]))
+        self.assertIn((107, 49), sp)  # holding still: one still for the whole stretch
+
+    def test_exhibit_motion_rules(self):
+        base = {"startFrame": 0, "endFrame": 60, "enter": "none", "exit": "none", "depth": "front"}
+        moves = lambda e, local: overlay._exhibit_moves({**base, **e}, local)  # noqa: E731
+        self.assertFalse(moves({}, 30))
+        self.assertTrue(moves({"enter": "pop"}, 6))
+        self.assertFalse(moves({"enter": "pop"}, 7))
+        self.assertTrue(moves({"exit": "fade"}, 56))
+        self.assertFalse(moves({"exit": "fade"}, 55))
+        self.assertTrue(moves({"path": [[0, 1, 1], [20, 5, 5]]}, 19))
+        self.assertFalse(moves({"path": [[0, 1, 1], [20, 5, 5]]}, 20))  # held after its last key
+        self.assertTrue(moves({"kind": "chart", "chart": {"draw": True}}, 33))
+        self.assertFalse(moves({"kind": "chart", "chart": {"draw": True}}, 34))
+        self.assertTrue(moves({"depth": "behind"}, 30))  # the rider's cut-out video plays in front of it
+        short = {"startFrame": 0, "endFrame": 6, "enter": "pop", "exit": "fade", "ownerSegmentIndex": 0}
+        self.assertFalse(overlay._exhibit_moves(short, 0))  # short exhibit owned by a clip doesn't animate
+
+    def test_progress_bar_motion(self):
+        b = {"startFrame": 0, "endFrame": 60, "fillFrames": 20}
+        self.assertEqual([overlay._bar_moves(b, f) for f in (0, 5, 6, 25, 26, 54, 55, 56)],
+                         [True, True, True, True, False, False, False, True])  # fade in, fill, hold, fade out
+
+    def test_chunks_cut_runs_into_pieces(self):
+        p = props(totalFrames=200, segments=[self.seg(200)], routes=[{"startFrame": 10, "endFrame": 140, "paths": [], "dots": []}])
+        got = [(c["kind"], c["start"], c["end"], c["dir"]) for c in overlay.chunks(p)]
+        self.assertEqual(got, [("over", 10, 70, "over-10"), ("over", 70, 130, "over-70"), ("over", 130, 140, "over-130")])
+
+    def test_highlight_caption_state_follows_the_spoken_word(self):
+        words = [{"text": "a", "startFrame": 10, "endFrame": 15}, {"text": "b", "startFrame": 15, "endFrame": 20}]
+        p = props(captions=[{"startFrame": 10, "endFrame": 20, "words": words}], brand={**props()["brand"], "captionStyle": "highlight"})
+        sp = overlay.spans(p)
+        starts = [s for s, _ in sp]
+        self.assertIn(15, starts)  # the highlight moves
+        self.assertEqual(overlay.frame_state(p, 16)[0][3], (1,))
+        native = props(captions=p["captions"])
+        self.assertEqual(overlay.frame_state(native, 16), overlay.frame_state(native, 18))  # native: one still
 
 
 class SpanTests(unittest.TestCase):
@@ -151,6 +294,23 @@ class SpanTests(unittest.TestCase):
             {"src": "seg0.mp4", "start": 0, "frames": 30, "cutaway": False},
             {"src": "seg1.mp4", "start": 30, "frames": 60, "cutaway": False},
             {"src": "cut1-0.mp4", "start": 42, "frames": 20, "cutaway": True},
+        ])  # fmt: skip
+
+
+    def test_timeline_stops_a_segment_where_the_next_crossfade_starts_and_skips_photos(self):
+        seg = props()["segments"][0]
+        p = props(segments=[
+            {**seg, "durationInFrames": 30},
+            {**seg, "kind": "photo", "src": "p.jpg", "durationInFrames": 20},
+            {**seg, "src": "seg2.mp4", "durationInFrames": 30, "transitionInFrames": 5,
+             "cutaways": [{"kind": "photo", "src": "x.jpg", "startFrame": 1, "durationInFrames": 3},
+                          {"kind": "video", "src": "c.mp4", "startFrame": 12, "durationInFrames": 5}]},
+        ])  # fmt: skip
+        self.assertEqual(overlay.timeline(p), [
+            {"src": "seg0.mp4", "start": 0, "frames": 30, "cutaway": False},
+            {"src": None, "start": 30, "frames": 15, "cutaway": False},
+            {"src": "seg2.mp4", "start": 45, "frames": 30, "cutaway": False},
+            {"src": "c.mp4", "start": 57, "frames": 5, "cutaway": True},
         ])  # fmt: skip
 
 
@@ -212,7 +372,112 @@ class ComposeTests(unittest.TestCase):
         self.assertAlmostEqual(float(dur), 2.0, delta=0.03)  # audio padded to the picture's length
 
 
+    def test_chrome_frames_splice_in_at_exact_frames(self):
+        """red | photo (black under Chrome's opaque frames) | crossfade into blue: starts 0, 30, 45; 75 frames."""
+        self.clip("seg0.mp4", "red", 30)
+        self.clip("seg2.mp4", "blue", 40)
+        self.clip("cut2.mp4", "lime", 5)
+        (self.d / "stills").mkdir()
+        Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0)).save(self.d / "stills" / "0.png")
+        Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0)).save(self.d / "stills" / "50.png")
+        overlay._blank_png(self.d / "stills" / "blank.png", self.W, self.H)
+        (self.d / "stills" / "full-30").mkdir()
+        for f in range(30, 50):  # Chrome's opaque frames for the photo, then the crossfade (a colour per frame)
+            Image.new("RGBA", (self.W, self.H), (255, 255, 0, 255)).save(self.d / "stills" / "full-30" / f"{f}.png")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=f=440:d=2.5", str(self.d / "audio.wav")], check=True)
+        seg = {"kind": "video", "transitionInFrames": 0, "volume": 1.0}
+        p = props(width=self.W, height=self.H, totalFrames=75, segments=[
+            {**seg, "src": "seg0.mp4", "durationInFrames": 30},
+            {**seg, "kind": "photo", "src": "p.jpg", "durationInFrames": 20},
+            {**seg, "src": "seg2.mp4", "durationInFrames": 30, "transitionInFrames": 5,
+             "cutaways": [{"kind": "video", "src": "cut2.mp4", "startFrame": 12, "durationInFrames": 5}]},
+        ])  # fmt: skip
+        self.assertEqual([(c["start"], c["end"], c["dir"]) for c in overlay.chunks(p)], [(30, 50, "full-30")])
+        sp = overlay.spans(p)
+        self.assertEqual(sp, [(0, 30), (30, 20), (50, 25)])
+        (self.d / "overlay.ffconcat").write_text(overlay.concat_list(sp, FPS, {30}))
+        out = self.d / "render.mp4"
+        subprocess.run([str(c) for c in overlay.compose_cmd(p, self.d, self.d / "audio.wav", out)], cwd=self.d, check=True,
+                       capture_output=True)  # fmt: skip
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(out), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                             capture_output=True, check=True).stdout  # fmt: skip
+        frames = np.frombuffer(raw, np.uint8).reshape(-1, self.H, self.W, 3).astype(int)
+        self.assertEqual(len(frames), 75)
+
+        def colour(px) -> str:
+            r, g, b = px
+            return "yellow" if r > 200 and g > 200 and b < 80 else "red" if r > 150 and g < 90 else "lime" if g > 150 and r < 120 else "blue" if b > 150 else "?"
+
+        for n, f in enumerate(frames):
+            want = "red" if n < 30 else "yellow" if n < 50 else "lime" if 57 <= n < 62 else "blue"  # cutaway: 45 + 12
+            self.assertEqual(colour(f[96, 54]), want, f"frame {n}")
+
+    def test_blur_patch_softens_only_its_ellipse_and_its_frames(self):
+        d = self.d
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
+                        f"color=c=black:s={self.W}x{self.H}:r={FPS},drawbox=x=40:y=70:w=28:h=52:color=white:t=fill",
+                        "-frames:v", "20", "-pix_fmt", "yuv420p", str(d / "seg0.mp4")], check=True)  # fmt: skip
+        (d / "stills").mkdir()
+        overlay._blank_png(d / "stills" / "blank.png", self.W, self.H)
+        (d / "overlay.ffconcat").write_text(overlay.concat_list([(0, 20)], FPS, {0}))
+        Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0)).save(d / "stills" / "0.png")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=f=440:d=1", str(d / "audio.wav")], check=True)
+        keys = [[5, 0.5, 0.5, 0.8, 0.5], [14, 0.5, 0.5, 0.8, 0.5]]  # a wide ellipse around the white box's left edge
+        seg = {"kind": "video", "src": "seg0.mp4", "durationInFrames": 20, "transitionInFrames": 0, "volume": 1.0,
+               "blur": [{"strength": 10, "keys": keys}]}  # fmt: skip
+        p = props(width=self.W, height=self.H, totalFrames=20, segments=[seg])
+        out = d / "render.mp4"
+        subprocess.run([str(c) for c in overlay.compose_cmd(p, d, d / "audio.wav", out)], cwd=d, check=True, capture_output=True)
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(out), "-f", "rawvideo", "-pix_fmt", "gray", "-"],
+                             capture_output=True, check=True).stdout  # fmt: skip
+        frames = np.frombuffer(raw, np.uint8).reshape(-1, self.H, self.W).astype(int)
+        self.assertEqual(len(frames), 20)
+        edge = lambda n: frames[n][96, 40]  # noqa: E731  (the white box's left edge, inside the ellipse)
+        self.assertGreater(edge(0), 200)  # not yet blurred: sharp
+        self.assertGreater(edge(4), 200)
+        for n in (5, 9, 14):
+            self.assertLess(edge(n), 200, f"frame {n}")  # blurred while the patch is on
+            self.assertGreater(frames[n][96, 54], 150)  # the middle of the box stays bright
+        self.assertGreater(edge(15), 200)  # gone after its last key
+        self.assertLess(frames[9][96, 3], 10)  # far from the ellipse: untouched black
+
+    def test_photo_segment_is_black_underneath(self):
+        p = props(width=self.W, height=self.H, totalFrames=20,
+                  segments=[{"kind": "photo", "src": "p.jpg", "durationInFrames": 20, "transitionInFrames": 0, "volume": 1.0}])
+        cmd = " ".join(str(c) for c in overlay.compose_cmd(p, self.d, self.d / "a.wav", self.d / "o.mp4"))
+        self.assertIn("color=c=black:s=108x192", cmd)
+        self.assertNotIn("p.jpg", cmd)
+
+
 class FallbackTests(unittest.TestCase):
+    def test_missing_chrome_frames_raise_so_the_full_render_takes_over(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        (root / "remotion" / "scripts").mkdir(parents=True)
+        (root / "remotion" / "node_modules" / "@remotion" / "renderer").mkdir(parents=True)
+        staging = root / "staging"
+        (staging).mkdir()
+        project = mock.Mock(remotion_dir=root / "remotion")
+        project.cfg.return_value = None
+        project.rel = lambda p: str(p)
+
+        def node(cmd, **kw):  # Remotion "succeeds": sound is there but no still for the exhibit frames
+            (staging / "audio.wav").write_bytes(b"x")
+            (staging / "stills").mkdir(exist_ok=True)
+            for f in json.loads((staging / "overlay-job.json").read_text())["frames"]:
+                (staging / "stills" / f"{f}.png").write_bytes(b"x")
+            return mock.Mock(returncode=0)
+
+        p = props(exhibits=[{"startFrame": 10, "endFrame": 20}])
+        (staging / "props.json").write_text("{}")
+        with mock.patch.object(overlay.subprocess, "run", node), mock.patch.object(overlay, "require"):
+            with self.assertRaisesRegex(ReelsError, "didn't write Chrome frames"):
+                overlay.render(project, p, staging / "props.json", staging, staging / "o.mp4", staging / "log")
+        job = json.loads((staging / "overlay-job.json").read_text())
+        self.assertEqual(job["chunks"], [{"kind": "over", "start": 10, "end": 20, "dir": "over-10"}])
+        self.assertNotIn(12, job["frames"])  # Chrome-frame stills come from the run, not a text still
+
     def test_fast_path_failure_falls_back_to_full_render(self):
         t = TempProject(self)
         calls = []
