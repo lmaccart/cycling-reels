@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 from fractions import Fraction
 from functools import lru_cache
 from pathlib import Path
@@ -158,19 +159,25 @@ TONEMAP = (
 HLG_FALLBACK = "colorspace=all=bt709:iall=bt2020:format=yuv420p,eq=contrast=1.06:saturation=1.08"
 
 
+_BIN_LOCK = threading.Lock()
+
+
 def can_tonemap() -> bool:
-    if has_filter("zscale") and has_filter("tonemap"):
-        return True
-    if os.environ.get("REELS_FFMPEG"):
+    # One thread at a time: this may swap BIN to ffmpeg-full, and clips staged in parallel must never
+    # see the half-switched state (they'd pick a different colour converter, or the slim ffmpeg).
+    with _BIN_LOCK:
+        if has_filter("zscale") and has_filter("tonemap"):
+            return True
+        if os.environ.get("REELS_FFMPEG"):
+            return False
+        for d in FULL_FFMPEG_DIRS:  # switch to Homebrew's ffmpeg-full if it's installed
+            full = Path(d) / "ffmpeg"
+            if full.exists() and full != Path(BIN["ffmpeg"]):
+                BIN["ffmpeg"], BIN["ffprobe"] = str(full), str(Path(d) / "ffprobe")
+                ffmpeg_filters.cache_clear()
+                if has_filter("zscale") and has_filter("tonemap"):
+                    return True
         return False
-    for d in FULL_FFMPEG_DIRS:  # switch to Homebrew's ffmpeg-full if it's installed
-        full = Path(d) / "ffmpeg"
-        if full.exists() and full != Path(BIN["ffmpeg"]):
-            BIN["ffmpeg"], BIN["ffprobe"] = str(full), str(Path(d) / "ffprobe")
-            ffmpeg_filters.cache_clear()
-            if has_filter("zscale") and has_filter("tonemap"):
-                return True
-    return False
 
 
 _warned_hdr = False

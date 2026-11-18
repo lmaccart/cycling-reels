@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 from dataclasses import dataclass
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
@@ -22,6 +25,7 @@ from .lineage import from_built as lineage_from_built, record as record_lineage
 from .loop import check_loop, check_seam, describe_seam, seam_score, staged_seam, swap_halves
 from . import grade as grading
 from . import overlay
+from . import stagecache
 from .timeline import CAPABILITIES as TIMELINE_CAPABILITIES, positioned, requantize, place as place_timeline, duration as timeline_duration
 from .media import extract_frame, ffprobe_json, hdr_filters, require, run
 from .mix import CLEAN_AF, EDGE_FADE, RECOGNITION_MAX, build_cues, check_segment, covered_share, cue_props, cue_sheet
@@ -1708,7 +1712,10 @@ def stage_photo(project: Project, sg: Seg, out: Path, *, grade: dict | None = No
     return grading.grade_image(out, grade, also=[bg_path] if spec["fit"] == "blurfill" else None)
 
 
-def stage(project: Project, built: dict, staging: Path) -> None:
+def stage(project: Project, built: dict, staging: Path, *, use_cache: bool = False) -> None:
+    """Stages every segment and cutaway (independent ffmpeg / Metal jobs, run on a bounded thread pool:
+    config render.stageWorkers), then the exhibits, which cut the rider out of the staged clips and so
+    must run after. `use_cache` reuses clips staged by an earlier render (stagecache.py)."""
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
@@ -1718,31 +1725,61 @@ def stage(project: Project, built: dict, staging: Path) -> None:
     segs = built["segs"]
     seam = bool(built.get("loop") and built["loop"]["swap"][0])  # ride audio runs on across the seam: no edge fades there
     gcfg, gplan = project.cfg("render", "grade"), built.get("grade")
+    grading.use_zscale()  # settle which ffmpeg / colour converter is used before any clip runs concurrently
+    cache = stagecache.StageCache.for_project(project) if use_cache else None
+    # Metal 360 renders share the GPU and its hardware encoder: fewer of them at once than ffmpeg-only clips
+    sphere_slots = threading.Semaphore(stagecache.worker_count(project.cfg("render", "stageSphereWorkers") or 1))
     built["graded"] = []
 
-    def visual(seg: Seg, name: str, **video: Any) -> None:
-        """One segment or cutaway, graded per config render.grade < plan grade < its own grade (grade.py)."""
+    def visual(seg: Seg, name: str, **video: Any) -> tuple[dict | None, bool]:
+        """One segment or cutaway, graded per config render.grade < plan grade < its own grade (grade.py).
+        Returns (grade summary or None, served from the cache)."""
         g = grading.settings(gcfg, gplan, seg.spec.get("grade"))
-        if seg.kind == "video":
-            m = stage_video(project, seg, staging / f"{name}.mp4", built["fps"], grade=g, **video)
-        elif (seg.spec.get("sphere") or {}).get("path"):
-            m = stage_photo_pan(project, seg, staging / f"{name}.mp4", built["fps"], grade=g)
-        else:
-            m = stage_photo(project, seg, staging / f"{name}.jpg", grade=g)
-        if m:
-            built["graded"].append({"clip": name, "asset": seg.asset["id"], **m})
-            log(f"  grade {name}: {m['look']}, overcast {m['overcast']:.2f}, rescue {m['rescue']:.2f}, "
-                f"wb {'/'.join(f'{v:.2f}' for v in m['wb'])}, gamma {m['gamma']:.2f}")
+        key = stagecache.clip_key(project, seg, seg.kind, built["fps"], video, g) if cache else None
+        if cache and key:
+            hit = cache.fetch(key, name, staging)
+            if hit is not None:
+                return hit["grade"], True
+        gate = sphere_slots if seg.spec.get("sphere") else contextlib.nullcontext()
+        with gate:
+            if seg.kind == "video":
+                m = stage_video(project, seg, staging / f"{name}.mp4", built["fps"], grade=g, **video)
+            elif (seg.spec.get("sphere") or {}).get("path"):
+                m = stage_photo_pan(project, seg, staging / f"{name}.mp4", built["fps"], grade=g)
+            else:
+                m = stage_photo(project, seg, staging / f"{name}.jpg", grade=g)
+        if cache and key:
+            cache.store(key, name, staging, m)
+        return m, False
 
+    def job(seg: Seg, name: str, **video: Any) -> Callable[[], None]:
+        def run_one() -> tuple[str, str, dict | None]:
+            t0 = time.monotonic()
+            m, hit = visual(seg, name, **video)
+            line = f"  staged {name} ({'cached' if hit else f'{time.monotonic() - t0:.1f}s'})"
+            if m:
+                line += (f"; grade {m['look']}, overcast {m['overcast']:.2f}, rescue {m['rescue']:.2f}, "
+                         f"wb {'/'.join(f'{v:.2f}' for v in m['wb'])}, gamma {m['gamma']:.2f}")
+            log(line)  # one write per clip: lines from parallel jobs never interleave mid-line
+            return name, seg.asset["id"], m
+
+        return run_one
+
+    jobs: list[Callable[[], Any]] = []
     for sg in segs:
         video: dict[str, Any] = {}
         if sg.kind == "video":
             edges = (not (seam and sg.index == 0), not (seam and sg.index == len(segs) - 1))
             video = {"clean": bool(sg.spec.get("clean") or (clean_nat and sg.spec.get("nat"))), "scale": stage_scale(sg, tw, th, most),
                      "edges": edges}  # fmt: skip
-        visual(sg, f"seg{sg.index}", **video)
+        jobs.append(job(sg, f"seg{sg.index}", **video))
         for k, c in enumerate(sg.spec.get("_cutaways") or []):  # silent B-roll over the segment
-            visual(c["seg"], cutaway_name(sg, k), **({"audio": False} if c["seg"].kind == "video" else {}))
+            jobs.append(job(c["seg"], cutaway_name(sg, k), **({"audio": False} if c["seg"].kind == "video" else {})))
+    workers = stagecache.worker_count(project.cfg("render", "stageWorkers"))
+    results = stagecache.run_jobs(jobs, workers)
+    for name, asset_id, m in results:  # job order, whatever order they finished in
+        if m:
+            built["graded"].append({"clip": name, "asset": asset_id, **m})
     stage_exhibits(project, built, staging)  # images, and the rider cut out of the staged clips for depth
     if built["props"]["music"]:
         mp: Path = built["music"]["path"]
@@ -1900,7 +1937,7 @@ def mark_usage(project: Project, slug: str, segs: list[Seg]) -> None:
         save_asset(project, a)
 
 
-def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool = False) -> dict:
+def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool = False, stage_cache: bool = True) -> dict:
     require("ffmpeg")
     require("ffprobe")
     plan = load_plan(project, plan_path)
@@ -1913,7 +1950,9 @@ def render_plan(project: Project, plan_path: str | Path, *, keep_staging: bool =
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log(f"rendering {slug}: {total / fps:.1f}s from {len(built['segs'])} segment(s)…")
-    stage(project, built, staging)
+    t_stage = time.monotonic()
+    stage(project, built, staging, use_cache=stage_cache)
+    log(f'  staged clips in {time.monotonic() - t_stage:.1f}s')
     props_path = staging / "props.json"
     write_json(props_path, built["props"])
     tmp = staging / "render.mp4"
