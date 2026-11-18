@@ -1,0 +1,211 @@
+{
+  "id": "261117-img-3679-2e2f",
+  "kind": "video",
+  "media": "library/media/261117-img-3679-2e2f.mov",
+  "originalName": "IMG_3679.MOV",
+  "hash": "2e2f5ec8177f8362433b55bd4925c069f5cb1780",
+  "created": "2026-11-17T20:23:15",
+  "ingestedAt": "2026-11-18T02:30:21+00:00",
+  "probe": {
+    "duration": 285.513,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.972,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-17T20:23:15-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "static",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Voiceover recording at a desk with a clip mic, narrating the Rice sprint zone 360 footage from the laptop; several takes",
+    "hooks": [
+      "welcome back to another episode of rice's sprint zone"
+    ],
+    "moments": [
+      {
+        "id": "m-0f0527",
+        "in": 194.6,
+        "out": 225.4,
+        "label": "voiceover take 4: welcome back to another episode of Rice's sprint zone, Carter, Owen's early attack, passing Vivian, Zi",
+        "score": 4,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "face": true,
+        "opener": true
+      },
+      {
+        "id": "m-a37efc",
+        "in": 258.8,
+        "out": 266.5,
+        "label": "voiceover redo of the ending: pan back right, Owen between my legs, pass him before the top of the hill",
+        "score": 4,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      },
+      {
+        "id": "m-e9f2c7",
+        "in": 274.8,
+        "out": 276.9,
+        "label": "voiceover tag line: securing yet another group ride dub",
+        "score": 4,
+        "focusX": 0.6,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261117-img-3679-2e2f.json",
+  "used": [
+    {
+      "plan": "2026-11-16-sprint-zone-nov-26",
+      "at": "2026-11-18T03:53:55+00:00",
+      "in": 194.6,
+      "out": 197.43
+    },
+    {
+      "plan": "2026-11-16-sprint-zone-nov-26",
+      "at": "2026-11-18T03:53:55+00:00",
+      "in": 131.5,
+      "out": 135.22
+    },
+    {
+      "plan": "2026-11-16-sprint-zone-nov-26",
+      "at": "2026-11-18T03:53:55+00:00",
+      "in": 201.47,
+      "out": 225.4
+    },
+    {
+      "plan": "2026-11-16-sprint-zone-nov-26",
+      "at": "2026-11-18T03:53:55+00:00",
+      "in": 258.8,
+      "out": 266.5
+    },
+    {
+      "plan": "2026-11-16-sprint-zone-nov-26",
+      "at": "2026-11-18T03:53:55+00:00",
+      "in": 274.8,
+      "out": 276.9
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -29.7,
+      "peakDb": -3.5
+    },
+    "speechSeconds": 206.48,
+    "speechRanges": [
+      [
+        8.22,
+        20.46
+      ],
+      [
+        21.4,
+        49.1
+      ],
+      [
+        69.21,
+        70.41
+      ],
+      [
+        71.54,
+        72.2
+      ],
+      [
+        73.75,
+        111.75
+      ],
+      [
+        112.12,
+        115.05
+      ],
+      [
+        127.58,
+        167.4
+      ],
+      [
+        171.38,
+        172.39
+      ],
+      [
+        181.02,
+        188.52
+      ],
+      [
+        188.86,
+        189.93
+      ],
+      [
+        194.55,
+        235.21
+      ],
+      [
+        238.2,
+        241.51
+      ],
+      [
+        242.01,
+        242.95
+      ],
+      [
+        243.9,
+        253.83
+      ],
+      [
+        258.62,
+        268.97
+      ],
+      [
+        269.66,
+        271.66
+      ],
+      [
+        273.53,
+        277.16
+      ],
+      [
+        277.85,
+        279.37
+      ],
+      [
+        280.12,
+        281.38
+      ],
+      [
+        282.07,
+        282.82
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261117-img-3679-2e2f-1.jpg",
+    "library/sheets/261117-img-3679-2e2f-2.jpg",
+    "library/sheets/261117-img-3679-2e2f-3.jpg"
+  ],
+  "taggedAt": "2026-11-18T02:32:54+00:00"
+}

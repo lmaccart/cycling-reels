@@ -3,11 +3,111 @@
   "postDate": "2026-11-16",
   "segments": [
     {
+      "asset": "261117-img-3679-2e2f",
+      "in": 194.6,
+      "out": 197.43,
+      "speed": 1.0,
+      "captions": "transcript",
+      "timeline": {
+        "track": "V1",
+        "startFrame": 0,
+        "durationFrames": 85,
+        "transitionInFrames": 0
+      },
+      "transition": "cut",
+      "grade": {
+        "look": "none",
+        "rescue": true
+      }
+    },
+    {
+      "asset": "261117-img-3679-2e2f",
+      "in": 131.5,
+      "out": 135.22,
+      "speed": 1.0,
+      "captions": "transcript",
+      "timeline": {
+        "track": "V1",
+        "startFrame": 85,
+        "durationFrames": 112,
+        "transitionInFrames": 0
+      },
+      "transition": "cut",
+      "grade": {
+        "look": "none",
+        "rescue": true
+      }
+    },
+    {
+      "asset": "261117-img-3679-2e2f",
+      "in": 201.47,
+      "out": 225.4,
+      "speed": 1.0,
+      "captions": "transcript",
+      "timeline": {
+        "track": "V1",
+        "startFrame": 197,
+        "durationFrames": 718,
+        "transitionInFrames": 0
+      },
+      "transition": "cut",
+      "grade": {
+        "look": "none",
+        "rescue": true
+      },
+      "sfx": [
+        {
+          "sound": "fortnite-downed",
+          "at": 2.78
+        },
+        {
+          "sound": "hitmarker",
+          "at": 10.55
+        },
+        {
+          "sound": "hitmarker",
+          "at": 11.06
+        },
+        {
+          "sound": "hitmarker",
+          "at": 11.92
+        }
+      ]
+    },
+    {
+      "asset": "261117-img-3679-2e2f",
+      "in": 258.8,
+      "out": 266.5,
+      "speed": 1.0,
+      "captions": "transcript",
+      "timeline": {
+        "track": "V1",
+        "startFrame": 915,
+        "durationFrames": 231,
+        "transitionInFrames": 0
+      },
+      "transition": "cut"
+    },
+    {
+      "asset": "261117-img-3679-2e2f",
+      "in": 274.8,
+      "out": 276.9,
+      "speed": 1.0,
+      "captions": "transcript",
+      "timeline": {
+        "track": "V1",
+        "startFrame": 1146,
+        "durationFrames": 63,
+        "transitionInFrames": 0
+      },
+      "transition": "cut"
+    },
+    {
       "out": 50.733333333333334,
       "in": 9.133333333333333,
       "asset": "261031-gs010110-08e8",
       "timeline": {
-        "track": "V1",
+        "track": "V2",
         "startFrame": 0,
         "durationFrames": 1248,
         "transitionInFrames": 0
@@ -17,197 +117,381 @@
       "view": {
         "yaw": -7.69,
         "pitch": -61.35,
-        "roll": -88.28,
-        "fov": 59.33
+        "fov": 59.33,
+        "roll": -88.28
       },
       "path": [
         {
+          "at": 0.0,
+          "yaw": -4.67,
+          "pitch": 8.97,
+          "fov": 59.33,
+          "roll": -90.43
+        },
+        {
+          "at": 2.6,
+          "yaw": -4.8,
+          "pitch": 6.83,
+          "fov": 59.33,
+          "roll": -90.22
+        },
+        {
+          "at": 5.867,
+          "yaw": -7.69,
           "pitch": -61.35,
           "fov": 59.33,
-          "at": 0.0,
-          "yaw": -7.69,
           "roll": -88.28
         },
         {
-          "pitch": -61.35,
-          "roll": -88.28,
-          "at": 5.867,
-          "fov": 59.33,
-          "yaw": -7.69
-        },
-        {
+          "at": 7.833,
+          "yaw": -10.25,
           "pitch": -5.56,
           "fov": 59.33,
-          "yaw": -10.25,
-          "roll": -90.42,
-          "at": 7.833
+          "roll": -90.42
         },
         {
+          "at": 9.233,
+          "yaw": -12.89,
           "pitch": 35.63,
           "fov": 59.33,
-          "yaw": -12.89,
-          "at": 9.233,
           "roll": -95.47
         },
         {
-          "pitch": 84.01,
-          "fov": 59.33,
           "at": 10.5,
           "yaw": -107.05,
+          "pitch": 84.01,
+          "fov": 59.33,
           "roll": 167.45
         },
         {
-          "pitch": 47.35,
+          "at": 10.867,
+          "yaw": -177.43,
+          "pitch": 46.28,
           "fov": 59.33,
-          "at": 12.867,
-          "yaw": -24.65,
-          "roll": -105.51
+          "roll": 95.68
         },
         {
-          "pitch": 19,
+          "at": 11.4,
+          "yaw": -0.8,
+          "pitch": 20.28,
+          "fov": 60.2,
+          "roll": -89.33
+        },
+        {
+          "at": 13.433,
+          "yaw": -5.33,
+          "pitch": 25.34,
           "fov": 59.33,
+          "roll": -91.53
+        },
+        {
+          "at": 15.167,
           "yaw": -11.49,
-          "roll": -93.04,
-          "at": 15.167
-        },
-        {
-          "pitch": -27.12,
-          "roll": -89.18,
-          "at": 20.633,
-          "yaw": -8.69,
-          "fov": 59.33
-        },
-        {
-          "pitch": -82.44,
+          "pitch": 19.0,
           "fov": 59.33,
-          "at": 27.433,
-          "yaw": 31.24,
-          "roll": -126.45
+          "roll": -93.04
         },
         {
-          "pitch": -49.39,
-          "roll": 90.93,
-          "fov": 97.8,
-          "at": 34.133,
-          "yaw": 173.68
+          "at": 17.133,
+          "yaw": 176.76,
+          "pitch": -53.96,
+          "fov": 59.33,
+          "roll": 88.53
         },
         {
-          "pitch": -59.84,
-          "fov": 97.8,
-          "yaw": -3.39,
-          "roll": -92.05,
-          "at": 37.133
+          "at": 18.367,
+          "yaw": 150.3,
+          "pitch": -83.41,
+          "fov": 59.33,
+          "roll": 113.87
         },
         {
-          "pitch": 17.14,
-          "fov": 97.8,
-          "roll": -90.66,
+          "at": 21.033,
+          "yaw": -0.54,
+          "pitch": -28.1,
+          "fov": 59.33,
+          "roll": -93.49
+        },
+        {
+          "at": 24.167,
+          "yaw": -8.25,
+          "pitch": -6.77,
+          "fov": 59.33,
+          "roll": -90.75
+        },
+        {
+          "at": 25.7,
+          "yaw": -12.98,
+          "pitch": 21.77,
+          "fov": 59.33,
+          "roll": -93.9
+        },
+        {
+          "at": 27.967,
+          "yaw": -12.59,
+          "pitch": 27.55,
+          "fov": 64.11,
+          "roll": -95.27
+        },
+        {
+          "at": 31.433,
+          "yaw": -14.35,
+          "pitch": 16.78,
+          "fov": 76.08,
+          "roll": -96.38
+        },
+        {
+          "at": 33.2,
+          "yaw": 136.5,
+          "pitch": -78.75,
+          "fov": 77.16,
+          "roll": 124.77
+        },
+        {
+          "at": 35.967,
+          "yaw": 166.44,
+          "pitch": -77.49,
+          "fov": 82.47,
+          "roll": 95.0
+        },
+        {
+          "at": 36.8,
+          "yaw": 43.9,
+          "pitch": -83.49,
+          "fov": 82.72,
+          "roll": -140.92
+        },
+        {
+          "at": 37.7,
+          "yaw": 3.51,
+          "pitch": -18.92,
+          "fov": 83.0,
+          "roll": -96.89
+        },
+        {
+          "at": 38.933,
+          "yaw": 1.16,
+          "pitch": 4.82,
+          "fov": 84.04,
+          "roll": -93.3
+        },
+        {
           "at": 40.8,
-          "yaw": -4.13
-        },
-        {
+          "yaw": -4.13,
           "pitch": 17.14,
           "fov": 97.8,
-          "roll": -90.66,
+          "roll": -90.66
+        },
+        {
           "at": 41.6,
-          "yaw": -4.13
+          "yaw": -4.13,
+          "pitch": 17.14,
+          "fov": 97.8,
+          "roll": -90.66
         }
       ],
       "cameraWindow": {
-        "offsetSeconds": 0.0,
-        "durationSeconds": 45.86666666666667,
+        "offsetSeconds": 0,
+        "durationSeconds": 41.6,
         "path": [
           {
+            "at": 0.0,
+            "yaw": -4.67,
+            "pitch": 8.97,
+            "fov": 59.33,
+            "roll": -90.43
+          },
+          {
+            "at": 2.6,
+            "yaw": -4.8,
+            "pitch": 6.83,
+            "fov": 59.33,
+            "roll": -90.22
+          },
+          {
+            "at": 5.867,
+            "yaw": -7.69,
             "pitch": -61.35,
             "fov": 59.33,
-            "at": 0,
-            "yaw": -7.69,
             "roll": -88.28
           },
           {
-            "pitch": -61.35,
-            "roll": -88.28,
-            "at": 5.867,
-            "fov": 59.33,
-            "yaw": -7.69
-          },
-          {
+            "at": 7.833,
+            "yaw": -10.25,
             "pitch": -5.56,
             "fov": 59.33,
-            "yaw": -10.25,
-            "roll": -90.42,
-            "at": 7.833
+            "roll": -90.42
           },
           {
+            "at": 9.233,
+            "yaw": -12.89,
             "pitch": 35.63,
             "fov": 59.33,
-            "yaw": -12.89,
-            "at": 9.233,
             "roll": -95.47
           },
           {
-            "pitch": 84.01,
-            "fov": 59.33,
             "at": 10.5,
             "yaw": -107.05,
+            "pitch": 84.01,
+            "fov": 59.33,
             "roll": 167.45
           },
           {
-            "pitch": 47.35,
+            "at": 10.867,
+            "yaw": -177.43,
+            "pitch": 46.28,
             "fov": 59.33,
-            "at": 12.867,
-            "yaw": -24.65,
-            "roll": -105.51
+            "roll": 95.68
           },
           {
-            "pitch": 19,
+            "at": 11.4,
+            "yaw": -0.8,
+            "pitch": 20.28,
+            "fov": 60.2,
+            "roll": -89.33
+          },
+          {
+            "at": 13.433,
+            "yaw": -5.33,
+            "pitch": 25.34,
             "fov": 59.33,
+            "roll": -91.53
+          },
+          {
+            "at": 15.167,
             "yaw": -11.49,
-            "roll": -93.04,
-            "at": 15.167
-          },
-          {
-            "pitch": -27.12,
-            "roll": -89.18,
-            "at": 20.633,
-            "yaw": -8.69,
-            "fov": 59.33
-          },
-          {
-            "pitch": -82.44,
+            "pitch": 19.0,
             "fov": 59.33,
-            "at": 27.433,
-            "yaw": 31.24,
-            "roll": -126.45
+            "roll": -93.04
           },
           {
-            "pitch": -49.39,
-            "roll": 90.93,
-            "fov": 97.8,
-            "at": 34.133,
-            "yaw": 173.68
+            "at": 17.133,
+            "yaw": 176.76,
+            "pitch": -53.96,
+            "fov": 59.33,
+            "roll": 88.53
           },
           {
-            "pitch": -59.84,
-            "fov": 97.8,
-            "yaw": -3.39,
-            "roll": -92.05,
-            "at": 37.133
+            "at": 18.367,
+            "yaw": 150.3,
+            "pitch": -83.41,
+            "fov": 59.33,
+            "roll": 113.87
           },
           {
+            "at": 21.033,
+            "yaw": -0.54,
+            "pitch": -28.1,
+            "fov": 59.33,
+            "roll": -93.49
+          },
+          {
+            "at": 24.167,
+            "yaw": -8.25,
+            "pitch": -6.77,
+            "fov": 59.33,
+            "roll": -90.75
+          },
+          {
+            "at": 25.7,
+            "yaw": -12.98,
+            "pitch": 21.77,
+            "fov": 59.33,
+            "roll": -93.9
+          },
+          {
+            "at": 27.967,
+            "yaw": -12.59,
+            "pitch": 27.55,
+            "fov": 64.11,
+            "roll": -95.27
+          },
+          {
+            "at": 31.433,
+            "yaw": -14.35,
+            "pitch": 16.78,
+            "fov": 76.08,
+            "roll": -96.38
+          },
+          {
+            "at": 33.2,
+            "yaw": 136.5,
+            "pitch": -78.75,
+            "fov": 77.16,
+            "roll": 124.77
+          },
+          {
+            "at": 35.967,
+            "yaw": 166.44,
+            "pitch": -77.49,
+            "fov": 82.47,
+            "roll": 95.0
+          },
+          {
+            "at": 36.8,
+            "yaw": 43.9,
+            "pitch": -83.49,
+            "fov": 82.72,
+            "roll": -140.92
+          },
+          {
+            "at": 37.7,
+            "yaw": 3.51,
+            "pitch": -18.92,
+            "fov": 83.0,
+            "roll": -96.89
+          },
+          {
+            "at": 38.933,
+            "yaw": 1.16,
+            "pitch": 4.82,
+            "fov": 84.04,
+            "roll": -93.3
+          },
+          {
+            "at": 40.8,
+            "yaw": -4.13,
             "pitch": 17.14,
             "fov": 97.8,
-            "roll": -90.66,
-            "at": 40.8,
-            "yaw": -4.13
+            "roll": -90.66
+          },
+          {
+            "at": 41.6,
+            "yaw": -4.13,
+            "pitch": 17.14,
+            "fov": 97.8,
+            "roll": -90.66
           }
         ]
+      },
+      "projection": "flat",
+      "stabilize": "medium",
+      "volume": 0.6,
+      "nat": {
+        "at": 40.3,
+        "volume": 1.0
       }
     }
   ],
   "timeline": {
     "version": 1,
     "fps": 30,
-    "durationFrames": 1651
+    "durationFrames": 1248
+  },
+  "spine": "voice",
+  "captions": {
+    "maxWordsPerPage": 4,
+    "maxCharsPerPage": 22
+  },
+  "post": {
+    "caption": "dropped @littlebuttonchops",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#bikeracing",
+      "#groupride",
+      "#cyclinglife"
+    ],
+    "altText": "360 camera footage from a Saturday group ride sprint up a bridge while the rider narrates the attack and the chase"
   }
 }

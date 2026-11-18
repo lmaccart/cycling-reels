@@ -1,0 +1,21 @@
+{
+  "slug": "fortnite-downed",
+  "name": "fortnite-downed",
+  "category": "other",
+  "file": "sfx/fortnite-downed.wav",
+  "duration": 0.931,
+  "channels": 2,
+  "loudness": -11.9,
+  "peak": -5.9,
+  "normalized": "peak -6 dBFS",
+  "source": "https://www.youtube.com/watch?v=KYAjqOV9DN8",
+  "author": "Sound Central (YouTube upload)",
+  "license": "Provided by user (cleared by user)",
+  "addedAt": "2026-11-18T03:30:17+00:00",
+  "tags": [
+    "fortnite",
+    "downed",
+    "game",
+    "knocked"
+  ]
+}
