@@ -105,6 +105,14 @@ class ResolveBleepTests(unittest.TestCase):
         self.assertNotIn("fucking", text)
 
 
+    def test_caption_words_point_back_at_transcript_words(self):
+        # the editor's word corrections address the transcript, not the word's place on its page
+        spec = {"in": 13.4, "out": 16.0, "speed": 1.0, "captions": "transcript"}
+        sg = Seg(index=0, kind="video", asset=VIDEO, spec=spec, frames=78)
+        pages = caption_pages_for(sg, WORDS, 30, {"maxWordsPerPage": 4, "maxCharsPerPage": 30})
+        got = [(w["index"], w["w"], w["s"]) for pg in pages for w in pg["words"]]
+        self.assertEqual(got, [(i, WORDS[i]["w"], WORDS[i]["s"]) for i in range(1, 5)])
+
 @unittest.skipUnless(shutil.which("ffmpeg"), "needs ffmpeg")
 class StageBleepTests(unittest.TestCase):
     """Stages a real clip and measures the audio inside and outside the bleep."""

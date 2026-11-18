@@ -1420,7 +1420,7 @@ private struct KeyframeField: View {
     }
 }
 
-private struct TranscriptWordEditor: View {
+struct TranscriptWordEditor: View {
     let node: EditorNode
     let words: [JSONValue]
     let documentID: String
@@ -1458,11 +1458,18 @@ private struct TranscriptWordEditor: View {
     }
 
     private func applyCorrections() {
-        let corrections = words.enumerated().compactMap { index, word -> JSONValue? in
+        store.correctInspectorWords(documentID: documentID, nodeID: node.id,
+                                    corrections: Self.corrections(words: words, drafts: drafts))
+    }
+
+    /// Changed words as transcript corrections. Caption-page words carry their transcript index;
+    /// their position on the page is not their position in the transcript.
+    static func corrections(words: [JSONValue], drafts: [String]) -> [JSONValue] {
+        words.enumerated().compactMap { index, word -> JSONValue? in
             guard drafts.indices.contains(index), drafts[index] != (word["w"]?.stringValue ?? "") else { return nil }
-            return .object(["index": .number(Double(index)), "word": .string(drafts[index])])
+            let target = word["index"]?.numberValue ?? Double(index)
+            return .object(["index": .number(target), "word": .string(drafts[index])])
         }
-        store.correctInspectorWords(documentID: documentID, nodeID: node.id, corrections: corrections)
     }
 }
 

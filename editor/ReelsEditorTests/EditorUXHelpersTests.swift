@@ -12,6 +12,18 @@ private final class CursorRecordingCanvas: TimelineCanvas {
 }
 
 final class EditorUXHelpersTests: XCTestCase {
+    func testCaptionWordCorrectionsUseTranscriptIndex() {
+        let words: [JSONValue] = [
+            .object(["text": .string("of"), "index": .number(40), "w": .string("of"), "s": .number(195.99)]),
+            .object(["text": .string("Zicheng"), "index": .number(41), "w": .string("Zicheng"), "s": .number(212.49)]),
+        ]
+        let out = TranscriptWordEditor.corrections(words: words, drafts: ["of", "Zhicheng"])
+        XCTAssertEqual(out, [.object(["index": .number(41), "word": .string("Zhicheng")])])
+        let plain: [JSONValue] = [.object(["w": .string("a")]), .object(["w": .string("b")])]
+        XCTAssertEqual(TranscriptWordEditor.corrections(words: plain, drafts: ["a", "c"]),
+                       [.object(["index": .number(1), "word": .string("c")])])
+    }
+
     @MainActor
     func testCanvasToolKeysRegisterAndRemoveTheRazorCursor() throws {
         let canvas = CursorRecordingCanvas(frame: NSRect(x: 0, y: 0, width: 500, height: 300))

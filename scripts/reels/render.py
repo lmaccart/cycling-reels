@@ -444,7 +444,7 @@ def _clean_word(w: str) -> str:
 def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[dict]:
     a, b, speed = sg.spec["in"], sg.spec["out"], sg.spec["speed"]
     items: list[list[Any]] = []
-    for w in words:
+    for wi, w in enumerate(words):
         if w["e"] <= a + 0.02 or w["s"] >= b - 0.02:
             continue
         text = _clean_word(str(w["w"]))
@@ -453,7 +453,7 @@ def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[d
         s, e = max(w["s"], a), min(w["e"], b)
         sf = sg.start + round((s - a) / speed * fps)
         ef = max(sf + 1, sg.start + round((e - a) / speed * fps))
-        items.append([text, sf, ef, str(w["w"]).strip()])
+        items.append([text, sf, ef, str(w["w"]).strip(), wi, w["s"]])
 
     max_words, max_chars = int(cfg["maxWordsPerPage"]), int(cfg["maxCharsPerPage"])
     pages: list[list[list[Any]]] = []
@@ -487,7 +487,9 @@ def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[d
             {
                 "startFrame": start,
                 "endFrame": end,
-                "words": [{"text": t, "startFrame": sf, "endFrame": min(ef, end)} for t, sf, ef, _ in pg],
+                # index/w/s point back at the transcript word, for the editor's word corrections
+                "words": [{"text": t, "startFrame": sf, "endFrame": min(ef, end), "index": wi, "w": raw, "s": src}
+                          for t, sf, ef, raw, wi, src in pg],
             }
         )
     return out
