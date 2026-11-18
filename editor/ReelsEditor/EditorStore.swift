@@ -744,7 +744,17 @@ final class EditorStore {
     }
 
     func splitAtPlayhead() {
-        splitSegments(splitTargetsAtPlayhead, at: playheadFrame)
+        let targets = splitTargetsAtPlayhead
+        let nodes = snapshot?.nodes ?? []
+        if targets.isEmpty, !selectedIDs.isEmpty,
+           TimelineEditingTargets.selectedClipIDs(nodes: nodes, selectedIDs: selectedIDs).isEmpty {
+            notice = "⌘K cuts the selected clip. Select a clip under the playhead, or click empty track space to deselect and cut every track."
+            return
+        }
+        splitSegments(targets, at: playheadFrame)
+        if selectedIDs.isEmpty, targets.count > 1 {
+            notice = "Nothing was selected, so ⌘K cut all \(targets.count) clips under the playhead (⌘Z to undo)."
+        }
     }
 
     func deleteSelection() {
