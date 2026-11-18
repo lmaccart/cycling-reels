@@ -47,7 +47,6 @@ class EligibilityTests(unittest.TestCase):
             "punch-ins": props(segments=[{**seg, "punch": [[0, 1.2, 0.5, 0.5]]}]),
             "blur": props(segments=[{**seg, "blur": [{"strength": 20, "keys": [[0, 0.5, 0.5, 0.2, 0.2]]}]}]),
             "photo cutaway": props(segments=[{**seg, "cutaways": [{"kind": "photo", "src": "c.jpg", "startFrame": 0, "durationInFrames": 9}]}]),
-            "stat pills": props(stats=[{"label": "speed"}]),
             "route map": props(routes=[{}]),
             "progress bar": props(progress=[{}]),
             "exhibits": props(exhibits=[{}]),
@@ -64,6 +63,41 @@ class EligibilityTests(unittest.TestCase):
 
     def test_crossfade_on_the_first_segment_is_ignored(self):
         self.assertIsNone(overlay.why_not(props(segments=[{**props()["segments"][0], "transitionInFrames": 8}])))
+
+
+class StatPillTests(unittest.TestCase):
+    def chip(self, **over):
+        return {"label": "speed", "startFrame": 10, "endFrame": 50, **over}
+
+    def test_stats_no_longer_need_the_full_render(self):
+        self.assertIsNone(overlay.why_not(props(stats=[self.chip()])))
+
+    def test_fade_in_hold_fade_out_frames(self):
+        c = self.chip()
+        self.assertEqual([overlay._chip_state(c, f)[1] for f in range(10, 14)], [0, 1, 2, 3])  # fade in
+        self.assertEqual(overlay._chip_state(c, 14)[1], "static")
+        self.assertEqual(overlay._chip_state(c, 46)[1], "static")
+        self.assertEqual([overlay._chip_state(c, f)[1] for f in range(47, 50)], [37, 38, 39])  # fade out
+
+    def test_short_owned_pill_does_not_fade(self):
+        c = self.chip(endFrame=16, ownerSegmentIndex=0)
+        self.assertTrue(all(overlay._chip_state(c, f)[1] == "static" for f in range(10, 16)))
+        c2 = self.chip(endFrame=16)  # not owned: still fades
+        self.assertEqual(overlay._chip_state(c2, 10)[1], 0)
+
+    def test_live_value_steps(self):
+        c = self.chip(live={"values": ["1", "2", "3"], "everyFrames": 5})
+        self.assertEqual([overlay._chip_state(c, f)[2] for f in (10, 14, 15, 19, 20, 30, 49)], [0, 0, 1, 1, 2, 2, 2])
+
+    def test_spans_split_on_chip_changes_and_cover_every_frame(self):
+        p = props(stats=[self.chip(live={"values": ["a", "b"], "everyFrames": 20})])
+        sp = overlay.spans(p)
+        self.assertEqual(sum(n for _, n in sp), 90)
+        starts = [s for s, _ in sp]
+        self.assertIn(30, starts)  # live value steps
+        self.assertIn(10, starts)
+        self.assertIn(50, starts)  # pill gone
+        self.assertEqual(overlay.frame_state(p, 60), ())
 
 
 class SpanTests(unittest.TestCase):

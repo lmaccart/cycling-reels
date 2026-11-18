@@ -98,12 +98,13 @@ export const CyclingReel: React.FC<ReelProps> = (p) => {
   );
 };
 
-// The text and the vignette only, on a transparent background: the reels CLI renders stills of this
+// The text, stat pills and the vignette only, on a transparent background: the reels CLI renders stills of this
 // for reels whose picture is plain footage (cuts and cutaways) and lays them over the clips with ffmpeg,
 // instead of screenshotting every frame. Same components as above, so the text looks identical.
 export const ReelOverlay: React.FC<ReelProps> = (p) => (
   <AbsoluteFill>
     <Vignette />
+    <StatChips stats={p.stats} />
     <TextLayers {...p} />
   </AbsoluteFill>
 );
