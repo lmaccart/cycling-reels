@@ -291,6 +291,15 @@ class PositionedRenderTests(unittest.TestCase):
         self.assertEqual(lower["position"], "lower")
         self.assertNotEqual(upper["position"], "lower")
 
+    def test_speech_captions_avoid_exhibits_on_every_track(self):
+        # captions draw above every track, so a V1 voice clip's captions must clear an exhibit owned by V2
+        from reels.exhibits import make_room
+        obstacle = {"props": {"startFrame": 0, "endFrame": 30, "x": 540, "y": 1300,
+                              "width": 900, "height": 200, "ownerSegmentIndex": 1}}
+        page = {"startFrame": 0, "endFrame": 30, "words": [{"text": "hello"}], "ownerSegmentIndex": 0}
+        make_room([obstacle], None, [], [page], [], 30, positioned=True)
+        self.assertIn("offsetBottom", page)
+
     def test_global_exhibit_renders_in_gap_and_chart_uses_top_track(self):
         from PIL import Image
         from reels.render import build, stage
@@ -394,3 +403,29 @@ class PositionedRenderTests(unittest.TestCase):
         self.assertLess(float(np.sqrt(np.mean(gap**2))), .005)
         for name, content in originals.items():
             self.assertEqual((project.media_dir / f"{name}.mp4").read_bytes(), content)
+
+
+@unittest.skipUnless(shutil.which("node") and (ROOT / "remotion/node_modules/esbuild").exists(),
+                     "node and esbuild required")
+class CaptionLayerTests(unittest.TestCase):
+    def test_owned_captions_draw_in_the_top_layer(self):
+        """A voice clip on V1 under footage on V2: its captions must not be grouped with (and hidden under) V1."""
+        script = """
+const { build } = require('esbuild');
+globalThis.FontFace = class { load() { return Promise.resolve(this); } };  // fonts.ts runs at import
+globalThis.document = {fonts: {add() {}}};
+build({stdin: {contents: "export { ownerProps } from './src/components/PlacedSegments';",
+               resolveDir: process.cwd(), loader: 'ts'},
+       bundle: true, write: false, platform: 'node', format: 'cjs', logLevel: 'silent',
+       loader: {'.woff2': 'empty'}}).then((r) => {
+  const m = {exports: {}}; new Function('module', 'exports', 'require', r.outputFiles[0].text)(m, m.exports, require);
+  const page = {startFrame: 0, endFrame: 30, words: [], ownerSegmentIndex: 0};
+  const props = {captions: [page], beats: [{ownerSegmentIndex: 0}], stats: [], hook: null, endCard: null};
+  const own = (i) => m.exports.ownerProps(props, i);
+  console.log(JSON.stringify({seg0: own(0).captions.length, top: own(null).captions.length,
+                              beats0: own(0).beats.length, beatsTop: own(null).beats.length}));
+});
+"""
+        out = subprocess.run(["node", "-e", script], cwd=ROOT / "remotion", capture_output=True, text=True, timeout=120)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout), {"seg0": 0, "top": 1, "beats0": 1, "beatsTop": 0})
