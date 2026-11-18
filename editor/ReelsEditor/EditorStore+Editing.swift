@@ -29,8 +29,11 @@ enum TimelineEditingTargets {
         let segments = OptimisticTimeline.segments(nodes).filter {
             frame > $0.startFrame && frame < $0.endFrame && canSplit(node: $0)
         }
+        // Only a clip selection narrows the split: a selected caption, sound or text isn't a clip,
+        // so with one of those selected ⌘K cuts every clip under the playhead, as with nothing selected.
+        let clipSelected = nodes.contains { selectedIDs.contains($0.id) && $0.kind.lowercased() == "segment" }
         let selected = segments.filter { selectedIDs.contains($0.id) }
-        return (selectedIDs.isEmpty ? segments : selected).map(\.id)
+        return (clipSelected ? selected : segments).map(\.id)
     }
 
     static func flaggedDrop(id: String, flags: [ClipFlag], library: [JSONValue])
@@ -109,6 +112,10 @@ extension EditorStore {
 
     func splitSegments(_ ids: [String], at frame: Int) {
         let validIDs = eligibleSplitIDs(ids)
+        guard !validIDs.isEmpty else {
+            notice = "Nothing to split here: move the playhead inside the selected clip (and unlock its track)."
+            return
+        }
         let operations = validIDs.map { id in JSONValue.object([
             "op": .string("split_segment"), "id": .string(id), "atFrame": .number(Double(frame))
         ]) }

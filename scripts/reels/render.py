@@ -445,10 +445,28 @@ def _clean_word(w: str) -> str:
     return re.sub(r"[,.;:]+$", "", w)
 
 
+def caption_page_config(base: dict, override: Any, errors: list[str]) -> dict:
+    """The project's caption page limits, with a plan's top-level "captions" overriding them for that reel."""
+    cfg = dict(base)
+    if override is None:
+        return cfg
+    if not isinstance(override, dict):
+        errors.append('captions must be an object like {"maxWordsPerPage": 4, "maxCharsPerPage": 20}')
+        return cfg
+    for key, value in override.items():
+        if key not in ("maxWordsPerPage", "maxCharsPerPage"):
+            errors.append(f"captions: unknown setting {key!r} (maxWordsPerPage, maxCharsPerPage)")
+        elif type(value) is not int or value < 1:
+            errors.append(f"captions.{key} must be a whole number of at least 1")
+        else:
+            cfg[key] = value
+    return cfg
+
+
 def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[dict]:
     a, b, speed = sg.spec["in"], sg.spec["out"], sg.spec["speed"]
     items: list[list[Any]] = []
-    for w in words:
+    for wi, w in enumerate(words):
         if w["e"] <= a + 0.02 or w["s"] >= b - 0.02:
             continue
         text = _clean_word(str(w["w"]))
@@ -457,7 +475,7 @@ def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[d
         s, e = max(w["s"], a), min(w["e"], b)
         sf = sg.start + round((s - a) / speed * fps)
         ef = max(sf + 1, sg.start + round((e - a) / speed * fps))
-        items.append([text, sf, ef, str(w["w"]).strip()])
+        items.append([text, sf, ef, str(w["w"]).strip(), wi, w["s"]])
 
     max_words, max_chars = int(cfg["maxWordsPerPage"]), int(cfg["maxCharsPerPage"])
     pages: list[list[list[Any]]] = []
@@ -491,7 +509,9 @@ def caption_pages_for(sg: Seg, words: list[dict], fps: int, cfg: dict) -> list[d
             {
                 "startFrame": start,
                 "endFrame": end,
-                "words": [{"text": t, "startFrame": sf, "endFrame": min(ef, end)} for t, sf, ef, _ in pg],
+                # index/w/s point back at the transcript word, for the editor's word corrections
+                "words": [{"text": t, "startFrame": sf, "endFrame": min(ef, end), "index": wi, "w": raw, "s": src}
+                          for t, sf, ef, raw, wi, src in pg],
             }
         )
     return out
@@ -1198,6 +1218,7 @@ def _build(project: Project, plan: dict, *, timing_only: bool = False,
     if positioned(plan):
         loop = False  # explicit placements are never retimed to a loop/bar grid
     check_spine(plan, errors)
+    caption_cfg = caption_page_config(project.config["captions"], plan.get("captions"), errors)
     grading.check("plan", plan.get("grade"), errors)
     for i, s in enumerate(plan.get("segments") or []):
         if isinstance(s, dict):
@@ -1260,7 +1281,7 @@ def _build(project: Project, plan: dict, *, timing_only: bool = False,
                 warnings.append(f"segment {sg.index + 1}: swearing not bleeped ({', '.join(left)}) — add \"bleep\": true or cut around it")
         if sg.spec["captions"] == "transcript":
             aid = sg.asset["id"]
-            got = caption_pages_for(sg, masked_words(sg.spec, transcripts[aid].get("words") or []), fps, project.config["captions"])
+            got = caption_pages_for(sg, masked_words(sg.spec, transcripts[aid].get("words") or []), fps, caption_cfg)
             if not got:
                 warnings.append(f"segment {sg.index + 1}: no transcript words between {sg.spec['in']}s and {sg.spec['out']}s")
             warnings += caption_cuts(sg, transcripts[aid].get("words") or [])
