@@ -35,6 +35,10 @@ DEFAULTS: dict[str, Any] = {
         "concurrency": None,
         "browserExecutable": None,
         "keepStaging": False,
+        "stageWorkers": None,  # clips staged at once (ffmpeg jobs); null = min(4, cores/2)
+        "stageSphereWorkers": 1,  # of those, Metal 360 renders at once (they share the GPU + hardware encoder)
+        "stageCache": True,  # reuse staged clips across `./reels render` runs (.cache/render/staged); --no-stage-cache bypasses
+        "stageCacheGB": 10,  # size cap of that cache (least recently used go first); 0 = off
         "punchStageScale": 1.4,  # punch-in segments are staged at their punch scale, up to this (when the source has the detail); 1 = off
         # colour grade on every clip (grade.py): look none|house|moody (default none: colour-space fix only), strength 0–1.5, rescue auto|off|0–1 (grey-day local contrast + sky)
         "grade": {"look": "none", "strength": 1.0, "rescue": "auto"},

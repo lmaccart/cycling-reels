@@ -629,7 +629,7 @@ def cmd_render(project: Project, args) -> int:
         auto_event(project, "render-attempt", f"Rendering {Path(p).name}")
         started = time.monotonic()
         try:
-            result = render_plan(project, p, keep_staging=args.keep_staging)
+            result = render_plan(project, p, keep_staging=args.keep_staging, stage_cache=not args.no_stage_cache)
             auto_event(project, "render-success", f"Rendered {Path(p).name} in {time.monotonic() - started:.1f}s", slug=result.get("slug"))
         except ReelsError as e:
             failed += 1
@@ -1043,6 +1043,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("render", help="render plan files to out/<slug>/reel.mp4")
     s.add_argument("plans", nargs="+")
     s.add_argument("--keep-staging", action="store_true")
+    s.add_argument("--no-stage-cache", action="store_true", help="re-stage every clip instead of reusing clips from earlier renders")
     s.set_defaults(fn=cmd_render)
 
     s = sub.add_parser(
