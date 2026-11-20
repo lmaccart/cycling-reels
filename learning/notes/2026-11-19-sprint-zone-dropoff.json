@@ -1,0 +1,39 @@
+{
+  "strengths": [
+    "audience: 2026-11-16-sprint-zone-nov-26 (41.6 s voiceover over 360 sprint, posted Wed 11-18 10:00) is the account's best reel so far at ~1 day old: avg watch 17.2 s (others 5-13 s), 43 likes, 5 comments, 5 shares, reach 1378, 1.43 views/reach. TikTok 257 views, 41 likes, 8 comments"
+  ],
+  "weaknesses": [
+    "audience: sprint-zone-nov-26 3 s hold 61% vs 75-77% for the best group-ride reels; watch-through 41% (average viewer leaves ~17 s into 41.6 s)"
+  ],
+  "lessons": [
+    {
+      "id": "aud-sprintzone-01",
+      "category": "audience",
+      "observation": "Sprint Zone opened on 'welcome back to another episode of rice's sprint zone' over the calm group rolling, with no action at 0 s; the 3 s hold was 61% vs ~76% for group-ride reels that open mid-action",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-19 (brand 7655493): reelId 18134997751795199, IGRE28 61.0, avg watch 17.178 s, reach 1378, views 1966",
+        "out/2026-11-16-sprint-zone-nov-26/look/strip-01.jpg 0-3 s"
+      ],
+      "confidence": "low",
+      "state": "tentative",
+      "nextAction": "next Sprint Zone: open on the attack (e.g. Owen out of the saddle, 'here it does'); move 'welcome back to sprint zone' a beat later or into the caption",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-sprintzone-02",
+      "category": "audience",
+      "observation": "Likely drop points in sprint-zone-nov-26, inferred from frames (Metricool gives no retention curve, IGRE27 null): 16-20 s the 360 view swings onto the down tube/saddle while the voice lists names (Vivian, Zhicheng, Annika) strangers don't know; 22-30 s Owen shrinks into the distance under one run-on sentence with nothing changing on screen; 33-37 s the down tube blocks the actual pass, so the payoff is hard to see",
+      "evidence": [
+        "out/2026-11-16-sprint-zone-nov-26/look/strip-01.jpg 16-19 s, strip-02.jpg 22-30 s and 33-37 s",
+        "avg watch 17.2 s lands in the 16-20 s stretch"
+      ],
+      "confidence": "low",
+      "state": "tentative",
+      "nextAction": "next Sprint Zone: name only the 1-2 people in the story; re-aim the 360 path (or cut to a front view) wherever the frame blocks the view, especially the pass; trim run-on narration and dead stretches, aiming for ~25-30 s; ask the user for the Instagram in-app retention graph to confirm the real drop points",
+      "reviewDate": "2026-11-29"
+    }
+  ],
+  "proposals": [
+    "ask the user for a screenshot of the Instagram in-app retention graph for sprint-zone-nov-26 and the Halloween sprint zone (Fri 11-20) to check aud-sprintzone-02; Metricool doesn't send the curve"
+  ]
+}

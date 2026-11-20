@@ -38,40 +38,88 @@ a person or real voice in the first shot holds better than scenery openings
 
 ## aud-overheard-01 (audience, active, medium confidence)
 
-overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but get the lowest likes/reach, no shares, and no visible follower bump
+overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but at 9-10 days still get the lowest likes/reach, no shares and no visible follower bump
 
-- Evidence: analytics/2026-11-16T045153.json: maine reach 1480 hold 76.2% likes 0.9% 0 shares (5.2 d); overheard reach 1274 hold 76.5% likes 0.6% 0 shares (4.2 d); regroup reach 571 hold 75.6% likes 0.9% (8.2 d); analytics/account/2026-11-16T045153.json: +4/+4/+3 followers on 11-10/11/12, same as quieter days
-- Next action: keep at most one overheard reel a week for reach; give it a payoff or a send-able line
-- Review by: 2026-11-22
+- Evidence: Metricool IGRE pull 2026-11-20: maine reach 1533 hold 75.5% likes 0.9% 0 shares (9.8 d); overheard reach 1328 hold 76.1% likes 0.6% 0 shares (8.8 d); Metricool IGEV pull 2026-11-20: +4/+4 followers on 11-10/11, same as quieter days
+- Next action: keep at most one overheard reel a week for reach; give it a payoff or a line people would send
+- Review by: 2026-11-29
 
 ## aud-tiktok-01 (audience, tentative, low confidence)
 
-TikTok gets 20-60% of Instagram's views for the same reel but more likes per view and more comments; overheard audio travels worst there
+TikTok gets ~20-60% of Instagram's views per reel; close-calls is the exception (288 vs 385)
 
-- Evidence: analytics/tiktok/2026-11-15T205020.json vs analytics/2026-11-15T204950.json: bridge-sprint 948 vs 2086 views, TT likes/view 1.9% vs IG 0.7%; overheard 336 vs 1863 (18%); angel 330 vs 290; TikTok 4 comments across 6 videos vs ~1 on IG for the same 6
-- Next action: pull TikTok weekly; compare per reel once 5+ are 7 days old; don't plan TikTok-specific content yet
-- Review by: 2026-11-22
+- Evidence: Metricool TKPO pull 2026-11-20: bridge-sprint 970 vs IG 2241, overheard 347 vs 1953, close-calls 288 vs 385; reach/watch/followers still null
+- Next action: keep pulling weekly; no TikTok-specific content yet
+- Review by: 2026-11-29
 
-## aud-story-reach-01 (audience, tentative, low confidence)
+## aud-story-reach-01 (audience, active, low confidence)
 
-a short 360 group-ride story built on a group-ride rule got overheard-level reach and the account's first real shares at that reach
+group-ride stories with a teammate and a payoff can get overheard-level reach and real engagement together: every-bridge-sprint-zone (reach 1499, 5 shares) and sprint-zone-nov-26 (reach 1402, 3.9% engagement, 5 comments, 5 shares, +9 followers that day)
 
-- Evidence: analytics/2026-11-15T204950.json: every-bridge-sprint-zone 12.1 s, reach 1403, hold 76.8%, watch-through 75.2%, 5 shares (0.4%), 0.8 d old; overheard reels at similar reach had 0 shares
-- Next action: re-check at 7 d; plan another 10-13 s group-ride rule/story reel and compare shares with the overheard reel that week
-- Review by: 2026-11-22
+- Evidence: Metricool IGRE pull 2026-11-20 (brand 7655493): reelId 18442687417194119 reach 1499 shares 5 (5.8 d); reelId 18134997751795199 reach 1402 likes 43 comments 5 shares 5 saves 2 avg watch 17.147 s (2.1 d); Metricool IGEV pull 2026-11-20: 11-18 followers 41 -> 50, accounts engaged 59
+- Next action: make more voice-over stories with a teammate as the character and a visible payoff; check whether reach and engagement come together again
+- Review by: 2026-11-29
 
-## aud-personal-01 (audience, tentative, low confidence)
+## aud-personal-01 (audience, active, medium confidence)
 
-the rider's own talking/series reels get the highest likes, shares and saves per reach even with lower 3 s hold
+the rider's own talking/series/trend reels keep the highest engagement per reach at 7+ days, but lower reach and 3 s hold
 
-- Evidence: analytics/2026-11-16T045153.json: road-to-5-ep1 4.8% engagement (2.5 d), creatine 3.7% with 4 shares + 2 saves (3.2 d), club-ride-downtown 4.7% (7.2 d) vs overheard 0.6-0.9%
-- Next action: re-check at 7 d; tighten the first 3 s of talking reels (open on the line, not the setup)
-- Review by: 2026-11-22
+- Evidence: Metricool IGRE pull 2026-11-20: road-to-5-ep1 4.3% (7.1 d), creatine 3.4% + 0.7% shares (7.8 d), i-have-plans 4.4% (5.1 d), crit-shenanigans 4.7% (4.1 d), this-is-my-art 7.9% (3.1 d); overheard reels 0.6-1.0%
+- Next action: keep these as the engagement core; work on their first 3 s (open on the line or the punchline, not the setup)
+- Review by: 2026-11-29
 
-## aud-followers-01 (audience, tentative, low confidence)
+## aud-followers-01 (audience, active, low confidence)
 
-followers grow ~3-5 a day regardless of which reel posted; reach spikes don't show up as follower spikes
+followers grow ~3 a day regardless of reach; 11-18 (sprint-zone-nov-26) is the first day clearly above it (+9)
 
-- Evidence: analytics/account/2026-11-16T045153.json: 14 (11-08), 19, 23, 27, 30, 33, 36 (11-14); account reach 324-1612 those days
-- Next action: ask the user to open Metricool before the next pull so the count refreshes; compare against the profile number
-- Review by: 2026-11-22
+- Evidence: Metricool IGEV pull 2026-11-20: 14 (11-08), 19, 23, 27, 30, 33, 36, 39, 40, 41, 50 (11-18), 52 (11-19); account reach 1612 on 11-10 gave +4
+- Next action: watch whether the next teammate story day beats +3 again; compare Metricool's count with the profile
+- Review by: 2026-11-29
+
+## aud-sprintzone-01 (audience, tentative, low confidence)
+
+Sprint Zone opened on 'welcome back to another episode of rice's sprint zone' over the calm group rolling, with no action at 0 s; the 3 s hold was 61% vs ~76% for group-ride reels that open mid-action
+
+- Evidence: Metricool IGRE pull 2026-11-19 (brand 7655493): reelId 18134997751795199, IGRE28 61.0, avg watch 17.178 s, reach 1378, views 1966; out/2026-11-16-sprint-zone-nov-26/look/strip-01.jpg 0-3 s
+- Next action: next Sprint Zone: open on the attack (e.g. Owen out of the saddle, 'here it does'); move 'welcome back to sprint zone' a beat later or into the caption
+- Review by: 2026-11-29
+
+## aud-sprintzone-02 (audience, tentative, low confidence)
+
+Likely drop points in sprint-zone-nov-26, inferred from frames (Metricool gives no retention curve, IGRE27 null): 16-20 s the 360 view swings onto the down tube/saddle while the voice lists names (Vivian, Zhicheng, Annika) strangers don't know; 22-30 s Owen shrinks into the distance under one run-on sentence with nothing changing on screen; 33-37 s the down tube blocks the actual pass, so the payoff is hard to see
+
+- Evidence: out/2026-11-16-sprint-zone-nov-26/look/strip-01.jpg 16-19 s, strip-02.jpg 22-30 s and 33-37 s; avg watch 17.2 s lands in the 16-20 s stretch
+- Next action: next Sprint Zone: name only the 1-2 people in the story; re-aim the 360 path (or cut to a front view) wherever the frame blocks the view, especially the pass; trim run-on narration and dead stretches, aiming for ~25-30 s; ask the user for the Instagram in-app retention graph to confirm the real drop points
+- Review by: 2026-11-29
+
+## aud-length-02 (audience, tentative, low confidence)
+
+reels over ~22 s get 31-42% watch-through; only sprint-zone-nov-26 turned length into the account's longest average watch (17.1 s)
+
+- Evidence: Metricool IGRE pull 2026-11-20: close-calls 31.1% (26.7 s, 1.1 d), road-to-5-ep1 33.2% (40 s), creatine 38.6% (33.5 s), sprint-zone-nov-26 ~41% (17.147 s / 41.6 s), crit-shenanigans 42.3% (22.8 s); 7-13 s reels 55-102%
+- Next action: cap talking reels around 25 s unless there's a clear payoff; cut dead stretches and run-on narration
+- Review by: 2026-11-29
+
+## aud-hold-02 (audience, tentative, low confidence)
+
+3 s hold fell to 57% in the week of 11-16 (65% the week before) as more reels opened on talking or close-call setups; 360 group-ride openers hold ~76%
+
+- Evidence: Metricool IGRE pull 2026-11-20: IGRE28 crit-shenanigans 54.4, this-is-my-art 54.6, close-calls 55.4, sprint-zone-nov-26 60.6, road-to-5-ep2 62.0 (young); bridge-sprint 76.1, overheard 76.1, maine 75.5
+- Next action: open talking reels on the line itself (or mid-action), not on a setup or intro
+- Review by: 2026-11-29
+
+## aud-trend-01 (audience, tentative, low confidence)
+
+copying a trend's actual on-screen format (Strava art 'this is my art') earned the account's best engagement per reach
+
+- Evidence: Metricool IGRE pull 2026-11-20: this-is-my-art reach 354, likes 24, comments 3, saves 1 = 7.9% engagement (3.1 d); i-have-plans 4.4% (5.1 d)
+- Next action: do more trend formats with the trend's own styling when the footage fits
+- Review by: 2026-11-29
+
+## prod-matching-01 (production, active, high confidence)
+
+a reel posted at a different time than its post.json slot, or with its caption edited in Metricool, drops out of the stats tables
+
+- Evidence: ./reels stats import 2026-11-20: UNMATCHED reel 18134997751795199 (sprint-zone-nov-26, posted 11-18 16:10Z, slot 11-19 18:30) and 18188392945420126 (road-to-5-ep2, caption 'shout out gautam for those 4x8s')
+- Next action: when a post moves or its caption changes in Metricool, update that reel's post.json so the next import matches
+- Review by: 2026-11-29

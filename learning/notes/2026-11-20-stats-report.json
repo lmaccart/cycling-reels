@@ -1,0 +1,133 @@
+{
+  "strengths": [
+    "audience: followers 14 (11-08) -> 36 (11-14) -> 52 (11-19), Metricool count; weekly avg reach 246 / 289 / 738 / 496 and engagement per reach 1.2% / 1.2% / 1.9% / 4.6% for the weeks of 10-26, 11-02, 11-09, 11-16 (11-16 week still young)",
+    "audience: 2026-11-16-sprint-zone-nov-26 (41.6 s voiceover story about a teammate, posted 11-18) is the only reel with both high reach and high engagement: reach 1402, 43 likes, 5 comments, 5 shares, 2 saves (3.9%), avg watch 17.1 s (account best); 11-18 was the best account day: +9 followers, 59 accounts engaged (~3x any other day)",
+    "audience: personal / talking / series / trend-format reels get the most response: this-is-my-art 7.9% engagement + 3 comments (account best), crit-shenanigans 4.7%, i-have-plans 4.4%, road-to-5-ep1 4.3%, creatine top shares/reach 0.7%",
+    "audience: 360 group-ride reels bring reach: overheard / maine / bridge sprint zone each 1300-1500 reach at ~76% 3 s hold; reels using 360 average 484 reach vs 259 without",
+    "audience: trending songs beat the first week's free tracks: free-track montages all sat at 45-58% hold and ~1% engagement"
+  ],
+  "weaknesses": [
+    "audience: reach and engagement mostly come from different reels: overheard reels 1300+ reach but 0.6-1.0% engagement and 0 shares; personal reels 4-8% engagement but 270-590 reach",
+    "audience: long reels lose people: watch-through close-calls 31% (26.7 s, 1 d old), road-to-5-ep1 33% (40 s), creatine 39% (33.5 s), sprint-zone-nov-26 41% (41.6 s), crit-shenanigans 42% (22.8 s)",
+    "audience: 3 s hold dropped to 57% in the week of 11-16 from 65% the week before; talking and close-call openers hold ~54-55% vs ~76% for 360 group-ride openers",
+    "audience: shares and saves still ~0.1% of reach each across the account; only creatine, sprint-zone-nov-26 and every-bridge-sprint-zone earned a few",
+    "audience: followers still ~+3/day; reach spikes (1600-reach days for maine/overheard) gave +4, the same as quiet days; 11-18 (+9) is the first day off that pattern",
+    "audience: TikTok gets ~20-60% of Instagram's views per reel; Metricool sends no TikTok reach/watch/followers and there is no YouTube Shorts data",
+    "production: two posted reels didn't match their out/ records in the 2026-11-20 import, so they're missing from the stats tables: sprint-zone-nov-26 posted 11-18 ~10:10 but post.json still has the 11-19 18:30 slot; road-to-5-ep2 caption was changed in Metricool to 'shout out gautam for those 4x8s'"
+  ],
+  "lessons": [
+    {
+      "id": "aud-story-reach-01",
+      "category": "audience",
+      "observation": "group-ride stories with a teammate and a payoff can get overheard-level reach and real engagement together: every-bridge-sprint-zone (reach 1499, 5 shares) and sprint-zone-nov-26 (reach 1402, 3.9% engagement, 5 comments, 5 shares, +9 followers that day)",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-20 (brand 7655493): reelId 18442687417194119 reach 1499 shares 5 (5.8 d); reelId 18134997751795199 reach 1402 likes 43 comments 5 shares 5 saves 2 avg watch 17.147 s (2.1 d)",
+        "Metricool IGEV pull 2026-11-20: 11-18 followers 41 -> 50, accounts engaged 59"
+      ],
+      "confidence": "low",
+      "state": "active",
+      "nextAction": "make more voice-over stories with a teammate as the character and a visible payoff; check whether reach and engagement come together again",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-personal-01",
+      "category": "audience",
+      "observation": "the rider's own talking/series/trend reels keep the highest engagement per reach at 7+ days, but lower reach and 3 s hold",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-20: road-to-5-ep1 4.3% (7.1 d), creatine 3.4% + 0.7% shares (7.8 d), i-have-plans 4.4% (5.1 d), crit-shenanigans 4.7% (4.1 d), this-is-my-art 7.9% (3.1 d); overheard reels 0.6-1.0%"
+      ],
+      "confidence": "medium",
+      "state": "active",
+      "nextAction": "keep these as the engagement core; work on their first 3 s (open on the line or the punchline, not the setup)",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-overheard-01",
+      "category": "audience",
+      "observation": "overheard group-ride audio reels reach 2-4x more accounts and hold ~76%, but at 9-10 days still get the lowest likes/reach, no shares and no visible follower bump",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-20: maine reach 1533 hold 75.5% likes 0.9% 0 shares (9.8 d); overheard reach 1328 hold 76.1% likes 0.6% 0 shares (8.8 d)",
+        "Metricool IGEV pull 2026-11-20: +4/+4 followers on 11-10/11, same as quieter days"
+      ],
+      "confidence": "medium",
+      "state": "active",
+      "nextAction": "keep at most one overheard reel a week for reach; give it a payoff or a line people would send",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-length-02",
+      "category": "audience",
+      "observation": "reels over ~22 s get 31-42% watch-through; only sprint-zone-nov-26 turned length into the account's longest average watch (17.1 s)",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-20: close-calls 31.1% (26.7 s, 1.1 d), road-to-5-ep1 33.2% (40 s), creatine 38.6% (33.5 s), sprint-zone-nov-26 ~41% (17.147 s / 41.6 s), crit-shenanigans 42.3% (22.8 s); 7-13 s reels 55-102%"
+      ],
+      "confidence": "low",
+      "state": "tentative",
+      "nextAction": "cap talking reels around 25 s unless there's a clear payoff; cut dead stretches and run-on narration",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-hold-02",
+      "category": "audience",
+      "observation": "3 s hold fell to 57% in the week of 11-16 (65% the week before) as more reels opened on talking or close-call setups; 360 group-ride openers hold ~76%",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-20: IGRE28 crit-shenanigans 54.4, this-is-my-art 54.6, close-calls 55.4, sprint-zone-nov-26 60.6, road-to-5-ep2 62.0 (young); bridge-sprint 76.1, overheard 76.1, maine 75.5"
+      ],
+      "confidence": "low",
+      "state": "tentative",
+      "nextAction": "open talking reels on the line itself (or mid-action), not on a setup or intro",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-trend-01",
+      "category": "audience",
+      "observation": "copying a trend's actual on-screen format (Strava art 'this is my art') earned the account's best engagement per reach",
+      "evidence": [
+        "Metricool IGRE pull 2026-11-20: this-is-my-art reach 354, likes 24, comments 3, saves 1 = 7.9% engagement (3.1 d); i-have-plans 4.4% (5.1 d)"
+      ],
+      "confidence": "low",
+      "state": "tentative",
+      "nextAction": "do more trend formats with the trend's own styling when the footage fits",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-followers-01",
+      "category": "audience",
+      "observation": "followers grow ~3 a day regardless of reach; 11-18 (sprint-zone-nov-26) is the first day clearly above it (+9)",
+      "evidence": [
+        "Metricool IGEV pull 2026-11-20: 14 (11-08), 19, 23, 27, 30, 33, 36, 39, 40, 41, 50 (11-18), 52 (11-19); account reach 1612 on 11-10 gave +4"
+      ],
+      "confidence": "low",
+      "state": "active",
+      "nextAction": "watch whether the next teammate story day beats +3 again; compare Metricool's count with the profile",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "aud-tiktok-01",
+      "category": "audience",
+      "observation": "TikTok gets ~20-60% of Instagram's views per reel; close-calls is the exception (288 vs 385)",
+      "evidence": [
+        "Metricool TKPO pull 2026-11-20: bridge-sprint 970 vs IG 2241, overheard 347 vs 1953, close-calls 288 vs 385; reach/watch/followers still null"
+      ],
+      "confidence": "low",
+      "state": "tentative",
+      "nextAction": "keep pulling weekly; no TikTok-specific content yet",
+      "reviewDate": "2026-11-29"
+    },
+    {
+      "id": "prod-matching-01",
+      "category": "production",
+      "observation": "a reel posted at a different time than its post.json slot, or with its caption edited in Metricool, drops out of the stats tables",
+      "evidence": [
+        "./reels stats import 2026-11-20: UNMATCHED reel 18134997751795199 (sprint-zone-nov-26, posted 11-18 16:10Z, slot 11-19 18:30) and 18188392945420126 (road-to-5-ep2, caption 'shout out gautam for those 4x8s')"
+      ],
+      "confidence": "high",
+      "state": "active",
+      "nextAction": "when a post moves or its caption changes in Metricool, update that reel's post.json so the next import matches",
+      "reviewDate": "2026-11-29"
+    }
+  ],
+  "proposals": [
+    "next week: a voice-over teammate story (sprint-zone style) at ~25-30 s, one overheard/360 reel with a send-able line, more trend formats; talking reels open on the line"
+  ]
+}
