@@ -19,7 +19,7 @@ from .sheets import build_sheet
 from .util import ReelsError, log, read_json, warn
 
 PER_SHEET, COLS, TILE_W = 24, 6, 300
-SELECT_BATCH = 90  # frames per ffmpeg call: its expression parser stops at 100 terms
+SELECT_BATCH = 90  # frames per ffmpeg call: a select of ~100+ chained eq() terms nests too deep for its parser
 NEAR = 3  # frames: an event this close to a regular sample is shown on that sample
 VOICE_TIGHT, VOICE_LOW = 10.0, 6.0  # dB the voice sits over the music under it: below = tight / crowded
 NAT_LOW = 3.0  # dB a ride-sound moment should sit over its music
@@ -99,8 +99,9 @@ def sample(total: int, fps: float, every: float, marks: list[tuple[int, str]]) -
 
 
 def extract(reel: Path, frames: list[int], td: Path) -> list[Path]:
-    """The given frames as JPEGs, in order. ffmpeg refuses a select expression over 100 terms
-    ("Error while parsing expression"), so long reels are read in batches of SELECT_BATCH."""
+    """The given frames (sorted, unique) as JPEGs, in order. A select of ~100+ chained eq() terms
+    nests too deep for ffmpeg ("Error while parsing expression"), so long reels are read in
+    batches of SELECT_BATCH."""
     files: list[Path] = []
     for b in range(0, len(frames), SELECT_BATCH):
         part = td / f"b{b // SELECT_BATCH:03d}"
@@ -118,6 +119,8 @@ def strips(reel: Path, out_dir: Path, frames: list[tuple[int, str]], fps: float,
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="reels-look-") as td:
         files = extract(reel, [f for f, _ in frames], Path(td))
+        if len(files) != len(frames):
+            warn(f"look: asked ffmpeg for {len(frames)} frames, got {len(files)}; strip labels may be off")
         tiles = []
         for (f, tag), fp in zip(frames, files):
             with Image.open(fp) as im:
