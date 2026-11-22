@@ -177,5 +177,9 @@
     "reason": "Static bike leaning under an awning for about 7 of its 8 minutes, then a brief pickup and roll-off. No speech detected, no usable moments above score 2, stop and arrival already covered in gs070116",
     "at": "2026-11-09T22:57:23+00:00",
     "waiting": "recent"
+  },
+  "deleted": {
+    "at": "2026-11-21T17:58:23+00:00",
+    "reason": "Static bike leaning under an awning for about 7 of its 8 minutes, then a brief pickup and roll-off. No speech detected, no usable moments above score 2, stop and arrival already covered in gs070116"
   }
 }

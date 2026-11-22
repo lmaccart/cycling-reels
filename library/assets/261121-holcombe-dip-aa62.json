@@ -1,0 +1,273 @@
+{
+  "id": "261121-holcombe-dip-aa62",
+  "kind": "video",
+  "media": "library/media/261121-holcombe-dip-aa62.mp4",
+  "originalName": "holcombe_dip.mp4",
+  "hash": "aa6283d6a7a31c665732f55f8f1bdc7f1696f1fd",
+  "created": "2026-11-21T23:48:10",
+  "ingestedAt": "2026-11-21T23:49:11+00:00",
+  "probe": {
+    "duration": 51.251,
+    "width": 1080,
+    "height": 1920,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T23:48:10.000000Z"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "User-edited 9:16 helmet-cam cut of the Saturday group ride through the Holcombe underpass and up the other side, ending at the light",
+    "hooks": [],
+    "location": "Holcombe dip, Houston",
+    "moments": [
+      {
+        "id": "m-bc27ee",
+        "in": 2.0,
+        "out": 22.0,
+        "label": "behind the rider in green kit on an orange bike, downtown towers and blue sky, heading for the underpass",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "effort"
+      },
+      {
+        "id": "m-f99287",
+        "in": 23.0,
+        "out": 28.0,
+        "label": "into the dark underpass behind the red tail light, blown-out exit",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": true,
+        "thread": "down-week-ep1",
+        "beat": "effort"
+      },
+      {
+        "id": "m-7894b7",
+        "in": 28.5,
+        "out": 32.0,
+        "label": "coming past the rider in green on the orange bike up the far side, glass buildings behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "turn"
+      },
+      {
+        "id": "m-5a8e98",
+        "in": 32.0,
+        "out": 42.0,
+        "label": "up the rise under the skybridge, a rider in black far ahead",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "turn"
+      },
+      {
+        "id": "m-cd90f5",
+        "in": 42.0,
+        "out": 46.5,
+        "label": "rider in black on a black bike comes alongside on the left at the top",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "result"
+      },
+      {
+        "id": "m-61d586",
+        "in": 46.5,
+        "out": 51.25,
+        "label": "empty road to the traffic light, towers and trees",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 2.0,
+      "out": 3.46
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 3.46,
+      "out": 13.9
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 13.9,
+      "out": 16.66
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 16.66,
+      "out": 18.88
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 23.9,
+      "out": 25.0
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 25.0,
+      "out": 30.14
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 30.14,
+      "out": 34.57
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 36.0,
+      "out": 39.78
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 41.3,
+      "out": 45.04
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 45.03,
+      "out": 51.25
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 2.0,
+      "out": 3.46
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 3.46,
+      "out": 13.9
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 13.9,
+      "out": 16.66
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 16.66,
+      "out": 18.88
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 23.9,
+      "out": 25.0
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 25.0,
+      "out": 30.14
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 30.14,
+      "out": 34.57
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 36.0,
+      "out": 39.78
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 41.3,
+      "out": 45.04
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 45.03,
+      "out": 51.25
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -16.1,
+      "peakDb": -3.9
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261121-holcombe-dip-aa62-1.jpg",
+    "library/sheets/261121-holcombe-dip-aa62-2.jpg"
+  ],
+  "taggedAt": "2026-11-21T23:51:42+00:00"
+}

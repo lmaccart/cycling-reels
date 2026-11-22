@@ -1,0 +1,316 @@
+{
+  "id": "261121-gs010120-56fb",
+  "kind": "video",
+  "media": "library/media/261121-gs010120-56fb.360",
+  "originalName": "GS010120.360",
+  "hash": "56fbd2aaad0ce68fc0bc6b5ba637670f6a389517",
+  "created": "2026-11-21T07:09:47",
+  "createdCamera": "2026-11-21T08:09:47",
+  "ingestedAt": "2026-11-21T18:07:02+00:00",
+  "probe": {
+    "duration": 284.117,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T08:09:47.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "Group-ride meetup on campus, bike leaning at the bars while teammates gather: banter about getting dropped, almost staying in bed, and stealing oatmeal from the servery",
+    "hooks": [
+      "you dont want to do this right now, but you do want to do this",
+      "nobody is getting dropped today",
+      "i steal oatmeal from the servery"
+    ],
+    "location": "Houston (campus)",
+    "notes": "Bike leaning: use the group angle. Before the Strava ride. Speakers unknown (user doesn't know). Memorial = Memorial Park. Names: Carter, Diego, Gabby, Vivian. Fixed servery, Hanszen.",
+    "angles": {
+      "group": {
+        "yaw": -100.0,
+        "pitch": -10.0,
+        "fov": 100.0,
+        "roll": -150.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-5bf2f4",
+        "in": 119.2,
+        "out": 126.1,
+        "label": "meetup banter: \"just in time to get dropped\" / \"nobody is getting dropped today\" / \"no one is getting dropped today\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "group",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-a22c0a",
+        "in": 138.9,
+        "out": 161.4,
+        "label": "almost skipped: \"last week I was in bed looking at the watch... you dont want to do this right now, but you do want to d",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "group",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "honest",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-efb648",
+        "in": 146.0,
+        "out": 154.0,
+        "label": "teammates in green and yellow with bikes on the brick path in front of the college building, low level view",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.6,
+        "speech": true,
+        "view": "group",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-7567a9",
+        "in": 161.9,
+        "out": 165.8,
+        "label": "\"after your oatmeal youre going to be fine\" / \"this is true, youre going to wake up\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "group",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-cffbf6",
+        "in": 167.2,
+        "out": 186.7,
+        "label": "oatmeal bit: \"I steal oatmeal from the servery\" / \"I have unlimited meal plan\" / \"Im exercising\"",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "group",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-1631d0",
+        "in": 5.2,
+        "out": 24.3,
+        "label": "meetup: \"where's Hanszen bro?\" / \"a large part of Hanszen went to Memorial\" (Memorial Park ride) / \"no way you skip it\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "group",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "\"where's Hanszen\": half of Hanszen went to Memorial (Park) instead"
+      },
+      {
+        "at": 38.0,
+        "label": "calling Carter, who is still asleep"
+      },
+      {
+        "at": 103.0,
+        "label": "\"how do the shifters feel\""
+      },
+      {
+        "at": 119.0,
+        "label": "\"nobody is getting dropped today\""
+      },
+      {
+        "at": 139.0,
+        "label": "almost staying in bed"
+      },
+      {
+        "at": 167.0,
+        "label": "oatmeal from the servery"
+      },
+      {
+        "at": 243.0,
+        "label": "homework complaints, \"question 1 was evil incarnate\""
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261121-gs010120-56fb.json",
+  "used": [
+    {
+      "plan": "2026-11-21-nobody-gets-dropped",
+      "at": "2026-11-21T22:00:41+00:00",
+      "in": 122.5,
+      "out": 123.733
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -25.7,
+      "peakDb": -2.1
+    },
+    "speechSeconds": 264.25,
+    "speechRanges": [
+      [
+        0.09,
+        0.71
+      ],
+      [
+        1.82,
+        4.55
+      ],
+      [
+        4.95,
+        6.79
+      ],
+      [
+        7.13,
+        31.53
+      ],
+      [
+        31.86,
+        32.46
+      ],
+      [
+        34.62,
+        39.75
+      ],
+      [
+        40.22,
+        55.05
+      ],
+      [
+        55.86,
+        57.51
+      ],
+      [
+        59.16,
+        69.67
+      ],
+      [
+        69.98,
+        73.7
+      ],
+      [
+        74.33,
+        82.22
+      ],
+      [
+        83.83,
+        85.26
+      ],
+      [
+        88.82,
+        127.5
+      ],
+      [
+        127.74,
+        133.42
+      ],
+      [
+        133.72,
+        134.15
+      ],
+      [
+        134.74,
+        136.07
+      ],
+      [
+        139.42,
+        218.38
+      ],
+      [
+        218.87,
+        273.06
+      ],
+      [
+        273.5,
+        276.78
+      ],
+      [
+        277.62,
+        283.97
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-gs010120-56fb-1.jpg",
+    "library/sheets/261121-gs010120-56fb-2.jpg",
+    "library/sheets/261121-gs010120-56fb-3.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs010120-56fb.json",
+  "gpsSummary": {
+    "goodSeconds": 102.0,
+    "gaps": 0,
+    "first": 182.2,
+    "last": 284.0,
+    "maxSpeed": 0.38,
+    "movingAvgSpeed": 0.0,
+    "movingSeconds": 0.0,
+    "distance": 9.6,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 16.4,
+    "altMax": 27.0
+  },
+  "strava": null,
+  "taggedAt": "2026-11-21T18:15:54+00:00"
+}

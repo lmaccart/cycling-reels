@@ -74,7 +74,14 @@
     "sounds": []
   },
   "transcript": null,
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 2.4,
+      "out": 4.9
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -39.1,

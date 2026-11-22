@@ -1,0 +1,73 @@
+{
+  "slug": "2026-11-18-sprint-zone-halloween",
+  "postDate": "2026-11-18",
+  "format": "voiceover",
+  "spine": "voice",
+  "autoSfx": false,
+  "segments": [
+    {
+      "asset": "261118-img-3694-aa4f",
+      "in": 164.0,
+      "out": 209.9,
+      "speed": 1.0,
+      "captions": "transcript",
+      "timeline": {
+        "track": "V1",
+        "startFrame": 0,
+        "durationFrames": 1377,
+        "transitionInFrames": 0
+      },
+      "transition": "cut",
+      "volume": 1.4
+    },
+    {
+      "asset": "261119-halloweensprintzone26-0f3b",
+      "in": 0,
+      "out": 45.9,
+      "speed": 1.0,
+      "timeline": {
+        "track": "V2",
+        "startFrame": 0,
+        "durationFrames": 1377,
+        "transitionInFrames": 0
+      },
+      "transition": "cut",
+      "volume": 0.2
+    },
+    {
+      "asset": "261119-halloweensprintzone26-0f3b",
+      "in": 45.9,
+      "out": 50.5,
+      "speed": 1.0,
+      "timeline": {
+        "track": "V2",
+        "startFrame": 1377,
+        "durationFrames": 138,
+        "transitionInFrames": 0
+      },
+      "transition": "cut",
+      "volume": 1.3,
+      "clean": true
+    }
+  ],
+  "timeline": {
+    "version": 1,
+    "fps": 30,
+    "durationFrames": 1515
+  },
+  "captions": {
+    "maxWordsPerPage": 4,
+    "maxCharsPerPage": 22
+  },
+  "post": {
+    "caption": "extra sleep > halloween",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#bikeracing",
+      "#groupride",
+      "#cyclinglife"
+    ],
+    "altText": "Group ride bridge sprint filmed from the bike while the rider narrates attacking early and dropping his friends"
+  }
+}

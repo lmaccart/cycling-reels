@@ -1,0 +1,268 @@
+{
+  "slug": "2026-11-23-down-week-ep1",
+  "postDate": "2026-11-23",
+  "format": "voiceover",
+  "spine": "voice",
+  "autoSfx": false,
+  "titleCard": {
+    "title": "The Down Week",
+    "episode": 1,
+    "subtitle": "bored already",
+    "for": 3.0
+  },
+  "segments": [
+    {
+      "asset": "261121-img-3711-3e11",
+      "in": 18.55,
+      "out": 25.62,
+      "captions": "transcript",
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3711-3e11",
+      "in": 36.26,
+      "out": 40.91,
+      "captions": "transcript",
+      "volume": 1.5,
+      "exhibits": [
+        {
+          "image": "img_3713.png",
+          "at": 0.9,
+          "crop": [
+            0,
+            0.2,
+            1,
+            0.53
+          ],
+          "width": 0.62,
+          "x": 0.5,
+          "y": 0.2,
+          "depth": "behind"
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3711-3e11",
+      "in": 41.97,
+      "out": 45.4,
+      "captions": "transcript",
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3711-3e11",
+      "in": 61.17,
+      "out": 63.45,
+      "captions": "transcript",
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 2.31,
+      "out": 3.77,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 2.0,
+          "out": 3.46
+        }
+      ],
+      "sfx": [
+        {
+          "sound": "holcombe-ride-01",
+          "at": 0,
+          "gain": 0.2
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 4.55,
+      "out": 14.99,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 3.46,
+          "out": 13.9
+        }
+      ],
+      "bleep": true
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 15.57,
+      "out": 18.33,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 13.9,
+          "out": 16.66
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 18.85,
+      "out": 21.07,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 16.66,
+          "out": 18.88
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 23.67,
+      "out": 24.77,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 23.9,
+          "out": 25.0
+        }
+      ],
+      "sfx": [
+        {
+          "sound": "holcombe-ride-02",
+          "at": 0,
+          "gain": 0.2
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 26.43,
+      "out": 31.57,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 25.0,
+          "out": 30.14
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 32.23,
+      "out": 36.66,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 30.14,
+          "out": 34.57
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 37.77,
+      "out": 41.55,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 36.0,
+          "out": 39.78
+        }
+      ],
+      "sfx": [
+        {
+          "sound": "holcombe-ride-03",
+          "at": 0,
+          "gain": 0.2
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 42.57,
+      "out": 46.31,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 41.3,
+          "out": 45.04
+        }
+      ],
+      "sfx": [
+        {
+          "sound": "holcombe-ride-04",
+          "at": 0,
+          "gain": 0.2
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3712-f233",
+      "in": 54.58,
+      "out": 60.8,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-holcombe-dip-aa62",
+          "in": 45.03,
+          "out": 51.25
+        }
+      ],
+      "exhibits": [
+        {
+          "image": "img_3713.png",
+          "at": 0.4,
+          "crop": [
+            0,
+            0.46,
+            1,
+            0.9
+          ],
+          "width": 0.8,
+          "x": 0.5,
+          "y": 0.36
+        }
+      ]
+    }
+  ],
+  "post": {
+    "caption": "sorry diego",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#strava",
+      "#kom",
+      "#groupride"
+    ],
+    "altText": "Rider at a desk on day one of his off week explains a Strava segment his teammate has chased all semester, then narrates helmet-cam footage of the Saturday group ride through the Holcombe underpass and up the other side, ending on the segment screenshot showing his new KOM"
+  },
+  "captions": {
+    "maxWordsPerPage": 4,
+    "maxCharsPerPage": 22
+  }
+}

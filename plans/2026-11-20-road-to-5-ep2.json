@@ -1,0 +1,182 @@
+{
+ "slug": "2026-11-20-road-to-5-ep2",
+ "postDate": "2026-11-20",
+ "format": "story-with-stakes",
+ "spine": "voice",
+ "loop": false,
+ "autoSfx": false,
+ "hook": {
+  "text": "road to 5 w/kg \u00b7 ep 2",
+  "seconds": 3.0
+ },
+ "segments": [
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 360.25,
+   "out": 362.0,
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "volume": 0.2
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 260.45,
+   "out": 263.5,
+   "captions": "transcript",
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "punch": {
+    "words": [
+     "easier"
+    ],
+    "scale": 1.15
+   },
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 264.2,
+   "out": 268.02,
+   "captions": "transcript",
+   "zoom": 1.65,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "progress": {
+    "asOf": "2026-11-19"
+   },
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 268.92,
+   "out": 272.25,
+   "captions": "transcript",
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "cutaways": [
+    {
+     "at": 1.85,
+     "asset": "261109-img-3611-f1c4",
+     "in": 16.7,
+     "out": 18.15
+    }
+   ],
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 273.3,
+   "out": 275.8,
+   "captions": "transcript",
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "cutaways": [
+    {
+     "at": 0.0,
+     "asset": "261109-img-3612-e6dd",
+     "in": 2.4,
+     "out": 4.9
+    }
+   ],
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 275.8,
+   "out": 277.1,
+   "captions": "transcript",
+   "zoom": 1.65,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 277.1,
+   "out": 281.16,
+   "captions": "transcript",
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "cutaways": [
+    {
+     "at": 1.1,
+     "asset": "261112-img-3625-4da4",
+     "in": 0.3,
+     "out": 3.3
+    }
+   ],
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 281.16,
+   "out": 284.5,
+   "captions": "transcript",
+   "zoom": 1.65,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "payoff": true,
+   "punch": {
+    "words": [
+     "all"
+    ],
+    "scale": 1.12
+   },
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 306.55,
+   "out": 311.62,
+   "captions": "transcript",
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "cutaways": [
+    {
+     "at": 0.0,
+     "asset": "261115-img-3664-b925",
+     "in": 0.3,
+     "out": 2.9
+    },
+    {
+     "at": 2.6,
+     "asset": "261115-img-3669-553d",
+     "in": 9.5,
+     "out": 11.96
+    }
+   ],
+   "volume": 1.5
+  },
+  {
+   "asset": "261119-img-3696-be08",
+   "in": 311.68,
+   "out": 314.4,
+   "captions": "transcript",
+   "zoom": 1.5,
+   "focusX": 0.5,
+   "focusY": 0.6,
+   "volume": 1.5
+  }
+ ],
+ "music": {
+  "track": "what-you-waiting-for",
+  "volume": 0.22
+ },
+ "post": {
+  "caption": "ep 2. the 4x8 got a rematch",
+  "hashtags": [
+   "#cycling",
+   "#roadcycling",
+   "#ftp",
+   "#wattsperkilo",
+   "#roadto5"
+  ],
+  "altText": "A cyclist sitting in his room looks back on a week of training: a 2x20, an easy day, a second try at the 4x8 workout he failed the week before, and a three-hour Zwift ride, with clips from those rides."
+ }
+}

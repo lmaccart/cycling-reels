@@ -1,0 +1,156 @@
+{
+  "id": "261121-gs010122-4091",
+  "kind": "video",
+  "media": "library/media/261121-gs010122-4091.360",
+  "originalName": "GS010122.360",
+  "hash": "4091a36b7c2ac3291c5b82bee6f6374087cd6e87",
+  "created": "2026-11-21T08:35:17",
+  "createdCamera": "2026-11-21T09:35:17",
+  "ingestedAt": "2026-11-21T18:07:32+00:00",
+  "probe": {
+    "duration": 43.285,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T09:35:17.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "group",
+    "summary": "Coasting into the mid-ride stop: across a parking lot to a shop front where the group bikes lean on the wall, then a hand on the camera",
+    "hooks": [],
+    "location": "Houston",
+    "notes": "Bar mount upside down: forward = yaw 180 pitch 40 fov 90 roll 180. Strava-linked, ~73 min into the ride. Hand covers the lens from ~0:40.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-19247a",
+        "in": 22.0,
+        "out": 30.0,
+        "label": "rolling across the parking lot toward the shop front, group bikes leaned on the wall",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-819985",
+        "in": 31.0,
+        "out": 37.0,
+        "label": "coasting up to the bike pile at the shop wall, freehub ticking",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [
+      {
+        "at": 33.2,
+        "for": 2.2,
+        "kind": "freehub",
+        "score": 4,
+        "note": "dense even freehub ticking while coasting up to the shop wall, no wind"
+      }
+    ],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "riding along a sidewalk past a parked car"
+      },
+      {
+        "at": 22.0,
+        "label": "parking lot, group bikes at the shop wall"
+      },
+      {
+        "at": 40.0,
+        "label": "hand on the camera"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -21.6,
+      "peakDb": -2.1
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261121-gs010122-4091.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs010122-4091.json",
+  "gpsSummary": {
+    "goodSeconds": 35.4,
+    "gaps": 1,
+    "first": 1.0,
+    "last": 38.0,
+    "maxSpeed": 8.25,
+    "movingAvgSpeed": 5.48,
+    "movingSeconds": 27.0,
+    "distance": 151.5,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -40.4,
+    "altMax": 16.7
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 4385.2,
+    "clock": "gps",
+    "shift": -342.8,
+    "fitMetres": 7.0
+  },
+  "taggedAt": "2026-11-21T18:11:58+00:00"
+}

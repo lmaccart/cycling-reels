@@ -1,0 +1,262 @@
+{
+  "id": "261121-gs010124-9065",
+  "kind": "video",
+  "media": "library/media/261121-gs010124-9065.360",
+  "originalName": "GS010124.360",
+  "hash": "90656124f06442c9a0b053204eebf3a91b365f48",
+  "created": "2026-11-21T10:39:22",
+  "createdCamera": "2026-11-21T11:39:22",
+  "ingestedAt": "2026-11-21T18:08:12+00:00",
+  "probe": {
+    "duration": 354.005,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T11:39:22.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "others",
+    "summary": "Riding back toward town beside a teammate in green and yellow on an orange bike, talking about a rider who got stopped by a state trooper (\"maybe we dont roll stops right in front of a trooper\"), wait at a light under the highway",
+    "hooks": [
+      "maybe we dont roll stops in front of a trooper",
+      "the trooper got one of us"
+    ],
+    "location": "Houston",
+    "notes": "Bar mount. Ticket went to a random rider we watched get pulled over (user 11-21). Trooper not on camera. 0:63 swear: bleep. Speakers unknown. Strava ~197 min in.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      },
+      "right": {
+        "yaw": 120.0,
+        "pitch": 0.0,
+        "fov": 90.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-25d27f",
+        "in": 12.5,
+        "out": 26.3,
+        "label": "riding side by side: \"I was getting a ticket\" / \"sorry dude, that sucks\" / \"maybe we dont roll stops right in front of a",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "right",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-2ab6af",
+        "in": 36.0,
+        "out": 44.0,
+        "label": "waiting at a light under the highway overpass, teammate standing over the orange bike beside me",
+        "score": 3,
+        "focusX": 0.6,
+        "focusY": 0.6,
+        "speech": false,
+        "view": "right",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-e2bbfe",
+        "in": 54.1,
+        "out": 63.9,
+        "label": "stopped at the light under the highway: \"I just saw the trooper flag him down. probably speeding... I didnt see him anyw",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "right",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-7d488d",
+        "in": 96.0,
+        "out": 104.0,
+        "label": "teammate in green and yellow on the orange bike alongside on the right, 35 mph sign, cloudy sky",
+        "score": 4,
+        "focusX": 0.6,
+        "focusY": 0.6,
+        "speech": false,
+        "view": "right",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 12.0,
+        "label": "trooper ticket conversation"
+      },
+      {
+        "at": 36.0,
+        "label": "light under the highway overpass"
+      },
+      {
+        "at": 54.0,
+        "label": "\"I just saw the trooper flag him down\""
+      },
+      {
+        "at": 75.0,
+        "label": "under the overpass"
+      },
+      {
+        "at": 180.0,
+        "label": "riding on alone along a frontage road"
+      },
+      {
+        "at": 300.0,
+        "label": "riders ahead, closer to town"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261121-gs010124-9065.json",
+  "used": [
+    {
+      "plan": "2026-11-21-trooper-ticket",
+      "at": "2026-11-21T23:08:38+00:00",
+      "in": 1.0,
+      "out": 6.2
+    },
+    {
+      "plan": "2026-11-21-trooper-ticket",
+      "at": "2026-11-21T23:08:38+00:00",
+      "in": 12.6,
+      "out": 27.2
+    },
+    {
+      "plan": "2026-11-21-trooper-ticket",
+      "at": "2026-11-21T23:08:38+00:00",
+      "in": 54.15,
+      "out": 57.5
+    },
+    {
+      "plan": "2026-11-21-trooper-ticket",
+      "at": "2026-11-21T23:08:38+00:00",
+      "in": 61.25,
+      "out": 63.4
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -18.5,
+      "peakDb": -3.4
+    },
+    "speechSeconds": 11.44,
+    "speechRanges": [
+      [
+        12.89,
+        14.28
+      ],
+      [
+        15.42,
+        16.04
+      ],
+      [
+        24.38,
+        26.22
+      ],
+      [
+        54.3,
+        56.2
+      ],
+      [
+        56.54,
+        57.74
+      ],
+      [
+        61.14,
+        64.2
+      ],
+      [
+        68.6,
+        69.22
+      ],
+      [
+        75.42,
+        76.23
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-gs010124-9065-1.jpg",
+    "library/sheets/261121-gs010124-9065-2.jpg",
+    "library/sheets/261121-gs010124-9065-3.jpg",
+    "library/sheets/261121-gs010124-9065-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs010124-9065.json",
+  "gpsSummary": {
+    "goodSeconds": 262.4,
+    "gaps": 2,
+    "first": 74.0,
+    "last": 353.8,
+    "maxSpeed": 14.54,
+    "movingAvgSpeed": 9.14,
+    "movingSeconds": 261.8,
+    "distance": 2392.4,
+    "altitudeOk": true,
+    "elevationGain": 18.5,
+    "elevationLoss": 26.5,
+    "altMin": 0.7,
+    "altMax": 28.5
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 11829.1,
+    "clock": "gps",
+    "shift": -343.9,
+    "fitMetres": 4.4
+  },
+  "taggedAt": "2026-11-21T18:16:10+00:00"
+}

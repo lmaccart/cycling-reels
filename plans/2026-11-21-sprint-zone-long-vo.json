@@ -1,0 +1,353 @@
+{
+  "slug": "2026-11-21-sprint-zone-long-vo",
+  "postDate": "2026-11-21",
+  "format": "voiceover",
+  "spine": "voice",
+  "autoSfx": false,
+  "segments": [
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 38.49,
+      "out": 39.8,
+      "view": "rider",
+      "stabilize": "medium",
+      "volume": 0.6,
+      "captions": "transcript"
+    },
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 44.1,
+      "out": 45.95,
+      "view": "rider",
+      "stabilize": "medium",
+      "volume": 0.6,
+      "captions": "transcript"
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 3.05,
+      "out": 9.85,
+      "captions": "transcript",
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs010123-4bb2",
+          "in": 128.0,
+          "out": 155.2,
+          "speed": 4,
+          "view": {
+            "yaw": 180,
+            "pitch": 25,
+            "fov": 90,
+            "roll": 180
+          },
+          "stabilize": "medium"
+        }
+      ],
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 23.08,
+      "out": 23.72,
+      "captions": "transcript",
+      "volume": 1.5,
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs010123-4bb2",
+          "in": 251.5,
+          "out": 252.14,
+          "view": {
+            "yaw": -150,
+            "pitch": 0,
+            "fov": 90,
+            "roll": 180
+          },
+          "stabilize": "medium"
+        }
+      ]
+    },
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 252.14,
+      "out": 258.0,
+      "view": {
+        "yaw": -150,
+        "pitch": 0,
+        "fov": 90,
+        "roll": 180
+      },
+      "stabilize": "medium",
+      "volume": 0.75,
+      "captions": "transcript",
+      "path": [
+        {
+          "at": 3.36,
+          "yaw": -150,
+          "pitch": 0,
+          "fov": 90,
+          "roll": 180
+        },
+        {
+          "at": 5.86,
+          "yaw": -135,
+          "pitch": 0,
+          "fov": 90,
+          "roll": 180
+        }
+      ]
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 15.55,
+      "out": 22.6,
+      "captions": "transcript",
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs010123-4bb2",
+          "in": 265.5,
+          "out": 272.55,
+          "view": {
+            "yaw": 130,
+            "pitch": 0,
+            "fov": 95,
+            "roll": 180
+          },
+          "stabilize": "medium",
+          "path": [
+            {
+              "at": 0,
+              "yaw": 130,
+              "pitch": 0,
+              "fov": 95,
+              "roll": 180
+            },
+            {
+              "at": 4.0,
+              "yaw": 105,
+              "pitch": 0,
+              "fov": 95,
+              "roll": 180
+            },
+            {
+              "at": 7.05,
+              "yaw": 85,
+              "pitch": 0,
+              "fov": 95,
+              "roll": 180
+            }
+          ]
+        }
+      ],
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 23.72,
+      "out": 30.6,
+      "captions": "transcript",
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs020123-8f4b",
+          "in": 89.54,
+          "out": 96.42,
+          "view": {
+            "yaw": -100,
+            "pitch": 0,
+            "fov": 90,
+            "roll": 180
+          },
+          "stabilize": "medium",
+          "path": [
+            {
+              "at": 1.5,
+              "yaw": -110,
+              "pitch": 0,
+              "fov": 90,
+              "roll": 180
+            },
+            {
+              "at": 5.0,
+              "yaw": -125,
+              "pitch": 0,
+              "fov": 95,
+              "roll": 180
+            },
+            {
+              "at": 6.88,
+              "yaw": -125,
+              "pitch": 0,
+              "fov": 95,
+              "roll": 180
+            }
+          ]
+        }
+      ],
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 79.4,
+      "out": 83.85,
+      "captions": "transcript",
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs020123-8f4b",
+          "in": 138.9,
+          "out": 141.9,
+          "view": {
+            "yaw": 180,
+            "pitch": 25,
+            "fov": 90,
+            "roll": 180
+          },
+          "stabilize": "medium",
+          "path": [
+            {
+              "at": 1.9,
+              "yaw": 180,
+              "pitch": 25,
+              "fov": 90,
+              "roll": 180
+            },
+            {
+              "at": 3.0,
+              "yaw": 12,
+              "pitch": -38,
+              "fov": 65,
+              "roll": 180
+            }
+          ]
+        },
+        {
+          "at": 3.0,
+          "asset": "261121-gs020123-8f4b",
+          "in": 141.9,
+          "out": 142.62,
+          "speed": 0.5,
+          "view": {
+            "yaw": 12,
+            "pitch": -38,
+            "fov": 65,
+            "roll": 180
+          },
+          "stabilize": "medium"
+        }
+      ],
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 32.56,
+      "out": 33.45,
+      "captions": "transcript",
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs020123-8f4b",
+          "in": 181.65,
+          "out": 182.55,
+          "view": {
+            "yaw": -70,
+            "pitch": -15,
+            "fov": 110,
+            "roll": 180
+          },
+          "stabilize": "medium"
+        }
+      ],
+      "volume": 1.5
+    },
+    {
+      "asset": "261121-gs020123-8f4b",
+      "in": 182.55,
+      "out": 185.8,
+      "view": {
+        "yaw": -70,
+        "pitch": -15,
+        "fov": 110,
+        "roll": 180
+      },
+      "stabilize": "medium",
+      "volume": 0.6
+    },
+    {
+      "asset": "261121-img-3710-6b8b",
+      "in": 85.25,
+      "out": 89.65,
+      "captions": "transcript",
+      "cutaways": [
+        {
+          "at": 0,
+          "asset": "261121-gs020123-8f4b",
+          "in": 185.8,
+          "out": 187.6,
+          "view": {
+            "yaw": -50,
+            "pitch": -15,
+            "fov": 100,
+            "roll": 180
+          },
+          "stabilize": "medium"
+        },
+        {
+          "at": 1.8,
+          "asset": "261121-gs020123-8f4b",
+          "in": 187.6,
+          "out": 188.25,
+          "speed": 0.25,
+          "view": {
+            "yaw": -50,
+            "pitch": -15,
+            "fov": 100,
+            "roll": 180
+          },
+          "stabilize": "medium",
+          "path": [
+            {
+              "at": 0,
+              "yaw": -50,
+              "pitch": -15,
+              "fov": 100,
+              "roll": 180
+            },
+            {
+              "at": 1.2,
+              "yaw": -35,
+              "pitch": -15,
+              "fov": 45,
+              "roll": 180
+            },
+            {
+              "at": 2.6,
+              "yaw": -35,
+              "pitch": -15,
+              "fov": 42,
+              "roll": 180
+            }
+          ]
+        }
+      ],
+      "volume": 1.5
+    }
+  ],
+  "post": {
+    "caption": "you guys missed out this morning",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#groupride",
+      "#bikeracing",
+      "#cyclinglife"
+    ],
+    "altText": "360 footage of a Saturday group ride sprint zone: the call at the stop, a long pull, passing the group with a teammate, the finish, and the regroup where the teammate sticks his tongue out, with the rider narrating"
+  },
+  "captions": {
+    "maxWordsPerPage": 4,
+    "maxCharsPerPage": 22
+  }
+}

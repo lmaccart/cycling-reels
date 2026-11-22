@@ -1,0 +1,173 @@
+{
+  "id": "261121-gs010121-8b63",
+  "kind": "video",
+  "media": "library/media/261121-gs010121-8b63.360",
+  "originalName": "GS010121.360",
+  "hash": "8b63f3519c19875b500cd9589f67eba1d742dd15",
+  "created": "2026-11-21T07:42:48",
+  "createdCamera": "2026-11-21T08:42:48",
+  "ingestedAt": "2026-11-21T18:07:19+00:00",
+  "probe": {
+    "duration": 181.845,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T08:42:48.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "others",
+    "summary": "Early sun on a wide empty four-lane road, a teammate in green and yellow riding alongside on the left, then solo along the grass verge until riders come back alongside",
+    "hooks": [
+      "low sun, empty road, one wheel next to you"
+    ],
+    "location": "Houston",
+    "notes": "Bar mount upside down: forward = yaw 180 pitch 40 fov 90 roll 180; left = yaw -120 pitch 0 fov 90 roll 180 shows the rider alongside on the left (my left hand on the hood in the top half). Strava-linked, ~20 min into the ride.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      },
+      "left": {
+        "yaw": -120.0,
+        "pitch": 0.0,
+        "fov": 90.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-d6e1b7",
+        "in": 14.0,
+        "out": 24.0,
+        "label": "teammate in green and yellow alongside on the left, low sun flaring behind him, my hand on the hood",
+        "score": 4,
+        "focusX": 0.3,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "left",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-689032",
+        "in": 28.0,
+        "out": 36.0,
+        "label": "wide empty four-lane road in early sun, low forward view along the grass verge",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-959d21",
+        "in": 164.0,
+        "out": 176.0,
+        "label": "rider in green and yellow coming up alongside on the left, red bike, straight road",
+        "score": 4,
+        "focusX": 0.25,
+        "focusY": 0.55,
+        "speech": false,
+        "view": "left",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 5.0,
+        "label": "teammate alongside on the left, low sun"
+      },
+      {
+        "at": 60.0,
+        "label": "riding alone along the grass verge, four-lane road"
+      },
+      {
+        "at": 160.0,
+        "label": "riders come back alongside"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -20.6,
+      "peakDb": -5.8
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261121-gs010121-8b63-1.jpg",
+    "library/sheets/261121-gs010121-8b63-2.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs010121-8b63.json",
+  "gpsSummary": {
+    "goodSeconds": 126.4,
+    "gaps": 1,
+    "first": 54.0,
+    "last": 181.6,
+    "maxSpeed": 11.94,
+    "movingAvgSpeed": 9.22,
+    "movingSeconds": 126.0,
+    "distance": 1161.8,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 3.4,
+    "altMax": 605.7
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 1237.5,
+    "clock": "gps",
+    "shift": -341.5,
+    "fitMetres": 4.2
+  },
+  "taggedAt": "2026-11-21T18:11:41+00:00"
+}

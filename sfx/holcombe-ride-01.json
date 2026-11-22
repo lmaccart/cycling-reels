@@ -1,0 +1,20 @@
+{
+  "slug": "holcombe-ride-01",
+  "name": "holcombe-ride-01",
+  "category": "nat",
+  "file": "sfx/holcombe-ride-01.wav",
+  "duration": 16.88,
+  "channels": 2,
+  "loudness": -20.0,
+  "peak": -6.6,
+  "normalized": "-20 LUFS / -1.5 dBTP ceiling",
+  "source": "261121-holcombe-dip-aa62",
+  "author": "own footage",
+  "license": "own footage",
+  "addedAt": "2026-11-22T00:01:42+00:00",
+  "tags": [],
+  "sourceAsset": "261121-holcombe-dip-aa62",
+  "in": 2.0,
+  "out": 18.88,
+  "clean": true
+}

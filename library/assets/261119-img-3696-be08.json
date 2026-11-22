@@ -1,0 +1,332 @@
+{
+  "id": "261119-img-3696-be08",
+  "kind": "video",
+  "media": "library/media/261119-img-3696-be08.mov",
+  "originalName": "IMG_3696.MOV",
+  "hash": "be0856821f1430d62090c02c757cec6d0f8d6a47",
+  "created": "2026-11-19T20:18:17",
+  "ingestedAt": "2026-11-20T02:28:29+00:00",
+  "probe": {
+    "duration": 403.468,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.963,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-19T20:18:17-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "selfie",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Seated to-camera VO in his room for Road to 5 W/kg ep 2: several takes looking back on the 2x20, easy Wednesday, the 4x8 redo and the 3 h Zwift Sunday; mic windscreen pops off at 5:14.6",
+    "hooks": [],
+    "moments": [
+      {
+        "id": "m-0e8775",
+        "in": 260.45,
+        "out": 268.02,
+        "label": "to camera in his room: this week's workouts were harder but somehow easier, this is episode two",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "result",
+        "face": true,
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "turn"
+      },
+      {
+        "id": "m-8f1b12",
+        "in": 269.08,
+        "out": 284.5,
+        "label": "to camera: opened with 2x20, easy Wednesday, Thursday the same 4x8 he failed last week, hit the target on all of them",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "result",
+        "face": true,
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "result"
+      },
+      {
+        "id": "m-fc1111",
+        "in": 306.55,
+        "out": 314.4,
+        "label": "to camera: three hours easy on Zwift wasn't so great but got it done; follow along for more progress",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "calm",
+        "line": "result",
+        "face": true,
+        "opener": false,
+        "thread": "road-to-5-ep2",
+        "beat": "result"
+      },
+      {
+        "id": "m-d42f1e",
+        "in": 314.4,
+        "out": 317.3,
+        "label": "mic windscreen pops off mid-word, he looks down at it grinning",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "reaction",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261119-img-3696-be08.json",
+  "used": [
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 360.25,
+      "out": 362.0
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 260.45,
+      "out": 263.5
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 264.2,
+      "out": 268.02
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 268.92,
+      "out": 272.25
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 273.3,
+      "out": 275.8
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 275.8,
+      "out": 277.1
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 277.1,
+      "out": 281.16
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 281.16,
+      "out": 284.5
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 306.55,
+      "out": 311.62
+    },
+    {
+      "plan": "2026-11-20-road-to-5-ep2",
+      "at": "2026-11-20T03:26:52+00:00",
+      "in": 311.68,
+      "out": 314.4
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -32.1,
+      "peakDb": -3.3
+    },
+    "speechSeconds": 156.39,
+    "speechRanges": [
+      [
+        4.6,
+        7.94
+      ],
+      [
+        9.3,
+        11.82
+      ],
+      [
+        25.21,
+        27.46
+      ],
+      [
+        27.74,
+        35.62
+      ],
+      [
+        37.78,
+        39.85
+      ],
+      [
+        40.25,
+        51.88
+      ],
+      [
+        52.6,
+        53.77
+      ],
+      [
+        54.52,
+        57.54
+      ],
+      [
+        57.88,
+        58.5
+      ],
+      [
+        59.35,
+        64.71
+      ],
+      [
+        66.62,
+        67.37
+      ],
+      [
+        68.38,
+        74.02
+      ],
+      [
+        75.0,
+        82.18
+      ],
+      [
+        82.49,
+        84.07
+      ],
+      [
+        88.66,
+        96.01
+      ],
+      [
+        99.8,
+        104.36
+      ],
+      [
+        105.3,
+        117.13
+      ],
+      [
+        117.4,
+        119.08
+      ],
+      [
+        119.35,
+        122.57
+      ],
+      [
+        122.97,
+        125.29
+      ],
+      [
+        127.64,
+        130.31
+      ],
+      [
+        130.81,
+        132.3
+      ],
+      [
+        182.14,
+        187.3
+      ],
+      [
+        235.99,
+        240.65
+      ],
+      [
+        241.34,
+        247.85
+      ],
+      [
+        250.42,
+        252.62
+      ],
+      [
+        260.92,
+        263.88
+      ],
+      [
+        264.18,
+        268.39
+      ],
+      [
+        268.76,
+        284.78
+      ],
+      [
+        286.36,
+        291.85
+      ],
+      [
+        292.76,
+        294.25
+      ],
+      [
+        302.39,
+        311.98
+      ],
+      [
+        312.25,
+        314.76
+      ],
+      [
+        342.14,
+        344.81
+      ],
+      [
+        375.58,
+        376.2
+      ],
+      [
+        384.25,
+        385.35
+      ],
+      [
+        400.47,
+        401.54
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261119-img-3696-be08-1.jpg",
+    "library/sheets/261119-img-3696-be08-2.jpg",
+    "library/sheets/261119-img-3696-be08-3.jpg",
+    "library/sheets/261119-img-3696-be08-4.jpg"
+  ],
+  "taggedAt": "2026-11-20T02:33:40+00:00"
+}

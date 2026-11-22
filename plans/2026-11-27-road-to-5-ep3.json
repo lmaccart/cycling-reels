@@ -1,0 +1,22 @@
+{
+ "slug": "2026-11-27-road-to-5-ep3",
+ "postDate": "2026-11-27",
+ "format": "story-with-stakes",
+ "spine": "voice",
+ "loop": false,
+ "autoSfx": false,
+ "hook": {"text": "road to 5 w/kg · ep 3", "seconds": 3.0},
+ "music": {"track": "what-you-waiting-for", "volume": 0.22},
+ "segments": [
+  {"asset": "261117-img-3675-5272", "in": 5.15, "out": 11.95, "captions": "transcript", "volume": 1.5},
+  {"asset": "261117-img-3676-e8ef", "in": 0.4, "out": 3.1, "captions": "transcript", "volume": 1.5},
+  {"asset": "261117-img-3677-0c5a", "in": 0.72, "out": 3.9, "captions": "transcript", "volume": 1.5},
+  {"asset": "261117-img-3677-0c5a", "in": 13.25, "out": 18.6, "captions": "transcript", "volume": 1.5},
+  {"asset": "261117-img-3678-caa2", "in": 0.0, "out": 4.1, "captions": "transcript", "volume": 1.5, "payoff": true, "progress": {"asOf": "2026-11-17"}}
+ ],
+ "post": {
+  "caption": "ep 3. 3x12, all on pace",
+  "hashtags": ["#cycling", "#roadcycling", "#ftp", "#wattsperkilo", "#roadto5"],
+  "altText": "A cyclist films selfies through a 3x12 minute tempo workout on a cold Houston morning, saying his power after each rep: 327, 326 and 323 watts."
+ }
+}

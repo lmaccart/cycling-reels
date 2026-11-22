@@ -1,0 +1,109 @@
+{
+  "id": "261119-halloweensprintzone26-0f3b",
+  "kind": "video",
+  "media": "library/media/261119-halloweensprintzone26-0f3b.mp4",
+  "originalName": "HalloweenSprintZone26.mp4",
+  "hash": "0f3bf254d45db0640462f35b505fe7a4b90e8bb4",
+  "created": "2026-11-19T03:28:52",
+  "ingestedAt": "2026-11-19T03:30:37+00:00",
+  "probe": {
+    "duration": 54.454,
+    "width": 1080,
+    "height": 1920,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "h264",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-19T03:28:52.000000Z"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "sprint",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "User-edited 9:16 sprint zone cut from the Halloween-weekend Saturday group ride: riders around me, solo bridge sprint, Ben and Carter catching up after",
+    "hooks": [],
+    "moments": [
+      {
+        "id": "m-bc6054",
+        "in": 0.0,
+        "out": 20.0,
+        "label": "group ride build-up: Diego, Ben, Carter around me before the bridge sprint",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "setup",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-f1b3bc",
+        "in": 20.0,
+        "out": 36.0,
+        "label": "out of the saddle, sprinting alone over the bridge",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-95a295",
+        "in": 36.0,
+        "out": 54.4,
+        "label": "Ben and Carter ride up after the sprint",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "role": "crew",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261119-halloweensprintzone26-0f3b.json",
+  "used": [
+    {
+      "plan": "2026-11-18-sprint-zone-halloween",
+      "at": "2026-11-19T04:25:00+00:00",
+      "in": 0.0,
+      "out": 45.9
+    },
+    {
+      "plan": "2026-11-18-sprint-zone-halloween",
+      "at": "2026-11-19T04:25:00+00:00",
+      "in": 45.9,
+      "out": 50.5
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -17.1,
+      "peakDb": -3.9
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261119-halloweensprintzone26-0f3b-1.jpg",
+    "library/sheets/261119-halloweensprintzone26-0f3b-2.jpg"
+  ],
+  "taggedAt": "2026-11-19T03:33:01+00:00"
+}

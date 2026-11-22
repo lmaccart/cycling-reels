@@ -1,0 +1,176 @@
+{
+  "slug": "2026-11-21-trooper-ticket",
+  "postDate": "2026-11-22",
+  "format": "overheard",
+  "spine": "story",
+  "autoSfx": false,
+  "hook": {
+    "text": "the trooper was out today"
+  },
+  "segments": [
+    {
+      "asset": "261121-gs010124-9065",
+      "in": 1.0,
+      "out": 6.2,
+      "stabilize": "medium",
+      "path": [
+        {
+          "at": 0,
+          "yaw": 235,
+          "pitch": 0,
+          "fov": 90,
+          "roll": 180
+        },
+        {
+          "at": 1.0,
+          "yaw": 205,
+          "pitch": -4,
+          "fov": 70,
+          "roll": 180
+        },
+        {
+          "at": 2.0,
+          "yaw": 192,
+          "pitch": -10,
+          "fov": 40,
+          "roll": 180
+        },
+        {
+          "at": 3.0,
+          "yaw": 186,
+          "pitch": -14,
+          "fov": 28,
+          "roll": 180
+        },
+        {
+          "at": 5.0,
+          "yaw": 182,
+          "pitch": -14,
+          "fov": 26,
+          "roll": 180
+        }
+      ]
+    },
+    {
+      "asset": "261121-gs010124-9065",
+      "in": 12.6,
+      "out": 27.2,
+      "captions": "transcript",
+      "stabilize": "medium",
+      "payoff": true,
+      "path": [
+        {
+          "at": 0,
+          "yaw": 95,
+          "pitch": -15,
+          "fov": 100,
+          "roll": 180
+        },
+        {
+          "at": 3.2,
+          "yaw": 95,
+          "pitch": -15,
+          "fov": 100,
+          "roll": 180
+        },
+        {
+          "at": 4.4,
+          "yaw": 167,
+          "pitch": -12,
+          "fov": 40,
+          "roll": 180
+        },
+        {
+          "at": 6.9,
+          "yaw": 163,
+          "pitch": -10,
+          "fov": 44,
+          "roll": 180
+        },
+        {
+          "at": 7.9,
+          "yaw": 156,
+          "pitch": -6,
+          "fov": 50,
+          "roll": 180
+        },
+        {
+          "at": 8.4,
+          "yaw": 152,
+          "pitch": -4,
+          "fov": 54,
+          "roll": 180
+        },
+        {
+          "at": 8.9,
+          "yaw": 143,
+          "pitch": 0,
+          "fov": 58,
+          "roll": 180
+        },
+        {
+          "at": 9.4,
+          "yaw": 132,
+          "pitch": 4,
+          "fov": 64,
+          "roll": 180
+        },
+        {
+          "at": 10.2,
+          "yaw": 125,
+          "pitch": 4,
+          "fov": 75,
+          "roll": 180
+        },
+        {
+          "at": 11.6,
+          "yaw": 95,
+          "pitch": -15,
+          "fov": 100,
+          "roll": 180
+        }
+      ]
+    },
+    {
+      "asset": "261121-gs010124-9065",
+      "in": 54.15,
+      "out": 57.5,
+      "captions": "transcript",
+      "view": {
+        "yaw": 110,
+        "pitch": 15,
+        "fov": 105,
+        "roll": 180
+      },
+      "stabilize": "medium"
+    },
+    {
+      "asset": "261121-gs010124-9065",
+      "in": 61.25,
+      "out": 63.4,
+      "captions": "transcript",
+      "bleep": true,
+      "view": {
+        "yaw": 110,
+        "pitch": 15,
+        "fov": 105,
+        "roll": 180
+      },
+      "stabilize": "medium"
+    }
+  ],
+  "music": {
+    "track": "loser",
+    "volume": 0.35
+  },
+  "post": {
+    "caption": "lesson learned",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#groupride",
+      "#houstoncycling"
+    ],
+    "altText": "360 camera footage of a highway patrol SUV passing on the left and pulling over a red car, riding past the stop beside a teammate on an orange bike, then waiting at a light under a highway, with captions of them talking about the trooper."
+  }
+}

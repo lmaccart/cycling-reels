@@ -1,0 +1,193 @@
+{
+  "id": "261118-gs040118-c528",
+  "kind": "video",
+  "media": "library/media/261118-gs040118-c528.360",
+  "originalName": "GS040118.360",
+  "hash": "c5287fb6e466b2ae674332288939d6f4577309fe",
+  "created": "2026-11-18T08:47:28",
+  "ingestedAt": "2026-11-18T15:28:35+00:00",
+  "probe": {
+    "duration": 243.925,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-18T09:47:28.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [
+      "dark"
+    ],
+    "people": "me",
+    "summary": "Last stretch onto campus, into the building and the elevator; rider drinks from the bottle in the elevator; then a dark room",
+    "hooks": [],
+    "location": "Houston",
+    "notes": "360 cam under the saddle on its side (2026-11-18 mount): forward = yaw -155 roll 90 (thigh on the right edge), back = yaw 0 roll -90 (level, looks behind), peek = yaw -100 pitch 15 (rider leaning down to the camera at stops). Morning Ride, ",
+    "angles": {
+      "elevator": {
+        "yaw": -165.0,
+        "pitch": 0.0,
+        "fov": 100.0,
+        "roll": -20.0
+      },
+      "forward": {
+        "yaw": -155.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "peek": {
+        "yaw": -100.0,
+        "pitch": 15.0,
+        "fov": 100.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-01c093",
+        "in": 84.0,
+        "out": 90.0,
+        "label": "rolling up to the glass doors of the brick building",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-d07e58",
+        "in": 124.0,
+        "out": 129.0,
+        "label": "in the steel elevator, rider reaches past and presses the button",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "elevator",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-c2c50a",
+        "in": 133.0,
+        "out": 141.0,
+        "label": "rider in the elevator after the ride, face up, drinks from the bottle",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "elevator",
+        "role": "reaction",
+        "speaker": "none",
+        "mood": "honest",
+        "face": true,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261118-gs040118-c528.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -22.3,
+      "peakDb": -0.9
+    },
+    "speechSeconds": 5.1,
+    "speechRanges": [
+      [
+        207.61,
+        208.23
+      ],
+      [
+        220.89,
+        221.74
+      ],
+      [
+        226.81,
+        227.69
+      ],
+      [
+        229.82,
+        230.34
+      ],
+      [
+        231.35,
+        233.58
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261118-gs040118-c528-1.jpg",
+    "library/sheets/261118-gs040118-c528-2.jpg",
+    "library/sheets/261118-gs040118-c528-3.jpg"
+  ],
+  "telemetry": "library/telemetry/261118-gs040118-c528.json",
+  "gpsSummary": {
+    "goodSeconds": 120.8,
+    "gaps": 6,
+    "first": 0.0,
+    "last": 176.4,
+    "maxSpeed": 34.56,
+    "movingAvgSpeed": 5.89,
+    "movingSeconds": 103.6,
+    "distance": 618.5,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -908.2,
+    "altMax": 1669.4
+  },
+  "createdCamera": "2026-11-18T09:47:28",
+  "strava": {
+    "activity": "21035467567",
+    "offset": 7154.7,
+    "clock": "gps",
+    "shift": -323.8,
+    "fitMetres": 8.5
+  },
+  "taggedAt": "2026-11-18T15:34:27+00:00"
+}

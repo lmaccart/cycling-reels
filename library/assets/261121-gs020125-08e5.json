@@ -1,0 +1,155 @@
+{
+  "id": "261121-gs020125-08e5",
+  "kind": "video",
+  "media": "library/media/261121-gs020125-08e5.360",
+  "originalName": "GS020125.360",
+  "hash": "08e50af45faa467b3035671402252e45201140bb",
+  "created": "2026-11-21T10:55:50",
+  "createdCamera": "2026-11-21T11:55:50",
+  "ingestedAt": "2026-11-21T18:09:12+00:00",
+  "probe": {
+    "duration": 56.405,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T11:55:50.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 2,
+    "issues": [
+      "boring"
+    ],
+    "people": "group",
+    "summary": "After the group photo: walking the bike off the plaza through the crowd of riders, mixed post-ride chatter",
+    "hooks": [],
+    "location": "Houston (campus)",
+    "notes": "Second chapter of gs010125. Bar mount upside down, mostly walking the bike. Transcript mostly garbled crowd talk (\"1 in an hour milkshake\" etc.), subtitle-credit tail removed; dont caption it. Strava-linked, ~222 min into the ride.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-471685",
+        "in": 12.0,
+        "out": 19.0,
+        "label": "\"lets get out of the way so they can have a photo\", walking the bike off the plaza past other riders",
+        "score": 2,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 1.0,
+        "label": "post-photo thank-yous"
+      },
+      {
+        "at": 12.0,
+        "label": "walking off the plaza so others can have a photo"
+      },
+      {
+        "at": 30.0,
+        "label": "riders milling around the bikes"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261121-gs020125-08e5.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -26.0,
+      "peakDb": -2.7
+    },
+    "speechSeconds": 52.7,
+    "speechRanges": [
+      [
+        1.24,
+        6.15
+      ],
+      [
+        6.49,
+        41.77
+      ],
+      [
+        42.01,
+        43.85
+      ],
+      [
+        44.28,
+        46.31
+      ],
+      [
+        47.64,
+        56.28
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-gs020125-08e5-1.jpg",
+    "library/sheets/261121-gs020125-08e5-2.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs020125-08e5.json",
+  "gpsSummary": {
+    "goodSeconds": 40.8,
+    "gaps": 2,
+    "first": 0.0,
+    "last": 56.2,
+    "maxSpeed": 1.06,
+    "movingAvgSpeed": 1.03,
+    "movingSeconds": 0.8,
+    "distance": 9.4,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -1.1,
+    "altMax": 16.8
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 13300.3,
+    "clock": "gps-same-camera",
+    "shift": -343.2
+  },
+  "taggedAt": "2026-11-21T18:16:43+00:00"
+}

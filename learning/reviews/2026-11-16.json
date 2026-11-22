@@ -9045,6 +9045,5369 @@
         ]
       },
       "schedulingComplete": false
+    },
+    {
+      "at": "2026-11-22T19:28:43.831930+00:00",
+      "phase": "planning",
+      "audience": {
+        "latestPull": "2026-11-22T18:00:00+00:00",
+        "stale": false,
+        "latest": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 24.84027777777778,
+            "reach": 202.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 50.2,
+            "watchThrough": 0.5084023668639054,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.009900990099009901,
+            "commentsReach": 0.0,
+            "engagement": 0.009900990099009901,
+            "viewsReach": 1.2227722772277227
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 21.840324074074076,
+            "reach": 568.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 62.5,
+            "watchThrough": 0.7085027726432532,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.007042253521126761,
+            "commentsReach": 0.0,
+            "engagement": 0.007042253521126761,
+            "viewsReach": 1.3714788732394365
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 22.839583333333334,
+            "reach": 183.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 45.8,
+            "watchThrough": 0.2868289637952559,
+            "sharesReach": 0.00546448087431694,
+            "savesReach": 0.0,
+            "likesReach": 0.01639344262295082,
+            "commentsReach": 0.0,
+            "engagement": 0.02185792349726776,
+            "viewsReach": 1.2021857923497268
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 23.83945601851852,
+            "reach": 189.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 52.4,
+            "watchThrough": 0.388394584139265,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.015873015873015872,
+            "commentsReach": 0.0,
+            "engagement": 0.015873015873015872,
+            "viewsReach": 1.2486772486772486
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 20.83945601851852,
+            "reach": 182.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 58.8,
+            "watchThrough": 0.36988823142669297,
+            "sharesReach": 0.0,
+            "savesReach": 0.005494505494505495,
+            "likesReach": 0.005494505494505495,
+            "commentsReach": 0.0,
+            "engagement": 0.01098901098901099,
+            "viewsReach": 1.164835164835165
+          },
+          {
+            "slug": "2026-10-31-bridges",
+            "reelId": "17981923476129380",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-10-31T23:32:17+00:00",
+            "ageDays": 19.839594907407406,
+            "reach": 151.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "summer was mostly bridges apparently"
+            },
+            "length": 11.4,
+            "music": {
+              "track": "good-day",
+              "title": "Chill Lo-fi Beats for Vlogs & Study Sessions ☕ (No Copyright) | Snoozy Beats - Good Day",
+              "url": "https://www.youtube.com/watch?v=Z3E1N7B7p-U"
+            },
+            "hold": 50.0,
+            "watchThrough": 0.4021052631578947,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.013245033112582781,
+            "commentsReach": 0.0,
+            "engagement": 0.013245033112582781,
+            "viewsReach": 1.2450331125827814
+          },
+          {
+            "slug": "2026-11-06-elevator-loop",
+            "reelId": "18115184803843757",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-07T00:32:34+00:00",
+            "ageDays": 15.72738425925926,
+            "reach": 280.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "me and this elevator before every ride"
+            },
+            "length": 7.25,
+            "music": {
+              "track": "housewife",
+              "title": "Tate McRae - Housewife (Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+            },
+            "hold": 63.2,
+            "watchThrough": 0.7731034482758621,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.010714285714285714,
+            "commentsReach": 0.0,
+            "engagement": 0.010714285714285714,
+            "viewsReach": 1.5607142857142857
+          },
+          {
+            "slug": "2026-11-05-multitool-drain",
+            "reelId": "18182689477448735",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-06T00:32:22+00:00",
+            "ageDays": 16.727523148148148,
+            "reach": 221.0,
+            "stale": false,
+            "format": "talking-clip",
+            "hook": {
+              "text": "my multitool vs a storm drain"
+            },
+            "length": 7.7,
+            "music": {
+              "track": "sunshine-instrumental",
+              "title": "Sunshine (Instrumental)",
+              "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+            },
+            "hold": 71.6,
+            "watchThrough": 1.0153246753246752,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.004524886877828055,
+            "commentsReach": 0.0,
+            "engagement": 0.004524886877828055,
+            "viewsReach": 1.7963800904977376
+          },
+          {
+            "slug": "2026-11-04-wake-the-roommate",
+            "reelId": "18107832539111797",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-05T00:32:22+00:00",
+            "ageDays": 17.727523148148148,
+            "reach": 393.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "what my roommate wakes up to"
+            },
+            "length": 11.5,
+            "music": {
+              "track": "sometimes",
+              "title": "Fleetwood Mac - Sometimes | Lyrics",
+              "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+            },
+            "hold": 76.1,
+            "watchThrough": 0.7226956521739131,
+            "sharesReach": 0.002544529262086514,
+            "savesReach": 0.002544529262086514,
+            "likesReach": 0.020356234096692113,
+            "commentsReach": 0.0,
+            "engagement": 0.02544529262086514,
+            "viewsReach": 1.6055979643765903
+          },
+          {
+            "slug": "2026-11-03-train-horn",
+            "reelId": "17995027452022287",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-04T00:32:34+00:00",
+            "ageDays": 18.72738425925926,
+            "reach": 187.0,
+            "stale": false,
+            "format": "just-the-bike",
+            "hook": {
+              "text": "sound on. the group ride finally met its match"
+            },
+            "length": 8.62,
+            "music": null,
+            "hold": 64.4,
+            "watchThrough": 0.6716937354988399,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0053475935828877,
+            "commentsReach": 0.0,
+            "engagement": 0.0053475935828877,
+            "viewsReach": 1.518716577540107
+          },
+          {
+            "slug": "2026-11-02-intervals-before-class",
+            "reelId": "18200861737381333",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-03T00:31:18+00:00",
+            "ageDays": 19.72826388888889,
+            "reach": 192.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "intervals before class. let's see if i survive"
+            },
+            "length": 10.6,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 55.7,
+            "watchThrough": 0.5364150943396226,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.010416666666666666,
+            "commentsReach": 0.0,
+            "engagement": 0.010416666666666666,
+            "viewsReach": 1.421875
+          },
+          {
+            "slug": "2026-11-01-empty-roads",
+            "reelId": "18033917726906523",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-02T00:32:15+00:00",
+            "ageDays": 20.727604166666666,
+            "reach": 177.0,
+            "stale": false,
+            "format": null,
+            "hook": {
+              "text": "the road was empty and so was my brain"
+            },
+            "length": 10.52,
+            "music": {
+              "track": "golden-hours",
+              "title": "Golden Hours – Uplifting Acoustic x Chill House",
+              "url": "https://www.youtube.com/watch?v=yVLSY3ffSfQ"
+            },
+            "hold": 45.1,
+            "watchThrough": 0.4312737642585551,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.011299435028248588,
+            "commentsReach": 0.0,
+            "engagement": 0.011299435028248588,
+            "viewsReach": 1.2033898305084745
+          },
+          {
+            "slug": "2026-11-13-not-every-angel",
+            "reelId": "18182072680450395",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-14T00:31:29+00:00",
+            "ageDays": 8.728136574074075,
+            "reach": 262.0,
+            "stale": false,
+            "format": "this-weeks-trend",
+            "hook": {
+              "text": "not every angel can walk vsfs, some of us pull the group",
+              "seconds": 4.2,
+              "position": "center"
+            },
+            "length": 10.35,
+            "music": {
+              "track": "angel-of-my-dreams",
+              "title": "Angel Of My Dreams",
+              "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+            },
+            "hold": 64.2,
+            "watchThrough": 0.6744927536231884,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.015267175572519083,
+            "commentsReach": 0.0,
+            "engagement": 0.015267175572519083,
+            "viewsReach": 1.5534351145038168
+          },
+          {
+            "slug": "2026-11-13-road-to-5-ep1",
+            "reelId": "18117384239014372",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-13T16:08:35+00:00",
+            "ageDays": 9.077372685185185,
+            "reach": 347.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "road to 5 w/kg · ep 1",
+              "seconds": 3.5
+            },
+            "length": 40.0,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 57.9,
+            "watchThrough": 0.32432500000000003,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.040345821325648415,
+            "commentsReach": 0.0,
+            "engagement": 0.040345821325648415,
+            "viewsReach": 1.5072046109510087
+          },
+          {
+            "slug": "2026-11-16-creatine",
+            "reelId": "18121051696787014",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-13T00:32:43+00:00",
+            "ageDays": 9.727280092592592,
+            "reach": 609.0,
+            "stale": false,
+            "format": "talking-exhibits",
+            "hook": null,
+            "length": 33.5,
+            "music": {
+              "track": "johann-strauss-ii-the-blue-danube-waltz",
+              "title": "Johann Strauss II - The Blue Danube Waltz",
+              "url": "https://www.youtube.com/watch?v=_CTYymbbEL4"
+            },
+            "hold": 67.0,
+            "watchThrough": 0.3885671641791045,
+            "sharesReach": 0.006568144499178982,
+            "savesReach": 0.003284072249589491,
+            "likesReach": 0.022988505747126436,
+            "commentsReach": 0.0016420361247947454,
+            "engagement": 0.034482758620689655,
+            "viewsReach": 1.4154351395730707
+          },
+          {
+            "slug": "2026-11-12-overheard-group-ride",
+            "reelId": "18130903519900423",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-12T00:32:27+00:00",
+            "ageDays": 10.727465277777778,
+            "reach": 1351.0,
+            "stale": false,
+            "format": "overheard",
+            "hook": {
+              "text": "things overheard on saturday's group ride"
+            },
+            "length": 12.8,
+            "music": {
+              "track": "go-go-juice",
+              "title": "Sabrina Carpenter - Go Go Juice (Official Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=uCNr2iCgSPs"
+            },
+            "hold": 76.0,
+            "watchThrough": 0.7728124999999999,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005921539600296077,
+            "commentsReach": 0.0,
+            "engagement": 0.005921539600296077,
+            "viewsReach": 1.471502590673575
+          },
+          {
+            "slug": "2026-11-10-how-is-it-in-maine",
+            "reelId": "18121837627808678",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-11T00:32:34+00:00",
+            "ageDays": 11.72738425925926,
+            "reach": 1553.0,
+            "stale": false,
+            "format": "overheard",
+            "hook": {
+              "text": "how is it in maine right now",
+              "seconds": 3.6
+            },
+            "length": 16.3,
+            "music": {
+              "track": "sunshine-instrumental",
+              "title": "Sunshine (Instrumental)",
+              "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+            },
+            "hold": 75.3,
+            "watchThrough": 0.5829447852760736,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.00901481004507405,
+            "commentsReach": 0.00128783000643915,
+            "engagement": 0.0103026400515132,
+            "viewsReach": 1.2736638763683195
+          },
+          {
+            "slug": "2026-11-09-fortnite-before-the-long-ride",
+            "reelId": "18103429103453123",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-10T00:32:38+00:00",
+            "ageDays": 12.727337962962963,
+            "reach": 448.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "our pre long ride routine"
+            },
+            "length": 11.8,
+            "music": {
+              "track": "luminary",
+              "title": "joel sunny - luminary - official audio",
+              "url": "https://www.youtube.com/watch?v=VkbvUjbHcGE"
+            },
+            "hold": 54.1,
+            "watchThrough": 0.6274576271186441,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.029017857142857144,
+            "commentsReach": 0.004464285714285714,
+            "engagement": 0.033482142857142856,
+            "viewsReach": 1.6785714285714286
+          },
+          {
+            "slug": "2026-11-08-club-ride-downtown",
+            "reelId": "18455035417121683",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-09T00:32:18+00:00",
+            "ageDays": 13.727569444444445,
+            "reach": 429.0,
+            "stale": false,
+            "format": "ride-montage",
+            "hook": {
+              "text": "saturday club ride, downtown and back"
+            },
+            "length": 12.2,
+            "music": {
+              "track": "angel-of-my-dreams",
+              "title": "Angel Of My Dreams",
+              "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+            },
+            "hold": 58.1,
+            "watchThrough": 0.573360655737705,
+            "sharesReach": 0.004662004662004662,
+            "savesReach": 0.002331002331002331,
+            "likesReach": 0.03496503496503497,
+            "commentsReach": 0.0,
+            "engagement": 0.04195804195804196,
+            "viewsReach": 1.578088578088578
+          },
+          {
+            "slug": "2026-11-07-regroup-confessions",
+            "reelId": "18100777358379524",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-08T00:31:14+00:00",
+            "ageDays": 14.728310185185185,
+            "reach": 617.0,
+            "stale": false,
+            "format": "talking-clip",
+            "hook": {
+              "text": "overheard at the regroup"
+            },
+            "length": 9.9,
+            "music": {
+              "track": "dame-hombro",
+              "title": "Dame Hombro",
+              "url": "https://www.youtube.com/watch?v=c6yWT1hXvUI"
+            },
+            "hold": 76.0,
+            "watchThrough": 0.8368686868686869,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.008103727714748784,
+            "commentsReach": 0.0,
+            "engagement": 0.008103727714748784,
+            "viewsReach": 1.5688816855753647
+          },
+          {
+            "slug": "2026-11-15-i-have-plans",
+            "reelId": "18131454583857634",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-15T16:05:20+00:00",
+            "ageDays": 7.07962962962963,
+            "reach": 290.0,
+            "stale": false,
+            "format": "this-weeks-trend",
+            "hook": {
+              "text": "sorry i can't, i have plans",
+              "seconds": 4.4,
+              "position": "center"
+            },
+            "length": 12.07,
+            "music": {
+              "track": "time-pink-floyd",
+              "title": "Pink Floyd – Time (Official Audio)",
+              "url": "https://www.youtube.com/watch?v=Qr0-7Ds79zo"
+            },
+            "hold": 57.0,
+            "watchThrough": 0.6816901408450704,
+            "sharesReach": 0.0034482758620689655,
+            "savesReach": 0.0,
+            "likesReach": 0.03103448275862069,
+            "commentsReach": 0.006896551724137931,
+            "engagement": 0.041379310344827586,
+            "viewsReach": 1.6482758620689655
+          },
+          {
+            "slug": "2026-11-14-every-bridge-sprint-zone",
+            "reelId": "18442687417194119",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-15T00:31:53+00:00",
+            "ageDays": 7.727858796296296,
+            "reach": 1518.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "every bridge up is a sprint zone",
+              "seconds": 2.5
+            },
+            "length": 12.14,
+            "music": {
+              "track": "housewife",
+              "title": "Tate McRae - Housewife (Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+            },
+            "hold": 76.2,
+            "watchThrough": 0.7540362438220758,
+            "sharesReach": 0.0032938076416337285,
+            "savesReach": 0.0,
+            "likesReach": 0.010540184453227932,
+            "commentsReach": 0.0,
+            "engagement": 0.01383399209486166,
+            "viewsReach": 1.4967061923583662
+          },
+          {
+            "slug": "2026-11-20-road-to-5-ep2",
+            "reelId": "18188392945420126",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-20T16:11:01+00:00",
+            "ageDays": 2.0756828703703705,
+            "reach": 603.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "road to 5 w/kg · ep 2",
+              "seconds": 3.0
+            },
+            "length": 31.0,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 59.0,
+            "watchThrough": 0.35035483870967743,
+            "sharesReach": 0.0,
+            "savesReach": 0.001658374792703151,
+            "likesReach": 0.026533996683250415,
+            "commentsReach": 0.0,
+            "engagement": 0.028192371475953566,
+            "viewsReach": 1.4262023217247097
+          },
+          {
+            "slug": "2026-11-18-close-calls",
+            "reelId": "18073774655786340",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-19T16:05:21+00:00",
+            "ageDays": 3.0796180555555557,
+            "reach": 321.0,
+            "stale": false,
+            "format": "pov-one-take",
+            "hook": null,
+            "length": 26.7,
+            "music": {
+              "track": "geekin",
+              "title": "NEMZZZ - GEEKIN FEAT. LIL YACHTY [OFFICIAL VIDEO]",
+              "url": "https://www.youtube.com/watch?v=v2OS2LOD-G8"
+            },
+            "hold": 54.8,
+            "watchThrough": 0.31059925093632956,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.028037383177570093,
+            "commentsReach": 0.0,
+            "engagement": 0.028037383177570093,
+            "viewsReach": 1.3925233644859814
+          },
+          {
+            "slug": "2026-11-16-sprint-zone-nov-26",
+            "reelId": "18134997751795199",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-18T16:10:58+00:00",
+            "ageDays": 4.075717592592593,
+            "reach": 1442.0,
+            "stale": false,
+            "format": "voiceover",
+            "hook": null,
+            "length": 41.62,
+            "music": null,
+            "hold": 60.6,
+            "watchThrough": 0.411604997597309,
+            "sharesReach": 0.0034674063800277394,
+            "savesReach": 0.0013869625520110957,
+            "likesReach": 0.0319001386962552,
+            "commentsReach": 0.0034674063800277394,
+            "engagement": 0.04022191400832178,
+            "viewsReach": 1.455617198335645
+          },
+          {
+            "slug": "this-is-my-art",
+            "reelId": "17919717684260783",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-17T16:09:28+00:00",
+            "ageDays": 5.076759259259259,
+            "reach": 389.0,
+            "stale": false,
+            "format": "trend",
+            "hook": {
+              "text": "THIS\nIS\nMY\nART",
+              "size": "big",
+              "style": "plain",
+              "position": "center",
+              "seconds": 13.53
+            },
+            "length": 13.6,
+            "music": {
+              "track": "fragments",
+              "title": "FRAGMENTS",
+              "url": "https://www.youtube.com/watch?v=Oinv03_QQqQ"
+            },
+            "hold": 56.3,
+            "watchThrough": 0.5536029411764706,
+            "sharesReach": 0.0,
+            "savesReach": 0.002570694087403599,
+            "likesReach": 0.06683804627249357,
+            "commentsReach": 0.007712082262210797,
+            "engagement": 0.07712082262210797,
+            "viewsReach": 1.6169665809768639
+          },
+          {
+            "slug": "2026-11-14-crit-shenanigans",
+            "reelId": "18127267858913746",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-16T16:06:04+00:00",
+            "ageDays": 6.0791203703703705,
+            "reach": 315.0,
+            "stale": false,
+            "format": "talking-selfie",
+            "hook": null,
+            "length": 22.77,
+            "music": null,
+            "hold": 53.8,
+            "watchThrough": 0.412955643390426,
+            "sharesReach": 0.0031746031746031746,
+            "savesReach": 0.0,
+            "likesReach": 0.04126984126984127,
+            "commentsReach": 0.0,
+            "engagement": 0.044444444444444446,
+            "viewsReach": 1.5523809523809524
+          },
+          {
+            "slug": "2026-11-18-sprint-zone-halloween",
+            "reelId": "17955589014302856",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-21T00:31:15+00:00",
+            "ageDays": 1.7282986111111112,
+            "reach": 955.0,
+            "stale": false,
+            "format": "voiceover",
+            "hook": null,
+            "length": 50.52,
+            "music": null,
+            "hold": 67.7,
+            "watchThrough": 0.3589667458432304,
+            "sharesReach": 0.0031413612565445027,
+            "savesReach": 0.0,
+            "likesReach": 0.025130890052356022,
+            "commentsReach": 0.0,
+            "engagement": 0.028272251308900525,
+            "viewsReach": 1.324607329842932
+          },
+          {
+            "slug": "2026-11-21-sprint-zone-long-vo",
+            "reelId": "18117522683153630",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-22T00:31:12+00:00",
+            "ageDays": 0.7283333333333334,
+            "reach": 1157.0,
+            "stale": false,
+            "format": "voiceover",
+            "hook": null,
+            "length": 43.4,
+            "music": null,
+            "hold": 66.4,
+            "watchThrough": 0.4244009216589862,
+            "sharesReach": 0.0,
+            "savesReach": 0.000864304235090752,
+            "likesReach": 0.023336214347450302,
+            "commentsReach": 0.000864304235090752,
+            "engagement": 0.025064822817631807,
+            "viewsReach": 1.299913569576491
+          }
+        ],
+        "sevenDayWindow": [
+          {
+            "slug": "2026-10-26-golden-bridge",
+            "reelId": "17966167758207299",
+            "pulledAt": "2026-11-03T00:08:43+00:00",
+            "snapshot": "analytics/2026-11-03T000843.json",
+            "postedAt": "2026-10-26T23:31:18+00:00",
+            "ageDays": 7.0259837962962965,
+            "reach": 182.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "pov: you timed the bridge perfectly"
+            },
+            "length": 8.45,
+            "music": {
+              "track": "journey-home",
+              "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+              "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+            },
+            "hold": 46.1,
+            "watchThrough": 0.4712426035502959,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005494505494505495,
+            "commentsReach": 0.0,
+            "engagement": 0.005494505494505495,
+            "viewsReach": 1.1868131868131868
+          },
+          {
+            "slug": "2026-10-29-first-ride-back",
+            "reelId": "18399436315200807",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-29T23:31:14+00:00",
+            "ageDays": 9.899861111111111,
+            "reach": 513.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "the zwift era vs the first ride back"
+            },
+            "length": 10.82,
+            "music": {
+              "track": "vacation-uke",
+              "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+              "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+            },
+            "hold": 63.0,
+            "watchThrough": 0.705083179297597,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.005847953216374269,
+            "commentsReach": 0.0,
+            "engagement": 0.005847953216374269,
+            "viewsReach": 1.2943469785575048
+          },
+          {
+            "slug": "2026-10-28-bike-trip",
+            "reelId": "18361357399218194",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-28T23:32:18+00:00",
+            "ageDays": 10.89912037037037,
+            "reach": 159.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "packed the bike for this one"
+            },
+            "length": 16.02,
+            "music": {
+              "track": "lesfm-in-the-forest",
+              "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+              "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+            },
+            "hold": 43.6,
+            "watchThrough": 0.24232209737827717,
+            "sharesReach": 0.006289308176100629,
+            "savesReach": 0.0,
+            "likesReach": 0.012578616352201259,
+            "commentsReach": 0.0,
+            "engagement": 0.018867924528301886,
+            "viewsReach": 1.1383647798742138
+          },
+          {
+            "slug": "2026-10-27-group-ride-chill",
+            "reelId": "18014500985762518",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-27T23:32:29+00:00",
+            "ageDays": 11.898993055555556,
+            "reach": 165.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "pov: the group ride was supposed to be chill"
+            },
+            "length": 15.51,
+            "music": {
+              "track": "roa-highway",
+              "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+              "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+            },
+            "hold": 53.4,
+            "watchThrough": 0.3370083816892328,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012121212121212121,
+            "commentsReach": 0.0,
+            "engagement": 0.012121212121212121,
+            "viewsReach": 1.121212121212121
+          },
+          {
+            "slug": "2026-10-30-chasing-the-group",
+            "reelId": "17889408546622136",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-30T23:32:29+00:00",
+            "ageDays": 8.898993055555556,
+            "reach": 159.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "me chasing the group like it owes me money"
+            },
+            "length": 15.21,
+            "music": {
+              "track": "jiglr-lapse",
+              "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+              "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+            },
+            "hold": 56.9,
+            "watchThrough": 0.32439184746877053,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.10062893081761
+          },
+          {
+            "slug": "2026-10-31-bridges",
+            "reelId": "17981923476129380",
+            "pulledAt": "2026-11-08T21:07:02+00:00",
+            "snapshot": "analytics/2026-11-08T210702.json",
+            "postedAt": "2026-10-31T23:32:17+00:00",
+            "ageDays": 7.899131944444444,
+            "reach": 130.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "summer was mostly bridges apparently"
+            },
+            "length": 11.4,
+            "music": {
+              "track": "good-day",
+              "title": "Chill Lo-fi Beats for Vlogs & Study Sessions ☕ (No Copyright) | Snoozy Beats - Good Day",
+              "url": "https://www.youtube.com/watch?v=Z3E1N7B7p-U"
+            },
+            "hold": 50.4,
+            "watchThrough": 0.40482456140350875,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0,
+            "commentsReach": 0.0,
+            "engagement": 0.0,
+            "viewsReach": 1.2076923076923076
+          },
+          {
+            "slug": "2026-11-06-elevator-loop",
+            "reelId": "18115184803843757",
+            "pulledAt": "2026-11-14T20:00:00Z",
+            "snapshot": "analytics/2026-11-14T200000.json",
+            "postedAt": "2026-11-07T00:32:34+00:00",
+            "ageDays": 7.810717592592592,
+            "reach": 241.0,
+            "stale": true,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "me and this elevator before every ride"
+            },
+            "length": 7.25,
+            "music": {
+              "track": "housewife",
+              "title": "Tate McRae - Housewife (Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+            },
+            "hold": 65.3,
+            "watchThrough": 0.7866206896551724,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012448132780082987,
+            "commentsReach": 0.0,
+            "engagement": 0.012448132780082987,
+            "viewsReach": 1.5435684647302905
+          },
+          {
+            "slug": "2026-11-05-multitool-drain",
+            "reelId": "18182689477448735",
+            "pulledAt": "2026-11-14T20:00:00Z",
+            "snapshot": "analytics/2026-11-14T200000.json",
+            "postedAt": "2026-11-06T00:32:22+00:00",
+            "ageDays": 8.810856481481482,
+            "reach": 187.0,
+            "stale": true,
+            "format": "talking-clip",
+            "hook": {
+              "text": "my multitool vs a storm drain"
+            },
+            "length": 7.7,
+            "music": {
+              "track": "sunshine-instrumental",
+              "title": "Sunshine (Instrumental)",
+              "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+            },
+            "hold": 72.0,
+            "watchThrough": 1.0174025974025973,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0053475935828877,
+            "commentsReach": 0.0,
+            "engagement": 0.0053475935828877,
+            "viewsReach": 1.7433155080213905
+          },
+          {
+            "slug": "2026-11-04-wake-the-roommate",
+            "reelId": "18107832539111797",
+            "pulledAt": "2026-11-14T20:00:00Z",
+            "snapshot": "analytics/2026-11-14T200000.json",
+            "postedAt": "2026-11-05T00:32:22+00:00",
+            "ageDays": 9.810856481481482,
+            "reach": 360.0,
+            "stale": true,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "what my roommate wakes up to"
+            },
+            "length": 11.5,
+            "music": {
+              "track": "sometimes",
+              "title": "Fleetwood Mac - Sometimes | Lyrics",
+              "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+            },
+            "hold": 77.1,
+            "watchThrough": 0.7166086956521739,
+            "sharesReach": 0.002777777777777778,
+            "savesReach": 0.002777777777777778,
+            "likesReach": 0.016666666666666666,
+            "commentsReach": 0.0,
+            "engagement": 0.022222222222222223,
+            "viewsReach": 1.5583333333333333
+          },
+          {
+            "slug": "2026-11-03-train-horn",
+            "reelId": "17995027452022287",
+            "pulledAt": "2026-11-14T20:00:00Z",
+            "snapshot": "analytics/2026-11-14T200000.json",
+            "postedAt": "2026-11-04T00:32:34+00:00",
+            "ageDays": 10.810717592592592,
+            "reach": 165.0,
+            "stale": true,
+            "format": "just-the-bike",
+            "hook": {
+              "text": "sound on. the group ride finally met its match"
+            },
+            "length": 8.62,
+            "music": null,
+            "hold": 66.7,
+            "watchThrough": 0.6791183294663574,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.006060606060606061,
+            "commentsReach": 0.0,
+            "engagement": 0.006060606060606061,
+            "viewsReach": 1.4606060606060607
+          },
+          {
+            "slug": "2026-11-02-intervals-before-class",
+            "reelId": "18200861737381333",
+            "pulledAt": "2026-11-14T20:00:00Z",
+            "snapshot": "analytics/2026-11-14T200000.json",
+            "postedAt": "2026-11-03T00:31:18+00:00",
+            "ageDays": 11.811597222222222,
+            "reach": 166.0,
+            "stale": true,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "intervals before class. let's see if i survive"
+            },
+            "length": 10.6,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 55.6,
+            "watchThrough": 0.5405660377358491,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.012048192771084338,
+            "commentsReach": 0.0,
+            "engagement": 0.012048192771084338,
+            "viewsReach": 1.3975903614457832
+          },
+          {
+            "slug": "2026-11-01-empty-roads",
+            "reelId": "18033917726906523",
+            "pulledAt": "2026-11-14T20:00:00Z",
+            "snapshot": "analytics/2026-11-14T200000.json",
+            "postedAt": "2026-11-02T00:32:15+00:00",
+            "ageDays": 12.8109375,
+            "reach": 177.0,
+            "stale": true,
+            "format": null,
+            "hook": {
+              "text": "the road was empty and so was my brain"
+            },
+            "length": 10.52,
+            "music": {
+              "track": "golden-hours",
+              "title": "Golden Hours – Uplifting Acoustic x Chill House",
+              "url": "https://www.youtube.com/watch?v=yVLSY3ffSfQ"
+            },
+            "hold": 45.1,
+            "watchThrough": 0.4312737642585551,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.011299435028248588,
+            "commentsReach": 0.0,
+            "engagement": 0.011299435028248588,
+            "viewsReach": 1.2033898305084745
+          },
+          {
+            "slug": "2026-11-13-not-every-angel",
+            "reelId": "18182072680450395",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-14T00:31:29+00:00",
+            "ageDays": 8.728136574074075,
+            "reach": 262.0,
+            "stale": false,
+            "format": "this-weeks-trend",
+            "hook": {
+              "text": "not every angel can walk vsfs, some of us pull the group",
+              "seconds": 4.2,
+              "position": "center"
+            },
+            "length": 10.35,
+            "music": {
+              "track": "angel-of-my-dreams",
+              "title": "Angel Of My Dreams",
+              "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+            },
+            "hold": 64.2,
+            "watchThrough": 0.6744927536231884,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.015267175572519083,
+            "commentsReach": 0.0,
+            "engagement": 0.015267175572519083,
+            "viewsReach": 1.5534351145038168
+          },
+          {
+            "slug": "2026-11-13-road-to-5-ep1",
+            "reelId": "18117384239014372",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-11-13T16:08:35+00:00",
+            "ageDays": 7.147719907407407,
+            "reach": 329.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "road to 5 w/kg · ep 1",
+              "seconds": 3.5
+            },
+            "length": 40.0,
+            "music": {
+              "track": "what-you-waiting-for",
+              "title": "Gwen Stefani - What You Waiting For",
+              "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+            },
+            "hold": 58.5,
+            "watchThrough": 0.331575,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0425531914893617,
+            "commentsReach": 0.0,
+            "engagement": 0.0425531914893617,
+            "viewsReach": 1.5227963525835866
+          },
+          {
+            "slug": "2026-11-16-creatine",
+            "reelId": "18121051696787014",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-11-13T00:32:43+00:00",
+            "ageDays": 7.7976273148148145,
+            "reach": 592.0,
+            "stale": false,
+            "format": "talking-exhibits",
+            "hook": null,
+            "length": 33.5,
+            "music": {
+              "track": "johann-strauss-ii-the-blue-danube-waltz",
+              "title": "Johann Strauss II - The Blue Danube Waltz",
+              "url": "https://www.youtube.com/watch?v=_CTYymbbEL4"
+            },
+            "hold": 66.9,
+            "watchThrough": 0.3862686567164179,
+            "sharesReach": 0.006756756756756757,
+            "savesReach": 0.0033783783783783786,
+            "likesReach": 0.02195945945945946,
+            "commentsReach": 0.0016891891891891893,
+            "engagement": 0.033783783783783786,
+            "viewsReach": 1.4070945945945945
+          },
+          {
+            "slug": "2026-11-12-overheard-group-ride",
+            "reelId": "18130903519900423",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-11-12T00:32:27+00:00",
+            "ageDays": 8.7978125,
+            "reach": 1328.0,
+            "stale": false,
+            "format": "overheard",
+            "hook": {
+              "text": "things overheard on saturday's group ride"
+            },
+            "length": 12.8,
+            "music": {
+              "track": "go-go-juice",
+              "title": "Sabrina Carpenter - Go Go Juice (Official Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=uCNr2iCgSPs"
+            },
+            "hold": 76.1,
+            "watchThrough": 0.7753125,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.006024096385542169,
+            "commentsReach": 0.0,
+            "engagement": 0.006024096385542169,
+            "viewsReach": 1.470632530120482
+          },
+          {
+            "slug": "2026-11-10-how-is-it-in-maine",
+            "reelId": "18121837627808678",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-11-11T00:32:34+00:00",
+            "ageDays": 9.797731481481481,
+            "reach": 1533.0,
+            "stale": false,
+            "format": "overheard",
+            "hook": {
+              "text": "how is it in maine right now",
+              "seconds": 3.6
+            },
+            "length": 16.3,
+            "music": {
+              "track": "sunshine-instrumental",
+              "title": "Sunshine (Instrumental)",
+              "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+            },
+            "hold": 75.5,
+            "watchThrough": 0.5844785276073619,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.0091324200913242,
+            "commentsReach": 0.001304631441617743,
+            "engagement": 0.010437051532941943,
+            "viewsReach": 1.273320287018917
+          },
+          {
+            "slug": "2026-11-09-fortnite-before-the-long-ride",
+            "reelId": "18103429103453123",
+            "pulledAt": "2026-11-20T19:41:18+00:00",
+            "snapshot": "analytics/2026-11-20T194118.json",
+            "postedAt": "2026-11-10T00:32:38+00:00",
+            "ageDays": 10.797685185185186,
+            "reach": 430.0,
+            "stale": false,
+            "format": "relatable-pov",
+            "hook": {
+              "text": "our pre long ride routine"
+            },
+            "length": 11.8,
+            "music": {
+              "track": "luminary",
+              "title": "joel sunny - luminary - official audio",
+              "url": "https://www.youtube.com/watch?v=VkbvUjbHcGE"
+            },
+            "hold": 54.0,
+            "watchThrough": 0.6368644067796609,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.030232558139534883,
+            "commentsReach": 0.004651162790697674,
+            "engagement": 0.03488372093023256,
+            "viewsReach": 1.697674418604651
+          },
+          {
+            "slug": "2026-11-08-club-ride-downtown",
+            "reelId": "18455035417121683",
+            "pulledAt": "2026-11-16T04:51:53.092891+00:00",
+            "snapshot": "analytics/2026-11-16T045153.json",
+            "postedAt": "2026-11-09T00:32:18+00:00",
+            "ageDays": 7.1802672788310185,
+            "reach": 379.0,
+            "stale": false,
+            "format": "ride-montage",
+            "hook": {
+              "text": "saturday club ride, downtown and back"
+            },
+            "length": 12.2,
+            "music": {
+              "track": "angel-of-my-dreams",
+              "title": "Angel Of My Dreams",
+              "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+            },
+            "hold": 57.3,
+            "watchThrough": 0.5735245901639344,
+            "sharesReach": 0.005277044854881266,
+            "savesReach": 0.002638522427440633,
+            "likesReach": 0.0395778364116095,
+            "commentsReach": 0.0,
+            "engagement": 0.047493403693931395,
+            "viewsReach": 1.5910290237467017
+          },
+          {
+            "slug": "2026-11-07-regroup-confessions",
+            "reelId": "18100777358379524",
+            "pulledAt": "2026-11-15T20:49:50+00:00",
+            "snapshot": "analytics/2026-11-15T204950.json",
+            "postedAt": "2026-11-08T00:31:14+00:00",
+            "ageDays": 7.84625,
+            "reach": 571.0,
+            "stale": false,
+            "format": "talking-clip",
+            "hook": {
+              "text": "overheard at the regroup"
+            },
+            "length": 9.9,
+            "music": {
+              "track": "dame-hombro",
+              "title": "Dame Hombro",
+              "url": "https://www.youtube.com/watch?v=c6yWT1hXvUI"
+            },
+            "hold": 75.6,
+            "watchThrough": 0.8351515151515152,
+            "sharesReach": 0.0,
+            "savesReach": 0.0,
+            "likesReach": 0.008756567425569177,
+            "commentsReach": 0.0,
+            "engagement": 0.008756567425569177,
+            "viewsReach": 1.5236427320490369
+          },
+          {
+            "slug": "2026-11-15-i-have-plans",
+            "reelId": "18131454583857634",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-15T16:05:20+00:00",
+            "ageDays": 7.07962962962963,
+            "reach": 290.0,
+            "stale": false,
+            "format": "this-weeks-trend",
+            "hook": {
+              "text": "sorry i can't, i have plans",
+              "seconds": 4.4,
+              "position": "center"
+            },
+            "length": 12.07,
+            "music": {
+              "track": "time-pink-floyd",
+              "title": "Pink Floyd – Time (Official Audio)",
+              "url": "https://www.youtube.com/watch?v=Qr0-7Ds79zo"
+            },
+            "hold": 57.0,
+            "watchThrough": 0.6816901408450704,
+            "sharesReach": 0.0034482758620689655,
+            "savesReach": 0.0,
+            "likesReach": 0.03103448275862069,
+            "commentsReach": 0.006896551724137931,
+            "engagement": 0.041379310344827586,
+            "viewsReach": 1.6482758620689655
+          },
+          {
+            "slug": "2026-11-14-every-bridge-sprint-zone",
+            "reelId": "18442687417194119",
+            "pulledAt": "2026-11-22T18:00:00Z",
+            "snapshot": "analytics/2026-11-22T180000.json",
+            "postedAt": "2026-11-15T00:31:53+00:00",
+            "ageDays": 7.727858796296296,
+            "reach": 1518.0,
+            "stale": false,
+            "format": "story-with-stakes",
+            "hook": {
+              "text": "every bridge up is a sprint zone",
+              "seconds": 2.5
+            },
+            "length": 12.14,
+            "music": {
+              "track": "housewife",
+              "title": "Tate McRae - Housewife (Lyric Video)",
+              "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+            },
+            "hold": 76.2,
+            "watchThrough": 0.7540362438220758,
+            "sharesReach": 0.0032938076416337285,
+            "savesReach": 0.0,
+            "likesReach": 0.010540184453227932,
+            "commentsReach": 0.0,
+            "engagement": 0.01383399209486166,
+            "viewsReach": 1.4967061923583662
+          }
+        ],
+        "under48Hours": 2,
+        "preliminary": 5,
+        "unmatchedReelIds": [],
+        "skippedSnapshots": []
+      },
+      "account": {
+        "followers": 63.0,
+        "asOf": "2026-11-21",
+        "from": "2026-11-09",
+        "change": 44.0,
+        "knownDays": 13
+      },
+      "feedback": [
+        {
+          "at": "2026-11-16T17:05:30+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "selftest failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-16T17:06:55+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "selftest failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-16T17:08:57+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "selftest failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-16T17:12:19+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "stats failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-16T17:13:48+00:00",
+          "category": "preference",
+          "kind": "captions",
+          "note": "User 2026-11-16: captions short and dry by default; a short dry question is fine, not required. Written into captions.md + character.md.",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-11-16T17:13:48+00:00",
+          "category": "preference",
+          "kind": "sound",
+          "note": "User 2026-11-16: fewer or no sound effects by default; user will ask when a reel should have more. Config sfx.auto now false; plans add sfx only on request.",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-11-16T17:13:48+00:00",
+          "category": "preference",
+          "kind": "trend-format",
+          "note": "User 2026-11-16: when a reel goes off a trend, copy the trend's own styling (caps, size, stacking, song start). Written into recipes.md.",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-11-16T17:13:48+00:00",
+          "category": "production",
+          "kind": "selftest",
+          "note": "selftest failed at its stats step since the future-pullAt guard (2026-11-05): its fake pull was dated 2030. Moved the fake dates to 2020; selftest passes. The 3 selftest failures 11-16 were this plus a wrong check added and then removed during the sfx-default change.",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-11-17T16:15:55+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T16:15:55+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T16:15:55+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T16:15:55+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:16:22+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-m-short.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:16:41+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-m-short.json in 18.3s",
+          "slug": "zz-sbs-m-short",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:16:41+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-m-talk.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:17:55+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-m-talk.json in 73.9s",
+          "slug": "zz-sbs-m-talk",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:17:55+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-m-v360.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:18:12+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-m-v360.json in 17.1s",
+          "slug": "zz-sbs-m-v360",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:42:00+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:42:27+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-plans.json in 27.3s",
+          "slug": "zz-sbs-base-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:42:28+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:42:53+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 25.1s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:43:18+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:43:47+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-plans.json in 29.2s",
+          "slug": "zz-sbs-base-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:43:48+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:44:16+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 28.0s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:44:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:45:56+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-creatine.json in 100.4s",
+          "slug": "zz-sbs-base-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:45:57+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:46:46+00:00",
+          "category": "production",
+          "kind": "render-failed",
+          "note": "Render failed for zz-sbs-new-creatine.json after 49.6s; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:46:47+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:47:04+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-angel.json in 17.2s",
+          "slug": "zz-sbs-base-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:47:04+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:47:21+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 16.6s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:47:51+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:48:54+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 62.7s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:49:30+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:49:47+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-plans.json in 17.4s",
+          "slug": "zz-sbs-base-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:50:07+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:50:23+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 16.0s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:50:25+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:50:42+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 16.4s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:51:03+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:51:18+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 15.8s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:51:22+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:52:32+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 69.8s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:53:04+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:53:33+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p1-full-little-gray.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:54:20+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p1-full-little-gray.json in 47.2s",
+          "slug": "zz-sbs5-p1-full-little-gray",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:54:21+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p1-new-little-gray.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:54:39+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-creatine.json in 94.5s",
+          "slug": "zz-sbs-base-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:54:40+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p1-new-little-gray.json in 19.2s",
+          "slug": "zz-sbs5-p1-new-little-gray",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:54:54+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-17T23:56:08+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 73.4s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:00:56+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:01:27+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-plans.json in 30.4s",
+          "slug": "zz-sbs-base-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:01:27+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:01:43+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 16.3s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:01:49+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:02:02+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 13.3s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:02:07+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:02:25+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-angel.json in 17.5s",
+          "slug": "zz-sbs-base-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:02:25+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:02:43+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 17.6s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:02:47+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:03:00+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 13.8s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:03:04+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:04:21+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-creatine.json in 76.8s",
+          "slug": "zz-sbs-base-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:04:21+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:05:34+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 73.3s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:05:50+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:06:52+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 61.5s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:07:07+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:07:28+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-plans.json in 20.8s",
+          "slug": "zz-sbs-base-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:07:28+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:07:46+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 18.0s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:07:52+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:08:06+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 14.2s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:08:12+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:08:29+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-angel.json in 17.2s",
+          "slug": "zz-sbs-base-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:08:29+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:08:55+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 26.3s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:08:59+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:09:12+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 12.9s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:09:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-base-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:10:28+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-base-creatine.json in 72.5s",
+          "slug": "zz-sbs-base-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:10:29+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:10:42+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:12:31+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 121.9s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:12:46+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-creatine.json in 123.8s",
+          "slug": "zz-sbs5-p2-full-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:12:46+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:12:49+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:14:36+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 107.0s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:14:47+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 120.4s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:01+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:08+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:28+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 20.7s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:28+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:32+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:49+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 20.4s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:15:49+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:16:14+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 25.1s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:16:14+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:16:41+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 27.1s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:16:59+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:17:15+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-plans.json in 15.9s",
+          "slug": "zz-sbs-new-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:17:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-angel.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:17:32+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-angel.json in 16.0s",
+          "slug": "zz-sbs-new-angel",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:17:32+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:18:29+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs-new-creatine.json in 57.7s",
+          "slug": "zz-sbs-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:27:29+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:28:47+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 78.2s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:30:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:31:53+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 97.6s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:32:18+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:32:55+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-this-is-my-art.json in 36.5s",
+          "slug": "zz-sbs5-p2-full-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:32:55+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:33:21+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-this-is-my-art.json in 26.6s",
+          "slug": "zz-sbs5-p2-new-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:33:22+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-road-to-5-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:34:48+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-road-to-5-ep1.json in 86.6s",
+          "slug": "zz-sbs5-p2-full-road-to-5-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:34:48+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-road-to-5-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:35:47+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-road-to-5-ep1.json in 58.4s",
+          "slug": "zz-sbs5-p2-new-road-to-5-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:35:47+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:36:15+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-i-have-plans.json in 28.4s",
+          "slug": "zz-sbs5-p2-full-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:36:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:36:33+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-i-have-plans.json in 17.5s",
+          "slug": "zz-sbs5-p2-new-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:37:07+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-road-to-5-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:38:03+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-road-to-5-ep1.json in 56.0s",
+          "slug": "zz-sbs5-p2-new-road-to-5-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:38:42+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:40:00+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-creatine.json in 77.3s",
+          "slug": "zz-sbs5-p2-full-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:40:00+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:41:12+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 72.5s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:41:13+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:41:42+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-this-is-my-art.json in 29.9s",
+          "slug": "zz-sbs5-p2-full-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:41:43+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:42:08+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-this-is-my-art.json in 25.1s",
+          "slug": "zz-sbs5-p2-new-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:42:08+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:43:20+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-creatine.json in 71.8s",
+          "slug": "zz-sbs5-p2-full-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:43:20+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:44:32+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 71.7s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:46:15+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:47:11+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 55.8s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:47:57+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:49:10+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-creatine.json in 73.4s",
+          "slug": "zz-sbs5-p2-full-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:49:10+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:50:04+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 53.8s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:50:06+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:50:37+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-this-is-my-art.json in 31.2s",
+          "slug": "zz-sbs5-p2-full-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:50:37+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:51:04+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-this-is-my-art.json in 26.7s",
+          "slug": "zz-sbs5-p2-new-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:51:05+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:52:17+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-creatine.json in 71.6s",
+          "slug": "zz-sbs5-p2-full-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:52:17+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:53:10+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-creatine.json in 52.5s",
+          "slug": "zz-sbs5-p2-new-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:53:11+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:53:41+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-this-is-my-art.json in 30.0s",
+          "slug": "zz-sbs5-p2-full-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:53:41+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-this-is-my-art.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:54:06+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-this-is-my-art.json in 24.7s",
+          "slug": "zz-sbs5-p2-new-this-is-my-art",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:54:07+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-road-to-5-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:58:43+00:00",
+          "category": "production",
+          "kind": "render-failed",
+          "note": "Render failed for zz-sbs5-p2-full-road-to-5-ep1.json after 195.1s; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:58:44+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-road-to-5-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:59:38+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-road-to-5-ep1.json in 54.0s",
+          "slug": "zz-sbs5-p2-new-road-to-5-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T00:59:40+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:00:08+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-i-have-plans.json in 28.2s",
+          "slug": "zz-sbs5-p2-full-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:00:08+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:00:26+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-i-have-plans.json in 17.4s",
+          "slug": "zz-sbs5-p2-new-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:00:27+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-full-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:00:56+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-full-i-have-plans.json in 28.9s",
+          "slug": "zz-sbs5-p2-full-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:00:56+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-new-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:01:13+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-new-i-have-plans.json in 17.5s",
+          "slug": "zz-sbs5-p2-new-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:01:23+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-main-i-have-plans.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:01:41+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-main-i-have-plans.json in 18.4s",
+          "slug": "zz-sbs5-p2-main-i-have-plans",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:27:21+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering zz-sbs5-p2-smoke-creatine.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T01:28:13+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered zz-sbs5-p2-smoke-creatine.json in 51.5s",
+          "slug": "zz-sbs5-p2-smoke-creatine",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T02:20:32+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-16-sprint-zone-nov-26.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T02:21:57+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-16-sprint-zone-nov-26.json in 84.8s",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:15:11+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-16-sprint-zone-nov-26.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:17:18+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-16-sprint-zone-nov-26.json in 126.9s",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:24:08+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-16-sprint-zone-nov-26.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:26:50+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-16-sprint-zone-nov-26.json in 161.8s",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:30:32+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-16-sprint-zone-nov-26.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:43:20+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-16-sprint-zone-nov-26.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:45:24+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-16-sprint-zone-nov-26.json in 124.5s",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:51:55+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-16-sprint-zone-nov-26.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:53:55+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-16-sprint-zone-nov-26.json in 120.2s",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:53:56+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T03:54:29+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T15:35:42+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-houston-traffic.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T15:36:11+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-houston-traffic.json in 29.1s",
+          "slug": "2026-11-20-houston-traffic",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T15:36:35+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-houston-traffic.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T15:37:05+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-houston-traffic.json in 29.4s",
+          "slug": "2026-11-20-houston-traffic",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T17:38:24+00:00",
+          "category": "preference",
+          "kind": "edit",
+          "note": "User: 'wow this is chopped. let's do only close calls with cars' — 5-segment story (voice, traffic, peek, elevator) felt chopped; wants a reel of only close car passes.",
+          "slug": "2026-11-20-houston-traffic",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-18T17:40:40+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-houston-traffic.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T17:41:13+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-houston-traffic.json in 33.1s",
+          "slug": "2026-11-20-houston-traffic",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-18T17:46:51+00:00",
+          "category": "preference",
+          "kind": "rejection",
+          "note": "User deleted the reel after the car-passes re-cut ('let's delete this reel'); neither the 5-shot story nor the car-pass beat edit worked for them.",
+          "slug": "2026-11-20-houston-traffic",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-19T02:23:44+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-cutting-through-traffic.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:24:26+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-cutting-through-traffic.json in 42.3s",
+          "slug": "2026-11-18-cutting-through-traffic",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:24:41+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-cutting-through-traffic.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:25:12+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-cutting-through-traffic.json in 31.0s",
+          "slug": "2026-11-18-cutting-through-traffic",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:28:47+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "telemetry failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:28:48+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "telemetry failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:30:04+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-traffic-box-truck.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:30:26+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-traffic-box-truck.json in 21.9s",
+          "slug": "2026-11-18-traffic-box-truck",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:30:26+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-traffic-road-edge.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:30:49+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-traffic-road-edge.json in 22.6s",
+          "slug": "2026-11-18-traffic-road-edge",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:30:49+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-traffic-bar-cam.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:31:11+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-traffic-bar-cam.json in 22.7s",
+          "slug": "2026-11-18-traffic-bar-cam",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:31:39+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-traffic-road-edge.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:31:57+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-traffic-road-edge.json in 18.1s",
+          "slug": "2026-11-18-traffic-road-edge",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:31:57+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-traffic-bar-cam.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:32:16+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-traffic-bar-cam.json in 18.8s",
+          "slug": "2026-11-18-traffic-bar-cam",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:49:27+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-traffic-bar-cam-closecalls.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:50:28+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-traffic-bar-cam-closecalls.json in 61.7s",
+          "slug": "2026-11-18-traffic-bar-cam-closecalls",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:53:27+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-close-calls.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T02:54:07+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-close-calls.json in 40.5s",
+          "slug": "2026-11-18-close-calls",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:12:48+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:12:48+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-close-calls.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:12:48+00:00",
+          "category": "production",
+          "kind": "render-failed",
+          "note": "Render failed for 2026-11-18-close-calls.json after 0.0s; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:12:55+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-close-calls.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:13:37+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-close-calls.json in 41.9s",
+          "slug": "2026-11-18-close-calls",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:23:17+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-close-calls-v2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:24:00+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-close-calls-v2.json in 43.3s",
+          "slug": "2026-11-18-close-calls-v2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:24:17+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-close-calls-v2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:24:57+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-close-calls-v2.json in 40.6s",
+          "slug": "2026-11-18-close-calls-v2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:25:00+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "frames failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:29:18+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-close-calls.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:29:55+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-close-calls.json in 36.2s",
+          "slug": "2026-11-18-close-calls",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:30:13+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-18-close-calls",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:30:49+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-18-close-calls",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:30:49+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-18-technically-outside",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:30:49+00:00",
+          "category": "preference",
+          "kind": "text-edit",
+          "note": "Caption 'daily commute' → user wrote 'memorial drivers always trying to kill me smh'. Picked close-calls v1 (no side-angle cut) over v2; wanted ~20 s of near-misses across rides; posted 26.7 s.",
+          "slug": "2026-11-18-close-calls",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-19T03:30:57+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: posted",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:32:53+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:32:53+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T03:33:05+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-sprint-zone-halloween.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:02:17+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-sprint-zone-halloween.json in 1752.5s",
+          "slug": "2026-11-18-sprint-zone-halloween",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:02:18+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "look failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:03:09+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-sprint-zone-halloween.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:14:00+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-sprint-zone-halloween.json in 651.1s",
+          "slug": "2026-11-18-sprint-zone-halloween",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:21:18+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-sprint-zone-halloween.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:23:05+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-sprint-zone-halloween.json in 107.1s",
+          "slug": "2026-11-18-sprint-zone-halloween",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:23:10+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-18-sprint-zone-halloween.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:25:00+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-18-sprint-zone-halloween.json in 110.5s",
+          "slug": "2026-11-18-sprint-zone-halloween",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:40:38+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-18-sprint-zone-halloween",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:41:15+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-18-sprint-zone-halloween",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-19T04:41:15+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-18-technically-outside",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:33:05+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:33:16+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:33:55+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:35:41+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 105.6s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:36:12+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:37:44+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 92.5s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:38:11+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:39:29+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 78.2s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:39:49+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T02:41:04+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 75.1s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:06:54+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:08:10+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 75.7s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:08:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:09:25+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 68.5s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:09:34+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:10:43+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 68.6s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:16:25+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:16:33+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:17:49+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 76.5s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:17:59+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:19:18+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 79.8s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:20:36+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:21:49+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 73.2s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:22:22+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:23:31+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 69.3s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:25:39+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-20-road-to-5-ep2.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:26:52+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-20-road-to-5-ep2.json in 73.0s",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:27:15+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:27:55+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T03:27:55+00:00",
+          "category": "preference",
+          "kind": "edit",
+          "note": "VO cut: user wanted the real mic-pop moment (not 5:14), no 'welcome back', no face returning mid-line between cutaways (2x20 and Zwift lines), and no stray syllables at word cuts; Whisper word times were off by up to 0.3 s, so verify cut points by re-transcribing the render",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-20T19:41:12+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "stats failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T19:41:12+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "stats failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T19:41:12+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "stats failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T19:43:45+00:00",
+          "category": "production",
+          "kind": "analytics-matching",
+          "note": "2026-11-20 stats import: Metricool reel 18134997751795199 unmatched; posted 11-18 ~10:10 but post.json slot is 11-19 18:30",
+          "slug": "2026-11-16-sprint-zone-nov-26",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-20T19:43:45+00:00",
+          "category": "production",
+          "kind": "analytics-matching",
+          "note": "2026-11-20 stats import: Metricool reel 18188392945420126 unmatched; caption edited in Metricool to 'shout out gautam for those 4x8s'",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-20T19:46:53+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: posted",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-20T19:46:53+00:00",
+          "category": "preference",
+          "kind": "text-edit",
+          "note": "caption rewritten by the user in Metricool: 'ep 2. the 4x8 got a rematch' -> 'shout out gautam for those 4x8s'",
+          "slug": "2026-11-20-road-to-5-ep2",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-20T19:47:26+00:00",
+          "category": "production",
+          "kind": "analytics-import",
+          "note": "2026-11-20: three stats imports refused because pulledAt was written in local time with a -06:00 offset that read as future; fixed by writing pulledAt in UTC, all three imported",
+          "slug": null,
+          "source": "user"
+        },
+        {
+          "at": "2026-11-21T18:15:37+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "frames failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T21:57:09+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-nobody-gets-dropped.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T21:58:10+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-nobody-gets-dropped.json in 60.8s",
+          "slug": "2026-11-21-nobody-gets-dropped",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T21:58:17+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T21:59:59+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 102.0s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:00:02+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "look failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:00:02+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-nobody-gets-dropped.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:00:41+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-nobody-gets-dropped.json in 39.0s",
+          "slug": "2026-11-21-nobody-gets-dropped",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:12:41+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:13:43+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 61.7s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:19:50+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:21:13+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 82.7s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:31:04+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "frames failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:31:04+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "frames failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:33:31+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:33:32+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:33:37+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:33:39+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:33:41+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:33:47+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:35:46+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 118.7s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:36:16+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:36:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:36:16+00:00",
+          "category": "production",
+          "kind": "render-failed",
+          "note": "Render failed for 2026-11-21-sprint-zone-long-vo.json after 0.0s; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:36:25+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:37:58+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 92.8s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:38:33+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:39:52+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 78.4s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:39:59+00:00",
+          "category": "production",
+          "kind": "transcription",
+          "note": "Whisper VAD dropped real speech: 360 line at 4:13 under wind, and 40 s of the phone voiceover (small.en also invented keyterm words). Fixed by re-transcribing those spans with large-v3-turbo, no VAD, no hotwords, and merging.",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-21T22:42:26+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:43:29+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 63.4s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:45:35+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:46:31+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 55.9s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:49:55+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-sprint-zone-long-vo.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:50:53+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 58.8s",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:50:53+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:51:23+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-21-sprint-zone-long-vo",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:52:56+00:00",
+          "category": "preference",
+          "kind": "rejection",
+          "note": "user: 'the nobody-gets-dropped one was pretty bad' — not scheduled; reason not given yet",
+          "slug": "2026-11-21-nobody-gets-dropped",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-21T22:53:00+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "frames failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:53:54+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:54:14+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 20.7s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:54:40+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:54:57+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 17.3s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:57:21+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:57:57+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 35.8s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:58:06+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T22:58:39+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 32.9s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:00:51+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:01:18+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 27.3s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:01:30+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:02:06+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 36.4s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:04:32+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:05:12+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 39.6s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:05:21+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:05:51+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 29.6s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:08:07+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-21-trooper-ticket.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:08:38+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-21-trooper-ticket.json in 30.5s",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:11:30+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:12:07+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-21-trooper-ticket",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:51:37+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "tag-batch failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:52:32+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-23-down-week-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:54:22+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-23-down-week-ep1.json in 110.2s",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:54:24+00:00",
+          "category": "production",
+          "kind": "command-failed",
+          "note": "look failed; record a sanitized cause and fix with review feedback",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:54:41+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-23-down-week-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-21T23:56:01+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-23-down-week-ep1.json in 79.4s",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T00:04:16+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-23-down-week-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T00:06:05+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-23-down-week-ep1.json in 109.6s",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T00:08:40+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T00:09:05+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T00:09:05+00:00",
+          "category": "preference",
+          "kind": "edit",
+          "note": "User asked: don't clip trailing words ('for ever' cut); show the Strava segment card when the segment is first named; mix in the edit's own ride noise quietly under voiceover footage",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-22T00:09:05+00:00",
+          "category": "production",
+          "kind": "tooling",
+          "note": "./reels look fails on 63 s reel at default --every 0.5: ffmpeg select expression too long (Cannot allocate memory); --every 1 works",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "user"
+        },
+        {
+          "at": "2026-11-22T01:31:39+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-23-down-week-ep1-short.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T01:33:13+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-23-down-week-ep1-short.json in 93.7s",
+          "slug": "2026-11-23-down-week-ep1-short",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T01:35:54+00:00",
+          "category": "production",
+          "kind": "render-attempt",
+          "note": "Rendering 2026-11-23-down-week-ep1.json",
+          "slug": null,
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T01:37:24+00:00",
+          "category": "production",
+          "kind": "render-success",
+          "note": "Rendered 2026-11-23-down-week-ep1.json in 89.6s",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T01:37:33+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: approved",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        },
+        {
+          "at": "2026-11-22T01:37:51+00:00",
+          "category": "production",
+          "kind": "status-change",
+          "note": "Status recorded: scheduled",
+          "slug": "2026-11-23-down-week-ep1",
+          "source": "cli"
+        }
+      ],
+      "experiments": [
+        {
+          "id": "2026-w45-no-music",
+          "question": null,
+          "hypothesis": "a ride-sound-only reel (no music, 'sound on' hook) may hold viewers as well as or better than music reels because it stands out in the feed",
+          "primaryMetric": "hold",
+          "successCriterion": "hold clearly above the week's music reels of similar length (≥5 pp); otherwise inconclusive — one reel can't settle it",
+          "test": {
+            "n": 1,
+            "median": 66.7,
+            "samples": [
+              {
+                "slug": "2026-11-03-train-horn",
+                "reelId": "17995027452022287",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-04T00:32:34+00:00",
+                "ageDays": 10.810717592592592,
+                "reach": 165.0,
+                "stale": true,
+                "format": "just-the-bike",
+                "hook": {
+                  "text": "sound on. the group ride finally met its match"
+                },
+                "length": 8.62,
+                "music": null,
+                "hold": 66.7,
+                "watchThrough": 0.6791183294663574,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.006060606060606061,
+                "commentsReach": 0.0,
+                "engagement": 0.006060606060606061,
+                "viewsReach": 1.4606060606060607
+              }
+            ]
+          },
+          "control": {
+            "n": 3,
+            "median": 72.0,
+            "samples": [
+              {
+                "slug": "2026-11-07-regroup-confessions",
+                "reelId": "18100777358379524",
+                "pulledAt": "2026-11-15T20:49:50+00:00",
+                "snapshot": "analytics/2026-11-15T204950.json",
+                "postedAt": "2026-11-08T00:31:14+00:00",
+                "ageDays": 7.84625,
+                "reach": 571.0,
+                "stale": false,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "overheard at the regroup"
+                },
+                "length": 9.9,
+                "music": {
+                  "track": "dame-hombro",
+                  "title": "Dame Hombro",
+                  "url": "https://www.youtube.com/watch?v=c6yWT1hXvUI"
+                },
+                "hold": 75.6,
+                "watchThrough": 0.8351515151515152,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.008756567425569177,
+                "commentsReach": 0.0,
+                "engagement": 0.008756567425569177,
+                "viewsReach": 1.5236427320490369
+              },
+              {
+                "slug": "2026-11-05-multitool-drain",
+                "reelId": "18182689477448735",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-06T00:32:22+00:00",
+                "ageDays": 8.810856481481482,
+                "reach": 187.0,
+                "stale": true,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "my multitool vs a storm drain"
+                },
+                "length": 7.7,
+                "music": {
+                  "track": "sunshine-instrumental",
+                  "title": "Sunshine (Instrumental)",
+                  "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+                },
+                "hold": 72.0,
+                "watchThrough": 1.0174025974025973,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0053475935828877,
+                "commentsReach": 0.0,
+                "engagement": 0.0053475935828877,
+                "viewsReach": 1.7433155080213905
+              },
+              {
+                "slug": "2026-11-08-club-ride-downtown",
+                "reelId": "18455035417121683",
+                "pulledAt": "2026-11-16T04:51:53.092891+00:00",
+                "snapshot": "analytics/2026-11-16T045153.json",
+                "postedAt": "2026-11-09T00:32:18+00:00",
+                "ageDays": 7.1802672788310185,
+                "reach": 379.0,
+                "stale": false,
+                "format": "ride-montage",
+                "hook": {
+                  "text": "saturday club ride, downtown and back"
+                },
+                "length": 12.2,
+                "music": {
+                  "track": "angel-of-my-dreams",
+                  "title": "Angel Of My Dreams",
+                  "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+                },
+                "hold": 57.3,
+                "watchThrough": 0.5735245901639344,
+                "sharesReach": 0.005277044854881266,
+                "savesReach": 0.002638522427440633,
+                "likesReach": 0.0395778364116095,
+                "commentsReach": 0.0,
+                "engagement": 0.047493403693931395,
+                "viewsReach": 1.5910290237467017
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-loop",
+          "question": null,
+          "hypothesis": "a seamless swap-halves loop may raise watch-through because replays count as watch time",
+          "primaryMetric": "watchThrough",
+          "successCriterion": "watch-through materially above comparable short non-loop reels (≥15 pp); otherwise inconclusive",
+          "test": {
+            "n": 1,
+            "median": 0.7866206896551724,
+            "samples": [
+              {
+                "slug": "2026-11-06-elevator-loop",
+                "reelId": "18115184803843757",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-07T00:32:34+00:00",
+                "ageDays": 7.810717592592592,
+                "reach": 241.0,
+                "stale": true,
+                "format": "relatable-pov",
+                "hook": {
+                  "text": "me and this elevator before every ride"
+                },
+                "length": 7.25,
+                "music": {
+                  "track": "housewife",
+                  "title": "Tate McRae - Housewife (Lyric Video)",
+                  "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+                },
+                "hold": 65.3,
+                "watchThrough": 0.7866206896551724,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.012448132780082987,
+                "commentsReach": 0.0,
+                "engagement": 0.012448132780082987,
+                "viewsReach": 1.5435684647302905
+              }
+            ]
+          },
+          "control": {
+            "n": 2,
+            "median": 0.8670056465273857,
+            "samples": [
+              {
+                "slug": "2026-11-04-wake-the-roommate",
+                "reelId": "18107832539111797",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-05T00:32:22+00:00",
+                "ageDays": 9.810856481481482,
+                "reach": 360.0,
+                "stale": true,
+                "format": "relatable-pov",
+                "hook": {
+                  "text": "what my roommate wakes up to"
+                },
+                "length": 11.5,
+                "music": {
+                  "track": "sometimes",
+                  "title": "Fleetwood Mac - Sometimes | Lyrics",
+                  "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+                },
+                "hold": 77.1,
+                "watchThrough": 0.7166086956521739,
+                "sharesReach": 0.002777777777777778,
+                "savesReach": 0.002777777777777778,
+                "likesReach": 0.016666666666666666,
+                "commentsReach": 0.0,
+                "engagement": 0.022222222222222223,
+                "viewsReach": 1.5583333333333333
+              },
+              {
+                "slug": "2026-11-05-multitool-drain",
+                "reelId": "18182689477448735",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-06T00:32:22+00:00",
+                "ageDays": 8.810856481481482,
+                "reach": 187.0,
+                "stale": true,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "my multitool vs a storm drain"
+                },
+                "length": 7.7,
+                "music": {
+                  "track": "sunshine-instrumental",
+                  "title": "Sunshine (Instrumental)",
+                  "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+                },
+                "hold": 72.0,
+                "watchThrough": 1.0174025974025973,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0053475935828877,
+                "commentsReach": 0.0,
+                "engagement": 0.0053475935828877,
+                "viewsReach": 1.7433155080213905
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-voice-first",
+          "question": null,
+          "hypothesis": "opening on teammates' real dialogue with transcript captions (no setup shot) may hold better than text-led reels",
+          "primaryMetric": "hold",
+          "successCriterion": "hold repeatedly above text-led reels of similar length; otherwise inconclusive",
+          "test": {
+            "n": 2,
+            "median": 73.8,
+            "samples": [
+              {
+                "slug": "2026-11-05-multitool-drain",
+                "reelId": "18182689477448735",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-06T00:32:22+00:00",
+                "ageDays": 8.810856481481482,
+                "reach": 187.0,
+                "stale": true,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "my multitool vs a storm drain"
+                },
+                "length": 7.7,
+                "music": {
+                  "track": "sunshine-instrumental",
+                  "title": "Sunshine (Instrumental)",
+                  "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+                },
+                "hold": 72.0,
+                "watchThrough": 1.0174025974025973,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0053475935828877,
+                "commentsReach": 0.0,
+                "engagement": 0.0053475935828877,
+                "viewsReach": 1.7433155080213905
+              },
+              {
+                "slug": "2026-11-07-regroup-confessions",
+                "reelId": "18100777358379524",
+                "pulledAt": "2026-11-15T20:49:50+00:00",
+                "snapshot": "analytics/2026-11-15T204950.json",
+                "postedAt": "2026-11-08T00:31:14+00:00",
+                "ageDays": 7.84625,
+                "reach": 571.0,
+                "stale": false,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "overheard at the regroup"
+                },
+                "length": 9.9,
+                "music": {
+                  "track": "dame-hombro",
+                  "title": "Dame Hombro",
+                  "url": "https://www.youtube.com/watch?v=c6yWT1hXvUI"
+                },
+                "hold": 75.6,
+                "watchThrough": 0.8351515151515152,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.008756567425569177,
+                "commentsReach": 0.0,
+                "engagement": 0.008756567425569177,
+                "viewsReach": 1.5236427320490369
+              }
+            ]
+          },
+          "control": {
+            "n": 2,
+            "median": 67.19999999999999,
+            "samples": [
+              {
+                "slug": "2026-11-04-wake-the-roommate",
+                "reelId": "18107832539111797",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-05T00:32:22+00:00",
+                "ageDays": 9.810856481481482,
+                "reach": 360.0,
+                "stale": true,
+                "format": "relatable-pov",
+                "hook": {
+                  "text": "what my roommate wakes up to"
+                },
+                "length": 11.5,
+                "music": {
+                  "track": "sometimes",
+                  "title": "Fleetwood Mac - Sometimes | Lyrics",
+                  "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+                },
+                "hold": 77.1,
+                "watchThrough": 0.7166086956521739,
+                "sharesReach": 0.002777777777777778,
+                "savesReach": 0.002777777777777778,
+                "likesReach": 0.016666666666666666,
+                "commentsReach": 0.0,
+                "engagement": 0.022222222222222223,
+                "viewsReach": 1.5583333333333333
+              },
+              {
+                "slug": "2026-11-08-club-ride-downtown",
+                "reelId": "18455035417121683",
+                "pulledAt": "2026-11-16T04:51:53.092891+00:00",
+                "snapshot": "analytics/2026-11-16T045153.json",
+                "postedAt": "2026-11-09T00:32:18+00:00",
+                "ageDays": 7.1802672788310185,
+                "reach": 379.0,
+                "stale": false,
+                "format": "ride-montage",
+                "hook": {
+                  "text": "saturday club ride, downtown and back"
+                },
+                "length": 12.2,
+                "music": {
+                  "track": "angel-of-my-dreams",
+                  "title": "Angel Of My Dreams",
+                  "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+                },
+                "hold": 57.3,
+                "watchThrough": 0.5735245901639344,
+                "sharesReach": 0.005277044854881266,
+                "savesReach": 0.002638522427440633,
+                "likesReach": 0.0395778364116095,
+                "commentsReach": 0.0,
+                "engagement": 0.047493403693931395,
+                "viewsReach": 1.5910290237467017
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w45-trending-songs",
+          "question": null,
+          "hypothesis": "mixing in this week's trending songs may lift likes per reach versus last week's free tracks (audio page discovery)",
+          "primaryMetric": "likesReach",
+          "successCriterion": "a repeated, large difference in likes/reach (and reach, noted separately) across ≥3 reels each; treat as observational",
+          "test": {
+            "n": 6,
+            "median": 0.012248162775583663,
+            "samples": [
+              {
+                "slug": "2026-11-02-intervals-before-class",
+                "reelId": "18200861737381333",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-03T00:31:18+00:00",
+                "ageDays": 11.811597222222222,
+                "reach": 166.0,
+                "stale": true,
+                "format": "story-with-stakes",
+                "hook": {
+                  "text": "intervals before class. let's see if i survive"
+                },
+                "length": 10.6,
+                "music": {
+                  "track": "what-you-waiting-for",
+                  "title": "Gwen Stefani - What You Waiting For",
+                  "url": "https://www.youtube.com/watch?v=RtBPPr_GVUg"
+                },
+                "hold": 55.6,
+                "watchThrough": 0.5405660377358491,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.012048192771084338,
+                "commentsReach": 0.0,
+                "engagement": 0.012048192771084338,
+                "viewsReach": 1.3975903614457832
+              },
+              {
+                "slug": "2026-11-04-wake-the-roommate",
+                "reelId": "18107832539111797",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-05T00:32:22+00:00",
+                "ageDays": 9.810856481481482,
+                "reach": 360.0,
+                "stale": true,
+                "format": "relatable-pov",
+                "hook": {
+                  "text": "what my roommate wakes up to"
+                },
+                "length": 11.5,
+                "music": {
+                  "track": "sometimes",
+                  "title": "Fleetwood Mac - Sometimes | Lyrics",
+                  "url": "https://www.youtube.com/watch?v=QymdRcVp7As"
+                },
+                "hold": 77.1,
+                "watchThrough": 0.7166086956521739,
+                "sharesReach": 0.002777777777777778,
+                "savesReach": 0.002777777777777778,
+                "likesReach": 0.016666666666666666,
+                "commentsReach": 0.0,
+                "engagement": 0.022222222222222223,
+                "viewsReach": 1.5583333333333333
+              },
+              {
+                "slug": "2026-11-05-multitool-drain",
+                "reelId": "18182689477448735",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-06T00:32:22+00:00",
+                "ageDays": 8.810856481481482,
+                "reach": 187.0,
+                "stale": true,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "my multitool vs a storm drain"
+                },
+                "length": 7.7,
+                "music": {
+                  "track": "sunshine-instrumental",
+                  "title": "Sunshine (Instrumental)",
+                  "url": "https://www.youtube.com/watch?v=SbbEg_6042s"
+                },
+                "hold": 72.0,
+                "watchThrough": 1.0174025974025973,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0053475935828877,
+                "commentsReach": 0.0,
+                "engagement": 0.0053475935828877,
+                "viewsReach": 1.7433155080213905
+              },
+              {
+                "slug": "2026-11-06-elevator-loop",
+                "reelId": "18115184803843757",
+                "pulledAt": "2026-11-14T20:00:00Z",
+                "snapshot": "analytics/2026-11-14T200000.json",
+                "postedAt": "2026-11-07T00:32:34+00:00",
+                "ageDays": 7.810717592592592,
+                "reach": 241.0,
+                "stale": true,
+                "format": "relatable-pov",
+                "hook": {
+                  "text": "me and this elevator before every ride"
+                },
+                "length": 7.25,
+                "music": {
+                  "track": "housewife",
+                  "title": "Tate McRae - Housewife (Lyric Video)",
+                  "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+                },
+                "hold": 65.3,
+                "watchThrough": 0.7866206896551724,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.012448132780082987,
+                "commentsReach": 0.0,
+                "engagement": 0.012448132780082987,
+                "viewsReach": 1.5435684647302905
+              },
+              {
+                "slug": "2026-11-07-regroup-confessions",
+                "reelId": "18100777358379524",
+                "pulledAt": "2026-11-15T20:49:50+00:00",
+                "snapshot": "analytics/2026-11-15T204950.json",
+                "postedAt": "2026-11-08T00:31:14+00:00",
+                "ageDays": 7.84625,
+                "reach": 571.0,
+                "stale": false,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "overheard at the regroup"
+                },
+                "length": 9.9,
+                "music": {
+                  "track": "dame-hombro",
+                  "title": "Dame Hombro",
+                  "url": "https://www.youtube.com/watch?v=c6yWT1hXvUI"
+                },
+                "hold": 75.6,
+                "watchThrough": 0.8351515151515152,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.008756567425569177,
+                "commentsReach": 0.0,
+                "engagement": 0.008756567425569177,
+                "viewsReach": 1.5236427320490369
+              },
+              {
+                "slug": "2026-11-08-club-ride-downtown",
+                "reelId": "18455035417121683",
+                "pulledAt": "2026-11-16T04:51:53.092891+00:00",
+                "snapshot": "analytics/2026-11-16T045153.json",
+                "postedAt": "2026-11-09T00:32:18+00:00",
+                "ageDays": 7.1802672788310185,
+                "reach": 379.0,
+                "stale": false,
+                "format": "ride-montage",
+                "hook": {
+                  "text": "saturday club ride, downtown and back"
+                },
+                "length": 12.2,
+                "music": {
+                  "track": "angel-of-my-dreams",
+                  "title": "Angel Of My Dreams",
+                  "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+                },
+                "hold": 57.3,
+                "watchThrough": 0.5735245901639344,
+                "sharesReach": 0.005277044854881266,
+                "savesReach": 0.002638522427440633,
+                "likesReach": 0.0395778364116095,
+                "commentsReach": 0.0,
+                "engagement": 0.047493403693931395,
+                "viewsReach": 1.5910290237467017
+              }
+            ]
+          },
+          "control": {
+            "n": 5,
+            "median": 0.005847953216374269,
+            "samples": [
+              {
+                "slug": "2026-10-26-golden-bridge",
+                "reelId": "17966167758207299",
+                "pulledAt": "2026-11-03T00:08:43+00:00",
+                "snapshot": "analytics/2026-11-03T000843.json",
+                "postedAt": "2026-10-26T23:31:18+00:00",
+                "ageDays": 7.0259837962962965,
+                "reach": 182.0,
+                "stale": true,
+                "format": null,
+                "hook": {
+                  "text": "pov: you timed the bridge perfectly"
+                },
+                "length": 8.45,
+                "music": {
+                  "track": "journey-home",
+                  "title": "Relaxing Lofi Music for Study & Vlogs ☕ (No Copyright) | Tokyo Music Walker - The Journey Home",
+                  "url": "https://www.youtube.com/watch?v=nOvU8ldApCA"
+                },
+                "hold": 46.1,
+                "watchThrough": 0.4712426035502959,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.005494505494505495,
+                "commentsReach": 0.0,
+                "engagement": 0.005494505494505495,
+                "viewsReach": 1.1868131868131868
+              },
+              {
+                "slug": "2026-10-27-group-ride-chill",
+                "reelId": "18014500985762518",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-27T23:32:29+00:00",
+                "ageDays": 11.898993055555556,
+                "reach": 165.0,
+                "stale": true,
+                "format": null,
+                "hook": {
+                  "text": "pov: the group ride was supposed to be chill"
+                },
+                "length": 15.51,
+                "music": {
+                  "track": "roa-highway",
+                  "title": "Upbeat Electronic Music for Travel Vlogs 🚗 (No Copyright) | Roa - Highway",
+                  "url": "https://www.youtube.com/watch?v=wZup9mUmVxE"
+                },
+                "hold": 53.4,
+                "watchThrough": 0.3370083816892328,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.012121212121212121,
+                "commentsReach": 0.0,
+                "engagement": 0.012121212121212121,
+                "viewsReach": 1.121212121212121
+              },
+              {
+                "slug": "2026-10-28-bike-trip",
+                "reelId": "18361357399218194",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-28T23:32:18+00:00",
+                "ageDays": 10.89912037037037,
+                "reach": 159.0,
+                "stale": true,
+                "format": null,
+                "hook": {
+                  "text": "packed the bike for this one"
+                },
+                "length": 16.02,
+                "music": {
+                  "track": "lesfm-in-the-forest",
+                  "title": "Acoustic Indie for a Chill Summer Morning | OPIA Royalty Free Music | In The Forest 2 - Lesfm",
+                  "url": "https://www.youtube.com/watch?v=JkyoHTYg2UE"
+                },
+                "hold": 43.6,
+                "watchThrough": 0.24232209737827717,
+                "sharesReach": 0.006289308176100629,
+                "savesReach": 0.0,
+                "likesReach": 0.012578616352201259,
+                "commentsReach": 0.0,
+                "engagement": 0.018867924528301886,
+                "viewsReach": 1.1383647798742138
+              },
+              {
+                "slug": "2026-10-29-first-ride-back",
+                "reelId": "18399436315200807",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-29T23:31:14+00:00",
+                "ageDays": 9.899861111111111,
+                "reach": 513.0,
+                "stale": true,
+                "format": null,
+                "hook": {
+                  "text": "the zwift era vs the first ride back"
+                },
+                "length": 10.82,
+                "music": {
+                  "track": "vacation-uke",
+                  "title": "🎵 Vacation Uke - ALBIS 🎧 No Copyright Music 🎶 YouTube Audio Library",
+                  "url": "https://www.youtube.com/watch?v=nIxlEfCnXxE"
+                },
+                "hold": 63.0,
+                "watchThrough": 0.705083179297597,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.005847953216374269,
+                "commentsReach": 0.0,
+                "engagement": 0.005847953216374269,
+                "viewsReach": 1.2943469785575048
+              },
+              {
+                "slug": "2026-10-30-chasing-the-group",
+                "reelId": "17889408546622136",
+                "pulledAt": "2026-11-08T21:07:02+00:00",
+                "snapshot": "analytics/2026-11-08T210702.json",
+                "postedAt": "2026-10-30T23:32:29+00:00",
+                "ageDays": 8.898993055555556,
+                "reach": 159.0,
+                "stale": true,
+                "format": null,
+                "hook": {
+                  "text": "me chasing the group like it owes me money"
+                },
+                "length": 15.21,
+                "music": {
+                  "track": "jiglr-lapse",
+                  "title": "Arpeggiated, Driving, Electronic No Copyright Music | Lapse by jiglr",
+                  "url": "https://www.youtube.com/watch?v=CFpOuWy-qtQ"
+                },
+                "hold": 56.9,
+                "watchThrough": 0.32439184746877053,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.0,
+                "commentsReach": 0.0,
+                "engagement": 0.0,
+                "viewsReach": 1.10062893081761
+              }
+            ]
+          },
+          "status": "ready-for-review"
+        },
+        {
+          "id": "2026-w46-onscreen-question",
+          "question": null,
+          "hypothesis": "putting the question on screen as the last text beat may earn more comments than asking only in the caption, since most viewers never open the caption",
+          "primaryMetric": "commentsReach",
+          "successCriterion": "any repeated comments on test reels while controls stay at zero; with one or two reels each this is only suggestive, otherwise inconclusive",
+          "test": {
+            "n": 1,
+            "median": 0.0,
+            "samples": [
+              {
+                "slug": "2026-11-12-overheard-group-ride",
+                "reelId": "18130903519900423",
+                "pulledAt": "2026-11-20T19:41:18+00:00",
+                "snapshot": "analytics/2026-11-20T194118.json",
+                "postedAt": "2026-11-12T00:32:27+00:00",
+                "ageDays": 8.7978125,
+                "reach": 1328.0,
+                "stale": false,
+                "format": "overheard",
+                "hook": {
+                  "text": "things overheard on saturday's group ride"
+                },
+                "length": 12.8,
+                "music": {
+                  "track": "go-go-juice",
+                  "title": "Sabrina Carpenter - Go Go Juice (Official Lyric Video)",
+                  "url": "https://www.youtube.com/watch?v=uCNr2iCgSPs"
+                },
+                "hold": 76.1,
+                "watchThrough": 0.7753125,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.006024096385542169,
+                "commentsReach": 0.0,
+                "engagement": 0.006024096385542169,
+                "viewsReach": 1.470632530120482
+              }
+            ]
+          },
+          "control": {
+            "n": 2,
+            "median": 0.002325581395348837,
+            "samples": [
+              {
+                "slug": "2026-11-09-fortnite-before-the-long-ride",
+                "reelId": "18103429103453123",
+                "pulledAt": "2026-11-20T19:41:18+00:00",
+                "snapshot": "analytics/2026-11-20T194118.json",
+                "postedAt": "2026-11-10T00:32:38+00:00",
+                "ageDays": 10.797685185185186,
+                "reach": 430.0,
+                "stale": false,
+                "format": "relatable-pov",
+                "hook": {
+                  "text": "our pre long ride routine"
+                },
+                "length": 11.8,
+                "music": {
+                  "track": "luminary",
+                  "title": "joel sunny - luminary - official audio",
+                  "url": "https://www.youtube.com/watch?v=VkbvUjbHcGE"
+                },
+                "hold": 54.0,
+                "watchThrough": 0.6368644067796609,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.030232558139534883,
+                "commentsReach": 0.004651162790697674,
+                "engagement": 0.03488372093023256,
+                "viewsReach": 1.697674418604651
+              },
+              {
+                "slug": "2026-11-14-every-bridge-sprint-zone",
+                "reelId": "18442687417194119",
+                "pulledAt": "2026-11-22T18:00:00Z",
+                "snapshot": "analytics/2026-11-22T180000.json",
+                "postedAt": "2026-11-15T00:31:53+00:00",
+                "ageDays": 7.727858796296296,
+                "reach": 1518.0,
+                "stale": false,
+                "format": "story-with-stakes",
+                "hook": {
+                  "text": "every bridge up is a sprint zone",
+                  "seconds": 2.5
+                },
+                "length": 12.14,
+                "music": {
+                  "track": "housewife",
+                  "title": "Tate McRae - Housewife (Lyric Video)",
+                  "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+                },
+                "hold": 76.2,
+                "watchThrough": 0.7540362438220758,
+                "sharesReach": 0.0032938076416337285,
+                "savesReach": 0.0,
+                "likesReach": 0.010540184453227932,
+                "commentsReach": 0.0,
+                "engagement": 0.01383399209486166,
+                "viewsReach": 1.4967061923583662
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "id": "2026-w46-trend-format",
+          "question": null,
+          "hypothesis": "doing a trend's actual on-screen format, not just using its song, may lift engagement per reach",
+          "primaryMetric": "engagement",
+          "successCriterion": "engagement/reach clearly above comparable group-ride reels using a trending song only; one test only, so otherwise inconclusive",
+          "test": {
+            "n": 1,
+            "median": 0.015267175572519083,
+            "samples": [
+              {
+                "slug": "2026-11-13-not-every-angel",
+                "reelId": "18182072680450395",
+                "pulledAt": "2026-11-22T18:00:00Z",
+                "snapshot": "analytics/2026-11-22T180000.json",
+                "postedAt": "2026-11-14T00:31:29+00:00",
+                "ageDays": 8.728136574074075,
+                "reach": 262.0,
+                "stale": false,
+                "format": "this-weeks-trend",
+                "hook": {
+                  "text": "not every angel can walk vsfs, some of us pull the group",
+                  "seconds": 4.2,
+                  "position": "center"
+                },
+                "length": 10.35,
+                "music": {
+                  "track": "angel-of-my-dreams",
+                  "title": "Angel Of My Dreams",
+                  "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+                },
+                "hold": 64.2,
+                "watchThrough": 0.6744927536231884,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.015267175572519083,
+                "commentsReach": 0.0,
+                "engagement": 0.015267175572519083,
+                "viewsReach": 1.5534351145038168
+              }
+            ]
+          },
+          "control": {
+            "n": 3,
+            "median": 0.01383399209486166,
+            "samples": [
+              {
+                "slug": "2026-11-14-every-bridge-sprint-zone",
+                "reelId": "18442687417194119",
+                "pulledAt": "2026-11-22T18:00:00Z",
+                "snapshot": "analytics/2026-11-22T180000.json",
+                "postedAt": "2026-11-15T00:31:53+00:00",
+                "ageDays": 7.727858796296296,
+                "reach": 1518.0,
+                "stale": false,
+                "format": "story-with-stakes",
+                "hook": {
+                  "text": "every bridge up is a sprint zone",
+                  "seconds": 2.5
+                },
+                "length": 12.14,
+                "music": {
+                  "track": "housewife",
+                  "title": "Tate McRae - Housewife (Lyric Video)",
+                  "url": "https://www.youtube.com/watch?v=yi24DPRG0Sg"
+                },
+                "hold": 76.2,
+                "watchThrough": 0.7540362438220758,
+                "sharesReach": 0.0032938076416337285,
+                "savesReach": 0.0,
+                "likesReach": 0.010540184453227932,
+                "commentsReach": 0.0,
+                "engagement": 0.01383399209486166,
+                "viewsReach": 1.4967061923583662
+              },
+              {
+                "slug": "2026-11-08-club-ride-downtown",
+                "reelId": "18455035417121683",
+                "pulledAt": "2026-11-16T04:51:53.092891+00:00",
+                "snapshot": "analytics/2026-11-16T045153.json",
+                "postedAt": "2026-11-09T00:32:18+00:00",
+                "ageDays": 7.1802672788310185,
+                "reach": 379.0,
+                "stale": false,
+                "format": "ride-montage",
+                "hook": {
+                  "text": "saturday club ride, downtown and back"
+                },
+                "length": 12.2,
+                "music": {
+                  "track": "angel-of-my-dreams",
+                  "title": "Angel Of My Dreams",
+                  "url": "https://www.youtube.com/watch?v=UAQnQ4Vr074"
+                },
+                "hold": 57.3,
+                "watchThrough": 0.5735245901639344,
+                "sharesReach": 0.005277044854881266,
+                "savesReach": 0.002638522427440633,
+                "likesReach": 0.0395778364116095,
+                "commentsReach": 0.0,
+                "engagement": 0.047493403693931395,
+                "viewsReach": 1.5910290237467017
+              },
+              {
+                "slug": "2026-11-07-regroup-confessions",
+                "reelId": "18100777358379524",
+                "pulledAt": "2026-11-15T20:49:50+00:00",
+                "snapshot": "analytics/2026-11-15T204950.json",
+                "postedAt": "2026-11-08T00:31:14+00:00",
+                "ageDays": 7.84625,
+                "reach": 571.0,
+                "stale": false,
+                "format": "talking-clip",
+                "hook": {
+                  "text": "overheard at the regroup"
+                },
+                "length": 9.9,
+                "music": {
+                  "track": "dame-hombro",
+                  "title": "Dame Hombro",
+                  "url": "https://www.youtube.com/watch?v=c6yWT1hXvUI"
+                },
+                "hold": 75.6,
+                "watchThrough": 0.8351515151515152,
+                "sharesReach": 0.0,
+                "savesReach": 0.0,
+                "likesReach": 0.008756567425569177,
+                "commentsReach": 0.0,
+                "engagement": 0.008756567425569177,
+                "viewsReach": 1.5236427320490369
+              }
+            ]
+          },
+          "status": "awaiting-data"
+        }
+      ],
+      "questions": [
+        {
+          "question": "2026-w45-no-music",
+          "primaryMetric": "hold",
+          "experiments": [
+            "2026-w45-no-music"
+          ],
+          "runs": 1,
+          "test": {
+            "n": 1,
+            "median": 66.7
+          },
+          "control": {
+            "n": 3,
+            "median": 72.0
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "question": "2026-w45-loop",
+          "primaryMetric": "watchThrough",
+          "experiments": [
+            "2026-w45-loop"
+          ],
+          "runs": 1,
+          "test": {
+            "n": 1,
+            "median": 0.7866206896551724
+          },
+          "control": {
+            "n": 2,
+            "median": 0.8670056465273857
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "question": "2026-w45-voice-first",
+          "primaryMetric": "hold",
+          "experiments": [
+            "2026-w45-voice-first"
+          ],
+          "runs": 1,
+          "test": {
+            "n": 2,
+            "median": 73.8
+          },
+          "control": {
+            "n": 2,
+            "median": 67.19999999999999
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "question": "2026-w45-trending-songs",
+          "primaryMetric": "likesReach",
+          "experiments": [
+            "2026-w45-trending-songs"
+          ],
+          "runs": 1,
+          "test": {
+            "n": 6,
+            "median": 0.012248162775583663
+          },
+          "control": {
+            "n": 5,
+            "median": 0.005847953216374269
+          },
+          "status": "ready-for-review"
+        },
+        {
+          "question": "2026-w46-onscreen-question",
+          "primaryMetric": "commentsReach",
+          "experiments": [
+            "2026-w46-onscreen-question"
+          ],
+          "runs": 1,
+          "test": {
+            "n": 1,
+            "median": 0.0
+          },
+          "control": {
+            "n": 2,
+            "median": 0.002325581395348837
+          },
+          "status": "awaiting-data"
+        },
+        {
+          "question": "2026-w46-trend-format",
+          "primaryMetric": "engagement",
+          "experiments": [
+            "2026-w46-trend-format"
+          ],
+          "runs": 1,
+          "test": {
+            "n": 1,
+            "median": 0.015267175572519083
+          },
+          "control": {
+            "n": 3,
+            "median": 0.01383399209486166
+          },
+          "status": "awaiting-data"
+        }
+      ],
+      "batch": [],
+      "notes": {},
+      "schedulingComplete": false
     }
   ]
 }

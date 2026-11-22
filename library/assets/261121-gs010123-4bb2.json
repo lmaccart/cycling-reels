@@ -1,0 +1,296 @@
+{
+  "id": "261121-gs010123-4bb2",
+  "kind": "video",
+  "media": "library/media/261121-gs010123-4bb2.360",
+  "originalName": "GS010123.360",
+  "hash": "4bb2ae992f40617e106472063b3a3a8d805a2ab4",
+  "created": "2026-11-21T09:06:06",
+  "createdCamera": "2026-11-21T10:06:06",
+  "ingestedAt": "2026-11-21T18:07:39+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T10:06:06.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "Leaving the mid-ride stop (\"you guys know it is our sprint zone, wait at the end if you get dropped, three miles\"), then the group strung out at speed on a country road, riders passing on the left",
+    "hooks": [
+      "three miles to the sprint zone",
+      "wait at the end if you get dropped"
+    ],
+    "location": "Houston (south side)",
+    "notes": "Bar mount. Water spots on the lens from ~3:00. Sprint-zone speaker unknown. Strava ~104 min in.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      },
+      "left": {
+        "yaw": -120.0,
+        "pitch": 0.0,
+        "fov": 90.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-f041a6",
+        "in": 37.6,
+        "out": 47.8,
+        "label": "at the stop, standing over the bike: \"you guys know it is our sprint zone, wait at the end if you get dropped, three mil",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "rider",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "honest",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-56757f",
+        "in": 196.0,
+        "out": 204.0,
+        "label": "two riders in red and in green passing on the left, my hand on the hood, low side view",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.55,
+        "speech": false,
+        "view": "left",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-221251",
+        "in": 252.0,
+        "out": 260.0,
+        "label": "rider in green and yellow on an orange bike alongside on the left at speed, SUV behind",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.55,
+        "speech": false,
+        "view": "left",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-006c1a",
+        "in": 252.0,
+        "out": 260.0,
+        "label": "low forward view: riders strung out ahead along the white line, wheel beside me",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-99524b",
+        "in": 300.0,
+        "out": 310.0,
+        "label": "empty straight country road at speed, low forward view along the white line",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 0.0,
+        "label": "leaving the mid-ride stop, construction cones"
+      },
+      {
+        "at": 38.0,
+        "label": "sprint zone announcement at the stop"
+      },
+      {
+        "at": 65.0,
+        "label": "rolling out on a two-lane road, yellow centre line"
+      },
+      {
+        "at": 195.0,
+        "label": "group passing on the left, country road"
+      },
+      {
+        "at": 300.0,
+        "label": "long straight road, group ahead"
+      },
+      {
+        "at": 400.0,
+        "label": "riders alongside on the left again"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261121-gs010123-4bb2.json",
+  "used": [
+    {
+      "plan": "2026-11-21-nobody-gets-dropped",
+      "at": "2026-11-21T22:00:41+00:00",
+      "in": 37.75,
+      "out": 42.65
+    },
+    {
+      "plan": "2026-11-21-nobody-gets-dropped",
+      "at": "2026-11-21T22:00:41+00:00",
+      "in": 44.6,
+      "out": 47.4
+    },
+    {
+      "plan": "2026-11-21-nobody-gets-dropped",
+      "at": "2026-11-21T22:00:41+00:00",
+      "in": 140.0,
+      "out": 142.867
+    },
+    {
+      "plan": "2026-11-21-nobody-gets-dropped",
+      "at": "2026-11-21T22:00:41+00:00",
+      "in": 197.5,
+      "out": 203.167
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 38.49,
+      "out": 39.8
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 44.1,
+      "out": 45.95
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 128.0,
+      "out": 155.2
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 251.5,
+      "out": 252.14
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 252.14,
+      "out": 258.0
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 265.5,
+      "out": 272.55
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -17.0,
+      "peakDb": -3.2
+    },
+    "speechSeconds": 6.55,
+    "speechRanges": [
+      [
+        38.01,
+        41.93
+      ],
+      [
+        44.54,
+        46.06
+      ],
+      [
+        46.58,
+        47.69
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-gs010123-4bb2-1.jpg",
+    "library/sheets/261121-gs010123-4bb2-2.jpg",
+    "library/sheets/261121-gs010123-4bb2-3.jpg",
+    "library/sheets/261121-gs010123-4bb2-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs010123-4bb2.json",
+  "gpsSummary": {
+    "goodSeconds": 481.6,
+    "gaps": 0,
+    "first": 1.0,
+    "last": 482.4,
+    "maxSpeed": 12.85,
+    "movingAvgSpeed": 10.12,
+    "movingSeconds": 465.6,
+    "distance": 4714.6,
+    "altitudeOk": true,
+    "elevationGain": 22.3,
+    "elevationLoss": 51.1,
+    "altMin": -10.0,
+    "altMax": 35.8
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 6233.8,
+    "clock": "gps",
+    "shift": -343.2,
+    "fitMetres": 3.3
+  },
+  "taggedAt": "2026-11-21T18:12:35+00:00"
+}

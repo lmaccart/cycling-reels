@@ -1,0 +1,158 @@
+{
+  "id": "261118-img-3694-aa4f",
+  "kind": "video",
+  "media": "library/media/261118-img-3694-aa4f.mov",
+  "originalName": "IMG_3694.MOV",
+  "hash": "aa4fc5c58d5da294c72b68603c949712a9d8a151",
+  "created": "2026-11-18T21:22:36",
+  "ingestedAt": "2026-11-19T03:30:40+00:00",
+  "probe": {
+    "duration": 217.145,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.997,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-18T21:22:36-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "static",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Voiceover recording narrating the Halloween-weekend Saturday ride bridge sprint zone edit; several takes, last full take 2:44-3:30",
+    "hooks": [
+      "here is rice's saturday ride"
+    ],
+    "moments": [
+      {
+        "id": "m-e3988e",
+        "in": 164.0,
+        "out": 209.9,
+        "label": "voiceover final take: Diego on my wheel, Annika, Ben on the left, out of the saddle, Carter can do 13 W/kg, 25 kilos on ",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "joke",
+        "face": true,
+        "opener": true
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261118-img-3694-aa4f.json",
+  "used": [
+    {
+      "plan": "2026-11-18-sprint-zone-halloween",
+      "at": "2026-11-19T04:25:00+00:00",
+      "in": 164.0,
+      "out": 209.9
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -30.8,
+      "peakDb": -3.6
+    },
+    "speechSeconds": 137.36,
+    "speechRanges": [
+      [
+        1.62,
+        2.79
+      ],
+      [
+        4.09,
+        5.51
+      ],
+      [
+        5.94,
+        7.78
+      ],
+      [
+        17.3,
+        18.06
+      ],
+      [
+        23.96,
+        24.87
+      ],
+      [
+        25.75,
+        26.82
+      ],
+      [
+        32.34,
+        67.11
+      ],
+      [
+        67.74,
+        69.19
+      ],
+      [
+        74.97,
+        78.66
+      ],
+      [
+        87.29,
+        89.19
+      ],
+      [
+        90.71,
+        91.82
+      ],
+      [
+        96.5,
+        127.5
+      ],
+      [
+        127.96,
+        129.38
+      ],
+      [
+        137.85,
+        142.7
+      ],
+      [
+        143.03,
+        146.5
+      ],
+      [
+        147.26,
+        149.58
+      ],
+      [
+        151.19,
+        152.9
+      ],
+      [
+        164.41,
+        200.39
+      ],
+      [
+        200.95,
+        206.5
+      ],
+      [
+        208.89,
+        209.86
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261118-img-3694-aa4f-1.jpg",
+    "library/sheets/261118-img-3694-aa4f-2.jpg",
+    "library/sheets/261118-img-3694-aa4f-3.jpg"
+  ],
+  "taggedAt": "2026-11-19T03:33:01+00:00"
+}

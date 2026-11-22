@@ -1,0 +1,214 @@
+{
+  "id": "261118-gs010118-6e0f",
+  "kind": "video",
+  "media": "library/media/261118-gs010118-6e0f.360",
+  "originalName": "GS010118.360",
+  "hash": "6e0fb2eca2c58a23ce334ef10d8bd6e6e1701e8c",
+  "created": "2026-11-18T08:47:28",
+  "ingestedAt": "2026-11-18T15:27:08+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-18T09:47:28.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "me",
+    "summary": "Restart for the ride home: 'we've got like 20 minutes back to campus. let's go', then side streets and a line of stopped cars the rider rolls past along the edge",
+    "hooks": [],
+    "location": "Houston",
+    "notes": "360 cam under the saddle on its side (2026-11-18 mount): forward = yaw -155 roll 90 (thigh on the right edge), back = yaw 0 roll -90 (level, looks behind), peek = yaw -100 pitch 15 (rider leaning down to the camera at stops). Morning Ride, ",
+    "angles": {
+      "forward": {
+        "yaw": -155.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "peek": {
+        "yaw": -100.0,
+        "pitch": 15.0,
+        "fov": 100.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-99f076",
+        "in": 18.8,
+        "out": 21.8,
+        "label": "rider at the saddle restarting the camera: 'we've got like 20 minutes back to campus. let's go'",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "plan",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-0f8c1b",
+        "in": 450.0,
+        "out": 456.0,
+        "label": "rolling along the road edge past a queue of stopped SUVs, low forward view",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-648f8c",
+        "in": 460.0,
+        "out": 466.0,
+        "label": "squeezing along the curb past stopped cars, close beside the bike",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-8ca036",
+        "in": 470.0,
+        "out": 476.0,
+        "label": "still filtering past the stopped line of traffic toward the overpass",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 19.0,
+        "label": "'20 minutes back to campus'"
+      },
+      {
+        "at": 300.0,
+        "label": "stopped at a light, apartment towers"
+      },
+      {
+        "at": 450.0,
+        "label": "rolling past stopped traffic by the overpass"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261118-gs010118-6e0f.json",
+  "used": [
+    {
+      "plan": "2026-11-18-close-calls",
+      "at": "2026-11-19T03:29:55+00:00",
+      "in": 18.9,
+      "out": 21.7
+    },
+    {
+      "plan": "2026-11-18-close-calls",
+      "at": "2026-11-19T03:29:55+00:00",
+      "in": 456.3,
+      "out": 459.893
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -19.1,
+      "peakDb": -2.6
+    },
+    "speechSeconds": 2.38,
+    "speechRanges": [
+      [
+        19.48,
+        21.86
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261118-gs010118-6e0f-1.jpg",
+    "library/sheets/261118-gs010118-6e0f-2.jpg",
+    "library/sheets/261118-gs010118-6e0f-3.jpg",
+    "library/sheets/261118-gs010118-6e0f-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261118-gs010118-6e0f.json",
+  "gpsSummary": {
+    "goodSeconds": 481.6,
+    "gaps": 0,
+    "first": 1.0,
+    "last": 482.4,
+    "maxSpeed": 11.71,
+    "movingAvgSpeed": 7.4,
+    "movingSeconds": 396.6,
+    "distance": 2953.9,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 10.4,
+    "altMax": 36.0
+  },
+  "createdCamera": "2026-11-18T09:47:28",
+  "strava": {
+    "activity": "21035467567",
+    "offset": 5707.7,
+    "clock": "gps",
+    "shift": -323.3,
+    "fitMetres": 4.2
+  },
+  "taggedAt": "2026-11-18T15:34:27+00:00"
+}

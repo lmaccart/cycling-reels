@@ -1,0 +1,228 @@
+{
+  "id": "261121-gs020123-8f4b",
+  "kind": "video",
+  "media": "library/media/261121-gs020123-8f4b.360",
+  "originalName": "GS020123.360",
+  "hash": "8f4b7030b24423f1dd22f55e2fe9efdd49307433",
+  "created": "2026-11-21T09:06:06",
+  "createdCamera": "2026-11-21T10:06:06",
+  "ingestedAt": "2026-11-21T18:08:59+00:00",
+  "probe": {
+    "duration": 188.288,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T10:06:06.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "group",
+    "summary": "Group ride continued at speed on a sunny two-lane road: riders passing and sitting alongside on both sides, long bike shadows across the asphalt, ends at a stop by an overpass",
+    "hooks": [],
+    "location": "Houston (south side)",
+    "notes": "Second chapter of gs010123. Bar mount. Water spots on the lens. Strava ~112 min in.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      },
+      "left": {
+        "yaw": -120.0,
+        "pitch": 0.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "right": {
+        "yaw": 120.0,
+        "pitch": 0.0,
+        "fov": 90.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-0dcc56",
+        "in": 40.0,
+        "out": 48.0,
+        "label": "riders passing on both sides on a two-lane road, low forward view",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "effort",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-9e4fd8",
+        "in": 96.0,
+        "out": 104.0,
+        "label": "rider in white socks alongside on the right into the sun, long bike shadows on the asphalt",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.55,
+        "speech": false,
+        "view": "right",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-322be2",
+        "in": 109.0,
+        "out": 117.0,
+        "label": "rider in a blue jersey on a red bike alongside on the right, sun flare behind my hand",
+        "score": 4,
+        "focusX": 0.4,
+        "focusY": 0.55,
+        "speech": false,
+        "view": "right",
+        "role": "crew",
+        "speaker": "none",
+        "mood": "fast",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 0.0,
+        "label": "group at speed, rider in green and orange on the left"
+      },
+      {
+        "at": 95.0,
+        "label": "riders alongside on the right into the sun"
+      },
+      {
+        "at": 180.0,
+        "label": "stopping near an overpass, hand on the camera"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [
+    {
+      "plan": "2026-11-21-nobody-gets-dropped",
+      "at": "2026-11-21T22:00:41+00:00",
+      "in": 112.5,
+      "out": 117.333
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 89.54,
+      "out": 96.42
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 138.9,
+      "out": 141.9
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 141.9,
+      "out": 142.62
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 181.65,
+      "out": 182.55
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 182.55,
+      "out": 185.8
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 185.8,
+      "out": 187.6
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 187.6,
+      "out": 188.25
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -17.1,
+      "peakDb": -4.5
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261121-gs020123-8f4b-1.jpg",
+    "library/sheets/261121-gs020123-8f4b-2.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs020123-8f4b.json",
+  "gpsSummary": {
+    "goodSeconds": 177.6,
+    "gaps": 2,
+    "first": 0.0,
+    "last": 188.0,
+    "maxSpeed": 12.84,
+    "movingAvgSpeed": 10.26,
+    "movingSeconds": 166.6,
+    "distance": 1710.8,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -3.8,
+    "altMax": 10.4
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 6716.3,
+    "clock": "gps",
+    "shift": -343.2,
+    "fitMetres": 5.9
+  },
+  "taggedAt": "2026-11-21T18:12:49+00:00"
+}

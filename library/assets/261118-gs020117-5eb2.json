@@ -1,0 +1,149 @@
+{
+  "id": "261118-gs020117-5eb2",
+  "kind": "video",
+  "media": "library/media/261118-gs020117-5eb2.360",
+  "originalName": "GS020117.360",
+  "hash": "5eb2ea0d7f64b8425ce0547959e4e2502fcd9960",
+  "created": "2026-11-18T07:10:30",
+  "ingestedAt": "2026-11-18T15:27:25+00:00",
+  "probe": {
+    "duration": 482.482,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-18T08:10:30.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Side streets and bike lanes; at a red light the rider leans down and peeks into the camera, then fiddles with the mount",
+    "hooks": [],
+    "location": "Houston",
+    "notes": "360 cam under the saddle on its side (2026-11-18 mount): forward = yaw -155 roll 90 (thigh on the right edge), back = yaw 0 roll -90 (level, looks behind), peek = yaw -100 pitch 15 (rider leaning down to the camera at stops). Morning Ride, ",
+    "angles": {
+      "forward": {
+        "yaw": -155.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "peek": {
+        "yaw": -100.0,
+        "pitch": 15.0,
+        "fov": 100.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-2efc33",
+        "in": 93.5,
+        "out": 98.5,
+        "label": "at a red light the rider leans down beside the saddle and peeks into the camera, then reaches for it",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "peek",
+        "role": "reaction",
+        "speaker": "none",
+        "mood": "funny",
+        "face": true,
+        "opener": true
+      },
+      {
+        "id": "m-f8c930",
+        "in": 126.0,
+        "out": 132.0,
+        "label": "bike lane with chevrons sliding away behind under trees",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -18.8,
+      "peakDb": -1.8
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261118-gs020117-5eb2-1.jpg",
+    "library/sheets/261118-gs020117-5eb2-2.jpg",
+    "library/sheets/261118-gs020117-5eb2-3.jpg",
+    "library/sheets/261118-gs020117-5eb2-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261118-gs020117-5eb2.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 10.57,
+    "movingAvgSpeed": 7.33,
+    "movingSeconds": 447.4,
+    "distance": 3283.7,
+    "altitudeOk": true,
+    "elevationGain": 34.8,
+    "elevationLoss": 36.7,
+    "altMin": 9.1,
+    "altMax": 37.0
+  },
+  "strava": {
+    "activity": "21035467567",
+    "offset": 372.1,
+    "clock": "gps",
+    "shift": -323.4,
+    "fitMetres": 4.6
+  },
+  "createdCamera": "2026-11-18T08:10:30",
+  "taggedAt": "2026-11-18T15:34:26+00:00"
+}

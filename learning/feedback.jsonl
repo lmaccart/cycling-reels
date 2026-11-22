@@ -578,3 +578,82 @@
 {"at": "2026-11-20T19:46:53+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: posted", "slug": "2026-11-20-road-to-5-ep2", "source": "cli"}
 {"at": "2026-11-20T19:46:53+00:00", "category": "preference", "kind": "text-edit", "note": "caption rewritten by the user in Metricool: 'ep 2. the 4x8 got a rematch' -> 'shout out gautam for those 4x8s'", "slug": "2026-11-20-road-to-5-ep2", "source": "user"}
 {"at": "2026-11-20T19:47:26+00:00", "category": "production", "kind": "analytics-import", "note": "2026-11-20: three stats imports refused because pulledAt was written in local time with a -06:00 offset that read as future; fixed by writing pulledAt in UTC, all three imported", "slug": null, "source": "user"}
+{"at": "2026-11-21T18:15:37+00:00", "category": "production", "kind": "command-failed", "note": "frames failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T21:57:09+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-nobody-gets-dropped.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T21:58:10+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-nobody-gets-dropped.json in 60.8s", "slug": "2026-11-21-nobody-gets-dropped", "source": "cli"}
+{"at": "2026-11-21T21:58:17+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T21:59:59+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 102.0s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:00:02+00:00", "category": "production", "kind": "command-failed", "note": "look failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:00:02+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-nobody-gets-dropped.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:00:41+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-nobody-gets-dropped.json in 39.0s", "slug": "2026-11-21-nobody-gets-dropped", "source": "cli"}
+{"at": "2026-11-21T22:12:41+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:13:43+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 61.7s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:19:50+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:21:13+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 82.7s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:31:04+00:00", "category": "production", "kind": "command-failed", "note": "frames failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:31:04+00:00", "category": "production", "kind": "command-failed", "note": "frames failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:33:31+00:00", "category": "production", "kind": "command-failed", "note": "tag failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:33:32+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:33:37+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:33:39+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:33:41+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:33:47+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:35:46+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 118.7s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:36:16+00:00", "category": "production", "kind": "command-failed", "note": "check failed for 1 of 1 plan(s); record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:36:16+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:36:16+00:00", "category": "production", "kind": "render-failed", "note": "Render failed for 2026-11-21-sprint-zone-long-vo.json after 0.0s; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:36:25+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:37:58+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 92.8s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:38:33+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:39:52+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 78.4s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:39:59+00:00", "category": "production", "kind": "transcription", "note": "Whisper VAD dropped real speech: 360 line at 4:13 under wind, and 40 s of the phone voiceover (small.en also invented keyterm words). Fixed by re-transcribing those spans with large-v3-turbo, no VAD, no hotwords, and merging.", "slug": "2026-11-21-sprint-zone-long-vo", "source": "user"}
+{"at": "2026-11-21T22:42:26+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:43:29+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 63.4s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:45:35+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:46:31+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 55.9s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:49:55+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-sprint-zone-long-vo.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:50:53+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-sprint-zone-long-vo.json in 58.8s", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:50:53+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:51:23+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-21-sprint-zone-long-vo", "source": "cli"}
+{"at": "2026-11-21T22:52:56+00:00", "category": "preference", "kind": "rejection", "note": "user: 'the nobody-gets-dropped one was pretty bad' — not scheduled; reason not given yet", "slug": "2026-11-21-nobody-gets-dropped", "source": "user"}
+{"at": "2026-11-21T22:53:00+00:00", "category": "production", "kind": "command-failed", "note": "frames failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:53:54+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:54:14+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 20.7s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T22:54:40+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:54:57+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 17.3s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T22:57:21+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:57:57+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 35.8s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T22:58:06+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T22:58:39+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 32.9s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:00:51+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:01:18+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 27.3s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:01:30+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:02:06+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 36.4s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:04:32+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:05:12+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 39.6s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:05:21+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:05:51+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 29.6s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:08:07+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-21-trooper-ticket.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:08:38+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-21-trooper-ticket.json in 30.5s", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:11:30+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:12:07+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-21-trooper-ticket", "source": "cli"}
+{"at": "2026-11-21T23:51:37+00:00", "category": "production", "kind": "command-failed", "note": "tag-batch failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:52:32+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-23-down-week-ep1.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:54:22+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-23-down-week-ep1.json in 110.2s", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-21T23:54:24+00:00", "category": "production", "kind": "command-failed", "note": "look failed; record a sanitized cause and fix with review feedback", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:54:41+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-23-down-week-ep1.json", "slug": null, "source": "cli"}
+{"at": "2026-11-21T23:56:01+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-23-down-week-ep1.json in 79.4s", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T00:04:16+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-23-down-week-ep1.json", "slug": null, "source": "cli"}
+{"at": "2026-11-22T00:06:05+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-23-down-week-ep1.json in 109.6s", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T00:08:40+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T00:09:05+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T00:09:05+00:00", "category": "preference", "kind": "edit", "note": "User asked: don't clip trailing words ('for ever' cut); show the Strava segment card when the segment is first named; mix in the edit's own ride noise quietly under voiceover footage", "slug": "2026-11-23-down-week-ep1", "source": "user"}
+{"at": "2026-11-22T00:09:05+00:00", "category": "production", "kind": "tooling", "note": "./reels look fails on 63 s reel at default --every 0.5: ffmpeg select expression too long (Cannot allocate memory); --every 1 works", "slug": "2026-11-23-down-week-ep1", "source": "user"}
+{"at": "2026-11-22T01:31:39+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-23-down-week-ep1-short.json", "slug": null, "source": "cli"}
+{"at": "2026-11-22T01:33:13+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-23-down-week-ep1-short.json in 93.7s", "slug": "2026-11-23-down-week-ep1-short", "source": "cli"}
+{"at": "2026-11-22T01:35:54+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-23-down-week-ep1.json", "slug": null, "source": "cli"}
+{"at": "2026-11-22T01:37:24+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-23-down-week-ep1.json in 89.6s", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T01:37:33+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: approved", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T01:37:51+00:00", "category": "production", "kind": "status-change", "note": "Status recorded: scheduled", "slug": "2026-11-23-down-week-ep1", "source": "cli"}
+{"at": "2026-11-22T19:52:52+00:00", "category": "production", "kind": "render-attempt", "note": "Rendering 2026-11-27-road-to-5-ep3.json", "slug": null, "source": "cli"}
+{"at": "2026-11-22T19:53:29+00:00", "category": "production", "kind": "render-success", "note": "Rendered 2026-11-27-road-to-5-ep3.json in 36.8s", "slug": "2026-11-27-road-to-5-ep3", "source": "cli"}

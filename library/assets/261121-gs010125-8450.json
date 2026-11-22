@@ -1,0 +1,369 @@
+{
+  "id": "261121-gs010125-8450",
+  "kind": "video",
+  "media": "library/media/261121-gs010125-8450.360",
+  "originalName": "GS010125.360",
+  "hash": "8450aa240894c5166c7905e252bd577fb9b89033",
+  "created": "2026-11-21T10:55:50",
+  "createdCamera": "2026-11-21T11:55:50",
+  "ingestedAt": "2026-11-21T18:08:34+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T11:55:50.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "group-ride",
+    "shot": "pov",
+    "quality": 4,
+    "issues": [],
+    "people": "group",
+    "summary": "Back through downtown with the teammate in green and yellow: towers, a stop beside a RAV4, across the light-rail tracks on red brick, then back on campus for the end-of-ride group photo (\"pack in, pack in, smile\")",
+    "hooks": [
+      "photo time",
+      "my back wheel popped up on the tracks"
+    ],
+    "location": "Houston (downtown, Main St light rail, campus)",
+    "notes": "Bar mount. Downtown GPS wrong (35 mph): Strava only. Mic line is probably me. 1:51 swear. Group photo ~7:20. Strava ~214 min in.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      },
+      "right": {
+        "yaw": 120.0,
+        "pitch": 0.0,
+        "fov": 90.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-1166db",
+        "in": 25.0,
+        "out": 33.0,
+        "label": "downtown ramp between concrete walls, towers ahead, my shadow and a teammate on the orange bike beside",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-21621e",
+        "in": 96.0,
+        "out": 104.0,
+        "label": "stopped in the lane right behind a silver RAV4 at a downtown light",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-5e3704",
+        "in": 262.0,
+        "out": 272.0,
+        "label": "riding along the light-rail tracks on the red brick lane, teammate leg beside me",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": true
+      },
+      {
+        "id": "m-0107f6",
+        "in": 388.2,
+        "out": 393.8,
+        "label": "\"my back wheel popped up\" / \"Diego can you hold my mic real quick? photo time\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "crew",
+        "speaker": "me",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-eaba86",
+        "in": 425.5,
+        "out": 427.2,
+        "label": "\"hey good stuff today\" / \"youre fast\"",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-b0be8e",
+        "in": 441.6,
+        "out": 447.5,
+        "label": "end-of-ride group photo on the campus plaza: \"all right everyone, pack in, pack in, smile\", photographer in pink ahead",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "view": "forward",
+        "role": "crew",
+        "speaker": "teammate",
+        "mood": "funny",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 0.0,
+        "label": "downtown with the teammate in green and yellow"
+      },
+      {
+        "at": 95.0,
+        "label": "stop behind a RAV4 at a light"
+      },
+      {
+        "at": 262.0,
+        "label": "light-rail tracks on the red brick"
+      },
+      {
+        "at": 370.0,
+        "label": "back on campus, under the live oaks"
+      },
+      {
+        "at": 388.0,
+        "label": "\"photo time\""
+      },
+      {
+        "at": 440.0,
+        "label": "group photo on the plaza"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261121-gs010125-8450.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -20.4,
+      "peakDb": -1.5
+    },
+    "speechSeconds": 62.98,
+    "speechRanges": [
+      [
+        0.54,
+        1.93
+      ],
+      [
+        8.06,
+        8.68
+      ],
+      [
+        88.02,
+        88.78
+      ],
+      [
+        91.99,
+        92.78
+      ],
+      [
+        96.57,
+        97.26
+      ],
+      [
+        111.26,
+        111.91
+      ],
+      [
+        238.42,
+        239.02
+      ],
+      [
+        266.49,
+        267.91
+      ],
+      [
+        273.66,
+        274.7
+      ],
+      [
+        284.34,
+        285.35
+      ],
+      [
+        290.3,
+        291.14
+      ],
+      [
+        294.81,
+        295.62
+      ],
+      [
+        384.66,
+        385.7
+      ],
+      [
+        388.12,
+        389.54
+      ],
+      [
+        391.64,
+        394.31
+      ],
+      [
+        395.06,
+        397.96
+      ],
+      [
+        398.46,
+        406.02
+      ],
+      [
+        407.03,
+        408.42
+      ],
+      [
+        411.38,
+        413.8
+      ],
+      [
+        414.33,
+        415.37
+      ],
+      [
+        423.7,
+        427.56
+      ],
+      [
+        428.12,
+        429.03
+      ],
+      [
+        429.37,
+        430.5
+      ],
+      [
+        431.16,
+        433.35
+      ],
+      [
+        433.94,
+        435.85
+      ],
+      [
+        437.4,
+        443.85
+      ],
+      [
+        444.28,
+        445.93
+      ],
+      [
+        446.65,
+        447.82
+      ],
+      [
+        448.18,
+        448.97
+      ],
+      [
+        453.21,
+        453.7
+      ],
+      [
+        462.36,
+        466.06
+      ],
+      [
+        469.37,
+        471.91
+      ],
+      [
+        477.37,
+        482.5
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-gs010125-8450-1.jpg",
+    "library/sheets/261121-gs010125-8450-2.jpg",
+    "library/sheets/261121-gs010125-8450-3.jpg",
+    "library/sheets/261121-gs010125-8450-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261121-gs010125-8450.json",
+  "gpsSummary": {
+    "goodSeconds": 392.2,
+    "gaps": 9,
+    "first": 3.0,
+    "last": 482.4,
+    "maxSpeed": 15.66,
+    "movingAvgSpeed": 6.29,
+    "movingSeconds": 301.0,
+    "distance": 1914.8,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": -20.2,
+    "altMax": 55.4
+  },
+  "strava": {
+    "activity": "21073868068",
+    "offset": 12817.6,
+    "clock": "gps",
+    "shift": -343.4,
+    "fitMetres": 9.0
+  },
+  "taggedAt": "2026-11-21T18:16:36+00:00"
+}

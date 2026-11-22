@@ -1,0 +1,117 @@
+{
+ "slug": "2026-11-18-close-calls",
+ "postDate": "2026-11-19",
+ "format": "pov-one-take",
+ "spine": "story",
+ "autoSfx": false,
+ "segments": [
+  {
+   "asset": "261118-gs010118-6e0f",
+   "in": 18.9,
+   "out": 21.8,
+   "view": "forward",
+   "captions": "transcript",
+   "cutaways": [
+    {
+     "at": 0.0,
+     "asset": "261003-gs010099-7e68",
+     "in": 447.0,
+     "out": 450.19,
+     "speed": 1.1,
+     "view": "road"
+    }
+   ]
+  },
+  {
+   "asset": "261003-gs010099-7e68",
+   "in": 450.19,
+   "out": 456.0,
+   "speed": 1.1,
+   "view": "road",
+   "text": [
+    {
+     "text": "squeezing through houston traffic",
+     "at": 0.3,
+     "for": 3.0,
+     "position": "top"
+    }
+   ],
+   "path": [
+    {
+     "at": 0,
+     "view": "road"
+    },
+    {
+     "at": 2.6,
+     "view": "road"
+    },
+    {
+     "at": 4.2,
+     "view": "rider"
+    }
+   ]
+  },
+  {
+   "asset": "261118-gs010118-6e0f",
+   "in": 456.3,
+   "out": 460.0,
+   "speed": 1.1,
+   "view": "forward"
+  },
+  {
+   "asset": "261003-gs020099-11c4",
+   "in": 62.4,
+   "out": 65.9,
+   "speed": 1.1,
+   "view": "road",
+   "punch": [
+    {
+     "at": 1.8,
+     "scale": 1.12
+    }
+   ]
+  },
+  {
+   "asset": "261003-gs010099-7e68",
+   "in": 70.2,
+   "out": 74.2,
+   "speed": 1.1,
+   "view": "road",
+   "payoff": true,
+   "punch": [
+    {
+     "at": 1.6,
+     "scale": 1.12
+    }
+   ]
+  },
+  {
+   "asset": "261118-gs030117-5ee3",
+   "in": 333.3,
+   "out": 339.6,
+   "speed": 1.2,
+   "view": "forward"
+  },
+  {
+   "asset": "261118-gs030117-5ee3",
+   "in": 364.6,
+   "out": 368.5,
+   "speed": 1.1,
+   "view": "back"
+  }
+ ],
+ "music": {
+  "track": "geekin",
+  "cutOnBeat": true
+ },
+ "post": {
+  "caption": "memorial drivers always trying to kill me smh",
+  "hashtags": [
+   "#cycling",
+   "#houston",
+   "#bikecommute",
+   "#roadcycling"
+  ],
+  "altText": "The rider says they have about 20 minutes back to campus, then a run of close calls from handlebar and saddle cameras on Houston streets: riding behind a white SUV, filtering past stopped cars at the curb, rolling up to a braking silver SUV, and a black pickup cutting into the lane right in front. Then cars cross in front in a big lot and a silver car passes right beside the bike."
+ }
+}

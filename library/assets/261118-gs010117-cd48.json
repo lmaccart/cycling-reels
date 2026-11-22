@@ -1,0 +1,191 @@
+{
+  "id": "261118-gs010117-cd48",
+  "kind": "video",
+  "media": "library/media/261118-gs010117-cd48.360",
+  "originalName": "GS010117.360",
+  "hash": "cd480147febc7a2bc4fd3ea398cb350f22afe4b0",
+  "created": "2026-11-18T07:10:30",
+  "ingestedAt": "2026-11-18T15:26:52+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-18T08:10:30.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Morning ride start: elevator down from the apartment, out of the building and through tree-lined Houston side streets",
+    "hooks": [],
+    "location": "Houston",
+    "notes": "360 cam under the saddle on its side (2026-11-18 mount): forward = yaw -155 roll 90 (thigh on the right edge), back = yaw 0 roll -90 (level, looks behind), peek = yaw -100 pitch 15 (rider leaning down to the camera at stops). Morning Ride, ",
+    "angles": {
+      "forward": {
+        "yaw": -155.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "peek": {
+        "yaw": -100.0,
+        "pitch": 15.0,
+        "fov": 100.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-dd5b36",
+        "in": 50.0,
+        "out": 57.0,
+        "label": "bike in the steel elevator on the way down, rider's legs beside it",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-404ab1",
+        "in": 76.0,
+        "out": 86.0,
+        "label": "rolling out of the brick apartment building into the morning",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-ccc880",
+        "in": 423.0,
+        "out": 429.0,
+        "label": "tall brick apartment block shrinking behind past a green bike lane",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 0.0,
+        "label": "elevator down"
+      },
+      {
+        "at": 75.0,
+        "label": "out of the building"
+      },
+      {
+        "at": 120.0,
+        "label": "tree-lined side streets"
+      },
+      {
+        "at": 420.0,
+        "label": "green bike lanes, apartment towers"
+      }
+    ]
+  },
+  "transcript": "library/transcripts/261118-gs010117-cd48.json",
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -19.8,
+      "peakDb": -3.0
+    },
+    "speechSeconds": 1.5,
+    "speechRanges": [
+      [
+        1.34,
+        1.8
+      ],
+      [
+        51.77,
+        52.81
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261118-gs010117-cd48-1.jpg",
+    "library/sheets/261118-gs010117-cd48-2.jpg",
+    "library/sheets/261118-gs010117-cd48-3.jpg",
+    "library/sheets/261118-gs010117-cd48-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261118-gs010117-cd48.json",
+  "gpsSummary": {
+    "goodSeconds": 17.2,
+    "gaps": 0,
+    "first": 465.4,
+    "last": 482.4,
+    "maxSpeed": 7.72,
+    "movingAvgSpeed": 7.29,
+    "movingSeconds": 17.0,
+    "distance": 123.9,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 12.4,
+    "altMax": 17.9
+  },
+  "strava": {
+    "activity": "21035467567",
+    "offset": -110.2,
+    "clock": "gps",
+    "shift": -323.2,
+    "fitMetres": 8.1
+  },
+  "createdCamera": "2026-11-18T08:10:30",
+  "taggedAt": "2026-11-18T15:34:26+00:00"
+}

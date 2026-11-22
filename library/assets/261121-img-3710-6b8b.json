@@ -1,0 +1,161 @@
+{
+  "id": "261121-img-3710-6b8b",
+  "kind": "video",
+  "media": "library/media/261121-img-3710-6b8b.mov",
+  "originalName": "IMG_3710.MOV",
+  "hash": "6b8b117cc570866c76724652c6cccf8ff4d1edee",
+  "created": "2026-11-21T16:26:44",
+  "ingestedAt": "2026-11-21T22:29:27+00:00",
+  "probe": {
+    "duration": 91.672,
+    "width": 2160,
+    "height": 3840,
+    "fps": 59.997,
+    "rotation": 270,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T16:26:44-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "static",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Voiceover recording narrating the 11-21 long sprint zone edit; take 1 0:03-0:34, take 2 0:51-1:30 (ends on Diego is cooked)",
+    "hooks": [
+      "this is our long sprint zone"
+    ],
+    "moments": [
+      {
+        "id": "m-0f7977",
+        "in": 3.0,
+        "out": 33.5,
+        "label": "voiceover take 1: monster pull, chip in with Diego, passing people, down to the four of us, then we roll in",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "honest",
+        "line": "result",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-235bd1",
+        "in": 51.0,
+        "out": 89.8,
+        "label": "voiceover take 2: little ripper, headwind, let it rip, tossed down an attack and pulled through, look at that face Diego",
+        "score": 4,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "joke",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261121-img-3710-6b8b.json",
+  "used": [
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 3.05,
+      "out": 9.85
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 23.08,
+      "out": 23.72
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 15.55,
+      "out": 22.6
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 23.72,
+      "out": 30.6
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 79.4,
+      "out": 83.85
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 32.56,
+      "out": 33.45
+    },
+    {
+      "plan": "2026-11-21-sprint-zone-long-vo",
+      "at": "2026-11-21T22:50:53+00:00",
+      "in": 85.25,
+      "out": 89.65
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -29.6,
+      "peakDb": -3.7
+    },
+    "speechSeconds": 56.29,
+    "speechRanges": [
+      [
+        3.19,
+        10.38
+      ],
+      [
+        15.67,
+        22.79
+      ],
+      [
+        23.16,
+        31.21
+      ],
+      [
+        32.31,
+        33.54
+      ],
+      [
+        51.13,
+        58.63
+      ],
+      [
+        63.9,
+        71.18
+      ],
+      [
+        71.42,
+        84.78
+      ],
+      [
+        85.18,
+        89.74
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-img-3710-6b8b-1.jpg",
+    "library/sheets/261121-img-3710-6b8b-2.jpg"
+  ],
+  "taggedAt": "2026-11-21T22:33:37+00:00"
+}

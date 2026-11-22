@@ -30,6 +30,10 @@ Reels mix them in at config `sfx.gain` (default 0.7).
 | bell-bike | bell | 1.40s | -17.6 | -6.0 | CC0-1.0 | gis_sweden | https://freesound.org/s/536554/ |
 | scratch-record | scratch | 0.30s |  | -6.0 | CC0-1.0 | jameswrowles | https://freesound.org/s/274129/ |
 | stop-vinyl | stop | 0.52s | -18.5 | -6.0 | CC0-1.0 | loganzsound | https://freesound.org/s/842582/ |
+| holcombe-ride-01 | nat | 16.88s | -20.0 | -6.6 | own footage | own footage | 261121-holcombe-dip-aa62 |
+| holcombe-ride-02 | nat | 10.67s | -20.0 | -7.7 | own footage | own footage | 261121-holcombe-dip-aa62 |
+| holcombe-ride-03 | nat | 3.78s | -20.0 | -8.3 | own footage | own footage | 261121-holcombe-dip-aa62 |
+| holcombe-ride-04 | nat | 9.95s | -20.0 | -7.8 | own footage | own footage | 261121-holcombe-dip-aa62 |
 | creak-wood | other | 0.83s | -20.0 | -6.0 | CC0-1.0 | Rudmer_Rotteveel | https://freesound.org/s/506665/ |
 | fortnite-downed | other | 0.93s | -11.9 | -5.9 | Provided by user (cleared by user) | Sound Central (YouTube upload) | https://www.youtube.com/watch?v=KYAjqOV9DN8 |
 | sting-showdown | other | 2.89s | -20.0 | -3.2 | CC0-1.0 | Banzai_Bonsai | https://freesound.org/s/447580/ |

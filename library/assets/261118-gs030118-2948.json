@@ -1,0 +1,133 @@
+{
+  "id": "261118-gs030118-2948",
+  "kind": "video",
+  "media": "library/media/261118-gs030118-2948.360",
+  "originalName": "GS030118.360",
+  "hash": "2948f2e80c0f90755dbc453f851964c00fd8146e",
+  "created": "2026-11-18T08:47:28",
+  "ingestedAt": "2026-11-18T15:28:16+00:00",
+  "probe": {
+    "duration": 482.496,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-18T09:47:28.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Waiting at a green bike-lane crossing, then leafy campus-side streets with yellow centre lines",
+    "hooks": [],
+    "location": "Houston",
+    "notes": "360 cam under the saddle on its side (2026-11-18 mount): forward = yaw -155 roll 90 (thigh on the right edge), back = yaw 0 roll -90 (level, looks behind), peek = yaw -100 pitch 15 (rider leaning down to the camera at stops). Morning Ride, ",
+    "angles": {
+      "forward": {
+        "yaw": -155.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": 90.0
+      },
+      "back": {
+        "yaw": 0.0,
+        "pitch": 0.0,
+        "fov": 95.0,
+        "roll": -90.0
+      },
+      "legs": {
+        "yaw": 90.0,
+        "pitch": 0.0,
+        "fov": 110.0,
+        "roll": 0.0
+      },
+      "peek": {
+        "yaw": -100.0,
+        "pitch": 15.0,
+        "fov": 100.0,
+        "roll": 0.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-1b332e",
+        "in": 455.0,
+        "out": 461.0,
+        "label": "bright double yellow lines curving away behind under oaks",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "back",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -19.8,
+      "peakDb": -1.7
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261118-gs030118-2948-1.jpg",
+    "library/sheets/261118-gs030118-2948-2.jpg",
+    "library/sheets/261118-gs030118-2948-3.jpg",
+    "library/sheets/261118-gs030118-2948-4.jpg"
+  ],
+  "telemetry": "library/telemetry/261118-gs030118-2948.json",
+  "gpsSummary": {
+    "goodSeconds": 482.6,
+    "gaps": 0,
+    "first": 0.0,
+    "last": 482.4,
+    "maxSpeed": 8.86,
+    "movingAvgSpeed": 6.49,
+    "movingSeconds": 421.6,
+    "distance": 2745.9,
+    "altitudeOk": false,
+    "elevationGain": null,
+    "elevationLoss": null,
+    "altMin": 10.2,
+    "altMax": 109.4
+  },
+  "createdCamera": "2026-11-18T09:47:28",
+  "strava": {
+    "activity": "21035467567",
+    "offset": 6671.7,
+    "clock": "gps",
+    "shift": -324.3,
+    "fitMetres": 12.9
+  },
+  "taggedAt": "2026-11-18T15:34:27+00:00"
+}

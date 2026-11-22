@@ -1,0 +1,247 @@
+{
+  "id": "261121-img-3712-f233",
+  "kind": "video",
+  "media": "library/media/261121-img-3712-f233.mov",
+  "originalName": "IMG_3712.MOV",
+  "hash": "f233e1bcc70c6fe050a0765dd62943857bc32a82",
+  "created": "2026-11-21T17:34:55",
+  "ingestedAt": "2026-11-21T23:39:02+00:00",
+  "probe": {
+    "duration": 62.902,
+    "width": 3840,
+    "height": 2160,
+    "fps": 59.997,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuv420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T17:34:55-0600"
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "talking",
+    "shot": "static",
+    "quality": 2,
+    "issues": [
+      "obstructed"
+    ],
+    "people": "me",
+    "summary": "Voiceover narrating the Holcombe dip edit; phone on its side, only part of the face at the frame edge, ceiling light (audio only)",
+    "hooks": [
+      "sorry diego"
+    ],
+    "notes": "Leo is on a new Aeroad with Dura-Ace (user). Picture unusable, use as voice under the holcombe-dip edit. Swear at 0:13.5 (bleep).",
+    "moments": [
+      {
+        "id": "m-eea383",
+        "in": 0.53,
+        "out": 24.77,
+        "label": "voiceover: Diego off to a good start, Leo on his new Aeroad ripping, do I attack, smashed through that hole",
+        "score": 4,
+        "focusX": 0.2,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "result",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "effort"
+      },
+      {
+        "id": "m-47c79b",
+        "in": 25.38,
+        "out": 46.31,
+        "label": "voiceover: bottom of the hill, off to the right, gap Diego on the left, trying to get that KOM, he beat us to the top bu",
+        "score": 4,
+        "focusX": 0.2,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "result",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "turn"
+      },
+      {
+        "id": "m-5cd65e",
+        "in": 54.58,
+        "out": 60.85,
+        "label": "voiceover: here's the KOM that I got, sorry Diego, race it again next Saturday",
+        "score": 5,
+        "focusX": 0.2,
+        "focusY": 0.5,
+        "speech": true,
+        "role": "voice",
+        "speaker": "me",
+        "mood": "funny",
+        "line": "joke",
+        "face": false,
+        "opener": false,
+        "thread": "down-week-ep1",
+        "beat": "result"
+      }
+    ],
+    "sounds": []
+  },
+  "transcript": "library/transcripts/261121-img-3712-f233.json",
+  "used": [
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 2.31,
+      "out": 3.77
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 4.55,
+      "out": 14.99
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 15.57,
+      "out": 18.33
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 18.85,
+      "out": 21.07
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 23.67,
+      "out": 24.77
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 26.43,
+      "out": 31.57
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 32.23,
+      "out": 36.66
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 37.77,
+      "out": 41.55
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 42.57,
+      "out": 46.31
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1-short",
+      "at": "2026-11-22T01:33:13+00:00",
+      "in": 54.58,
+      "out": 60.8
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 2.31,
+      "out": 3.77
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 4.55,
+      "out": 14.99
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 15.57,
+      "out": 18.33
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 18.85,
+      "out": 21.07
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 23.67,
+      "out": 24.77
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 26.43,
+      "out": 31.57
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 32.23,
+      "out": 36.66
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 37.77,
+      "out": 41.55
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 42.57,
+      "out": 46.31
+    },
+    {
+      "plan": "2026-11-23-down-week-ep1",
+      "at": "2026-11-22T01:37:24+00:00",
+      "in": 54.58,
+      "out": 60.8
+    }
+  ],
+  "audio": {
+    "volume": {
+      "meanDb": -31.3,
+      "peakDb": -7.5
+    },
+    "speechSeconds": 58.15,
+    "speechRanges": [
+      [
+        0.73,
+        37.54
+      ],
+      [
+        37.91,
+        42.02
+      ],
+      [
+        42.26,
+        53.1
+      ],
+      [
+        54.74,
+        61.13
+      ]
+    ]
+  },
+  "sheets": [
+    "library/sheets/261121-img-3712-f233.jpg"
+  ],
+  "taggedAt": "2026-11-21T23:51:42+00:00"
+}

@@ -91,7 +91,14 @@
     "sounds": []
   },
   "transcript": "library/transcripts/261117-img-3675-5272.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-27-road-to-5-ep3",
+      "at": "2026-11-22T19:53:29+00:00",
+      "in": 5.15,
+      "out": 11.95
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -21.9,

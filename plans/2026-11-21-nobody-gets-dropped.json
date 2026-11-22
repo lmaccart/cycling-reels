@@ -1,0 +1,113 @@
+{
+  "slug": "2026-11-21-nobody-gets-dropped",
+  "postDate": "2026-11-21",
+  "format": "story",
+  "spine": "story",
+  "autoSfx": false,
+  "segments": [
+    {
+      "asset": "261121-gs010120-56fb",
+      "in": 122.5,
+      "out": 123.85,
+      "view": "group",
+      "captions": "transcript",
+      "volume": 1.4,
+      "stabilize": "medium"
+    },
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 37.75,
+      "out": 42.5,
+      "view": "rider",
+      "captions": "transcript",
+      "volume": 1.3,
+      "stabilize": "medium"
+    },
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 44.6,
+      "out": 47.4,
+      "view": "rider",
+      "captions": "transcript",
+      "volume": 1.3,
+      "stabilize": "medium"
+    },
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 140.0,
+      "out": 143.0,
+      "view": "forward",
+      "stabilize": "medium",
+      "volume": 0.3,
+      "stats": [
+        {
+          "value": "strava:power"
+        },
+        {
+          "value": "strava:hr"
+        }
+      ]
+    },
+    {
+      "asset": "261121-gs010123-4bb2",
+      "in": 197.5,
+      "out": 203.0,
+      "view": "left",
+      "stabilize": "medium",
+      "volume": 0.4,
+      "stats": [
+        {
+          "value": "strava:speed"
+        }
+      ],
+      "text": [
+        {
+          "text": "there goes everyone",
+          "at": 2.2
+        }
+      ]
+    },
+    {
+      "asset": "261121-gs020123-8f4b",
+      "in": 112.5,
+      "out": 117.2,
+      "view": "right",
+      "stabilize": "medium",
+      "volume": 0.4,
+      "payoff": true,
+      "stats": [
+        {
+          "value": "strava:power"
+        },
+        {
+          "value": "strava:hr"
+        }
+      ],
+      "punch": [
+        {
+          "at": 3.0,
+          "scale": 1.15
+        }
+      ]
+    }
+  ],
+  "music": {
+    "track": "mr-brightside",
+    "cutOnBeat": true
+  },
+  "captions": {
+    "maxWordsPerPage": 4,
+    "maxCharsPerPage": 22
+  },
+  "post": {
+    "caption": "define dropped",
+    "hashtags": [
+      "#cycling",
+      "#roadcycling",
+      "#groupride",
+      "#bikeracing",
+      "#cyclinglife"
+    ],
+    "altText": "Group ride meetup where a teammate promises nobody is getting dropped, then 360 footage of the sprint zone as the pack strings out and passes at speed"
+  }
+}

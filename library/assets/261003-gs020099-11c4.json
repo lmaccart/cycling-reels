@@ -186,7 +186,14 @@
     ]
   },
   "transcript": "library/transcripts/261003-gs020099-11c4.json",
-  "used": [],
+  "used": [
+    {
+      "plan": "2026-11-18-close-calls",
+      "at": "2026-11-19T03:29:55+00:00",
+      "in": 62.4,
+      "out": 65.993
+    }
+  ],
   "audio": {
     "volume": {
       "meanDb": -21.7,

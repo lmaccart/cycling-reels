@@ -1,0 +1,173 @@
+{
+  "id": "261121-gs010119-c867",
+  "kind": "video",
+  "media": "library/media/261121-gs010119-c867.360",
+  "originalName": "GS010119.360",
+  "hash": "c867a4b146d91f28ad5d228984d144b4cba7dd5d",
+  "created": "2026-11-21T07:06:14",
+  "createdCamera": "2026-11-21T08:06:14",
+  "ingestedAt": "2026-11-21T18:06:53+00:00",
+  "probe": {
+    "duration": 185.493,
+    "width": 2944,
+    "height": 1472,
+    "fps": 59.94,
+    "rotation": 0,
+    "vcodec": "hevc",
+    "pixFmt": "yuvj420p",
+    "hdr": false,
+    "colorTransfer": "bt709",
+    "hasAudio": true,
+    "acodec": "aac",
+    "created": "2026-11-21T08:06:14.000000Z",
+    "sphere": {
+      "projection": "gopro-eac",
+      "source": "GoPro .360",
+      "tracks": [
+        0,
+        5
+      ],
+      "face": 736,
+      "overlap": 64,
+      "width": 2944,
+      "height": 1472
+    }
+  },
+  "status": "tagged",
+  "tags": {
+    "type": "solo-ride",
+    "shot": "pov",
+    "quality": 3,
+    "issues": [],
+    "people": "me",
+    "summary": "Pre-ride: teal Factor walked through the dorm hall into the steel elevator, out the door, then rolling across campus under live oaks",
+    "hooks": [
+      "the commute starts in an elevator"
+    ],
+    "location": "Houston (campus)",
+    "notes": "Bar mount, upside down. Camera clock 1 h 343 s fast (fixed). Before the Strava ride.",
+    "angles": {
+      "forward": {
+        "yaw": 180.0,
+        "pitch": 40.0,
+        "fov": 90.0,
+        "roll": 180.0
+      },
+      "rider": {
+        "yaw": 0.0,
+        "pitch": -35.0,
+        "fov": 110.0,
+        "roll": 180.0
+      }
+    },
+    "moments": [
+      {
+        "id": "m-d47a8e",
+        "in": 30.0,
+        "out": 40.0,
+        "label": "teal Factor in the steel elevator, legs and top tube from the bars",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "rider",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-bd57e1",
+        "in": 76.0,
+        "out": 84.0,
+        "label": "rolling out of the building onto the brick path, low view",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "setup",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-5794e9",
+        "in": 146.0,
+        "out": 154.0,
+        "label": "riding down a campus road under big live oaks, low forward view",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "forward",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      },
+      {
+        "id": "m-994dd5",
+        "in": 146.0,
+        "out": 152.0,
+        "label": "legs pedaling over the teal top tube, live oaks behind",
+        "score": 3,
+        "focusX": 0.5,
+        "focusY": 0.5,
+        "speech": false,
+        "view": "rider",
+        "role": "texture",
+        "speaker": "none",
+        "mood": "calm",
+        "face": false,
+        "opener": false
+      }
+    ],
+    "sounds": [],
+    "landmarks": [
+      {
+        "at": 12.0,
+        "label": "walking the bike down the dorm hall"
+      },
+      {
+        "at": 28.0,
+        "label": "steel elevator ride with the bike"
+      },
+      {
+        "at": 70.0,
+        "label": "lobby, out the door"
+      },
+      {
+        "at": 100.0,
+        "label": "riding the campus path under live oaks"
+      },
+      {
+        "at": 180.0,
+        "label": "stopped by bikes at a rack"
+      }
+    ]
+  },
+  "transcript": null,
+  "used": [],
+  "audio": {
+    "volume": {
+      "meanDb": -23.1,
+      "peakDb": -3.4
+    },
+    "speechSeconds": 0,
+    "speechRanges": []
+  },
+  "sheets": [
+    "library/sheets/261121-gs010119-c867-1.jpg",
+    "library/sheets/261121-gs010119-c867-2.jpg"
+  ],
+  "telemetry": null,
+  "gpsSummary": {
+    "goodSeconds": 0
+  },
+  "strava": null,
+  "taggedAt": "2026-11-21T18:10:48+00:00"
+}
