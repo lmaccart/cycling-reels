@@ -73,7 +73,7 @@ private final class TrackFrames {
         }
         func tick(_ sample: CMSampleBuffer) -> Int {
             request.isProxy ? proxyFPSTick(pts: sample.presentationTimeStamp, sourceIn: request.sourceIn) :
-                fpsTick(pts: sample.presentationTimeStamp.seconds, first: firstPTS!, speed: request.speed, fps: request.fps)
+                fpsTick(pts: sample.presentationTimeStamp.seconds, first: firstPTS!, speed: request.speed, rate: request.rate)
         }
         while let n = next, tick(n) <= frame {
             current = n
@@ -217,7 +217,7 @@ final class OfflineRenderer {
         let decoders = try tracks.map { try TrackFrames(track: $0, reader: reader, request: r) }
         let writer = try AVAssetWriter(outputURL: partial, fileType: .mp4)
         var compression: [String: Any] = [
-            AVVideoAverageBitRateKey: r.isProxy ? 8_000_000 : max(20_000_000, r.width*r.height*r.fps/2),
+            AVVideoAverageBitRateKey: r.isProxy ? 8_000_000 : (r.isEquirectRender ? Int(Double(r.width*r.height)*r.rate*0.15) : max(20_000_000, r.width*r.height*r.fps/2)),
             AVVideoMaxKeyFrameIntervalKey: r.isProxy ? 10 : r.fps,
             AVVideoAllowFrameReorderingKey: false, AVVideoExpectedSourceFrameRateKey: r.fps,
         ]
@@ -233,6 +233,8 @@ final class OfflineRenderer {
         guard writer.canApply(outputSettings: settings, forMediaType: .video) else { throw SphereFailure.unsupported("hardware encoder settings") }
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         input.expectsMediaDataInRealTime = false
+        // The writer would otherwise snap NTSC frame times to its default 1/600 s track timescale.
+        if r.fpsDivisor != nil { input.mediaTimeScale = Int32(r.fps * 1000) }
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
             kCVPixelBufferPixelFormatTypeKey as String: r.isProxy && r.fullRange ?
                 kCVPixelFormatType_420YpCbCr8BiPlanarFullRange : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
@@ -342,12 +344,12 @@ final class OfflineRenderer {
                 CVBufferSetAttachment(output, kCVImageBufferYCbCrMatrixKey, kCVImageBufferYCbCrMatrix_ITU_R_709_2, .shouldPropagate)
                 let deadline = Date().addingTimeInterval(60)
                 while !input.isReadyForMoreMediaData && writer.status == .writing && Date() < deadline { Thread.sleep(forTimeInterval: 0.001) }
-                guard input.isReadyForMoreMediaData, adaptor.append(output, withPresentationTime: CMTime(value: Int64(n), timescale: Int32(r.fps))) else { throw SphereFailure.runtime("encode frame \(n): \(String(describing: writer.error))") }
+                guard input.isReadyForMoreMediaData, adaptor.append(output, withPresentationTime: r.outputTime(n)) else { throw SphereFailure.runtime("encode frame \(n): \(String(describing: writer.error))") }
                 if r.isProxy { try checkOutputLimit() }
             }
         }
         input.markAsFinished()
-        writer.endSession(atSourceTime: CMTime(value: Int64(r.frames), timescale: Int32(r.fps)))
+        writer.endSession(atSourceTime: r.outputTime(r.frames))
         let done = DispatchSemaphore(value: 0)
         writer.finishWriting { done.signal() }
         guard done.wait(timeout: .now()+120) == .success, writer.status == .completed else { throw SphereFailure.runtime("finish encode: \(String(describing: writer.error))") }

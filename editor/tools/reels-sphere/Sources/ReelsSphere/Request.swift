@@ -56,6 +56,18 @@ struct RenderRequest: Decodable {
     let maxOutputBytes: Int64?
     /// Opt-in benchmark readback only; files are siblings of the private destination.
     let proofSampleFrames: [Int]?
+    /// Optional, whole-sphere render only: 1001 makes the frame rate fps*1000/1001 (60 -> 59.94).
+    let fpsDivisor: Int?
+
+    /// Frames per second as a rate (only the whole-sphere render may be NTSC).
+    var rate: Double { fpsDivisor == 1001 ? Double(fps) * 1000 / 1001 : Double(fps) }
+    /// Full-resolution equirect output with one fixed rotation (levelling); not the 2048x1024 proxy.
+    var isEquirectRender: Bool { !isProxy && projection == "equirect" }
+
+    /// Output timestamp of frame n.
+    func outputTime(_ n: Int) -> CMTime {
+        fpsDivisor == nil ? CMTime(value: Int64(n), timescale: Int32(fps)) : CMTime(value: Int64(n) * 1001, timescale: Int32(fps * 1000))
+    }
 
     var isProxy: Bool { preset == "proxy" }
     var presetName: String { preset ?? "render" }
@@ -73,11 +85,11 @@ struct RenderRequest: Decodable {
               speed.isFinite, speed > 0, speed <= 16,
               (2...8192).contains(width), (2...8192).contains(height), width % 2 == 0, height % 2 == 0,
               (1...240).contains(fps), frames > 0, frames <= 10_000_000,
-              Double(frames) / Double(fps) <= (sourceOut - sourceIn) / speed + 2
+              Double(frames) / rate <= (sourceOut - sourceIn) / speed + 2
         else { throw SphereFailure.invalid("invalid source interval, speed, even dimensions, fps or frame count") }
         guard ["equirect", "gopro-eac"].contains(sourceProjection),
               trackIDs.count == (sourceProjection == "gopro-eac" ? 2 : 1), Set(trackIDs).count == trackIDs.count,
-              (isProxy ? ["equirect", "front-back"] : ["flat", "tiny-planet"]).contains(projection),
+              (isProxy ? ["equirect", "front-back"] : ["flat", "tiny-planet", "equirect"]).contains(projection),
               ["h264", "hevc"].contains(codec), ["render", "proxy"].contains(presetName)
         else { throw SphereFailure.invalid("projection, preset, track IDs or encoder") }
         func validCamera(_ k: CameraKey) -> Bool {
@@ -101,6 +113,14 @@ struct RenderRequest: Decodable {
         } else if views != nil || maxOutputBytes != nil {
             throw SphereFailure.invalid("views and maxOutputBytes are proxy-only")
         }
+        if isEquirectRender {
+            // One constant view is the output sphere's rotation (e.g. levelling); its fov is unused.
+            guard keys.count == 1, width == 2 * height
+            else { throw SphereFailure.invalid("equirect render requires width == 2*height and exactly one rotation key") }
+        }
+        if let d = fpsDivisor {
+            guard d == 1001, isEquirectRender else { throw SphereFailure.invalid("fpsDivisor 1001 is only for the equirect render") }
+        }
         if let samples = proofSampleFrames {
             guard isProxy, !samples.isEmpty, samples.count <= 8,
                   samples.allSatisfy({ (0..<frames).contains($0) }),
@@ -116,7 +136,7 @@ struct RenderRequest: Decodable {
                   !c.quaternions.isEmpty, c.quaternions.allSatisfy({ q in
                       q.count == 4 && q.allSatisfy(\.isFinite) && abs(q.reduce(0) { $0 + $1 * $1 } - 1) < 1e-4
                   }), abs(c.sourceStart - sourceIn) < 1e-8,
-                  abs(c.sourceStep - speed / Double(fps)) < 1e-10,
+                  abs(c.sourceStep - speed / rate) < 1e-10,
                   c.quaternions.count == frames
             else { throw SphereFailure.invalid("correction quaternions must cover every output frame on the explicit source clock") }
         }
@@ -133,7 +153,10 @@ struct RenderRequest: Decodable {
     }
 
     func matrix(frame: Int, keys: [SphereKey]) -> (simd_double3x3, Double) {
-        if projection == "equirect" { return (matrix_identity_double3x3, 1) }
+        if projection == "equirect" {
+            if isProxy { return (matrix_identity_double3x3, 1) }
+            return (cameraMatrix(view: keys[0].view, frame: frame).0, 1)
+        }
         let v = projection == "front-back" ? views![0].key.view :
             SphereMath.pathValue(keys, at: Double(frame) / Double(fps), projection: mode)
         return cameraMatrix(view: v, frame: frame)
@@ -159,7 +182,11 @@ struct RenderRequest: Decodable {
 
 /// vf_fps round=near chooses the last input whose rounded output tick is <= n.
 func fpsTick(pts: Double, first: Double, speed: Double, fps: Int) -> Int {
-    Int(((pts - first) / speed * Double(fps)).rounded(.toNearestOrAwayFromZero))
+    fpsTick(pts: pts, first: first, speed: speed, rate: Double(fps))
+}
+
+func fpsTick(pts: Double, first: Double, speed: Double, rate: Double) -> Int {
+    Int(((pts - first) / speed * rate).rounded(.toNearestOrAwayFromZero))
 }
 
 /// Keep exact source timestamps at half-tick boundaries; Double subtraction
