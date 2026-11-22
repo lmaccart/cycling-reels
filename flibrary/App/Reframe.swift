@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import simd
 
-// Reframe data, keyframe edits, the local flat renderer and the persisted state. SphereMath (editor/) supplies
+// Reframe data, keyframe edits, and the persisted state. SphereMath (editor/) supplies
 // the v360 conventions: yaw right, pitch up, roll about the view axis; fov is the horizontal fov of the output.
 
 struct ReframeKey: Codable, Equatable, Sendable {
@@ -59,7 +59,7 @@ struct ReframeState: Codable, Equatable, Sendable {
     }
 }
 
-/// Decoded equirect pixels (RGBA8) the local renderer samples from.
+/// Decoded RGBA8 pixels (image comparison for Check frame and tests).
 struct EquirectPixels: Sendable {
     let width: Int, height: Int, data: [UInt8]
 
@@ -81,37 +81,8 @@ struct EquirectPixels: Sendable {
     }
 }
 
+/// Image comparison helpers (the live preview itself is drawn on the GPU, see Viewer.swift).
 enum FlatRenderer {
-    /// Rectilinear view of the levelled equirect, bilinear; the same geometry as ffmpeg v360 `output=flat`.
-    static func render(_ src: EquirectPixels, view: SphereView, width w: Int, height h: Int) -> CGImage? {
-        let m = SphereMath.matrix(for: view)
-        let aspect = Double(h) / Double(w)
-        let sw = src.width, sh = src.height
-        var out = [UInt8](repeating: 255, count: w * h * 4)
-        src.data.withUnsafeBufferPointer { s in
-            for y in 0..<h {
-                for x in 0..<w {
-                    let d = SphereMath.sampleDirection(matrix: m, u: (Double(x) + 0.5) / Double(w), v: (Double(y) + 0.5) / Double(h),
-                                                       fov: view.fov, aspect: aspect, projection: .flat)
-                    let uv = SphereMath.equirectUV(d)
-                    let fx = uv.u * Double(sw) - 0.5, fy = min(Double(sh - 1), max(0, uv.v * Double(sh) - 0.5))
-                    let x0 = Int(fx.rounded(.down)), y0 = Int(fy), tx = fx - Double(x0), ty = fy - Double(y0)
-                    let xa = ((x0 % sw) + sw) % sw, xb = (xa + 1) % sw, y1 = min(sh - 1, y0 + 1)
-                    for c in 0..<3 {
-                        let a = Double(s[(y0 * sw + xa) * 4 + c]) * (1 - tx) + Double(s[(y0 * sw + xb) * 4 + c]) * tx
-                        let b = Double(s[(y1 * sw + xa) * 4 + c]) * (1 - tx) + Double(s[(y1 * sw + xb) * 4 + c]) * tx
-                        out[(y * w + x) * 4 + c] = UInt8(a * (1 - ty) + b * ty + 0.5)
-                    }
-                }
-            }
-        }
-        let data = Data(out) as CFData
-        guard let provider = CGDataProvider(data: data) else { return nil }
-        return CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                       bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue), provider: provider, decode: nil,
-                       shouldInterpolate: true, intent: .defaultIntent)
-    }
-
     /// Mean absolute RGB difference (0...255) after scaling `b` to `a`'s size; nil if either cannot be decoded.
     static func meanAbsDiff(_ a: CGImage, _ b: CGImage) -> Double? {
         guard let pa = EquirectPixels(a, maxWidth: a.width), let pb = EquirectPixels(b, maxWidth: a.width),

@@ -2,15 +2,16 @@ import AVFoundation
 import AppKit
 import SwiftUI
 
-/// State for the aim viewer: scrub, aim, add key. Source pixels are the levelled equirect (backend still, or the export's frames).
+/// State for the aim viewer: scrub, aim, add key. The picture is drawn by the GPU viewer (Viewer.swift) from the decoded frame; aim changes
+/// only update `viewer.view`. A backend still is the fallback source when the clip cannot be decoded here.
 @MainActor @Observable
 final class ReframeModel {
     let asset: Asset
     let store: LibraryStore
     var settings: ReframeSettings
     var t = 0.0
-    var aim = ReframeSettings.straight
-    var preview: CGImage?
+    var aim = ReframeSettings.straight { didSet { viewer.view = aim } }
+    let viewer = ViewerState()
     var check: CGImage?
     var checkNote: String?
     var error: String?
@@ -19,8 +20,7 @@ final class ReframeModel {
     @ObservationIgnored private var audio: AVPlayer?
     @ObservationIgnored private var playTask: Task<Void, Never>?
     @ObservationIgnored private var state: ReframeState
-    @ObservationIgnored private var pixels: EquirectPixels?
-    @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var engineFailed = false
     @ObservationIgnored private var sourceTask: Task<Void, Never>?
 
     init(asset: Asset, store: LibraryStore) {
@@ -29,6 +29,8 @@ final class ReframeModel {
         var s = state.reframe[asset.id] ?? ReframeSettings()
         if s.out <= s.in { s.in = 0; s.out = asset.duration ?? 0 }
         settings = s
+        viewer.aspect = Double(settings.height) / Double(settings.width)
+        viewer.view = aim
         loadSource()
     }
 
@@ -62,30 +64,42 @@ final class ReframeModel {
         t = PlaybackMath.startTime(t, in: settings.in, out: settings.out)
         playTask = Task { [weak self] in
             guard let self else { return }
-            if self.engine == nil {
-                let level = try? await self.store.backend.level(id: self.asset.id)
-                let ex = self.asset.equirectExport.map { URL(fileURLWithPath: $0.path) }
-                self.engine = await PlaybackEngine.make(asset: self.asset, export: ex, level: level)
-            }
-            guard let engine = self.engine, !Task.isCancelled else { self.playing = false; self.error = self.error ?? "Playback unavailable for this clip"; return }
+            let engine = await self.ensureEngine()
+            guard let engine, !Task.isCancelled else { self.playing = false; self.error = self.error ?? "Playback unavailable for this clip"; return }
             self.error = nil
             let start = self.t
             let player = await self.audioPlayer()
             await player?.seek(to: CMTime(seconds: start, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
             player?.play()
+            self.viewer.continuous = true   // the MTKView redraws at display rate from here on, reading the newest frame and view
+            defer { self.viewer.continuous = false }
             let began = Date()
+            var tick = 0
             while !Task.isCancelled {
-                let tick = Date()
                 let now = player.map { $0.currentTime().seconds } ?? start + Date().timeIntervalSince(began)
                 if PlaybackMath.isFinished(now, out: self.settings.out) || (player.map { $0.rate == 0 && now > start } ?? false) { self.t = self.settings.out; self.pause(); break }
-                self.t = now
-                if let v = self.settings.view(at: self.relative) { self.aim = v }
-                let (w, h) = self.previewSize
-                do { if let img = try await engine.render(at: now, view: self.aim, width: w, height: h) { self.preview = img } }
+                let keyed = self.settings.view(at: max(0, now - self.settings.in))
+                if let keyed { self.viewer.view = keyed }
+                // the SwiftUI readouts follow at ~30 Hz; the picture does not wait for them
+                if tick % 4 == 0 { self.t = now; if let keyed { self.aim = keyed } }
+                tick += 1
+                do { if let f = try await engine.frame(at: now), f !== self.viewer.frame { self.viewer.frame = f } }
+                catch is CancellationError { break }
                 catch { self.error = error.localizedDescription; self.pause(); break }
-                try? await Task.sleep(for: .milliseconds(max(1, 33 - Int(Date().timeIntervalSince(tick) * 1000))))
+                try? await Task.sleep(for: .milliseconds(4))
             }
         }
+    }
+
+    /// The decoder for this clip (made once; nil when the clip can only be shown from backend stills).
+    private func ensureEngine() async -> PlaybackEngine? {
+        if let engine { return engine }
+        if engineFailed { return nil }
+        let level = try? await store.backend.level(id: asset.id)
+        let ex = asset.equirectExport.map { URL(fileURLWithPath: $0.path) }
+        engine = await PlaybackEngine.make(asset: asset, export: ex, level: level)
+        engineFailed = engine == nil
+        return engine
     }
 
     /// Audio-only player on the clip's first audio track (the video is decoded separately).
@@ -105,31 +119,37 @@ final class ReframeModel {
     func setOut() { settings.out = max(t, settings.in); persist() }
     func addKey() { settings.setKey(at: relative, view: aim); persist() }
     func deleteKey() { settings.deleteKey(near: relative); persist() }
-    func apply(_ view: SphereView) { aim = view; rerender() }
+    func apply(_ view: SphereView) { aim = view }
 
     func drag(dx: Double, dy: Double) {
         let k = aim.fov / 500
         aim.yaw = SphereMath.wrapYaw(aim.yaw - dx * k)
         aim.pitch = min(90, max(-90, aim.pitch + dy * k))
-        rerender()
     }
 
-    func zoom(_ delta: Double) { aim.fov = min(150, max(10, aim.fov * (1 - delta))); rerender() }
+    func zoom(_ delta: Double) { aim.fov = min(150, max(10, aim.fov * (1 - delta))) }
 
-    /// Debounced: fetch the levelled equirect for the playhead, then redraw.
+    func setAspect(width: Int, height: Int) { settings.width = width; settings.height = height; persist(); viewer.aspect = Double(height) / Double(width) }
+
+    /// Latest-wins: every call replaces the pending one. After a short settle the engine decodes the frame at the playhead and the viewer
+    /// shows it (paused view always comes from the GPU path); the backend's levelled still is only the fallback.
     func loadSource() {
         sourceTask?.cancel()
-        let time = (t * 10).rounded() / 10
+        let time = t
         sourceTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: .milliseconds(60))
             guard let self, !Task.isCancelled else { return }
+            if let engine = await self.ensureEngine() {
+                do {
+                    guard !Task.isCancelled else { return }
+                    if let f = try await engine.frame(at: time), !Task.isCancelled { self.viewer.frame = f; self.error = nil; return }
+                } catch is CancellationError { return } catch { self.error = error.localizedDescription }
+            }
             do {
-                let image = try await self.fetchSource(at: time)
-                guard !Task.isCancelled else { return }
-                self.pixels = await Task.detached { EquirectPixels(image) }.value
-                self.error = nil
-                self.rerender()
-            } catch { self.error = error.localizedDescription }
+                let image = try await self.fetchSource(at: (time * 10).rounded() / 10)
+                guard !Task.isCancelled, let r = self.viewer.renderer, let f = FrameTextures.still(image, device: r.device, time: time) else { return }
+                self.viewer.frame = f; self.error = nil
+            } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
         }
     }
 
@@ -146,29 +166,6 @@ final class ReframeModel {
         return img
     }
 
-    func rerender() {
-        if !playing, let engine {
-            let time = t, view = aim, size = previewSize
-            Task { [weak self] in
-                guard await engine.holds(time), let img = try? await engine.render(at: time, view: view, width: size.w, height: size.h), let self else { return await self?.rerenderStill() }
-                if !self.playing { self.preview = img }
-            }
-            return
-        }
-        rerenderStill()
-    }
-
-    private func rerenderStill() {
-        guard let px = pixels else { return }
-        generation += 1
-        let gen = generation, view = aim, size = previewSize
-        Task { [weak self] in
-            let img = await Task.detached { FlatRenderer.render(px, view: view, width: size.w, height: size.h) }.value
-            guard let self, gen == self.generation else { return }
-            self.preview = img
-        }
-    }
-
     /// Backend render of the same view at the same size, for comparing against the local preview.
     func checkFrame() async {
         let (w, h) = previewSize
@@ -176,7 +173,7 @@ final class ReframeModel {
         do {
             let url = try await store.backend.frame(id: asset.id, t: t, view: aim, w: w, h: h)
             check = await Media.image(path: url.path, maxPixel: 2000)
-            if let c = check, let p = preview, let d = FlatRenderer.meanAbsDiff(p, c) { checkNote = String(format: "Mean pixel difference %.1f / 255", d) }
+            if let c = check, let p = viewer.snapshot(width: w, height: h), let d = FlatRenderer.meanAbsDiff(p, c) { checkNote = String(format: "Mean pixel difference %.1f / 255", d) }
             else { checkNote = nil }
         } catch { checkNote = error.localizedDescription }
     }
@@ -190,22 +187,6 @@ final class ReframeModel {
     }
 }
 
-/// Mouse drag, scroll and pinch on the preview.
-struct AimSurface: NSViewRepresentable {
-    var onDrag: (Double, Double) -> Void
-    var onZoom: (Double) -> Void
-    func makeNSView(context: Context) -> AimNSView { AimNSView() }
-    func updateNSView(_ v: AimNSView, context: Context) { v.onDrag = onDrag; v.onZoom = onZoom }
-    final class AimNSView: NSView {
-        var onDrag: (Double, Double) -> Void = { _, _ in }
-        var onZoom: (Double) -> Void = { _ in }
-        override func mouseDragged(with e: NSEvent) { onDrag(e.deltaX, e.deltaY) }
-        override func scrollWheel(with e: NSEvent) { onZoom(e.scrollingDeltaY * 0.004) }
-        override func magnify(with e: NSEvent) { onZoom(e.magnification) }
-        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    }
-}
-
 struct ReframeView: View {
     @State var model: ReframeModel
     @Environment(ToolsModel.self) private var tools
@@ -216,13 +197,16 @@ struct ReframeView: View {
         @Bindable var m = model
         VStack(spacing: 8) {
             HStack(spacing: 12) {
-                pane(model.preview, caption: "Local preview (drag to aim, scroll to zoom)").overlay { AimSurface(onDrag: model.drag, onZoom: model.zoom) }
+                VStack {
+                    ViewerSurface(state: model.viewer, onDrag: model.drag, onZoom: model.zoom).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Text("Local preview (drag to aim, scroll to zoom)").font(.caption).foregroundStyle(.secondary)
+                }
                 if model.check != nil { pane(model.check, caption: model.checkNote ?? "Backend frame") }
             }.frame(maxHeight: .infinity)
             if let e = model.error { Text(e).font(.caption).foregroundStyle(.red) }
             HStack {
                 Picker("Aspect", selection: Binding(get: { "\(m.settings.width)x\(m.settings.height)" },
-                                                    set: { s in if let a = ReframeSettings.aspects.first(where: { "\($0.1)x\($0.2)" == s }) { m.settings.width = a.1; m.settings.height = a.2; m.persist(); m.rerender() } })) {
+                                                    set: { s in if let a = ReframeSettings.aspects.first(where: { "\($0.1)x\($0.2)" == s }) { m.setAspect(width: a.1, height: a.2) } })) {
                     ForEach(ReframeSettings.aspects, id: \.0) { Text($0.0).tag("\($0.1)x\($0.2)") }
                 }.pickerStyle(.segmented).frame(width: 170).labelsHidden()
                 Picker("FPS", selection: $m.settings.fps) { Text("30 fps").tag(30); Text("60 fps").tag(60) }
@@ -234,7 +218,7 @@ struct ReframeView: View {
             }
             HStack {
                 Text("Roll").font(.caption)
-                Slider(value: Binding(get: { m.aim.roll }, set: { m.aim.roll = $0; m.rerender() }), in: -180...180)
+                Slider(value: Binding(get: { m.aim.roll }, set: { m.aim.roll = $0 }), in: -180...180)
                 Text(String(format: "%.0f", m.aim.roll)).font(.caption.monospacedDigit()).frame(width: 36)
                 Button("Check frame") { Task { await m.checkFrame() } }
                 Button("Export flat") { m.exportFlat(tools: tools) }.buttonStyle(.borderedProminent)
@@ -253,7 +237,7 @@ struct ReframeView: View {
             }.font(.caption)
         }
         .padding(10)
-        .onAppear { m.rerender() }
+        .onAppear { m.viewer.setNeedsDraw() }
         .onDisappear { m.pause() }
     }
 

@@ -1,7 +1,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-// Flat preview of a levelled 360 frame. `m` = levelling * view: ray in the source's own sphere.
+// Flat view of a levelled 360 frame, drawn by a fragment pass straight into the MTKView drawable (or an offscreen texture for readback). `m` = levelling * view: ray in the source's own sphere.
 // eac: the two GoPro EAC track textures (a over b), seam blend + scale as in scripts/reels/sphere.py _track_chain,
 // face layout as in the reels-sphere helper's eacPosition. Otherwise `a` is an already levelled equirect.
 struct PlayUniforms {
@@ -65,14 +65,24 @@ static float4 eacSample(texture2d<float, access::read> a, texture2d<float, acces
     return mix(c0, c1, fy);
 }
 
-kernel void playView(texture2d<float, access::read> a [[texture(0)]],
-                     texture2d<float, access::read> b [[texture(1)]],
-                     texture2d<float, access::write> dst [[texture(2)]],
-                     constant PlayUniforms &u [[buffer(0)]],
-                     uint2 p [[thread_position_in_grid]]) {
-    if (p.x >= dst.get_width() || p.y >= dst.get_height()) return;
-    float2 xy = 2 * (float2(p) + .5f) / float2(dst.get_width(), dst.get_height()) - 1;
-    float3 d = normalize(u.m * normalize(float3(xy * float2(u.tanHalf, u.tanHalf * u.aspect), 1)));
+struct VOut {
+    float4 pos [[position]];
+    float2 xy;   // -1...1 across the viewport, y down
+};
+
+vertex VOut viewVert(uint vid [[vertex_id]]) {
+    float2 p = float2((vid << 1) & 2, vid & 2);   // one big triangle: (0,0) (2,0) (0,2)
+    VOut o;
+    o.pos = float4(p * 2 - 1, 0, 1);
+    o.xy = float2(p.x * 2 - 1, 1 - p.y * 2);
+    return o;
+}
+
+fragment float4 viewFrag(VOut in [[stage_in]],
+                         texture2d<float, access::read> a [[texture(0)]],
+                         texture2d<float, access::read> b [[texture(1)]],
+                         constant PlayUniforms &u [[buffer(0)]]) {
+    float3 d = normalize(u.m * normalize(float3(in.xy * float2(u.tanHalf, u.tanHalf * u.aspect), 1)));
     float4 v;
     if (u.eac) v = eacSample(a, b, d, u.face, u.overlap);
     else {
@@ -86,5 +96,5 @@ kernel void playView(texture2d<float, access::read> a [[texture(0)]],
         int ya = clamp(i0.y, 0, h - 1), yb = clamp(i0.y + 1, 0, h - 1);
         v = mix(mix(a.read(uint2(xa, ya)), a.read(uint2(xb, ya)), f.x), mix(a.read(uint2(xa, yb)), a.read(uint2(xb, yb)), f.x), f.y);
     }
-    dst.write(float4(v.rgb, 1), p);
+    return float4(v.rgb, 1);
 }

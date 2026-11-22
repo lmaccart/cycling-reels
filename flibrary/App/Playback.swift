@@ -4,7 +4,7 @@ import Metal
 import simd
 
 // Live playback for the aim viewer: frames come from the .360's two EAC tracks (or a full-length equirect export)
-// via AVAssetReader, are reprojected on the GPU (Playback.metal) into the flat preview, with the audio on an AVPlayer clock.
+// via AVAssetReader, are wrapped as Metal textures (no copy) for the viewer's fragment pass (Viewer.swift, Playback.metal), with the audio on an AVPlayer clock.
 // No proxy or intermediate file is ever written.
 
 /// Pure time and layout maths (unit tested).
@@ -41,26 +41,19 @@ enum PlaybackMath {
     }
 }
 
-private struct PlayUniforms {
-    var m: simd_float3x3
-    var tanHalf: Float, aspect: Float
-    var eac: Int32, face: Int32, overlap: Int32
-}
-
-/// Decodes the playback source in order and renders flat views of the held frame.
+/// Decodes the playback source in order and hands out the newest frame as textures. It never renders: drawing is the viewer's job.
 actor PlaybackEngine {
     private let asset: AVURLAsset
     private let tracks: [AVAssetTrack]
     private let eac: (face: Int, overlap: Int)?
     private let level: simd_double3x3
-    private let device = MTLCreateSystemDefaultDevice()!
-    private let queue: MTLCommandQueue
-    private let pipeline: MTLComputePipelineState
+    private let renderer: ViewerRenderer
     private var cache: CVMetalTextureCache?
     private var reader: AVAssetReader?
     private var outputs: [AVAssetReaderTrackOutput] = []
     private var held: [CVPixelBuffer] = []
     private var heldTime: Double?
+    private var heldFrame: FrameTextures?
     private var pending: (time: Double, bufs: [CVPixelBuffer])?
     private var ended = false
 
@@ -82,15 +75,10 @@ actor PlaybackEngine {
     }
 
     private init?(asset: AVURLAsset, tracks: [AVAssetTrack], eac: (face: Int, overlap: Int)?, level: simd_double3x3) {
-        self.asset = asset; self.tracks = tracks; self.eac = eac; self.level = level
-        guard let q = device.makeCommandQueue(), let lib = device.makeDefaultLibrary(), let f = lib.makeFunction(name: "playView"),
-              let p = try? device.makeComputePipelineState(function: f) else { return nil }
-        queue = q; pipeline = p
-        CVMetalTextureCacheCreate(nil, nil, device, nil, &cache)
+        guard let r = ViewerRenderer.shared else { return nil }
+        self.asset = asset; self.tracks = tracks; self.eac = eac; self.level = level; renderer = r
+        CVMetalTextureCacheCreate(nil, nil, r.device, nil, &cache)
     }
-
-    /// Whether the held frame is the one for time `t` (paused aim changes can redraw it without decoding).
-    func holds(_ t: Double) -> Bool { heldTime.map { abs($0 - t) < 0.1 } ?? false }
 
     private func start(at t: Double) throws {
         reader?.cancelReading()
@@ -101,7 +89,7 @@ actor PlaybackEngine {
         for o in outputs { o.alwaysCopiesSampleData = false; r.add(o) }
         r.timeRange = CMTimeRange(start: CMTime(seconds: t, preferredTimescale: 600), duration: .positiveInfinity)
         guard r.startReading() else { throw r.error ?? BackendError(message: "Could not start reading") }
-        reader = r; held = []; heldTime = nil; pending = nil; ended = false
+        reader = r; held = []; heldTime = nil; heldFrame = nil; pending = nil; ended = false
     }
 
     private func readNext() -> (Double, [CVPixelBuffer])? {
@@ -114,44 +102,29 @@ actor PlaybackEngine {
         return (time, bufs)
     }
 
-    /// Advances (or restarts the reader for a jump) to the frame for clip time `t`; nil if there is none.
-    private func advance(to t: Double) throws {
+    /// The newest frame at or before clip time `t` as textures, nil if there is none. Frames are consumed in order, so calling this with
+    /// increasing `t` plays (late frames are skipped, never queued); a far-away `t` restarts the reader there. Throws CancellationError
+    /// when the caller was cancelled while waiting its turn (scrubbing: only the latest seek decodes).
+    func frame(at t: Double) throws -> FrameTextures? {
+        try Task.checkCancellation()
         let jump = heldTime.map { t < $0 - 0.25 || (t > $0 + 1.0 && !ended) } ?? false
         if reader == nil || jump { try start(at: t) }
+        var changed = false
         while !ended {
             if pending == nil { if let n = readNext() { pending = n } else { ended = true; break } }
             guard let p = pending else { break }
-            if heldTime == nil || p.time <= t + 0.004 { held = p.bufs; heldTime = p.time; pending = nil } else { break }
+            if heldTime == nil || p.time <= t + 0.004 { held = p.bufs; heldTime = p.time; pending = nil; changed = true } else { break }
         }
+        if changed, let cache, let time = heldTime {
+            CVMetalTextureCacheFlush(cache, 0)
+            heldFrame = FrameTextures.make(buffers: held, cache: cache, eac: eac, level: level, time: time)
+        }
+        return heldFrame
     }
 
-    /// The flat view of the frame at clip time `t` as a w x h image. Frames are consumed in order, so calling this with
-    /// increasing `t` plays; a far-away `t` restarts the reader there.
+    /// CPU readback of the view at clip time `t` (tests / Check frame style comparisons only).
     func render(at t: Double, view: SphereView, width w: Int, height h: Int) throws -> CGImage? {
-        try advance(to: t)
-        guard !held.isEmpty, let cache else { return nil }
-        func texture(_ b: CVPixelBuffer) -> MTLTexture? {
-            var ref: CVMetalTexture?
-            CVMetalTextureCacheCreateTextureFromImage(nil, cache, b, nil, .bgra8Unorm, CVPixelBufferGetWidth(b), CVPixelBufferGetHeight(b), 0, &ref)
-            return ref.flatMap(CVMetalTextureGetTexture)
-        }
-        let tex = held.compactMap(texture)
-        let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: w, height: h, mipmapped: false)
-        d.usage = [.shaderWrite]; d.storageMode = .shared
-        guard tex.count == held.count, let out = device.makeTexture(descriptor: d), let cmd = queue.makeCommandBuffer(), let enc = cmd.makeComputeCommandEncoder() else { return nil }
-        let m = level * SphereMath.matrix(for: view)
-        var u = PlayUniforms(m: simd_float3x3(SIMD3<Float>(m[0]), SIMD3<Float>(m[1]), SIMD3<Float>(m[2])), tanHalf: Float(tan(view.fov * .pi / 360)), aspect: Float(h) / Float(w),
-                             eac: eac == nil ? 0 : 1, face: Int32(eac?.face ?? 0), overlap: Int32(eac?.overlap ?? 0))
-        enc.setComputePipelineState(pipeline)
-        enc.setTexture(tex[0], index: 0); enc.setTexture(tex.last!, index: 1); enc.setTexture(out, index: 2)
-        enc.setBytes(&u, length: MemoryLayout<PlayUniforms>.stride, index: 0)
-        enc.dispatchThreads(MTLSize(width: w, height: h, depth: 1), threadsPerThreadgroup: MTLSize(width: 16, height: 16, depth: 1))
-        enc.endEncoding(); cmd.commit(); cmd.waitUntilCompleted()
-        var px = [UInt8](repeating: 0, count: w * h * 4)
-        out.getBytes(&px, bytesPerRow: w * 4, from: MTLRegionMake2D(0, 0, w, h), mipmapLevel: 0)
-        guard let provider = CGDataProvider(data: Data(px) as CFData) else { return nil }
-        return CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                       bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue),
-                       provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+        guard let f = try frame(at: t) else { return nil }
+        return renderer.readback(f, view: view, width: w, height: h)
     }
 }

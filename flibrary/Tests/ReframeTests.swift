@@ -92,16 +92,24 @@ final class ReframeTests: XCTestCase {
         XCTAssertTrue(ran.filter { $0.hasSuffix(".json") }.isEmpty, "job files are cleaned up (\(ran))")
     }
 
+    /// RGBA bytes (alpha ignored) as a CGImage.
+    static func cgImage(_ rgba: [UInt8], _ w: Int, _ h: Int) -> CGImage? {
+        CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue), provider: CGDataProvider(data: Data(rgba) as CFData)!, decode: nil,
+                shouldInterpolate: false, intent: .defaultIntent)
+    }
+
     func testRendererStraightAheadSamplesCentre() throws {
         // A 2:1 equirect with a left half red, right half blue: straight ahead (centre) straddles the seam.
         var buf = [UInt8](repeating: 255, count: 64 * 32 * 4)
         for y in 0..<32 { for x in 0..<64 { let i = (y * 64 + x) * 4; buf[i] = x < 32 ? 255 : 0; buf[i + 1] = 0; buf[i + 2] = x < 32 ? 0 : 255 } }
-        let px = EquirectPixels(width: 64, height: 32, data: buf)
-        let img = try XCTUnwrap(FlatRenderer.render(px, view: view(0), width: 40, height: 20))
+        let r = try XCTUnwrap(ViewerRenderer.shared)
+        let tex = try XCTUnwrap(FrameTextures.still(try XCTUnwrap(Self.cgImage(buf, 64, 32)), device: r.device, time: 0))
+        let img = try XCTUnwrap(r.readback(tex, view: view(0), width: 40, height: 20))
         let d = try XCTUnwrap(EquirectPixels(img, maxWidth: 40)).data
         XCTAssertGreaterThan(d[(10 * 40 + 2) * 4], 200)        // left = red
         XCTAssertGreaterThan(d[(10 * 40 + 37) * 4 + 2], 200)   // right = blue
-        let right = try XCTUnwrap(FlatRenderer.render(px, view: view(60), width: 40, height: 20))   // yaw right: all blue
+        let right = try XCTUnwrap(r.readback(tex, view: view(60), width: 40, height: 20))   // yaw right: all blue
         XCTAssertGreaterThan(try XCTUnwrap(EquirectPixels(right, maxWidth: 40)).data[(10 * 40 + 5) * 4 + 2], 200)
     }
 
@@ -114,11 +122,12 @@ final class ReframeTests: XCTestCase {
         let t = 20.0
         let still = try await backend.frame(id: id, t: t, width: 2048)
         let stillImage = await Media.image(path: still.path, maxPixel: 2048)
-        let src = try XCTUnwrap(EquirectPixels(try XCTUnwrap(stillImage)))
+        let r = try XCTUnwrap(ViewerRenderer.shared)
+        let src = try XCTUnwrap(FrameTextures.still(try XCTUnwrap(stillImage), device: r.device, time: t))
         let out = ProcessInfo.processInfo.environment["FLIBRARY_PREVIEW_OUT"]
         var report = ""
         for (v, w, h) in [(view(0), 270, 480), (view(75, 10, 0, 80), 270, 480), (view(180, -15, 12, 100), 480, 270)] {
-            let local = try XCTUnwrap(FlatRenderer.render(src, view: v, width: w, height: h))
+            let local = try XCTUnwrap(r.readback(src, view: v, width: w, height: h))
             let rurl = try await backend.frame(id: id, t: t, view: v, w: w, h: h)
             let rimg = await Media.image(path: rurl.path, maxPixel: 2000)
             let remote = try XCTUnwrap(rimg)
