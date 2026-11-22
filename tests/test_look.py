@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 
 from helpers import TempProject, words
@@ -93,6 +95,21 @@ class RealFileTests(unittest.TestCase):
         self.assertAlmostEqual(loud - quiet, 20, delta=1.5)
         mix = look.mix_stats(reel)
         self.assertGreater(mix["seconds"][0] - mix["seconds"][2], 15)
+
+    def test_more_frames_than_one_ffmpeg_select_takes(self):
+        # ffmpeg's expression parser refuses a select over 100 terms; a 60 s reel sampled
+        # every 0.5 s plus its cuts needs ~150. Frames come back in order, across batches.
+        t = TempProject(self)
+        reel = t.root / "count.mp4"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=64x112:rate=30:duration=6",
+                        "-c:v", "libx264", "-pix_fmt", "yuv420p", str(reel)], check=True)  # fmt: skip
+        frames = list(range(150))
+        with tempfile.TemporaryDirectory() as td:
+            files = look.extract(reel, frames, Path(td))
+            self.assertEqual(len(files), 150)
+            self.assertGreater(len(frames), look.SELECT_BATCH)
+            self.assertEqual(files[look.SELECT_BATCH - 1].parent.name, "b000")
+            self.assertEqual(files[look.SELECT_BATCH].parent.name, "b001")
 
 
 if __name__ == "__main__":
