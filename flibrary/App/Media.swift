@@ -34,11 +34,18 @@ enum Media {
     }
 
     /// Thumbnail for a grid cell: backend thumb, the photo itself, the first contact-sheet tile, else a video frame.
-    static func thumbnail(for a: Asset) async -> CGImage? {
-        if let t = a.thumb, let img = await image(path: t, maxPixel: 480) { return img }
-        if a.isPhoto { return await image(path: a.media, maxPixel: 480) }
+    static func thumbnail(for a: Asset, maxPixel: Int = 480) async -> CGImage? {
+        if let t = a.thumb, let img = await image(path: t, maxPixel: maxPixel) { return img }
+        if a.isPhoto { return await image(path: a.media, maxPixel: maxPixel) }
         if let tile = await sheetFrame(for: a, fraction: 0) { return tile }
-        return a.is360 ? nil : await scrubFrame(for: a, fraction: 0)
+        return a.is360 ? nil : await scrubFrame(for: a, fraction: 0, maxPixel: maxPixel)
+    }
+
+    /// Pixel-size buckets so zooming reuses cached images instead of re-decoding at every slider step.
+    static let pixelBuckets = [240, 480, 720, 960, 1440]
+    static func pixelBucket(forTileWidth w: Double, scale: Double = 2) -> Int {
+        let need = w * scale
+        return pixelBuckets.first { Double($0) >= need } ?? pixelBuckets.last!
     }
 
     /// Where tile `index` sits: which sheet and the pixel rect inside it (`scale` = loaded width / sheetWidth).
@@ -74,13 +81,13 @@ enum Media {
     }
 
     /// Hover-scrub frame. Flat video: AVAssetImageGenerator; 360: crop a contact-sheet tile.
-    static func scrubFrame(for a: Asset, fraction: Double) async -> CGImage? {
+    static func scrubFrame(for a: Asset, fraction: Double, maxPixel: Int = 360) async -> CGImage? {
         if a.is360 { return await sheetFrame(for: a, fraction: fraction) }
         guard a.kind == "video", let duration = a.duration, duration > 0 else { return nil }
         let step = min(39, Int(fraction * 40))
-        let key = "scrub:\(a.id)#\(step)"
+        let key = "scrub:\(a.id)#\(step)@\(maxPixel)"
         if let hit = ImageCache.shared.get(key) { return hit }
-        let box = await Scrubber.shared.frame(url: a.mediaURL, id: a.id, at: duration * (Double(step) + 0.5) / 40)
+        let box = await Scrubber.shared.frame(url: a.mediaURL, id: a.id, at: duration * (Double(step) + 0.5) / 40, maxPixel: maxPixel)
         if let box { ImageCache.shared.set(key, box.image) }
         return box?.image
     }
@@ -91,17 +98,17 @@ actor Scrubber {
     static let shared = Scrubber()
     private var generators: [(id: String, gen: AVAssetImageGenerator)] = []
 
-    func frame(url: URL, id: String, at seconds: Double) async -> ImageBox? {
+    func frame(url: URL, id: String, at seconds: Double, maxPixel: Int = 360) async -> ImageBox? {
         let gen: AVAssetImageGenerator
         if let existing = generators.first(where: { $0.id == id }) { gen = existing.gen } else {
             gen = AVAssetImageGenerator(asset: AVURLAsset(url: url))
             gen.appliesPreferredTrackTransform = true
-            gen.maximumSize = CGSize(width: 360, height: 360)
             gen.requestedTimeToleranceBefore = CMTime(seconds: 1, preferredTimescale: 600)
             gen.requestedTimeToleranceAfter = CMTime(seconds: 1, preferredTimescale: 600)
             generators.append((id, gen))
             if generators.count > 6 { generators.removeFirst() }
         }
+        gen.maximumSize = CGSize(width: maxPixel, height: maxPixel)
         guard !Task.isCancelled else { return nil }
         return (try? gen.copyCGImage(at: CMTime(seconds: seconds, preferredTimescale: 600), actualTime: nil))?.asBox
     }

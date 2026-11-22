@@ -14,6 +14,10 @@ final class ReframeModel {
     var check: CGImage?
     var checkNote: String?
     var error: String?
+    var playing = false
+    @ObservationIgnored private var engine: PlaybackEngine?
+    @ObservationIgnored private var audio: AVPlayer?
+    @ObservationIgnored private var playTask: Task<Void, Never>?
     @ObservationIgnored private var state: ReframeState
     @ObservationIgnored private var pixels: EquirectPixels?
     @ObservationIgnored private var generation = 0
@@ -38,9 +42,63 @@ final class ReframeModel {
     func persist() { state.reframe[asset.id] = settings; state.save(store.root) }
 
     func seek(_ time: Double) {
+        pause()
         t = min(duration, max(0, time))
         if let v = settings.view(at: relative) { aim = v }
         loadSource()
+    }
+
+    /// Play/pause. Plays from the playhead (from `in` if it is at the out point), stops at `out` (no loop). The preview follows
+    /// the keyed path if there are keys, else the current aim; audio is the clock.
+    func togglePlay() { if playing { pause() } else { play() } }
+
+    func pause() {
+        guard playing else { return }
+        playing = false; playTask?.cancel(); audio?.pause()
+    }
+
+    private func play() {
+        sourceTask?.cancel(); playing = true
+        t = PlaybackMath.startTime(t, in: settings.in, out: settings.out)
+        playTask = Task { [weak self] in
+            guard let self else { return }
+            if self.engine == nil {
+                let level = try? await self.store.backend.level(id: self.asset.id)
+                let ex = self.asset.equirectExport.map { URL(fileURLWithPath: $0.path) }
+                self.engine = await PlaybackEngine.make(asset: self.asset, export: ex, level: level)
+            }
+            guard let engine = self.engine, !Task.isCancelled else { self.playing = false; self.error = self.error ?? "Playback unavailable for this clip"; return }
+            self.error = nil
+            let start = self.t
+            let player = await self.audioPlayer()
+            await player?.seek(to: CMTime(seconds: start, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+            player?.play()
+            let began = Date()
+            while !Task.isCancelled {
+                let tick = Date()
+                let now = player.map { $0.currentTime().seconds } ?? start + Date().timeIntervalSince(began)
+                if PlaybackMath.isFinished(now, out: self.settings.out) || (player.map { $0.rate == 0 && now > start } ?? false) { self.t = self.settings.out; self.pause(); break }
+                self.t = now
+                if let v = self.settings.view(at: self.relative) { self.aim = v }
+                let (w, h) = self.previewSize
+                do { if let img = try await engine.render(at: now, view: self.aim, width: w, height: h) { self.preview = img } }
+                catch { self.error = error.localizedDescription; self.pause(); break }
+                try? await Task.sleep(for: .milliseconds(max(1, 33 - Int(Date().timeIntervalSince(tick) * 1000))))
+            }
+        }
+    }
+
+    /// Audio-only player on the clip's first audio track (the video is decoded separately).
+    private func audioPlayer() async -> AVPlayer? {
+        if let audio { return audio }
+        let src = AVURLAsset(url: asset.mediaURL, options: [AVURLAssetOverrideMIMETypeKey: "video/mp4"])
+        guard let track = try? await src.loadTracks(withMediaType: .audio).first,
+              let range = try? await track.load(.timeRange) else { return nil }
+        let comp = AVMutableComposition()
+        guard let ct = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid),
+              (try? ct.insertTimeRange(range, of: track, at: .zero)) != nil else { return nil }
+        audio = AVPlayer(playerItem: AVPlayerItem(asset: comp))
+        return audio
     }
 
     func setIn() { settings.in = min(t, settings.out); persist() }
@@ -89,6 +147,18 @@ final class ReframeModel {
     }
 
     func rerender() {
+        if !playing, let engine {
+            let time = t, view = aim, size = previewSize
+            Task { [weak self] in
+                guard await engine.holds(time), let img = try? await engine.render(at: time, view: view, width: size.w, height: size.h), let self else { return await self?.rerenderStill() }
+                if !self.playing { self.preview = img }
+            }
+            return
+        }
+        rerenderStill()
+    }
+
+    private func rerenderStill() {
         guard let px = pixels else { return }
         generation += 1
         let gen = generation, view = aim, size = previewSize
@@ -171,6 +241,8 @@ struct ReframeView: View {
             }
             Timeline(model: model)
             HStack {
+                Button { m.togglePlay() } label: { Label(m.playing ? "Pause" : "Play", systemImage: m.playing ? "pause.fill" : "play.fill") }
+                    .keyboardShortcut(.space, modifiers: [])
                 Button("Set in (I)") { m.setIn() }.keyboardShortcut("i", modifiers: [])
                 Button("Set out (O)") { m.setOut() }.keyboardShortcut("o", modifiers: [])
                 Button("Add / update key (K)") { m.addKey() }.keyboardShortcut("k", modifiers: [])
@@ -182,6 +254,7 @@ struct ReframeView: View {
         }
         .padding(10)
         .onAppear { m.rerender() }
+        .onDisappear { m.pause() }
     }
 
     private func pane(_ image: CGImage?, caption: String) -> some View {

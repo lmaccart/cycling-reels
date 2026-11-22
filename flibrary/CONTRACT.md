@@ -49,6 +49,11 @@ exactly the picture an equirect export contains (unstabilized), so the app's aim
 With `--view`: a flat reframed still using exactly the same view convention (levelled frame) as the
 flat export, for checking that the app's preview matches the export.
 
+### `./reels flibrary level <id>`
+Prints the levelling rotation `{"yaw","pitch","roll","source"}` (v360 degrees; `source` = gravity | tag | none) used for
+every still and export of the 360 asset: camera-sphere ray = `v360_matrix(yaw, pitch, roll) * levelled ray`. The app
+applies it itself when it reprojects the raw `.360` EAC tracks for live playback (no export needed).
+
 ### `./reels flibrary estimate <job.json>` → `{"bytes": N, "freeBytes": N, "ok": true|false, "reason": "..."}`
 
 ### `./reels flibrary export <job.json>`

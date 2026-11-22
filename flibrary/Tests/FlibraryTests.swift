@@ -86,4 +86,13 @@ final class FlibraryTests: XCTestCase {
         XCTAssertEqual(RepositoryLocator.candidate(arguments: [], environment: [:], saved: "/c"), "/c")
         XCTAssertNil(RepositoryLocator.candidate(arguments: [], environment: [:], saved: nil))
     }
+
+    func testGridZoomBuckets() {
+        XCTAssertEqual(Media.pixelBucket(forTileWidth: 110), 240)
+        XCTAssertEqual(Media.pixelBucket(forTileWidth: 210), 480)
+        XCTAssertEqual(Media.pixelBucket(forTileWidth: 300), 720)
+        XCTAssertEqual(Media.pixelBucket(forTileWidth: 5000), 1440)
+        XCTAssertEqual(GridZoom.clamp(9999), GridZoom.range.upperBound)
+        XCTAssertEqual(GridZoom.clamp(1), GridZoom.range.lowerBound)
+    }
 }

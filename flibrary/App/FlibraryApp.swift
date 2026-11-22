@@ -9,6 +9,7 @@ struct FlibraryApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var store: LibraryStore?
     @State private var tools = ToolsModel()
+    @AppStorage(GridZoom.key) private var tileWidth = GridZoom.standard
 
     var body: some Scene {
         WindowGroup("flibrary") {
@@ -31,6 +32,13 @@ struct FlibraryApp: App {
             }
         }
         .defaultSize(width: 1240, height: 800)
+        .commands {
+            CommandGroup(after: .toolbar) {
+                Button("Bigger Thumbnails") { tileWidth = GridZoom.clamp(tileWidth * 1.2) }.keyboardShortcut("=", modifiers: .command)
+                Button("Smaller Thumbnails") { tileWidth = GridZoom.clamp(tileWidth / 1.2) }.keyboardShortcut("-", modifiers: .command)
+                Button("Actual Size Thumbnails") { tileWidth = GridZoom.standard }.keyboardShortcut("0", modifiers: .command)
+            }
+        }
     }
 
     private var isTestHost: Bool { ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil }

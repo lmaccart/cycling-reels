@@ -57,10 +57,19 @@ struct Backend: Sendable {
         catch { throw BackendError(message: "Unreadable library list: \(error.localizedDescription)") }
     }
 
+    /// The levelling rotation (v360 angles; fov unused) the backend applies to this clip.
+    func level(id: String) async throws -> SphereView {
+        let data = try await run(["level", id])
+        guard let o = try JSONSerialization.jsonObject(with: data) as? [String: Any], let y = o["yaw"] as? Double,
+              let p = o["pitch"] as? Double, let r = o["roll"] as? Double else { throw BackendError(message: "level returned no rotation") }
+        return SphereView(yaw: y, pitch: p, fov: 90, roll: r)
+    }
+
     /// Levelled full-sphere equirect still at `t` seconds, or with `view` the flat reframe exactly as the flat export renders it (cached).
     func frame(id: String, t: Double, width: Int = 2048, view: SphereView? = nil, w: Int = 0, h: Int = 0) async throws -> URL {
+        // `--view=...`: a negative yaw must not be read as an option
         var args = ["frame", id, "--t", String(format: "%.2f", t), "--width", String(width)]
-        if let v = view { args += ["--view", String(format: "%.3f,%.3f,%.3f,%.3f", v.yaw, v.pitch, v.roll, v.fov), "--w", String(w), "--h", String(h)] }
+        if let v = view { args += [String(format: "--view=%.3f,%.3f,%.3f,%.3f", v.yaw, v.pitch, v.roll, v.fov), "--w", String(w), "--h", String(h)] }
         let data = try await run(args)
         guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any], let path = obj["path"] as? String else {
             throw BackendError(message: "frame returned no path")

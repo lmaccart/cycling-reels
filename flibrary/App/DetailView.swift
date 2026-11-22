@@ -23,13 +23,22 @@ struct DetailView: View {
     }
 }
 
-struct PlayerView: View {
+/// AppKit AVPlayerView (the SwiftUI VideoPlayer from _AVKit_SwiftUI aborts at metadata init on this OS).
+struct PlayerView: NSViewRepresentable {
     let url: URL
-    @State private var player: AVPlayer?
-    var body: some View {
-        Group { if let player { VideoPlayer(player: player) } else { ProgressView() } }
-            .task(id: url) { player = AVPlayer(url: url) }
-            .onDisappear { player?.pause() }
+    func makeNSView(context: Context) -> AVPlayerView {
+        let v = AVPlayerView()
+        v.controlsStyle = .floating
+        v.showsFullScreenToggleButton = false
+        v.videoGravity = .resizeAspect
+        v.player = AVPlayer(url: url)
+        return v
+    }
+    func updateNSView(_ v: AVPlayerView, context: Context) {
+        if (v.player?.currentItem?.asset as? AVURLAsset)?.url != url { v.player?.pause(); v.player = AVPlayer(url: url) }
+    }
+    static func dismantleNSView(_ v: AVPlayerView, coordinator: ()) {
+        v.player?.pause(); v.player?.replaceCurrentItem(with: nil); v.player = nil
     }
 }
 

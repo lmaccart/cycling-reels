@@ -285,6 +285,14 @@ def levelled_equirect_still(src: Path, t: float | None, out: Path, probe: dict, 
         raise ReelsError(f"couldn't extract a 360 frame from {src.name}")
 
 
+def cmd_level(project: Project, asset_id: str) -> dict:
+    """The levelling rotation (v360 yaw/pitch/roll, degrees) of a 360 asset: camera ray = v360_matrix(it) * levelled ray."""
+    a = load_asset_record(project, asset_id)
+    if not (a.get("probe") or {}).get("sphere"):
+        raise ReelsError(f"{asset_id} is not a 360 asset")
+    return level_rotation(project, a)
+
+
 def cmd_frame(project: Project, asset_id: str, t: float, width: int, view: str | None, w: int, h: int) -> dict:
     from .sphere import extract_view, photo_view
 
@@ -977,6 +985,8 @@ def run_command(project: Project, args) -> int:
             print(json.dumps(cmd_list(project), ensure_ascii=False))
         elif args.flib_cmd == "frame":
             print(json.dumps(cmd_frame(project, args.id, args.t, args.width, args.view, args.w, args.h)))
+        elif args.flib_cmd == "level":
+            print(json.dumps(cmd_level(project, args.id)))
         elif args.flib_cmd == "estimate":
             print(json.dumps(cmd_estimate(project, args.job)))
         else:
@@ -998,6 +1008,8 @@ def add_commands(sub) -> None:
     s.add_argument("--view", help="YAW,PITCH,ROLL,FOV: a flat reframe as in the flat export")
     s.add_argument("--w", type=int, default=1080)
     s.add_argument("--h", type=int, default=1920)
+    s = fs.add_parser("level", help="the levelling rotation of a 360 asset as v360 yaw/pitch/roll")
+    s.add_argument("id")
     s = fs.add_parser("estimate", help="size and disk check for a job.json")
     s.add_argument("job")
     s = fs.add_parser("export", help="run a job.json; progress as JSON lines")

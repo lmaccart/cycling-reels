@@ -22,6 +22,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.cycling.flibrary
         PRODUCT_NAME: flibrary
         INFOPLIST_KEY_CFBundleDisplayName: flibrary
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.video
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"

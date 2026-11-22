@@ -60,11 +60,15 @@ struct FilterBar: View {
 
 struct StatusBar: View {
     let store: LibraryStore
+    @AppStorage(GridZoom.key) private var tileWidth = GridZoom.standard
     var body: some View {
         HStack {
             if let e = store.error { Text(e).foregroundStyle(.red).lineLimit(2).textSelection(.enabled) }
             else { Text("\(store.visible.count) of \(store.assets.count) clips" + (store.selection.isEmpty ? "" : " · \(store.selection.count) selected")) }
             Spacer()
+            Image(systemName: "photo").imageScale(.small)
+            Slider(value: $tileWidth, in: GridZoom.range).frame(width: 110).controlSize(.mini).help("Thumbnail size (Cmd+= / Cmd+-, 0 resets)")
+            Image(systemName: "photo").imageScale(.large)
             if store.loading { ProgressView().controlSize(.small) }
             if let free = store.freeBytes { Text("\(ByteCountFormatter.string(fromByteCount: Int64(free), countStyle: .file)) free") }
         }
@@ -72,8 +76,17 @@ struct StatusBar: View {
     }
 }
 
+enum GridZoom {
+    static let key = "gridTileWidth"
+    static let range: ClosedRange<Double> = 110...480
+    static let standard = 210.0
+    static func clamp(_ v: Double) -> Double { min(range.upperBound, max(range.lowerBound, v)) }
+}
+
 struct GridView: View {
     let store: LibraryStore
+    @AppStorage(GridZoom.key) private var tileWidth = GridZoom.standard
+    @State private var pinchBase: Double?
 
     private var days: [(day: Date, assets: [Asset])] {
         let cal = Calendar.current
@@ -83,10 +96,10 @@ struct GridView: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 210, maximum: 300), spacing: 12, alignment: .top)], spacing: 12, pinnedViews: [.sectionHeaders]) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: GridZoom.clamp(tileWidth), maximum: GridZoom.clamp(tileWidth) * 1.4), spacing: 12, alignment: .top)], spacing: 12, pinnedViews: [.sectionHeaders]) {
                 ForEach(days, id: \.day) { group in
                     Section {
-                        ForEach(group.assets) { AssetCell(store: store, asset: $0) }
+                        ForEach(group.assets) { AssetCell(store: store, asset: $0, pixels: Media.pixelBucket(forTileWidth: GridZoom.clamp(tileWidth) * 1.4)) }
                     } header: {
                         Text(group.day == .distantPast ? "Undated" : group.day.formatted(.dateTime.weekday(.wide).month().day().year()))
                             .font(.headline).frame(maxWidth: .infinity, alignment: .leading)
@@ -97,6 +110,10 @@ struct GridView: View {
             .padding(12)
         }
         .overlay { if store.visible.isEmpty && !store.loading { Text(store.assets.isEmpty ? "No footage yet" : "Nothing matches").foregroundStyle(.secondary) } }
+        .simultaneousGesture(MagnifyGesture().onChanged { v in
+            if pinchBase == nil { pinchBase = tileWidth }
+            tileWidth = GridZoom.clamp((pinchBase ?? tileWidth) * v.magnification)
+        }.onEnded { _ in pinchBase = nil })
         .focusable()
         .onKeyPress(.space) { store.openDetail(); return .handled }
     }
@@ -105,6 +122,7 @@ struct GridView: View {
 struct AssetCell: View {
     let store: LibraryStore
     let asset: Asset
+    var pixels = 480
     @Environment(ToolsModel.self) private var tools
     @State private var thumb: CGImage?
     @State private var scrub: CGImage?
@@ -139,7 +157,7 @@ struct AssetCell: View {
         .overlay { DragSurface(mouseDown: mouseDown, click: { store.click(asset.id, modifiers: $0) }, dragURLs: dragURLs,
                                dragImage: { shown.map { NSImage(cgImage: $0, size: NSSize(width: $0.width, height: $0.height)) } },
                                dragEnded: dragEnded, hover: hover, menu: menu) }
-        .task(id: asset.id) { thumb = await Media.thumbnail(for: asset) }
+        .task(id: "\(asset.id)@\(pixels)") { if let t = await Media.thumbnail(for: asset, maxPixel: pixels) { thumb = t } }
     }
 
     private func badge(_ text: String) -> some View {
@@ -171,7 +189,7 @@ struct AssetCell: View {
         scrubTask = Task {
             try? await Task.sleep(for: .milliseconds(30))
             guard !Task.isCancelled else { return }
-            let img = await Media.scrubFrame(for: asset, fraction: f)
+            let img = await Media.scrubFrame(for: asset, fraction: f, maxPixel: min(pixels, 720))
             if !Task.isCancelled, let img { scrub = img }
         }
     }

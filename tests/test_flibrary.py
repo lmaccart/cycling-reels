@@ -161,6 +161,15 @@ class OrientationTests(unittest.TestCase):
         got = fl.level_rotation(fx.project, a)  # media file doesn't exist
         self.assertEqual(got["source"], "tag")
 
+    def test_cmd_level_prints_the_rotation(self):
+        fx = TempProject(self)
+        make_360(fx)
+        got = fl.cmd_level(fx.project, "a-360")  # media offline: tag fallback
+        self.assertEqual({k: got[k] for k in ("yaw", "pitch", "roll")}, {"yaw": -180.0, "pitch": 40.0, "roll": 180.0})
+        fx.asset("b-flat", duration=5.0)
+        with self.assertRaises(ReelsError):
+            fl.cmd_level(fx.project, "b-flat")
+
     def test_keys_compose_with_the_levelling_rotation(self):
         from reels.stabilize import mmul, v360_matrix
 
