@@ -88,7 +88,13 @@ final class ReframeTests: XCTestCase {
         XCTAssertEqual(tools.jobs.map(\.state), [.failed, .done])
         XCTAssertTrue(tools.jobs[0].detail?.hasPrefix("disk full") ?? false)
         XCTAssertEqual(tools.jobs[1].output, "/x.mp4")
-        let ran = try FileManager.default.contentsOfDirectory(atPath: root.appending(path: ".cache/flibrary/jobs").path)
+        // The runner deletes the job file in a `defer` just after marking the job done; give it a moment.
+        let jobsDir = root.appending(path: ".cache/flibrary/jobs").path
+        var ran = try FileManager.default.contentsOfDirectory(atPath: jobsDir)
+        for _ in 0..<50 where ran.contains(where: { $0.hasSuffix(".json") }) {
+            try await Task.sleep(for: .milliseconds(20))
+            ran = try FileManager.default.contentsOfDirectory(atPath: jobsDir)
+        }
         XCTAssertTrue(ran.filter { $0.hasSuffix(".json") }.isEmpty, "job files are cleaned up (\(ran))")
     }
 
