@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# flibrary launcher: setup | open. The app reads the repo's library/ and calls ./reels flibrary.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/.." && pwd)"
+APP="$HOME/Applications/flibrary.app"
+BUNDLE_ID="com.cycling.flibrary"
+BUILD_DIR="$REPO/.cache/flibrary/build"
+
+fail() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
+
+case "${1:-}" in
+  setup)
+    command -v xcodegen >/dev/null 2>&1 || fail "xcodegen is required (brew install xcodegen)."
+    ( cd "$HERE" && xcodegen generate --quiet )
+    mkdir -p "$BUILD_DIR"
+    xcodebuild -project "$HERE/flibrary.xcodeproj" -scheme flibrary -configuration Release \
+      -derivedDataPath "$BUILD_DIR" build | tail -n 5
+    PRODUCT="$BUILD_DIR/Build/Products/Release/flibrary.app"
+    [ -d "$PRODUCT" ] || fail "Build finished but $PRODUCT is missing."
+    mkdir -p "$HOME/Applications"
+    [ ! -d "$APP" ] || rm -rf "$HOME/Applications/flibrary.app"
+    ditto "$PRODUCT" "$APP"
+    defaults write "$BUNDLE_ID" flibrary.repositoryRoot "$REPO"
+    echo "flibrary installed: $APP (library: $REPO/library)"
+    ;;
+  open)
+    [ -d "$APP" ] || fail "Not installed yet. Run: flibrary/flibrary setup"
+    exec open "$APP" --args --repo "$REPO"
+    ;;
+  *) echo "Usage: flibrary/flibrary setup | open" >&2; exit 2 ;;
+esac

@@ -133,6 +133,53 @@ final class ContractTests: XCTestCase {
         }
     }
 
+    private func equirectRender(_ changes: [String: Any] = [:]) throws -> RenderRequest {
+        var values: [String: Any] = [
+            "projection": "equirect", "width": 2944, "height": 1472, "fps": 60, "fpsDivisor": 1001,
+            "speed": 1, "sourceIn": 10, "sourceOut": 13, "frames": 179, "codec": "hevc",
+            "keys": [["at": 0, "yaw": -179.6, "pitch": 28.4, "roll": 178.6, "fov": 90]],
+        ]
+        values.merge(changes) { _, new in new }
+        return try request(values)
+    }
+
+    func testEquirectRenderUsesKeyAsOutputRotationAndProxyStaysIdentity() throws {
+        let r = try equirectRender()
+        try r.validate()
+        XCTAssertTrue(r.isEquirectRender)
+        XCTAssertEqual(r.rate, 60000.0 / 1001, accuracy: 1e-9)
+        XCTAssertEqual(r.outputTime(1001).seconds, 1001.0 * 1001 / 60000, accuracy: 1e-9)
+        let m = r.matrix(frame: 0, keys: r.keys.map(\.key)).0
+        XCTAssertNotEqual(m[0], matrix_identity_double3x3[0])
+        let ident = try equirectRender(["keys": [["at": 0, "yaw": 0, "pitch": 0, "roll": 0, "fov": 90]], "fpsDivisor": NSNull()])
+        try ident.validate()
+        XCTAssertEqual(ident.rate, 60)
+        XCTAssertEqual(ident.outputTime(3), CMTime(value: 3, timescale: 60))
+        for column in 0..<3 {
+            XCTAssertLessThan(simd_length(ident.matrix(frame: 0, keys: ident.keys.map(\.key)).0[column] - matrix_identity_double3x3[column]), 1e-12)
+        }
+        // the proxy is unchanged
+        let p = try proxy()
+        for column in 0..<3 { XCTAssertEqual(p.matrix(frame: 0, keys: []).0[column], matrix_identity_double3x3[column]) }
+    }
+
+    func testEquirectRenderRejectsBadShapesAndFpsDivisorElsewhere() throws {
+        for change: [String: Any] in [
+            ["width": 2944, "height": 1000], ["keys": []],
+            ["keys": [["at": 0, "yaw": 0, "pitch": 0, "roll": 0, "fov": 90], ["at": 1, "yaw": 5, "pitch": 0, "roll": 0, "fov": 90]]],
+            ["fpsDivisor": 1000], ["views": []], ["maxOutputBytes": 1],
+        ] { XCTAssertThrowsError(try equirectRender(change).validate()) }
+        XCTAssertThrowsError(try request(["fpsDivisor": 1001]).validate())
+        XCTAssertThrowsError(try proxy(["fpsDivisor": 1001]).validate())
+    }
+
+    func testFpsTickAtNTSCRateKeepsEverySourceFrame() {
+        let rate = 60000.0 / 1001
+        for n in [0, 1, 999, 1000, 10_000] {
+            XCTAssertEqual(fpsTick(pts: 5 + Double(n) * 1001 / 60000, first: 5, speed: 1, rate: rate), n)
+        }
+    }
+
     func testFpsRoundNearUsesTrimmedFirstPTSNotSourceIn() {
         let first = 10.126783333333
         XCTAssertEqual(fpsTick(pts: first, first: first, speed: 1, fps: 30), 0)

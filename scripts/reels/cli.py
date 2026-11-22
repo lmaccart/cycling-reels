@@ -906,6 +906,7 @@ def build_parser() -> argparse.ArgumentParser:
     from .search import add_deleted_arg, add_shelf_args
     from .takes import add_commands as add_takes_commands
     from .prewarm import add_commands as add_prewarm_commands
+    from .flibrary import add_commands as add_flibrary_commands
 
     p = argparse.ArgumentParser(prog="reels", description="Turn ride footage into captioned Instagram Reels.")
     p.add_argument("--version", action="version", version=f"cycling-reels {__version__}")
@@ -920,6 +921,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-speech", action="store_true", help="skip speech detection")
     s.set_defaults(fn=cmd_ingest)
     add_prewarm_commands(sub)
+    add_flibrary_commands(sub)
 
     s = sub.add_parser("bench-sphere-metal", help="compare actual Metal/v360 staging on read-only own footage; delete temporary media")
     s.add_argument("--root", help="library/plan root (default: this project)")

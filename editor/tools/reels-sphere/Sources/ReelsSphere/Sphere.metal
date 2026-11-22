@@ -135,6 +135,8 @@ kernel void reproject(texture2d<float, access::read> src [[texture(0)]],
     if(u.layout==1) {
         float phi=xy.x*M_PI_F, theta=xy.y*(M_PI_F/2);
         d=float3(cos(theta)*sin(phi),sin(theta),cos(theta)*cos(phi));
+        // Whole-sphere render: rotate the output sphere (levelling). Proxies keep the identity.
+        if(!u.proxy) d=normalize(u.matrix*d);
     } else {
         float tanHalf=second ? u.secondTanHalf : u.tanHalf;
         xy*=float2(tanHalf,tanHalf*u.aspect);
